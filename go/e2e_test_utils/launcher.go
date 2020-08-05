@@ -55,6 +55,21 @@ func LaunchTests(testFunctions []func(context.Context, *sync.WaitGroup, chan *ju
 func RunTestsAndOutput(testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string),
 	loggerPrefix string) bool {
 
+	testFunctionsWithArgs := []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string){}
+	for _, tf := range testFunctions {
+		testFunctionsWithArgs = append(testFunctionsWithArgs,
+			func(ctx context.Context, wg *sync.WaitGroup, tests chan *junitxml.TestSuite, logger *log.Logger, testSuiteRegex *regexp.Regexp, testCaseRegex *regexp.Regexp, pr *testconfig.Project, _ map[string]string) {
+				tf(ctx, wg, tests, logger, testSuiteRegex, testCaseRegex, pr)
+			})
+	}
+
+	return RunTestsWithArgsAndOutput(testFunctionsWithArgs, loggerPrefix)
+}
+
+// RunTestsWithArgsAndOutput runs tests with arguments by the test framework and output results to given file
+func RunTestsWithArgsAndOutput(testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string),
+	loggerPrefix string) bool {
+
 	flag.Parse()
 	ctx := context.Background()
 	pr := getProject(ctx)
@@ -112,6 +127,7 @@ func runTests(ctx context.Context, testFunctions []func(context.Context, *sync.W
 	logger *log.Logger, testSuiteRegex *regexp.Regexp, testCaseRegex *regexp.Regexp, pr *testconfig.Project, argMap map[string]string) chan *junitxml.TestSuite {
 	tests := make(chan *junitxml.TestSuite)
 	var wg sync.WaitGroup
+
 	for _, tf := range testFunctions {
 		wg.Add(1)
 		go tf(ctx, &wg, tests, logger, testSuiteRegex, testCaseRegex, pr, argMap)

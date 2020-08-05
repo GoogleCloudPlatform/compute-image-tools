@@ -152,7 +152,7 @@ def DistroSpecific(g):
       g.write_append(
           '/etc/yum.repos.d/google-cloud.repo', repo_sdk % el_release)
       yum_install(g, 'google-cloud-sdk')
-    yum_install(g, 'google-compute-engine')
+    yum_install(g, 'google-compute-engine', 'google-osconfig-agent')
 
   logging.info('Updating initramfs')
   for kver in g.ls('/lib/modules'):

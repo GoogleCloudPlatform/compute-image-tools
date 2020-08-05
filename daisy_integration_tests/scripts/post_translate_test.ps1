@@ -56,6 +56,16 @@ function Get-MetadataValue {
   }
 }
 
+function Check-OSConfigAgent {
+  # To disable checking for the OS config agent, add an instance metadata
+  # value of osconfig_not_supported: true.
+  $osconfig_not_supported = Get-MetadataValue -key 'osconfig_not_supported' -default 'false'
+  if ($osconfig_not_supported.ToLower() -ne 'true') {
+    Write-Output 'Test: OS Config agent'
+    Get-Service google_osconfig_agent
+  }
+}
+
 function Check-Activation {
   # Force activation as this is on a timer.
   & cscript c:\windows\system32\slmgr.vbs /ato
