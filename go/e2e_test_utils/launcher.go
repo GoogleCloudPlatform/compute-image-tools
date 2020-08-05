@@ -43,7 +43,7 @@ var (
 )
 
 // LaunchTests launches tests by the test framework
-func LaunchTests(testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string),
+func LaunchTests(testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project),
 	loggerPrefix string) {
 
 	if success := RunTestsAndOutput(testFunctions, loggerPrefix); !success {
@@ -52,7 +52,30 @@ func LaunchTests(testFunctions []func(context.Context, *sync.WaitGroup, chan *ju
 }
 
 // RunTestsAndOutput runs tests by the test framework and output results to given file
-func RunTestsAndOutput(testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string),
+func RunTestsAndOutput(testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project),
+	loggerPrefix string) bool {
+
+	flag.Parse()
+	ctx := context.Background()
+	pr := getProject(ctx)
+	testSuiteRegex, testCaseRegex := getTestRegex()
+
+	logger := log.New(os.Stdout, loggerPrefix+" ", 0)
+	logger.Println("Starting...")
+
+	var testFunctionInterfaces []interface{}
+	for _, tf := range testFunctions {
+		testFunctionInterfaces = append(testFunctionInterfaces, tf)
+	}
+
+	testResultChan := runTests(ctx, logger, testSuiteRegex, testCaseRegex, pr, nil, testFunctionInterfaces)
+
+	testSuites := outputTestResultToFile(testResultChan, logger)
+	return outputTestResultToLogger(testSuites, logger)
+}
+
+// RunTestsWithArgsAndOutput runs tests with arguments by the test framework and output results to given file
+func RunTestsWithArgsAndOutput(testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string),
 	loggerPrefix string) bool {
 
 	flag.Parse()
@@ -67,7 +90,12 @@ func RunTestsAndOutput(testFunctions []func(context.Context, *sync.WaitGroup, ch
 	s.Set(*variables)
 	argMap := map[string]string(s)
 
-	testResultChan := runTests(ctx, testFunctions, logger, testSuiteRegex, testCaseRegex, pr, argMap)
+	var testFunctionInterfaces []interface{}
+	for _, tf := range testFunctions {
+		testFunctionInterfaces = append(testFunctionInterfaces, tf)
+	}
+
+	testResultChan := runTests(ctx, logger, testSuiteRegex, testCaseRegex, pr, argMap, testFunctionInterfaces)
 
 	testSuites := outputTestResultToFile(testResultChan, logger)
 	return outputTestResultToLogger(testSuites, logger)
@@ -108,13 +136,21 @@ func getTestRegex() (*regexp.Regexp, *regexp.Regexp) {
 	return testSuiteRegex, testCaseRegex
 }
 
-func runTests(ctx context.Context, testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string),
-	logger *log.Logger, testSuiteRegex *regexp.Regexp, testCaseRegex *regexp.Regexp, pr *testconfig.Project, argMap map[string]string) chan *junitxml.TestSuite {
+func runTests(ctx context.Context, logger *log.Logger, testSuiteRegex *regexp.Regexp,
+	testCaseRegex *regexp.Regexp, pr *testconfig.Project, argMap map[string]string, testFunctionsInterface []interface{}) chan *junitxml.TestSuite {
 	tests := make(chan *junitxml.TestSuite)
 	var wg sync.WaitGroup
-	for _, tf := range testFunctions {
+	hasVar := argMap != nil
+
+	for _, tf := range testFunctionsInterface {
 		wg.Add(1)
-		go tf(ctx, &wg, tests, logger, testSuiteRegex, testCaseRegex, pr, argMap)
+		if hasVar {
+			testFunction := tf.(func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string))
+			go testFunction(ctx, &wg, tests, logger, testSuiteRegex, testCaseRegex, pr, argMap)
+		} else {
+			testFunction := tf.(func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project))
+			go testFunction(ctx, &wg, tests, logger, testSuiteRegex, testCaseRegex, pr)
+		}
 	}
 	go func() {
 		wg.Wait()
