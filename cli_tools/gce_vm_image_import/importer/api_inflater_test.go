@@ -17,9 +17,11 @@ package importer
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateInflater_File(t *testing.T) {
@@ -41,10 +43,10 @@ func TestCreateInflater_File(t *testing.T) {
 			metaToReturn:      imagefile.Metadata{},
 		})
 	assert.NoError(t, err)
-	realInflater, ok := inflater.(*inflaterFacade)
+	facade, ok := inflater.(*inflaterFacade)
 	assert.True(t, ok)
 
-	mainInflater, ok := realInflater.mainInflater.(*daisyInflater)
+	mainInflater, ok := facade.mainInflater.(*daisyInflater)
 	assert.True(t, ok)
 	assert.Equal(t, "zones/us-west1-c/disks/disk-1234", mainInflater.inflatedDiskURI)
 	assert.Equal(t, "gs://bucket/vmdk", mainInflater.wf.Vars["source_disk_file"].Value)
@@ -54,8 +56,9 @@ func TestCreateInflater_File(t *testing.T) {
 	network := getWorkerNetwork(t, mainInflater.wf)
 	assert.Nil(t, network.AccessConfigs, "AccessConfigs must be nil to allow ExternalIP to be allocated.")
 
-	_, ok = realInflater.shadowInflater.(*apiInflater)
-	assert.True(t, ok)
+	realInflater, _ := facade.shadowInflater.(*apiInflater)
+	assert.NotContains(t, realInflater.guestOsFeatures,
+		&computeAlpha.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
 }
 
 func TestCreateInflater_Image(t *testing.T) {
@@ -73,4 +76,13 @@ func TestCreateInflater_Image(t *testing.T) {
 	inflatedDisk := getDisk(realInflater.wf, 0)
 	assert.Contains(t, inflatedDisk.Licenses,
 		"projects/compute-image-tools/global/licenses/virtual-disk-import")
+}
+
+func TestCreateAPIInflater_IncludesUEFIGuestOSFeature(t *testing.T) {
+	args := ImportArguments{
+		UefiCompatible: true,
+	}
+	realInflater, _ := createAPIInflater(args, nil, storage.Client{}).(*apiInflater)
+	assert.Contains(t, realInflater.guestOsFeatures,
+		&computeAlpha.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
 }

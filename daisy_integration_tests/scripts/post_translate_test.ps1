@@ -119,7 +119,7 @@ try {
       throw 'Activation failed'
     }
   }
-  Write-Output 'All Tests Passed'
+  Write-Output 'PASSED: All Tests Passed'
 }
 catch {
   Write-Output 'Exception caught in script:'
