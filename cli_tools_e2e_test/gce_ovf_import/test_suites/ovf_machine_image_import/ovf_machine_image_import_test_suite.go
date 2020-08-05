@@ -67,7 +67,7 @@ type ovfMachineImageImportTestProperties struct {
 func TestSuite(
 	ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
 	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp,
-	testProjectConfig *testconfig.Project, _ map[string]string) {
+	testProjectConfig *testconfig.Project) {
 
 	testsMap := map[utils.CLITestType]map[*junitxml.TestCase]func(
 		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, utils.CLITestType){}

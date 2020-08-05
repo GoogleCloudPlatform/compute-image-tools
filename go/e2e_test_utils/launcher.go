@@ -43,7 +43,7 @@ var (
 )
 
 // LaunchTests launches tests by the test framework
-func LaunchTests(testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string),
+func LaunchTests(testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project),
 	loggerPrefix string) {
 
 	if success := RunTestsAndOutput(testFunctions, loggerPrefix); !success {
@@ -52,7 +52,7 @@ func LaunchTests(testFunctions []func(context.Context, *sync.WaitGroup, chan *ju
 }
 
 // RunTestsAndOutput runs tests by the test framework and output results to given file
-func RunTestsAndOutput(testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string),
+func RunTestsAndOutput(testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project),
 	loggerPrefix string) bool {
 
 	testFunctionsWithArgs := []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string){}

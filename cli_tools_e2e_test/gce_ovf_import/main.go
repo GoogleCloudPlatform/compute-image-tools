@@ -30,10 +30,10 @@ import (
 
 func main() {
 	ovfInstanceImportTestSuccess := e2etestutils.RunTestsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
-		*regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string){ovfinstanceimporttestsuite.TestSuite},
+		*regexp.Regexp, *regexp.Regexp, *testconfig.Project){ovfinstanceimporttestsuite.TestSuite},
 		"[OVFInstanceImportTests]")
 	ovfMachineImageImportTestSuccess := e2etestutils.RunTestsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
-		*regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string){ovfmachineimageimporttestsuite.TestSuite},
+		*regexp.Regexp, *regexp.Regexp, *testconfig.Project){ovfmachineimageimporttestsuite.TestSuite},
 		"[OVFMachineImageImportTests]")
 
 	if !ovfInstanceImportTestSuccess || !ovfMachineImageImportTestSuccess {
