@@ -28,6 +28,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 )
@@ -38,6 +39,7 @@ var (
 	outDir          = flag.String("out_dir", "/tmp", "junit xml directory")
 	testProjectID   = flag.String("test_project_id", "", "test project id")
 	testZone        = flag.String("test_zone", "", "test zone")
+	variables       = flag.String("variables", "", "comma separated list of variables, in the form 'key=value'")
 )
 
 // LaunchTests launches tests by the test framework
@@ -53,6 +55,21 @@ func LaunchTests(testFunctions []func(context.Context, *sync.WaitGroup, chan *ju
 func RunTestsAndOutput(testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project),
 	loggerPrefix string) bool {
 
+	testFunctionsWithArgs := []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string){}
+	for _, tf := range testFunctions {
+		testFunctionsWithArgs = append(testFunctionsWithArgs,
+			func(ctx context.Context, wg *sync.WaitGroup, tests chan *junitxml.TestSuite, logger *log.Logger, testSuiteRegex *regexp.Regexp, testCaseRegex *regexp.Regexp, pr *testconfig.Project, _ map[string]string) {
+				tf(ctx, wg, tests, logger, testSuiteRegex, testCaseRegex, pr)
+			})
+	}
+
+	return RunTestsWithArgsAndOutput(testFunctionsWithArgs, loggerPrefix)
+}
+
+// RunTestsWithArgsAndOutput runs tests with arguments by the test framework and output results to given file
+func RunTestsWithArgsAndOutput(testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string),
+	loggerPrefix string) bool {
+
 	flag.Parse()
 	ctx := context.Background()
 	pr := getProject(ctx)
@@ -61,7 +78,11 @@ func RunTestsAndOutput(testFunctions []func(context.Context, *sync.WaitGroup, ch
 	logger := log.New(os.Stdout, loggerPrefix+" ", 0)
 	logger.Println("Starting...")
 
-	testResultChan := runTests(ctx, testFunctions, logger, testSuiteRegex, testCaseRegex, pr)
+	var s flags.KeyValueString = nil
+	s.Set(*variables)
+	argMap := map[string]string(s)
+
+	testResultChan := runTests(ctx, testFunctions, logger, testSuiteRegex, testCaseRegex, pr, argMap)
 
 	testSuites := outputTestResultToFile(testResultChan, logger)
 	return outputTestResultToLogger(testSuites, logger)
@@ -102,13 +123,14 @@ func getTestRegex() (*regexp.Regexp, *regexp.Regexp) {
 	return testSuiteRegex, testCaseRegex
 }
 
-func runTests(ctx context.Context, testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project),
-	logger *log.Logger, testSuiteRegex *regexp.Regexp, testCaseRegex *regexp.Regexp, pr *testconfig.Project) chan *junitxml.TestSuite {
+func runTests(ctx context.Context, testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string),
+	logger *log.Logger, testSuiteRegex *regexp.Regexp, testCaseRegex *regexp.Regexp, pr *testconfig.Project, argMap map[string]string) chan *junitxml.TestSuite {
 	tests := make(chan *junitxml.TestSuite)
 	var wg sync.WaitGroup
+
 	for _, tf := range testFunctions {
 		wg.Add(1)
-		go tf(ctx, &wg, tests, logger, testSuiteRegex, testCaseRegex, pr)
+		go tf(ctx, &wg, tests, logger, testSuiteRegex, testCaseRegex, pr, argMap)
 	}
 	go func() {
 		wg.Wait()
