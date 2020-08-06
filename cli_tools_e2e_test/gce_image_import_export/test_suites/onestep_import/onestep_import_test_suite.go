@@ -61,8 +61,8 @@ func OnestepImageImportSuite(
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, utils.CLITestType){}
-		testsMap[testType][onestepImageImportFromAWSUbuntuAMI] = runOnestepImageImportFromAWSUbuntuAMI
-		testsMap[testType][onestepImageImportFromAWSUbuntuVMDK] = runOnestepImageImportFromAWSUbuntuVMDK
+		testsMap[testType][onestepImageImportFromAWSUbuntuAMI] = runOnestepImageImportFromAWSLinuxAMI
+		testsMap[testType][onestepImageImportFromAWSUbuntuVMDK] = runOnestepImageImportFromAWSLinuxVMDK
 		testsMap[testType][onestepImageImportFromAWSWindowsAMI] = runOnestepImageImportFromAWSWindowsAMI
 		testsMap[testType][onestepImageImportFromAWSWindowsVMDK] = runOnestepImageImportFromAWSWindowsVMDK
 	}
@@ -98,7 +98,7 @@ func OnestepImageImportSuite(
 		testProjectConfig, testSuiteName, testsMap)
 }
 
-func runOnestepImageImportFromAWSUbuntuAMI(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runOnestepImageImportFromAWSLinuxAMI(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 	imageName := "e2e-test-onestep-image-import" + path.RandString(5)
 
@@ -112,7 +112,7 @@ func runOnestepImageImportFromAWSUbuntuAMI(ctx context.Context, testCase *junitx
 	runOnestepImportTest(ctx, props, testProjectConfig, testType, logger, testCase)
 }
 
-func runOnestepImageImportFromAWSUbuntuVMDK(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runOnestepImageImportFromAWSLinuxVMDK(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 	imageName := "e2e-test-onestep-image-import" + path.RandString(5)
 

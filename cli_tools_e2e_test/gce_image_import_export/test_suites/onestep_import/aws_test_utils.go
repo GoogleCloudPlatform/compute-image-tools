@@ -71,7 +71,7 @@ func getAWSTemporaryCredentials() error {
 	os.Setenv("AWS_SHARED_CREDENTIALS_FILE", credFileName)
 	mySession := session.Must(session.NewSession())
 	svc := sts.New(mySession)
-	sessionDuration := int64((time.Hour * 3).Seconds())
+	sessionDuration := int64((time.Hour * 6).Seconds())
 	output, err := svc.GetSessionToken(&sts.GetSessionTokenInput{DurationSeconds: aws.Int64(sessionDuration)})
 	if err != nil {
 		return err
