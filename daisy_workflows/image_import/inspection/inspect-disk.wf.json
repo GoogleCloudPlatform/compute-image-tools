@@ -9,7 +9,7 @@
   },
   "Sources": {
     "daisy-shim.sh": "daisy-shim.sh",
-    "daisy_shim.py": "daisy_shim.py",
+    "inspect-disk.py": "inspect-disk.py",
     "inspection.py": "inspection.py",
     "model.py": "model.py",
     "inspectors": "inspectors/",

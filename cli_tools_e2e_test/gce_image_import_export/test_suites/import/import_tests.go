@@ -168,7 +168,7 @@ func (t testCase) runPostTranslateTest(ctx context.Context, imagePath string,
 		"image_under_test": {
 			Value: imagePath,
 		},
-		"post_translate_test": {
+		"path_to_post_translate_test": {
 			Value: t.testScript(),
 		},
 	}

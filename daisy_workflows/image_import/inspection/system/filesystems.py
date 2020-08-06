@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Abstraction for filesystem operations against data-backed systems."""
+"""Expose and consume data using file-like operations."""
 
 import abc
 import typing
@@ -43,7 +43,7 @@ class Filesystem(object, metaclass=abc.ABCMeta):
 
 
 class GuestFSFilesystem(Filesystem):
-  """An Filesystem that delegates to an offline VM."""
+  """A Filesystem that delegates to an offline VM."""
 
   def __init__(self, g: guestfs.GuestFS):
     """Args:
@@ -65,6 +65,12 @@ class GuestFSFilesystem(Filesystem):
 
 
 class DictBackedFilesystem(Filesystem):
+  """A Filesystem that delegates to a dict.
+
+  The dict is a string-to-string mapping where
+  keys are filenames, and values are utf8-encoded
+  strings of their content.
+  """
 
   def __init__(self, fs: typing.Mapping[str, str]):
     """Args:

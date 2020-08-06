@@ -13,10 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# A GCE instance startup-script that:
+# A Google Compute Engine instance startup-script that:
 #  1. Downloads the files specified in the `daisy-sources-path`
 #     metadata variable.
-#  2. Executes the file `daisy_shim.py`.
+#  2. Executes the file `inspect-disk`.
 set -euf -o pipefail
 
 ROOT="/tmp/build-root-$RANDOM"
@@ -24,5 +24,5 @@ SOURCE=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/attri
 
 mkdir -p "$ROOT" && cd "$ROOT"
 gsutil cp -R "$SOURCE/*" .
-python3 daisy_shim.py /dev/sdb
+python3 inspect-disk.py --format=daisy /dev/sdb
 echo "Success:"

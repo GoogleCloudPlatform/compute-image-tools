@@ -29,8 +29,8 @@ class TestYAMLEncoded(unittest.TestCase):
   """
 
   def test_all_systems(self):
-    for fname in os.listdir('test-data'):
-      fpath = os.path.join('test-data', fname)
+    for fname in os.listdir('tests/test-data'):
+      fpath = os.path.join('tests/test-data', fname)
       with self.subTest(msg=fname):
         self.run_yaml_encoded_test(fpath)
 

@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Supports inspecting offline Linux VMs."""
+"""Supports inspecting offline Linux systems."""
 
 import re
 import typing
@@ -53,8 +53,8 @@ class LegacyFingerprint:
                metadata_file: str,
                version_pattern: typing.Pattern,
                derivative_metadata_files: typing.Iterable[str] = ()):
-    """Args:
-
+    """
+    Args:
       metadata_file: The file that *must* be present to allow a match.
       version_pattern: A regex pattern that matches the version string within
       the content of `metadata_file`.
@@ -89,8 +89,8 @@ class Fingerprint:
                distro: model.Distro,
                aliases: typing.Iterable[str] = (),
                legacy: LegacyFingerprint = None):
-    """Args:
-
+    """
+    Args:
       distro: The Distro corresponding to this fingerprint. The 'value' is
       used for matching within the /etc/os-release file.
       aliases: Additional names that indicate a match.
@@ -106,26 +106,26 @@ class Fingerprint:
   def _get_version(self, etc_os_release: typing.Mapping[str, str],
                    fs: system.filesystems.Filesystem) -> model.Version:
 
-    v1, v2 = model.Version(''), model.Version('')
+    systemd_version, legacy_version = model.Version(''), model.Version('')
 
     if 'VERSION_ID' in etc_os_release:
-      v1 = model.Version.split(etc_os_release['VERSION_ID'])
+      systemd_version = model.Version.split(etc_os_release['VERSION_ID'])
 
     if self._legacy:
       legacy_version = self._legacy.get_version(fs)
       if legacy_version:
-        v2 = model.Version.split(legacy_version)
+        legacy_version = model.Version.split(legacy_version)
 
     # The assumption here is that the longer string is better.
     # For an example, look at test-data/docker-image-debian:8.8.yaml.
     # In /etc/os-release, the version is '8', while in /etc/debian_version
     # the version is 8.8.
-    if str(v1) > str(v2):
-      return v1
-    return v2
+    if str(systemd_version) > str(legacy_version):
+      return systemd_version
+    return legacy_version
 
   def match(self, fs: system.filesystems.Filesystem) -> model.OperatingSystem:
-    """Returns the OperatingSystem that is identified.    """
+    """Returns the OperatingSystem that is identified."""
     etc_os_rel = {}
     if fs.is_file('/etc/os-release'):
       etc_os_rel = _parse_config_file(fs.read_utf8('/etc/os-release'))
@@ -141,12 +141,12 @@ class Fingerprint:
 
 
 class Inspector:
-  """Supports offline inspection of Linux distributions."""
+  """Supports offline inspection of Linux systems."""
 
   def __init__(self, fs: system.filesystems.Filesystem,
                fingerprints: typing.List[Fingerprint]):
-    """Args:
-
+    """
+    Args:
       fs: The filesystem to search.
       fingerprints: The fingerprints to check, which are searched in order.
     """
@@ -155,7 +155,6 @@ class Inspector:
 
   def inspect(self) -> model.OperatingSystem:
     """Returns the OperatingSystem that is identified, or None if a
-
     match isn't found.
     """
     for d in self._fingerprints:

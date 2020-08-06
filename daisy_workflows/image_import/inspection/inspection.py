@@ -21,8 +21,8 @@ requires booting the system.
 See `model.InspectionResults` for which information is returned.
 
 In terms of OS support, this module focuses on systems
-that are runnable on GCE, with a particular focus on the
-systems that are importable to GCE:
+that are runnable on Google Compute Engine, with a particular focus on the
+systems that are importable to Google Compute Engine:
   https://cloud.google.com/compute/docs/import
 
 In other words, it doesn't seek to exhaustively detect all systems,
