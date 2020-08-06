@@ -234,11 +234,14 @@ func createDaisyInflater(args ImportArguments, fileInspector imagefile.Inspector
 		return nil, err
 	}
 
-	daisyUtils.UpdateAllInstanceNoExternalIP(wf, args.NoExternalIP)
 	for k, v := range vars {
 		wf.AddVar(k, v)
 	}
 
+	daisyUtils.UpdateAllInstanceNoExternalIP(wf, args.NoExternalIP)
+	if args.UefiCompatible {
+		addFeatureToDisk(wf, "UEFI_COMPATIBLE", inflationDiskIndex)
+	}
 	if strings.Contains(args.OS, "windows") {
 		addFeatureToDisk(wf, "WINDOWS", inflationDiskIndex)
 	}
