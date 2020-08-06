@@ -37,7 +37,8 @@ def main():
   repo = utils.GetMetadataAttribute('google_cloud_repo',
                                     raise_on_not_found=True)
   release = utils.GetMetadataAttribute('el_release', raise_on_not_found=True)
-  logs_path = utils.GetMetadataAttribute('daisy-logs-path', raise_on_not_found=True)
+  logs_path = utils.GetMetadataAttribute('daisy-logs-path',
+                                         raise_on_not_found=True)
   savelogs = utils.GetMetadataAttribute('el_savelogs',
                                         raise_on_not_found=False) == 'true'
   byos = utils.GetMetadataAttribute('rhel_byos',
