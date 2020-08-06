@@ -101,6 +101,8 @@ try {
   Check-VMWareTools
   Write-Output 'Test: Check-MetadataAccessibility'
   Check-MetadataAccessibility
+  Write-Output 'Test: Check-OSConfigAgent'
+  Check-OSConfigAgent
   if ($byol.ToLower() -eq 'true') {
     Write-Output 'Test: Check-SkipActivation'
     Check-SkipActivation
