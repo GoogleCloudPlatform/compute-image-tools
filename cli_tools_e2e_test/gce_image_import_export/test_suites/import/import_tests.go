@@ -51,6 +51,9 @@ type testCase struct {
 	// When empty, the test is expected to pass. When non-empty, the
 	// actual error message must contain this for the test to pass.
 	expectedError string
+
+	// Additional args passed to gce_vm_image_import.
+	extraArgs []string
 }
 
 var cases = []testCase{
@@ -63,6 +66,16 @@ var cases = []testCase{
 		source:        "projects/compute-image-tools-test/global/images/debian-9-translate",
 		os:            "opensuse-15",
 		expectedError: "\"debian-9\" was detected on your disk, but \"opensuse-15\" was specified",
+	}, {
+		caseName:  "rhel-7-uefi",
+		source:    "projects/compute-image-tools-test/global/images/linux-uefi-no-guestosfeature-rhel7",
+		os:        "rhel-7",
+		extraArgs: []string{"-uefi_compatible=true"},
+	}, {
+		caseName:  "windows-2019-uefi",
+		source:    "projects/compute-image-tools-test/global/images/windows-2019-uefi-nodrivers",
+		os:        "windows-2019",
+		extraArgs: []string{"-uefi_compatible=true"},
 	},
 }
 
@@ -106,6 +119,9 @@ func (t testCase) runImport(junit *junitxml.TestCase, logger *log.Logger,
 	} else {
 		args = append(args, "-source_image", t.source)
 	}
+	if t.extraArgs != nil {
+		args = append(args, t.extraArgs...)
+	}
 	cmd := exec.Command("./gce_vm_image_import", args...)
 	cmdOutput := &bytes.Buffer{}
 	cmd.Stdout = io.MultiWriter(cmdOutput, logging.AsWriter(logger))
@@ -147,8 +163,8 @@ func (t testCase) runPostTranslateTest(ctx context.Context, imagePath string,
 		"image_under_test": {
 			Value: imagePath,
 		},
-		"startup_script": {
-			Value: "post_translate_test.sh",
+		"post_translate_test": {
+			Value: t.testScript(),
 		},
 	}
 	wf.Logger = logging.AsDaisyLogger(logger)
@@ -156,6 +172,13 @@ func (t testCase) runPostTranslateTest(ctx context.Context, imagePath string,
 	wf.Zone = testProjectConfig.TestZone
 	err = wf.Run(ctx)
 	return err
+}
+
+func (t testCase) testScript() string {
+	if strings.Contains(t.os, "windows") {
+		return "post_translate_test.ps1"
+	}
+	return "post_translate_test.sh"
 }
 
 // ImageImportSuite performs image imports, and verifies that the results are bootable and are

@@ -64,11 +64,35 @@ func TestCreateDaisyInflater_Image_Windows(t *testing.T) {
 func TestCreateDaisyInflater_Image_NotWindows(t *testing.T) {
 	inflater := createDaisyInflaterForImageSafe(t, ImportArguments{
 		Source: imageSource{uri: "image/uri"},
-		OS:     "ubunt-1804",
+		OS:     "ubuntu-1804",
 	})
 
 	assert.NotContains(t, getDisk(inflater.wf, 0).GuestOsFeatures, &compute.GuestOsFeature{
 		Type: "WINDOWS",
+	})
+}
+
+func TestCreateDaisyInflater_Image_UEFI(t *testing.T) {
+	inflater := createDaisyInflaterForImageSafe(t, ImportArguments{
+		Source:         imageSource{uri: "image/uri"},
+		OS:             "ubuntu-1804",
+		UefiCompatible: true,
+	})
+
+	assert.Contains(t, getDisk(inflater.wf, 0).GuestOsFeatures, &compute.GuestOsFeature{
+		Type: "UEFI_COMPATIBLE",
+	})
+}
+
+func TestCreateDaisyInflater_Image_NotUEFI(t *testing.T) {
+	inflater := createDaisyInflaterForImageSafe(t, ImportArguments{
+		Source:         imageSource{uri: "image/uri"},
+		OS:             "ubuntu-1804",
+		UefiCompatible: false,
+	})
+
+	assert.NotContains(t, getDisk(inflater.wf, 0).GuestOsFeatures, &compute.GuestOsFeature{
+		Type: "UEFI_COMPATIBLE",
 	})
 }
 
@@ -209,6 +233,44 @@ func TestCreateDaisyInflater_File_NotWindows(t *testing.T) {
 	inflatedDisk := getDisk(inflater.wf, 1)
 	assert.NotContains(t, inflatedDisk.GuestOsFeatures, &compute.GuestOsFeature{
 		Type: "WINDOWS",
+	})
+}
+
+func TestCreateDaisyInflater_File_UEFI(t *testing.T) {
+	source := fileSource{gcsPath: "gs://bucket/vmdk"}
+	inflater := createDaisyInflaterSafe(t, ImportArguments{
+		Source:         source,
+		OS:             "ubuntu-1804",
+		UefiCompatible: true,
+	}, mockInspector{
+		t:                 t,
+		expectedReference: source.gcsPath,
+		errorToReturn:     nil,
+		metaToReturn:      imagefile.Metadata{},
+	})
+
+	inflatedDisk := getDisk(inflater.wf, 1)
+	assert.Contains(t, inflatedDisk.GuestOsFeatures, &compute.GuestOsFeature{
+		Type: "UEFI_COMPATIBLE",
+	})
+}
+
+func TestCreateDaisyInflater_File_NotUEFI(t *testing.T) {
+	source := fileSource{gcsPath: "gs://bucket/vmdk"}
+	inflater := createDaisyInflaterSafe(t, ImportArguments{
+		Source:         source,
+		OS:             "ubuntu-1804",
+		UefiCompatible: false,
+	}, mockInspector{
+		t:                 t,
+		expectedReference: source.gcsPath,
+		errorToReturn:     nil,
+		metaToReturn:      imagefile.Metadata{},
+	})
+
+	inflatedDisk := getDisk(inflater.wf, 1)
+	assert.NotContains(t, inflatedDisk.GuestOsFeatures, &compute.GuestOsFeature{
+		Type: "UEFI_COMPATIBLE",
 	})
 }
 

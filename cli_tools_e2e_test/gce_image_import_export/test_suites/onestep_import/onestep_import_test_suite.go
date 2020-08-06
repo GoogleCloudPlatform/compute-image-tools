@@ -231,7 +231,7 @@ func verifyImportedImageFile(ctx context.Context, testCase *junitxml.TestCase, p
 		"image_under_test": {
 			Value: imagePath,
 		},
-		"startup_script": {
+		"post_translate_test": {
 			Value: props.startupScript,
 		},
 	}

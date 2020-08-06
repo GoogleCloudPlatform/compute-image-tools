@@ -43,19 +43,24 @@ func isCausedByAlphaAPIAccess(err error) bool {
 
 // apiInflater implements `importer.inflater` using the Compute Engine API
 type apiInflater struct {
-	serialLogs    []string
-	args          ImportArguments
-	computeClient daisyCompute.Client
-	storageClient storage.Client
+	serialLogs      []string
+	args            ImportArguments
+	computeClient   daisyCompute.Client
+	storageClient   storage.Client
+	guestOsFeatures []*computeAlpha.GuestOsFeature
 }
 
 func createAPIInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client) inflater {
-	return &apiInflater{
+	inflater := apiInflater{
 		serialLogs:    []string{},
 		args:          args,
 		computeClient: computeClient,
 		storageClient: storageClient,
 	}
+	if args.UefiCompatible {
+		inflater.guestOsFeatures = []*computeAlpha.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}}
+	}
+	return &inflater
 }
 
 func (inflater *apiInflater) traceLogs() []string {
@@ -73,7 +78,9 @@ func (inflater *apiInflater) inflate() (persistentDisk, error) {
 	cd := computeAlpha.Disk{
 		Name:                diskName,
 		SourceStorageObject: inflater.args.SourceFile,
+		GuestOsFeatures:     inflater.guestOsFeatures,
 	}
+
 	err := inflater.computeClient.CreateDiskAlpha(inflater.args.Project, inflater.args.Zone, &cd)
 	if err != nil {
 		return persistentDisk{}, err

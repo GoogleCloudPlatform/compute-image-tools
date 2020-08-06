@@ -39,6 +39,6 @@ COPY --from=0 /gce_vm_image_export gce_vm_image_export
 COPY --from=0 /gce_onestep_image_import gce_onestep_image_import
 COPY /daisy_workflows/ /daisy_workflows/
 COPY /daisy_integration_tests/scripts/post_translate_test.sh .
-COPY /cli_tools_e2e_test/gce_image_import_export/test_suites/scripts/post_translate_test.ps1 .
+COPY /daisy_integration_tests/scripts/post_translate_test.ps1 .
 COPY /cli_tools_e2e_test/gce_image_import_export/test_suites/scripts/post_translate_test.wf.json .
 ENTRYPOINT ["./wrapper", "./gce_image_import_export_test_runner"]
