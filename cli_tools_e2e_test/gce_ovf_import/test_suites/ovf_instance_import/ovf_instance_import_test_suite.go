@@ -46,6 +46,9 @@ var (
 		utils.GcloudProdWrapperLatest:   "gcloud",
 		utils.GcloudLatestWrapperLatest: "gcloud",
 	}
+	// Apply this as instance metadata if the OS config agent is not
+	// supported for the platform or version being imported.
+	skipOSConfigMetadata = map[string]string{"osconfig_not_supported": "true"}
 )
 
 type ovfInstanceImportTestProperties struct {
@@ -59,6 +62,7 @@ type ovfInstanceImportTestProperties struct {
 	machineType               string
 	network                   string
 	subnet                    string
+	instanceMetadata          map[string]string
 }
 
 // TestSuite is image import test suite.
@@ -200,6 +204,7 @@ func runOVFInstanceImportWindows2008R2FourNICs(ctx context.Context, testCase *ju
 		expectedStartupOutput: "All Tests Passed",
 		sourceURI:             fmt.Sprintf("gs://%v/ova/win2008r2-all-updates-four-nic.ova", ovaBucket),
 		os:                    "windows-2008r2",
+		instanceMetadata:      skipOSConfigMetadata,
 		isWindows:             true,
 	}
 
@@ -235,6 +240,7 @@ func runOVFInstanceImportUbuntu16FromVirtualBox(ctx context.Context, testCase *j
 		expectedStartupOutput: "All tests passed!",
 		sourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-16.04-virtualbox.ova", ovaBucket),
 		os:                    "ubuntu-1604",
+		instanceMetadata:      skipOSConfigMetadata,
 		machineType:           "n1-standard-4",
 	}
 
@@ -425,7 +431,7 @@ func verifyImportedInstance(
 		return
 	}
 
-	err = instance.StartWithScriptCode(props.verificationStartupScript)
+	err = instance.StartWithScriptCode(props.verificationStartupScript, props.instanceMetadata)
 	if err != nil {
 		testCase.WriteFailure("Error starting instance `%v` with script: %v", props.instanceName, err)
 		return
