@@ -194,6 +194,11 @@ periodics:
        - "-out_dir=/artifacts"
        - "-test_project_id=compute-image-test-pool-001"
        - "-test_zone=us-central1-b"
+       - "-variables=aws_region=us-east-2,aws_bucket=s3://onestep-test,\
+           ubuntu_ami_id=ami-04d75010218164863,windows_ami_id=ami-0c91f2e838828598d,\
+           ubuntu_vmdk=s3://onestep-test/ubuntu1804.vmdk,\
+           windows_vmdk=s3://onestep-test/windows2019.vmdk,\
+           aws_cred_file_path=gs://compute-image-tools-test-resources/onestep-test-user"
        env:
        - name: ARTIFACTS
          value: /artifacts
