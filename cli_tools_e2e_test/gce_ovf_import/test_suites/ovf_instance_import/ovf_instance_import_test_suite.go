@@ -48,7 +48,7 @@ var (
 	}
 	// Apply this as instance metadata if the OS config agent is not
 	// supported for the platform or version being imported.
-	skipOSConfig = map[string]string{"osconfig_not_supported": "true"}
+	skipOSConfigMetadata = map[string]string{"osconfig_not_supported": "true"}
 )
 
 type ovfInstanceImportTestProperties struct {
@@ -204,7 +204,7 @@ func runOVFInstanceImportWindows2008R2FourNICs(ctx context.Context, testCase *ju
 		expectedStartupOutput: "All Tests Passed",
 		sourceURI:             fmt.Sprintf("gs://%v/ova/win2008r2-all-updates-four-nic.ova", ovaBucket),
 		os:                    "windows-2008r2",
-		instanceMetadata:      skipOSConfig,
+		instanceMetadata:      skipOSConfigMetadata,
 		isWindows:             true,
 	}
 
@@ -240,7 +240,7 @@ func runOVFInstanceImportUbuntu16FromVirtualBox(ctx context.Context, testCase *j
 		expectedStartupOutput: "All tests passed!",
 		sourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-16.04-virtualbox.ova", ovaBucket),
 		os:                    "ubuntu-1604",
-		instanceMetadata:      skipOSConfig,
+		instanceMetadata:      skipOSConfigMetadata,
 		machineType:           "n1-standard-4",
 	}
 
