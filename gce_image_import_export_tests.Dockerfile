@@ -26,6 +26,8 @@ RUN cd gce_vm_image_import && CGO_ENABLED=0 go build -o /gce_vm_image_import
 RUN chmod +x /gce_vm_image_import
 RUN cd gce_vm_image_export && CGO_ENABLED=0 go build -o /gce_vm_image_export
 RUN chmod +x /gce_vm_image_export
+RUN cd gce_onestep_image_import && CGO_ENABLED=0 go build -o /gce_onestep_image_import
+RUN chmod +x /gce_onestep_image_import
 
 # Build test container
 FROM gcr.io/$PROJECT_ID/wrapper-with-gcloud:latest
@@ -34,8 +36,9 @@ COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.
 COPY --from=0 /gce_image_import_export_test_runner gce_image_import_export_test_runner
 COPY --from=0 /gce_vm_image_import gce_vm_image_import
 COPY --from=0 /gce_vm_image_export gce_vm_image_export
+COPY --from=0 /gce_onestep_image_import gce_onestep_image_import
 COPY /daisy_workflows/ /daisy_workflows/
 COPY /daisy_integration_tests/scripts/post_translate_test.sh .
 COPY /daisy_integration_tests/scripts/post_translate_test.ps1 .
-COPY /cli_tools_e2e_test/gce_image_import_export/test_suites/import/post_translate_test.wf.json .
+COPY /cli_tools_e2e_test/gce_image_import_export/test_suites/scripts/post_translate_test.wf.json .
 ENTRYPOINT ["./wrapper", "./gce_image_import_export_test_runner"]
