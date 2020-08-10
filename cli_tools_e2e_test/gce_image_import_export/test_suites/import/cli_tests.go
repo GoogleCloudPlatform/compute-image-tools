@@ -71,10 +71,13 @@ func CLITestSuite(
 			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import UEFI test for linux non-UEFI"))
 		imageImportLinuxHybridTestCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import UEFI test for linux Hybrid"))
+		imageImportLinuxUEFIMBRTestCase := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import UEFI test for linux UEFI MBR-based"))
 		imageImportWindowsUEFITestCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import UEFI test for windows UEFI"))
 		imageImportWindowsNonUEFITestCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import UEFI test for windows non-UEFI"))
+
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, utils.CLITestType){}
@@ -88,6 +91,7 @@ func CLITestSuite(
 		testsMap[testType][imageImportLinuxUEFIFromImageTestCase] = runImageImportLinuxUEFIFromImageTest
 		testsMap[testType][imageImportLinuxNonUEFITestCase] = runImageImportLinuxNonUEFITest
 		testsMap[testType][imageImportLinuxHybridTestCase] = runImageImportLinuxHybridTest
+		testsMap[testType][imageImportLinuxUEFIMBRTestCase] = runImageImportLinuxUEFIMBRTest
 		testsMap[testType][imageImportWindowsUEFITestCase] = runImageImportWindowsUEFITest
 		testsMap[testType][imageImportWindowsNonUEFITestCase] = runImageImportWindowsNonUEFITest
 	}
@@ -320,6 +324,14 @@ func runImageImportLinuxHybridTest(ctx context.Context, testCase *junitxml.TestC
 	// source created from projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317
 	runImageImportUEFITest(ctx, testCase, logger, testProjectConfig, testType,
 		"ubuntu-1804", "gs://compute-image-tools-test-resources/uefi/linux-hybrid-ubuntu-1804.vmdk", true, true)
+}
+
+func runImageImportLinuxUEFIMBRTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
+
+	// source created from projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317 and converted from GPT to MBR
+	runImageImportUEFITest(ctx, testCase, logger, testProjectConfig, testType,
+		"ubuntu-1804", "gs://compute-image-tools-test-resources/uefi/linux-ubuntu-mbr-uefi.vmdk", true, true)
 }
 
 func runImageImportWindowsUEFITest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
