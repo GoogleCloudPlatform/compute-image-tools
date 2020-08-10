@@ -26,6 +26,7 @@ import logging
 import os
 import time
 
+import guestfs
 import utils
 import utils.diskutils as diskutils
 
@@ -85,7 +86,7 @@ terminal --timeout=0 serial console
 '''
 
 
-def DistroSpecific(g):
+def DistroSpecific(g: guestfs.GuestFS):
   el_release = utils.GetMetadataAttribute('el_release')
   install_gce = utils.GetMetadataAttribute('install_gce_packages')
   rhel_license = utils.GetMetadataAttribute('use_rhel_gce_license')
@@ -97,6 +98,10 @@ def DistroSpecific(g):
   #   rename: /sysroot/etc/resolv.conf to
   #     /sysroot/etc/i9r7obu6: Operation not permitted
   utils.common.ClearEtcResolv(g)
+
+  # Some imported images haven't contained `/etc/yum.repos.d`.
+  if not g.exists('/etc/yum.repos.d'):
+    g.mkdir('/etc/yum.repos.d')
 
   if rhel_license == 'true':
     if 'Red Hat' in g.cat('/etc/redhat-release'):
