@@ -12,10 +12,11 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package ovfutils
+package ovfexporter
 
 import "github.com/vmware/govmomi/ovf"
 
+// PopulateOS populates OS info in OVF descriptor.
 func PopulateOS(descriptor *ovf.Envelope) error {
 	var id int16
 	var osType, version string

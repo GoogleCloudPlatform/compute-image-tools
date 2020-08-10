@@ -71,4 +71,3 @@ func SafeStringToInt(s string) int64 {
 	}
 	return int64(i)
 }
-

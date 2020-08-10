@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package ovfutils
+package ovfexporter
 
 import (
 	"bytes"
@@ -40,7 +40,8 @@ const (
 	usbController          uint16 = 23
 )
 
-// OvfDescriptorGenerator is responsible for generating OVF descriptor based on GCE instance being exported
+// OvfDescriptorGenerator is responsible for generating OVF descriptor based on
+//GCE instance being exported.
 type OvfDescriptorGenerator struct {
 	ComputeClient daisycompute.Client
 	StorageClient domain.StorageClientInterface
@@ -48,45 +49,69 @@ type OvfDescriptorGenerator struct {
 	Zone          string
 }
 
-// Load finds and loads OVF descriptor from a GCS directory path.
-// ovfGcsPath is a path to OVF directory, not a path to OVF descriptor file itself.
-func (g *OvfDescriptorGenerator) Generate(instance *compute.Instance, exportedDisksGCSPaths []string) (*ovf.Envelope, error) {
-	instanceID := "0"
+// Generate generates an OVF descriptor based on the instance exported and disk file paths.
+func (g *OvfDescriptorGenerator) Generate(instance *compute.Instance, exportedDisks []*ExportedDisk) (*ovf.Envelope, error) {
 	descriptor := &ovf.Envelope{}
 	descriptor.VirtualHardware = &ovf.VirtualHardwareSection{}
-	descriptor.References = make([]ovf.File, len(exportedDisksGCSPaths))
-	descriptor.Disk = &ovf.DiskSection{Disks: make([]ovf.VirtualDiskDesc, len(exportedDisksGCSPaths)), Section: ovf.Section{Info: "Virtual disk information"}}
-
-	for diskIndex, diskGCSPath := range exportedDisksGCSPaths {
-		diskGCSFileName := diskGCSPath
-		if slash := strings.LastIndex(diskGCSFileName, "/"); slash > -1 {
-			diskGCSFileName = diskGCSFileName[slash+1:]
-		}
-		//TODO: disk file sizes
-		descriptor.References[diskIndex] = ovf.File{Href: diskGCSFileName, ID: "file" + strconv.Itoa(diskIndex), Size: 0}
-
-		//TODO; capacity,CapacityAllocationUnits, PopulatedSize
-		descriptor.Disk.Disks[diskIndex] = ovf.VirtualDiskDesc{DiskID: "vmdisk" + strconv.Itoa(diskIndex), FileRef: &descriptor.References[diskIndex].Href, Capacity: "0", CapacityAllocationUnits: nil, PopulatedSize: nil}
-
-		//TODO: parentID
-		descriptor.VirtualSystem.VirtualHardware[0].Item = append(
-			descriptor.VirtualSystem.VirtualHardware[0].Item,
-			*g.createDiskItem(strconv.Itoa(len(descriptor.VirtualSystem.VirtualHardware[0].Item)+1), "1", diskIndex))
-	}
-	//TODO: virtual hardware section for ordering? might not be necessary for export. We used it for import to determine order of disks if disks are spread over multiple controllers
+	descriptor.References = make([]ovf.File, len(exportedDisks))
+	descriptor.Disk = &ovf.DiskSection{Disks: make([]ovf.VirtualDiskDesc, len(exportedDisks)), Section: ovf.Section{Info: "Virtual disk information"}}
 
 	descriptor.VirtualSystem = &ovf.VirtualSystem{Content: ovf.Content{Info: "A GCE virtual machine", Name: &instance.Name}}
 	descriptor.VirtualSystem.VirtualHardware = make([]ovf.VirtualHardwareSection, 1)
 	descriptor.VirtualSystem.VirtualHardware[0] = ovf.VirtualHardwareSection{Section: ovf.Section{Info: "Virtual hardware requirements"}}
 
-	//TODO: operating system
-
 	//TODO: do we need VirtualSystemType? It's set to e.g. "vmx-11". It's a VMWare identifier
-	descriptor.VirtualSystem.VirtualHardware[0].System = &ovf.VirtualSystemSettingData{CIMVirtualSystemSettingData: ovf.CIMVirtualSystemSettingData{ElementName: "Virtual Hardware Family", InstanceID: instanceID, VirtualSystemIdentifier: &instance.Name}}
+	descriptor.VirtualSystem.VirtualHardware[0].System = &ovf.VirtualSystemSettingData{CIMVirtualSystemSettingData: ovf.CIMVirtualSystemSettingData{ElementName: "Virtual Hardware Family", InstanceID: "0", VirtualSystemIdentifier: &instance.Name}}
 
-	//TODO items: network,  video card, disks, scsi/sata controllers
+	// disk controller
+	disController := ovf.ResourceAllocationSettingData{
+		CIMResourceAllocationSettingData: ovf.CIMResourceAllocationSettingData{
+			Description:  strPtr("SCSI Controller"),
+			InstanceID:   generateVirtualHardwareItemID(descriptor),
+			ResourceType: func() *uint16 { v := iSCSIController; return &v }(),
+		},
+	}
+	descriptor.VirtualSystem.VirtualHardware[0].Item = append(
+		descriptor.VirtualSystem.VirtualHardware[0].Item, disController)
 
-	machineType, err := g.ComputeClient.GetMachineType(g.Project, g.Zone, instance.MachineType)
+	// disks
+	for diskIndex, exportedDisk := range exportedDisks {
+
+		diskGCSFileName := exportedDisk.gcsPath
+		if slash := strings.LastIndex(diskGCSFileName, "/"); slash > -1 {
+			diskGCSFileName = diskGCSFileName[slash+1:]
+		}
+		descriptor.References[diskIndex] = ovf.File{
+			Href: diskGCSFileName,
+			ID:   "file" + strconv.Itoa(diskIndex),
+			Size: uint(exportedDisk.gcsFileAttrs.Size),
+		}
+
+		descriptor.Disk.Disks[diskIndex] = ovf.VirtualDiskDesc{
+			DiskID:                  fmt.Sprintf("vmdisk%v", diskIndex),
+			FileRef:                 &descriptor.References[diskIndex].ID,
+			Capacity:                strconv.FormatInt(exportedDisk.disk.SizeGb, 10),
+			CapacityAllocationUnits: strPtr("byte * 2^30"),
+		}
+
+		//TODO: virtual hardware section for ordering? might not be necessary for export. We used it for import to determine order of disks if disks are spread over multiple controllers
+		descriptor.VirtualSystem.VirtualHardware[0].Item = append(
+			descriptor.VirtualSystem.VirtualHardware[0].Item,
+			*createDiskItem(generateVirtualHardwareItemID(descriptor), disController.InstanceID, diskIndex, descriptor.Disk.Disks[diskIndex].DiskID))
+	}
+
+	//TODO: operating system
+	descriptor.VirtualSystem.OperatingSystem = make([]ovf.OperatingSystemSection, 1)
+	descriptor.VirtualSystem.OperatingSystem[0].ID = 0
+	descriptor.VirtualSystem.OperatingSystem[0].OSType = strPtr("Unknown")
+	descriptor.VirtualSystem.OperatingSystem[0].Info = "The kind of installed guest operating system"
+
+	//TODO items: network, video card
+
+	// machine type (CPU, memory)
+	machineTypeURLSplits := strings.Split(instance.MachineType, "/")
+	machineTypeID := machineTypeURLSplits[len(machineTypeURLSplits)-1]
+	machineType, err := g.ComputeClient.GetMachineType(g.Project, g.Zone, machineTypeID)
 	if err != nil {
 		return descriptor, err
 	}
@@ -100,16 +125,20 @@ func (g *OvfDescriptorGenerator) Generate(instance *compute.Instance, exportedDi
 	return descriptor, nil
 }
 
+func generateVirtualHardwareItemID(descriptor *ovf.Envelope) string {
+	return strconv.Itoa(len(descriptor.VirtualSystem.VirtualHardware[0].Item) + 1)
+}
+
 func appendItem(item *ovf.ResourceAllocationSettingData, items *[]ovf.ResourceAllocationSettingData) {
 	*items = append(*items, *item)
 }
 
-func (g *OvfDescriptorGenerator) createDiskItem(instanceID string, parentID string, addressOnParent int) *ovf.ResourceAllocationSettingData {
+func createDiskItem(instanceID string, parentID string, addressOnParent int, diskID string) *ovf.ResourceAllocationSettingData {
 	return &ovf.ResourceAllocationSettingData{
 		CIMResourceAllocationSettingData: ovf.CIMResourceAllocationSettingData{
 			AddressOnParent: strPtr(strconv.Itoa(addressOnParent)),
-			ElementName:     fmt.Sprintf("disk%v", addressOnParent), //TODO
-			HostResource:    []string{"ovf:/disk/vmdisk2"},          //TODO
+			ElementName:     fmt.Sprintf("disk%v", addressOnParent),
+			HostResource:    []string{fmt.Sprintf("ovf:/disk/%v", diskID)},
 			InstanceID:      instanceID,
 			Parent:          strPtr(parentID),
 			ResourceType:    func() *uint16 { v := disk; return &v }(),
@@ -160,10 +189,12 @@ func strPtr(s string) *string {
 	return &s
 }
 
-func (g *OvfDescriptorGenerator) GenerateAndWriteOVFDescriptor(instance *compute.Instance, bucketName, gcsDirectoryPath string, exportedDisksGCSPaths []string) error {
+// GenerateAndWriteOVFDescriptor generates an OVF descriptor based on the
+// instance exported and disk file paths. and stores it as a file in GCS.
+func (g *OvfDescriptorGenerator) GenerateAndWriteOVFDescriptor(instance *compute.Instance, exportedDisks []*ExportedDisk, bucketName, gcsDirectoryPath string) error {
 	var err error
 	var descriptor *ovf.Envelope
-	if descriptor, err = g.Generate(instance, exportedDisksGCSPaths); err != nil {
+	if descriptor, err = g.Generate(instance, exportedDisks); err != nil {
 		return err
 	}
 	var descriptorStr string
