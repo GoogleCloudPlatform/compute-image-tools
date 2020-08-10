@@ -51,10 +51,9 @@ func (d defaultProcessorProvider) provide(pd persistentDisk) (processor, error) 
 		log.Printf("Running experimental disk inspections on %v.", pd.uri)
 		inspectionResult, err := d.diskInspector.Inspect(pd.uri)
 		if err != nil {
-			log.Printf("Inspection error=%v", err)
-		} else {
-			log.Printf("Inspection result=%v", inspectionResult)
+			return nil, err
 		}
+		log.Printf("Inspection result=%v", inspectionResult)
 	}
 	return newBootableDiskProcessor(d.ImportArguments, pd)
 }

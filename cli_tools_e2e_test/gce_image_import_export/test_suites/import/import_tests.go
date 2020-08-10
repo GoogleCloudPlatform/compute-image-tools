@@ -76,6 +76,10 @@ var cases = []testCase{
 		source:    "projects/compute-image-tools-test/global/images/windows-2019-uefi-nodrivers",
 		os:        "windows-2019",
 		extraArgs: []string{"-uefi_compatible=true"},
+	}, {
+		caseName: "windows-10-x86-byol",
+		source:   "projects/compute-image-tools-test/global/images/windows-10-1909-ent-x86-nodrivers",
+		os:       "windows-10-x86-byol",
 	},
 }
 
@@ -109,6 +113,7 @@ func (t testCase) runImport(junit *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, imageName string) (*bytes.Buffer, error) {
 	args := []string{
 		"-client_id", "e2e",
+		"-inspect",
 		"-os", t.os,
 		"-project", testProjectConfig.TestProjectID,
 		"-zone", testProjectConfig.TestZone,
@@ -163,7 +168,7 @@ func (t testCase) runPostTranslateTest(ctx context.Context, imagePath string,
 		"image_under_test": {
 			Value: imagePath,
 		},
-		"post_translate_test": {
+		"path_to_post_translate_test": {
 			Value: t.testScript(),
 		},
 	}

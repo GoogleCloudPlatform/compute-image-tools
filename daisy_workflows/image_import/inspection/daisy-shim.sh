@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env bash
 # Copyright 2020 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Example of communicating a key-value pair back to Daisy:
-#   print("Status: <serial-output key:'partition_scheme' value:'mbr'>")
+# A Google Compute Engine instance startup-script that:
+#  1. Downloads the files specified in the `daisy-sources-path`
+#     metadata variable.
+#  2. Executes the file `inspect-disk`.
+set -euf -o pipefail
 
-print("Success: Done!")
+ROOT="/tmp/build-root-$RANDOM"
+SOURCE=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/daisy-sources-path" -H "Metadata-Flavor: Google")
+
+mkdir -p "$ROOT" && cd "$ROOT"
+gsutil cp -R "$SOURCE/*" .
+python3 inspect-disk.py --format=daisy /dev/sdb
+echo "Success:"
