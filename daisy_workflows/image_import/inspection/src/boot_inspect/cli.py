@@ -17,7 +17,9 @@
 import argparse
 import json
 
-import inspection
+from boot_inspect import inspection
+from boot_inspect import model
+import guestfs
 
 
 def _daisy_kv(key: str, value: str):
@@ -25,7 +27,7 @@ def _daisy_kv(key: str, value: str):
   return template.format(key=key, value=value)
 
 
-def _output_daisy(results: inspection.model.InspectionResults):
+def _output_daisy(results: model.InspectionResults):
   if results:
     print(_daisy_kv('architecture', results.architecture.value))
     print(_daisy_kv('distro', results.os.distro.value))
@@ -34,21 +36,16 @@ def _output_daisy(results: inspection.model.InspectionResults):
   print('Success: Done!')
 
 
-def _output_json(results: inspection.model.InspectionResults, indent=None):
+def _output_json(results: model.InspectionResults, indent=None):
   print(json.dumps(results, indent=indent,
-                   cls=inspection.model.ModelJSONEncoder))
+                   cls=model.ModelJSONEncoder))
 
 
-def _output_human(results: inspection.model.InspectionResults):
+def _output_human(results: model.InspectionResults):
   _output_json(results, indent=4)
 
 
-def main(device: str, fmt: str):
-  results = inspection.inspect_device(device)
-  globals()['_output_' + fmt](results)
-
-
-if __name__ == '__main__':
+def main():
   format_options_and_help = {
     'json': 'JSON without newlines. Suitable for consumption by '
             'another program.',
@@ -71,4 +68,12 @@ if __name__ == '__main__':
     help='a block device or disk file.'
   )
   args = parser.parse_args()
-  main(device=args.device, fmt=args.format)
+  g = guestfs.GuestFS(python_return_dict=True)
+  g.add_drive_opts(args.device, readonly=1)
+  g.launch()
+  results = inspection.inspect_device(g, args.device)
+  globals()['_output_' + args.format](results)
+
+
+if __name__ == '__main__':
+  main()

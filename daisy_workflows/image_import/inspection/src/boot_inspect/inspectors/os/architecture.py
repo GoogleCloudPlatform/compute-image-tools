@@ -13,34 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import guestfs
-import model
+from boot_inspect import model
 
 
 class Inspector:
 
-  def __init__(self, g: guestfs.GuestFS, root: str):
-    """Supports inspecting offline Windows VMs.
+  def __init__(self, g, root: str):
+    """Identifies the CPU architecture of a mounted GuestFS instance.
 
     Args:
-      g: A guestfs instance that has been mounted.
+      g (guestfs.GuestFS): A guestfs instance that has been mounted.
       root: The root used for mounting.
     """
     self._g = g
     self._root = root
 
-  def inspect(self) -> model.OperatingSystem:
-    if self._is_windows():
-      return model.OperatingSystem(
-        model.Distro.WINDOWS,
-        self._get_version(),
-      )
-
-  def _get_version(self) -> model.Version:
-    major = self._g.inspect_get_major_version(self._root)
-    minor = self._g.inspect_get_minor_version(self._root)
-    return model.Version(major, minor)
-
-  def _is_windows(self) -> bool:
-    inspected = self._g.inspect_get_distro(self._root)
-    return model.distro_for(inspected) == model.Distro.WINDOWS
+  def inspect(self) -> model.Architecture:
+    inspected = self._g.inspect_get_arch(self._root)
+    if inspected == 'i386':
+      return model.Architecture.x86
+    elif inspected == 'x86_64':
+      return model.Architecture.x64
+    return model.Architecture.unknown

@@ -12,56 +12,56 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests functions exposed by the inspection.model module."""
+"""Tests functions exposed by the di.model module."""
 
 import json
 import unittest
 
-import model
+from boot_inspect import model
 
 
-class TestDistro(unittest.TestCase):
+class TestDistro:
 
   def test_name_lookup_is_case_insensitive(self):
-    self.assertEqual(model.Distro.UBUNTU, model.distro_for("ubuntu"))
-    self.assertEqual(model.Distro.UBUNTU, model.distro_for("Ubuntu"))
-    self.assertEqual(model.Distro.OPENSUSE, model.distro_for("openSUSE"))
-    self.assertEqual(model.Distro.RHEL, model.distro_for("RHEL"))
-    self.assertEqual(model.Distro.CENTOS, model.distro_for("CentOS"))
-    self.assertEqual(model.Distro.CENTOS, model.distro_for("centos"))
+    assert model.Distro.UBUNTU == model.distro_for("ubuntu")
+    assert model.Distro.UBUNTU == model.distro_for("Ubuntu")
+    assert model.Distro.OPENSUSE == model.distro_for("openSUSE")
+    assert model.Distro.RHEL == model.distro_for("RHEL")
+    assert model.Distro.CENTOS == model.distro_for("CentOS")
+    assert model.Distro.CENTOS == model.distro_for("centos")
 
   def test_name_lookup_returns_None_when_no_match(self):
-    self.assertIsNone(model.distro_for("not-a-distro-name"))
-    self.assertIsNone(model.distro_for(""))
+    assert model.distro_for("not-a-distro-name") is None
+    assert model.distro_for("") is None
 
 
 class TestVersion(unittest.TestCase):
 
   def test_split_happy_case(self):
-    self.assertEqual(model.Version("14", "04"), model.Version.split("14.04"))
-    self.assertEqual(model.Version("2008", "3"), model.Version.split("2008.3"))
-    self.assertEqual(model.Version("15", ""), model.Version.split("15"))
+    assert model.Version("14", "04") == model.Version.split("14.04")
+    assert model.Version("2008", "3") == model.Version.split("2008.3")
+    assert model.Version("15", "") == model.Version.split("15")
 
   def test_split_empty_input(self):
-    self.assertEqual(model.Version("", ""), model.Version.split(""))
+    assert model.Version("", "") == model.Version.split("")
 
   def test_split_allows_non_period(self):
-    self.assertEqual(
-      model.Version("fuzzy/fossa", ""), model.Version.split("fuzzy/fossa"))
-    self.assertEqual("fuzzy/fossa", str(model.Version.split("fuzzy/fossa")))
+    assert model.Version("fuzzy/fossa", "") == \
+           model.Version.split("fuzzy/fossa")
+    assert "fuzzy/fossa" == str(model.Version.split("fuzzy/fossa"))
 
   def test_repr_happy_case(self):
-    self.assertEqual("15.04", str(model.Version("15", "04")))
-    self.assertEqual("2008.3", str(model.Version("2008", "3")))
+    assert "15.04", str(model.Version("15", "04"))
+    assert "2008.3", str(model.Version("2008", "3"))
 
   def test_repr_omits_period_when_only_major(self):
-    self.assertEqual("15", str(model.Version("15")))
+    assert "15" == str(model.Version("15"))
 
   def test_repr_empty_when_version_empty(self):
-    self.assertEqual("", str(model.Version("")))
+    assert "" == str(model.Version(""))
 
 
-class TestJSONEncoder(unittest.TestCase):
+class TestJSONEncoder:
 
   def test_happy_case(self):
     inspection_results = model.InspectionResults(
@@ -85,7 +85,7 @@ class TestJSONEncoder(unittest.TestCase):
       "architecture": "x86",
     }
     actual = json.dumps(inspection_results, cls=model.ModelJSONEncoder)
-    self.assertEqual(expected, json.loads(actual))
+    assert expected == json.loads(actual)
 
   def test_allow_empty_minor_version(self):
     inspection_results = model.InspectionResults(
@@ -109,7 +109,7 @@ class TestJSONEncoder(unittest.TestCase):
       "architecture": "x64",
     }
     actual = json.dumps(inspection_results, cls=model.ModelJSONEncoder)
-    self.assertEqual(expected, json.loads(actual))
+    assert expected == json.loads(actual)
 
   def test_keep_leading_zeroes_in_version(self):
     inspection_results = model.InspectionResults(
@@ -133,7 +133,7 @@ class TestJSONEncoder(unittest.TestCase):
       "architecture": "x64",
     }
     actual = json.dumps(inspection_results, cls=model.ModelJSONEncoder)
-    self.assertEqual(expected, json.loads(actual))
+    assert expected == json.loads(actual)
 
   def test_allow_all_fields_empty(self):
     inspection_results = model.InspectionResults(
@@ -141,8 +141,4 @@ class TestJSONEncoder(unittest.TestCase):
 
     expected = {"architecture": None, "device": None, "os": None}
     actual = json.dumps(inspection_results, cls=model.ModelJSONEncoder)
-    self.assertEqual(expected, json.loads(actual))
-
-
-if __name__ == "__main__":
-  unittest.main()
+    assert expected == json.loads(actual)
