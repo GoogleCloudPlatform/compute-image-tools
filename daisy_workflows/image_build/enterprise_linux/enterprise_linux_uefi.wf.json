@@ -43,7 +43,6 @@
     "build_files/utils/__init__.py": "../../linux_common/utils/__init__.py",
     "build_files/kickstart": "./kickstart/",
     "build_files/ks_helpers.py": "./ks_helpers.py",
-    "build_files/save_logs.py": "./save_logs.py",
     "installerprep_startup_script": "../../linux_common/bootstrap.sh"
   },
   "Steps": {
@@ -87,6 +86,7 @@
             "rhel_sap": "${rhel_sap}",
             "rhel_uefi": "${rhel_uefi}"
           },
+          "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
           "StartupScript": "installerprep_startup_script"
         }
       ]
@@ -127,37 +127,6 @@
       "DeleteResources": {
         "Instances": ["inst-build"]
       }
-    },
-    "save-build-logs": {
-      "CreateInstances": [
-        {
-          "Name": "inst-savelogs",
-          "Disks": [{"Source": "disk-installerprep"}, {"Source": "disk-installer"}],
-          "MachineType": "n1-standard-4",
-          "Metadata": {
-            "files_gcs_dir": "${SOURCESPATH}/build_files",
-            "prefix": "SaveLogs",
-            "script": "save_logs.py",
-            "rhel_uefi": "${rhel_uefi}"
-          },
-          "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
-          "StartupScript": "installerprep_startup_script"
-        }
-      ]
-    },
-    "wait-for-build-logs": {
-      "Timeout": "5m",
-      "WaitForInstancesSignal": [
-        {
-          "Name": "inst-savelogs",
-          "SerialOutput": {
-            "Port": 1,
-            "FailureMatch": "SaveLogsFailed:",
-            "SuccessMatch": "SaveLogsSuccess:",
-            "StatusMatch": "SaveLogsStatus:"
-          }
-        }
-      ]
     }
   },
   "Dependencies": {
@@ -166,8 +135,6 @@
     "cleanup-installer-prep": ["wait-installer-prep"],
     "run-installation": ["cleanup-installer-prep"],
     "wait-installation": ["run-installation"],
-    "cleanup-inst-build": ["wait-installation"],
-    "save-build-logs": ["cleanup-inst-build"],
-    "wait-for-build-logs": ["save-build-logs"]
+    "cleanup-inst-build": ["wait-installation"]
   }
 }

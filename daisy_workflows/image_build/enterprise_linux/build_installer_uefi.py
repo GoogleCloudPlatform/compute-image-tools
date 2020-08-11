@@ -37,6 +37,8 @@ def main():
   repo = utils.GetMetadataAttribute('google_cloud_repo',
                     raise_on_not_found=True)
   release = utils.GetMetadataAttribute('el_release', raise_on_not_found=True)
+  daisy_logs_path = utils.GetMetadataAttribute('daisy-logs-path',
+                                               raise_on_not_found=True)
   savelogs = utils.GetMetadataAttribute('el_savelogs') == 'true'
   byos = utils.GetMetadataAttribute('rhel_byos') == 'true'
   sap = utils.GetMetadataAttribute('rhel_sap') == 'true'
@@ -55,6 +57,8 @@ def main():
   ks_content = ks_helpers.BuildKsConfig(release, repo, byos, sap, uefi)
   ks_cfg = 'ks.cfg'
   utils.WriteFile(ks_cfg, ks_content)
+  # Save the generated kickstart file to the build logs.
+  utils.UploadFile(ks_cfg, '%s/ks.cfg' % daisy_logs_path)
 
   # Write the installer disk. Write GPT label, create partition,
   # copy installer boot files over.
@@ -62,9 +66,9 @@ def main():
   utils.Execute(['parted', '/dev/sdb', 'mklabel', 'gpt'])
   utils.Execute(['sync'])
   utils.Execute(['parted', '/dev/sdb', 'mkpart', 'primary', 'fat32', '1MB',
-                 '601MB'])
+                 '1024MB'])
   utils.Execute(['sync'])
-  utils.Execute(['parted', '/dev/sdb', 'mkpart', 'primary', 'ext2', '601MB',
+  utils.Execute(['parted', '/dev/sdb', 'mkpart', 'primary', 'ext2', '1024MB',
                  '100%'])
   utils.Execute(['sync'])
   utils.Execute(['parted', '/dev/sdb', 'set', '1', 'boot', 'on'])
@@ -110,7 +114,7 @@ def main():
 
     # Change labels to explicit partitions.
     if release.startswith(('centos7', 'rhel7', 'rhel-7', 'oraclelinux7',
-                           'centos8', 'rhel8')):
+                           'centos8', 'rhel8', 'rhel-8')):
       cfg = re.sub(r'LABEL=[^ ]+', 'LABEL=INSTALLER', cfg)
 
     # Print out a the modifications.

@@ -37,6 +37,8 @@ def main():
   repo = utils.GetMetadataAttribute('google_cloud_repo',
                                     raise_on_not_found=True)
   release = utils.GetMetadataAttribute('el_release', raise_on_not_found=True)
+  daisy_logs_path = utils.GetMetadataAttribute('daisy-logs-path',
+                                               raise_on_not_found=True)
   savelogs = utils.GetMetadataAttribute('el_savelogs',
                                         raise_on_not_found=False) == 'true'
   byos = utils.GetMetadataAttribute('rhel_byos',
@@ -58,6 +60,8 @@ def main():
   ks_content = ks_helpers.BuildKsConfig(release, repo, byos, sap, uefi)
   ks_cfg = 'ks.cfg'
   utils.WriteFile(ks_cfg, ks_content)
+  # Save the generated kickstart file to the build logs.
+  utils.UploadFile(ks_cfg, '%s/ks.cfg' % daisy_logs_path)
 
   # Write the installer disk. Write extlinux MBR, create partition,
   # copy installer ISO and ISO boot files over.
