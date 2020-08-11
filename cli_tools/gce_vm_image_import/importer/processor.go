@@ -30,7 +30,7 @@ import (
 //
 // Implementers can expose detailed logs using the traceLogs() method.
 type processor interface {
-	process() error
+	process() (persistentDisk, error)
 	traceLogs() []string
 	cancel(reason string) bool
 }
@@ -61,22 +61,23 @@ func (d defaultProcessorProvider) provide(pd persistentDisk) (processor, error) 
 }
 
 func (d defaultProcessorProvider) inspectDisk(pd persistentDisk) (persistentDisk, error) {
-	if !d.Inspect || d.diskInspector == nil {
-		return pd, nil
+	var inspectionResult disk.InspectionResult
+	var err error
+	if d.Inspect && d.diskInspector != nil {
+		log.Printf("Running experimental disk inspections on %v.", pd.uri)
+		inspectionResult, err = d.diskInspector.Inspect(pd.uri)
+		if err != nil {
+			log.Printf("Disk inspection error=%v", err)
+			return pd, daisy.Errf("Disk inspection error: %v", err)
+		}
+
+		log.Printf("Disk inspection result=%v", inspectionResult)
 	}
 
-	log.Printf("Running experimental disk inspections on %v.", pd.uri)
-	inspectionResult, err := d.diskInspector.Inspect(pd.uri)
-	if err != nil {
-		log.Printf("Disk inspection error=%v", err)
-		return pd, daisy.Errf("Disk inspection error: %v", err)
-	}
-
-	log.Printf("Disk inspection result=%v", inspectionResult)
-
-	// If this tag is enforced in user input args, it has been honored in inflation stage.
+	// If UEFI_COMPATIBLE is enforced in user input args (by d.ImportArguments.UefiCompatible),
+	// then it has been honored in inflation stage, so no need to create a new disk here.
+	// Only create new disk with UEFI_COMPATIBLE when inspection result tells us to do it.
 	if !d.ImportArguments.UefiCompatible && inspectionResult.HasEFIPartition {
-		// Create a copy of the disk with UEFI_COMPATIBLE
 		diskName := fmt.Sprintf("disk-%v-uefi", d.ImportArguments.ExecutionID)
 		err := d.computeClient.CreateDisk(d.ImportArguments.Project, d.ImportArguments.Zone, &compute.Disk {
 			Name: diskName,
@@ -86,7 +87,12 @@ func (d defaultProcessorProvider) inspectDisk(pd persistentDisk) (persistentDisk
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("Inspection result=%v", inspectionResult)
+		log.Println("UEFI disk created: ", diskName)
+		pd.uri = fmt.Sprintf("zones/%v/disks/%v", d.ImportArguments.Zone, diskName)
+	}
+
+	if d.ImportArguments.UefiCompatible || inspectionResult.HasEFIPartition {
+		pd.isUEFICompatible = true
 	}
 
 	return pd, nil

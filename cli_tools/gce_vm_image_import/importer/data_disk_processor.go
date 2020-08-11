@@ -25,6 +25,7 @@ type dataDiskProcessor struct {
 	client  daisyCompute.Client
 	project string
 	request compute.Image
+	pd      persistentDisk
 }
 
 func newDataDiskProcessor(pd persistentDisk, client daisyCompute.Client, project string,
@@ -51,6 +52,7 @@ func newDataDiskProcessor(pd persistentDisk, client daisyCompute.Client, project
 			StorageLocations: storageLocation,
 			Licenses:         []string{"projects/compute-image-tools/global/licenses/virtual-disk-import"},
 		},
+		pd: pd,
 	}
 }
 
@@ -58,17 +60,12 @@ func (d dataDiskProcessor) traceLogs() []string {
 	return []string{}
 }
 
-func (d dataDiskProcessor) process() (err error) {
+func (d dataDiskProcessor) process() (persistentDisk, error) {
 	log.Printf("Creating image \"%v\"", d.request.Name)
-	return d.client.CreateImage(d.project, &d.request)
+	return d.pd, d.client.CreateImage(d.project, &d.request)
 }
 
 func (d dataDiskProcessor) cancel(reason string) bool {
 	//indicate cancel was not performed
 	return false
-}
-
-// createImageClient is the subset of the GCP compute API that is used by dataDiskProcessor.
-type createImageClient interface {
-	CreateImage(project string, i *compute.Image) error
 }

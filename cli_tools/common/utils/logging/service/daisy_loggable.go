@@ -37,6 +37,14 @@ func (w workflowLoggable) GetValue(key string) string {
 	return w.wf.GetSerialConsoleOutputValue(key)
 }
 
+func (w workflowLoggable) GetValueAsBool(key string) bool {
+	v, err := strconv.ParseBool(w.wf.GetSerialConsoleOutputValue(key))
+	if err != nil {
+		return false
+	}
+	return v
+}
+
 func (w workflowLoggable) GetValueAsInt64Slice(key string) []int64 {
 	return getInt64Values(w.wf.GetSerialConsoleOutputValue(key))
 }

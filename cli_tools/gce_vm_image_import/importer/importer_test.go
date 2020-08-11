@@ -33,18 +33,21 @@ func TestRun_HappyCase_CollectAllLogs(t *testing.T) {
 	inflaterLogs := []string{"log-a", "log-b"}
 	processorLogs := []string{"log-c", "log-d"}
 	expectedLogs := []string{"log-a", "log-b", "log-c", "log-d"}
+	pd := persistentDisk{
+		sizeGb:           100,
+		sourceGb:         10,
+		sourceType:       "vmdk",
+		isUEFICompatible: false,
+	}
 	mockProcessor := mockProcessor{
 		serialLogs: processorLogs,
+		pd:         pd,
 	}
 	importer := importer{
 		preValidator: mockValidator{},
 		inflater: &mockInflater{
 			serialLogs: inflaterLogs,
-			pd: persistentDisk{
-				sizeGb:     100,
-				sourceGb:   10,
-				sourceType: "vmdk",
-			},
+			pd:         pd,
 		},
 		processorProvider: &mockProcessorProvider{
 			processor: &mockProcessor,
@@ -57,6 +60,7 @@ func TestRun_HappyCase_CollectAllLogs(t *testing.T) {
 	assert.Equal(t, "vmdk", loggable.GetValue("import-file-format"))
 	assert.Equal(t, []int64{10}, loggable.GetValueAsInt64Slice("source-size-gb"))
 	assert.Equal(t, []int64{100}, loggable.GetValueAsInt64Slice("target-size-gb"))
+	assert.Equal(t, true, loggable.GetValueAsBool("is-uefi-compatible-image"))
 	assert.Equal(t, 1, mockProcessor.interactions)
 }
 
@@ -64,6 +68,9 @@ func TestRun_DeleteDisk(t *testing.T) {
 	project := "project"
 	zone := "zone"
 	diskURI := "uri"
+	pd := persistentDisk{
+		uri: diskURI,
+	}
 	mockDiskClient := mockDiskClient{
 		disk: &compute.Disk{},
 	}
@@ -74,12 +81,10 @@ func TestRun_DeleteDisk(t *testing.T) {
 		diskClient:   &mockDiskClient,
 		preValidator: mockValidator{},
 		inflater: &mockInflater{
-			pd: persistentDisk{
-				uri: diskURI,
-			},
+			pd: pd,
 		},
 		processorProvider: &mockProcessorProvider{
-			processor: &mockProcessor{},
+			processor: &mockProcessor{pd: pd},
 		},
 	}
 	_, actualError := importer.Run(context.Background())
@@ -99,6 +104,9 @@ func TestRun_NoErrorLoggedWhenDeletingDiskThatWasNotCreated(t *testing.T) {
 	project := "project"
 	zone := "zone"
 	diskURI := "uri"
+	pd := persistentDisk{
+		uri: diskURI,
+	}
 	mockDiskClient := mockDiskClient{
 		disk:            nil,
 		deleteDiskError: &googleapi.Error{Code: 404},
@@ -110,12 +118,10 @@ func TestRun_NoErrorLoggedWhenDeletingDiskThatWasNotCreated(t *testing.T) {
 		diskClient:   &mockDiskClient,
 		preValidator: mockValidator{},
 		inflater: &mockInflater{
-			pd: persistentDisk{
-				uri: diskURI,
-			},
+			pd: pd,
 		},
 		processorProvider: &mockProcessorProvider{
-			processor: &mockProcessor{},
+			processor: &mockProcessor{pd: pd},
 		},
 	}
 	_, actualError := importer.Run(context.Background())
@@ -135,6 +141,9 @@ func TestRun_ErrorLoggedWhenErrorDeletingDisk(t *testing.T) {
 	project := "project"
 	zone := "zone"
 	diskURI := "uri"
+	pd := persistentDisk{
+		uri: diskURI,
+	}
 	mockDiskClient := mockDiskClient{
 		disk:            nil,
 		deleteDiskError: &googleapi.Error{Code: 403},
@@ -146,12 +155,10 @@ func TestRun_ErrorLoggedWhenErrorDeletingDisk(t *testing.T) {
 		diskClient:   &mockDiskClient,
 		preValidator: mockValidator{},
 		inflater: &mockInflater{
-			pd: persistentDisk{
-				uri: diskURI,
-			},
+			pd: pd,
 		},
 		processorProvider: &mockProcessorProvider{
-			processor: &mockProcessor{},
+			processor: &mockProcessor{pd: pd},
 		},
 	}
 	_, actualError := importer.Run(context.Background())
@@ -353,9 +360,10 @@ type mockProcessor struct {
 	processingChan chan bool
 	cantCancel     bool
 	cancelChan     chan bool
+	pd             persistentDisk
 }
 
-func (m *mockProcessor) process() error {
+func (m *mockProcessor) process() (persistentDisk, error) {
 	m.interactions++
 	m.cancelChan = make(chan bool)
 
@@ -368,7 +376,9 @@ func (m *mockProcessor) process() error {
 		}
 	}
 
-	return m.err
+	m.pd.isUEFICompatible = true
+
+	return m.pd, m.err
 }
 
 func (m *mockProcessor) traceLogs() []string {

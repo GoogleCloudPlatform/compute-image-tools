@@ -122,29 +122,6 @@ func TestBootableDiskProcessor_SetsImageTrackingValues(t *testing.T) {
 		"user-key":                  "user-val"}, image.Labels)
 }
 
-func TestBootableDiskProcessor_CreatesGuestOSFeatures_WhenUEFIEnabled(t *testing.T) {
-	imageSpec := defaultImportArgs()
-	imageSpec.UefiCompatible = true
-	actual := createAndRunPrePostFunctions(t, persistentDisk{}, imageSpec)
-	disk := getFirstCreatedDisk(t, actual.workflow)
-	image := getImage(t, actual.workflow)
-
-	assert.NotContains(t, disk.GuestOsFeatures, "UEFI_COMPATIBLE",
-		"Worker disk does not get UEFI enabled.")
-	assert.Contains(t, image.GuestOsFeatures, "UEFI_COMPATIBLE")
-}
-
-func TestBootableDiskProcessor_DoesNotCreateGuestOSFeatures_WhenUEFIDisabled(t *testing.T) {
-	imageSpec := defaultImportArgs()
-	imageSpec.UefiCompatible = false
-	actual := createAndRunPrePostFunctions(t, persistentDisk{}, imageSpec)
-	disk := getFirstCreatedDisk(t, actual.workflow)
-	image := getImage(t, actual.workflow)
-
-	assert.NotContains(t, disk.GuestOsFeatures, "UEFI_COMPATIBLE")
-	assert.NotContains(t, image.GuestOsFeatures, "UEFI_COMPATIBLE")
-}
-
 func TestBootableDiskProcessor_SupportsStorageLocation(t *testing.T) {
 	imageSpec := defaultImportArgs()
 	imageSpec.StorageLocation = "north-america"

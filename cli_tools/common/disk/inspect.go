@@ -16,7 +16,6 @@ package disk
 
 import (
 	"context"
-	"fmt"
 	"path"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
@@ -60,16 +59,12 @@ type defaultInspector struct {
 // "projects/project-name/zones/us-central1-a/disks/disk-name".
 func (inspector defaultInspector) Inspect(reference string) (ir InspectionResult, err error) {
 	inspector.wf.AddVar("pd_uri", reference)
-	fmt.Println(">>>>inspect1")
 	err = inspector.wf.Run(context.Background())
 	if err != nil {
-		fmt.Println(">>>>inspect err")
 		return
 	}
 
-	fmt.Println(">>>>inspect2")
 	if inspector.wf.GetSerialConsoleOutputValue("has_efi_partition") == "true" {
-		fmt.Println(">>>>inspect3")
 		ir.HasEFIPartition = true
 	}
 	return

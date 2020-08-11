@@ -17,6 +17,7 @@ package importer
 import (
 	"testing"
 
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
 )
@@ -26,7 +27,7 @@ func Test_ImageIncludesTrackingLabelAndLicense(t *testing.T) {
 	trackingLabelKey := "gce-image-import"
 	trackingLabelValue := "true"
 
-	mockClient := mockImageClient{expectedProject: "project-1234", t: t}
+	mockClient := mockComputeClient{expectedProject: "project-1234", t: t}
 
 	processor := newDataDiskProcessor(
 		persistentDisk{uri: "global/projects/pid/pd/id"},
@@ -38,7 +39,8 @@ func Test_ImageIncludesTrackingLabelAndLicense(t *testing.T) {
 		"family-name",
 		"image-name")
 
-	assert.NoError(t, processor.process())
+	_, err := processor.process()
+	assert.NoError(t, err)
 	assert.Equal(t, 1, mockClient.invocations)
 	assert.Equal(t, compute.Image{
 		SourceDisk:       "global/projects/pid/pd/id",
@@ -51,14 +53,15 @@ func Test_ImageIncludesTrackingLabelAndLicense(t *testing.T) {
 	}, mockClient.actualImage, "Processor should add tracking license and tracking label.")
 }
 
-type mockImageClient struct {
+type mockComputeClient struct {
+	daisyCompute.Client
 	expectedProject string
 	actualImage     compute.Image
 	t               *testing.T
 	invocations     int
 }
 
-func (m *mockImageClient) CreateImage(project string, i *compute.Image) error {
+func (m *mockComputeClient) CreateImage(project string, i *compute.Image) error {
 	assert.Equal(m.t, m.expectedProject, project)
 	m.actualImage = *i
 	m.invocations++

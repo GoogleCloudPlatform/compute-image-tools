@@ -116,7 +116,11 @@ func (i *importer) runProcess(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	return i.runStep(ctx, processor.process, processor.cancel, processor.traceLogs)
+	return i.runStep(ctx, func() error {
+		var err error
+		i.pd, err = processor.process()
+		return err
+	}, processor.cancel, processor.traceLogs)
 }
 
 func (i *importer) runStep(ctx context.Context, step func() error, cancel func(string) bool, getTraceLogs func() []string) (err error) {
@@ -179,7 +183,7 @@ func (i *importer) cleanupDisk() {
 func (i *importer) buildLoggable() service.Loggable {
 	return service.SingleImageImportLoggable(i.pd.sourceType, i.pd.sourceGb, i.pd.sizeGb,
 		i.pd.matchResult, i.pd.inflationType, int64(i.pd.inflationTime.Milliseconds()),
-		int64(i.pd.shadowInflationTime.Milliseconds()), i.traceLogs)
+		int64(i.pd.shadowInflationTime.Milliseconds()), i.pd.isUEFICompatible, i.traceLogs)
 }
 
 // diskClient is the subset of the GCP API that is used by importer.

@@ -31,13 +31,14 @@ type bootableDiskProcessor struct {
 	workflow        *daisy.Workflow
 	userLabels      map[string]string
 	storageLocation string
-	uefiCompatible  bool
 	noExternalIP    bool
 	network         string
 	OS              string
+	pd              persistentDisk
 }
 
-func (b bootableDiskProcessor) process() (err error) {
+func (b bootableDiskProcessor) process() (persistentDisk, error) {
+	var err error
 	err = b.workflow.RunWithModifiers(context.Background(), b.preValidateFunc(), b.postValidateFunc())
 	if err != nil {
 		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.network, b.workflow)
@@ -46,7 +47,7 @@ func (b bootableDiskProcessor) process() (err error) {
 			b.workflow.GetSerialConsoleOutputValue("detected_major_version"),
 			b.workflow.GetSerialConsoleOutputValue("detected_minor_version"), err)
 	}
-	return err
+	return b.pd, err
 }
 
 func (b bootableDiskProcessor) cancel(reason string) bool {
@@ -97,10 +98,10 @@ func newBootableDiskProcessor(args ImportArguments, pd persistentDisk) (processo
 		workflow:        workflow,
 		userLabels:      args.Labels,
 		storageLocation: args.StorageLocation,
-		uefiCompatible:  args.UefiCompatible,
 		noExternalIP:    args.NoExternalIP,
 		network:         args.Network,
 		OS:              args.OS,
+		pd:              pd,
 	}, err
 }
 

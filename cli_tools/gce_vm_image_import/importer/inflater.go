@@ -179,10 +179,11 @@ func (inflater *daisyInflater) inflate() (persistentDisk, error) {
 }
 
 type persistentDisk struct {
-	uri        string
-	sizeGb     int64
-	sourceGb   int64
-	sourceType string
+	uri              string
+	sizeGb           int64
+	sourceGb         int64
+	sourceType       string
+	isUEFICompatible bool
 
 	// Below fields are for shadow API inflation test
 	checksum            string

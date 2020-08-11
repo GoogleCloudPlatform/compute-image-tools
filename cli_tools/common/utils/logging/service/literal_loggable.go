@@ -17,10 +17,13 @@ package service
 type literalLoggable struct {
 	strings   map[string]string
 	int64s    map[string][]int64
+	bools			map[string]bool
 	traceLogs []string
 }
 
 func (w literalLoggable) GetValue(key string) string { return w.strings[key] }
+
+func (w literalLoggable) GetValueAsBool(key string) bool { return w.bools[key] }
 
 func (w literalLoggable) GetValueAsInt64Slice(key string) []int64 { return w.int64s[key] }
 
@@ -28,7 +31,9 @@ func (w literalLoggable) ReadSerialPortLogs() []string { return w.traceLogs }
 
 // SingleImageImportLoggable returns a Loggable that is pre-initialized with the metadata
 // fields that are relevant when importing a single image file.
-func SingleImageImportLoggable(fileFormat string, sourceSize, resultSize int64, matchResult string, inflationTypeStr string, inflationTimeInt64 int64, shadowInflationTimeInt64 int64, traceLogs []string) Loggable {
+func SingleImageImportLoggable(fileFormat string, sourceSize, resultSize int64, matchResult string,
+	inflationTypeStr string, inflationTimeInt64 int64, shadowInflationTimeInt64 int64,
+	isUEFICompatibleImageBool bool, traceLogs []string) Loggable {
 	return literalLoggable{
 		strings: map[string]string{
 			importFileFormat:      fileFormat,
@@ -40,6 +45,9 @@ func SingleImageImportLoggable(fileFormat string, sourceSize, resultSize int64, 
 			targetSizeGb:        {resultSize},
 			inflationTime:       {inflationTimeInt64},
 			shadowInflationTime: {shadowInflationTimeInt64},
+		},
+		bools: map[string]bool{
+			isUEFICompatibleImage: isUEFICompatibleImageBool,
 		},
 		traceLogs: traceLogs,
 	}
