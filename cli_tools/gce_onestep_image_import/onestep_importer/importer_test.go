@@ -42,6 +42,11 @@ func TestTrimAndLowerClientID(t *testing.T) {
 	assert.Equal(t, "gcloud", expectSuccessfulParse(t, args...).ClientID)
 }
 
+func TestTrimClientVersion(t *testing.T) {
+	args := setUpArgs(clientFlag, "-client_version=      301.0.0B    ")
+	assert.Equal(t, "301.0.0B", expectSuccessfulParse(t, args...).ClientVersion)
+}
+
 func TestFailWhenOSNotProvided(t *testing.T) {
 	args := setUpArgs(osFlag)
 	assert.EqualError(t, expectFailedValidation(t, args), "The flag -os must be provided")

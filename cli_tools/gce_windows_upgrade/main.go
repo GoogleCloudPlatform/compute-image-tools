@@ -27,6 +27,7 @@ import (
 
 var (
 	clientID               = flag.String(upgrader.ClientIDFlagKey, "", "Identifies the upgrade client. Set to `gcloud`, `api` or `pantheon`.")
+	clientVersion          = flag.String("client-version", "", "Identifies the version of the upgrade client.")
 	project                = flag.String("project", "", "Project containing the instance to upgrade.")
 	zone                   = flag.String("zone", "", "Project containing the instance to upgrade.")
 	instance               = flag.String("instance", "Instance to upgrade. Can be either the instance name or the full path to the instance in the following format: 'projects/<project>/zones/<zone>/instances/'. If the full path is specified, flags -project and -zone will be ignored.", "")
@@ -74,6 +75,7 @@ func main() {
 		WindowsUpgradeParams: &service.WindowsUpgradeParams{
 			CommonParams: &service.CommonParams{
 				ClientID:                *clientID,
+				ClientVersion:           *clientVersion,
 				Timeout:                 *timeout,
 				Zone:                    *zone,
 				ScratchBucketGcsPath:    *scratchBucketGcsPath,

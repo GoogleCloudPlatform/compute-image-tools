@@ -110,6 +110,7 @@ func initLoggingParams(args importer.ImportArguments) service.InputParams {
 		ImageImportParams: &service.ImageImportParams{
 			CommonParams: &service.CommonParams{
 				ClientID:                args.ClientID,
+				ClientVersion:           args.ClientVersion,
 				Network:                 args.Network,
 				Subnet:                  args.Subnet,
 				Zone:                    args.Zone,

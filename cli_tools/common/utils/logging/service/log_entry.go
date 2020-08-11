@@ -199,6 +199,7 @@ type MachineImageImportParams struct {
 // CommonParams is only used to organize the code without impacting hierarchy of data
 type CommonParams struct {
 	ClientID                string `json:"client_id,omitempty"`
+	ClientVersion           string `json:"client_version,omitempty"`
 	Network                 string `json:"network,omitempty"`
 	Subnet                  string `json:"subnet,omitempty"`
 	Zone                    string `json:"zone,omitempty"`
