@@ -41,7 +41,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/dustin/go-humanize"
 	"google.golang.org/api/option"
-	htransport "google.golang.org/api/transport/http"
 )
 
 const (
@@ -132,13 +131,9 @@ func createGCSClient(ctx context.Context, oauth string) (domain.StorageClientInt
 		TLSHandshakeTimeout:   5 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
-	transport, err := htransport.NewTransport(ctx, baseTransport)
-	if err != nil {
-		return nil, daisy.Errf("failed to create Cloud Storage client: %v", err)
-	}
+	http.DefaultTransport = baseTransport
 
-	storage, err := storageutils.NewStorageClient(ctx, logger, option.WithHTTPClient(&http.Client{Transport: transport}),
-		option.WithCredentialsFile(oauth))
+	storage, err := storageutils.NewStorageClient(ctx, logger, option.WithCredentialsFile(oauth))
 	if err != nil {
 		return nil, daisy.Errf("failed to create Cloud Storage client: %v", err)
 	}
