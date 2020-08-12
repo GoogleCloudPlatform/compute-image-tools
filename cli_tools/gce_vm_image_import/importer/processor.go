@@ -15,13 +15,8 @@
 package importer
 
 import (
-	"fmt"
-	"log"
-
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"google.golang.org/api/compute/v1"
 )
 
 // processor represents the second (and final) phase of import. For bootable
@@ -52,52 +47,6 @@ func (d defaultProcessorProvider) provide(pd persistentDisk) (processor, error) 
 			d.Labels, d.StorageLocation, d.Description,
 			d.Family, d.ImageName), nil
 	}
-	var err error
-	pd, err = d.inspectDisk(pd)
-	if err != nil {
-		return nil, err
-	}
-	return newBootableDiskProcessor(d.ImportArguments, pd)
-}
 
-func (d defaultProcessorProvider) inspectDisk(pd persistentDisk) (persistentDisk, error) {
-	var inspectionResult disk.InspectionResult
-	var err error
-	if d.Inspect && d.diskInspector != nil {
-		log.Printf("Running experimental disk inspections on %v.", pd.uri)
-		inspectionResult, err = d.diskInspector.Inspect(pd.uri)
-		if err != nil {
-			log.Printf("Disk inspection error=%v", err)
-			return pd, daisy.Errf("Disk inspection error: %v", err)
-		}
-
-		log.Printf("Disk inspection result=%v", inspectionResult)
-	}
-
-	// If UEFI_COMPATIBLE is enforced in user input args (by d.ImportArguments.UefiCompatible),
-	// then it has been honored in inflation stage, so no need to create a new disk here.
-	// Only create new disk with UEFI_COMPATIBLE when inspection result tells us to do it.
-	if !d.ImportArguments.UefiCompatible && inspectionResult.HasEFIPartition {
-		diskName := fmt.Sprintf("disk-%v-uefi", d.ImportArguments.ExecutionID)
-		err := d.computeClient.CreateDisk(d.ImportArguments.Project, d.ImportArguments.Zone, &compute.Disk{
-			Name:            diskName,
-			SourceDisk:      pd.uri,
-			GuestOsFeatures: []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}},
-		})
-		if err != nil {
-			return nil, err
-		}
-		log.Println("UEFI disk created: ", diskName)
-		pd.uri = fmt.Sprintf("zones/%v/disks/%v", d.ImportArguments.Zone, diskName)
-	}
-
-	if d.ImportArguments.UefiCompatible || inspectionResult.HasEFIPartition {
-		pd.isUEFICompatible = true
-	}
-
-	if inspectionResult.HasEFIPartition {
-		pd.isUEFIDetected = true
-	}
-
-	return pd, nil
+	return newBootableDiskProcessor(d.computeClient, d.diskInspector, d.ImportArguments, pd)
 }

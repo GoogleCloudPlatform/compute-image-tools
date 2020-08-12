@@ -27,7 +27,7 @@ import (
 // constructs the log prefix using the workflow's name.
 func TestBootableDiskProcessor_SetsWorkflowNameToGcloudPrefix(t *testing.T) {
 	args := defaultImportArgs()
-	processor, e := newBootableDiskProcessor(args, persistentDisk{})
+	processor, e := newBootableDiskProcessor(nil, nil, args, persistentDisk{})
 	assert.NoError(t, e)
 	assert.Equal(t, (processor.(*bootableDiskProcessor)).workflow.Name, "import-image")
 }
@@ -141,7 +141,7 @@ func TestBootableDiskProcessor_PermitsUnsetStorageLocation(t *testing.T) {
 func TestBootableDiskProcessor_SupportsSerialLogs(t *testing.T) {
 	expected := []string{"serials"}
 	args := defaultImportArgs()
-	translator, e := newBootableDiskProcessor(args, persistentDisk{})
+	translator, e := newBootableDiskProcessor(nil, nil, args, persistentDisk{})
 	realTranslator := translator.(*bootableDiskProcessor)
 	realTranslator.workflow.Logger = daisyLogger{
 		serials: expected,
@@ -152,7 +152,7 @@ func TestBootableDiskProcessor_SupportsSerialLogs(t *testing.T) {
 
 func TestBootableDiskProcessor_SupportsCancel(t *testing.T) {
 	args := defaultImportArgs()
-	processor, e := newBootableDiskProcessor(args, persistentDisk{})
+	processor, e := newBootableDiskProcessor(nil, nil, args, persistentDisk{})
 	assert.NoError(t, e)
 
 	realProcessor := processor.(*bootableDiskProcessor)
@@ -162,7 +162,7 @@ func TestBootableDiskProcessor_SupportsCancel(t *testing.T) {
 }
 
 func createAndRunPrePostFunctions(t *testing.T, pd persistentDisk, args ImportArguments) *bootableDiskProcessor {
-	translator, e := newBootableDiskProcessor(args, pd)
+	translator, e := newBootableDiskProcessor(nil, nil, args, pd)
 	assert.NoError(t, e)
 	realTranslator := translator.(*bootableDiskProcessor)
 	// A concrete logger is required since the import/export logging framework writes a log entry

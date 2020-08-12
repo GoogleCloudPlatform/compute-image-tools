@@ -70,7 +70,8 @@ func TestProcessorProvider_InspectUEFIWithoutInputUEFI_NewDisk(t *testing.T) {
 			assert.NoError(t, err)
 			actualProcessor, ok := processor.(*bootableDiskProcessor)
 			assert.True(t, ok, "processor is not bootableDiskProcessor")
-			pd := actualProcessor.pd
+			pd, err := actualProcessor.inspectDisk()
+			assert.NoError(t, err)
 
 			if tt.isUEFIDisk && !tt.isInputArgUEFICompatible {
 				assert.Truef(t, strings.Contains(pd.uri, "uefi"), "UEFI Disk URI should contains 'uefi', actual: %v", pd.uri)

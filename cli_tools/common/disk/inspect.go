@@ -17,6 +17,7 @@ package disk
 import (
 	"context"
 	"path"
+	"strconv"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -64,8 +65,6 @@ func (inspector defaultInspector) Inspect(reference string) (ir InspectionResult
 		return
 	}
 
-	if inspector.wf.GetSerialConsoleOutputValue("has_efi_partition") == "true" {
-		ir.HasEFIPartition = true
-	}
+	ir.HasEFIPartition, _ = strconv.ParseBool(inspector.wf.GetSerialConsoleOutputValue("has_efi_partition"))
 	return
 }
