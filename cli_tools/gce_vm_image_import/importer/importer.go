@@ -16,7 +16,6 @@ package importer
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"path"
 	"sync"

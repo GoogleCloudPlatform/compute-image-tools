@@ -42,7 +42,7 @@ func TestProcessorProvider_InspectDataDisk(t *testing.T) {
 	assert.True(t, ok, "processor is not dataDiskProcessor")
 }
 
-func TestProcessorProvider_InspectUEFIWithoutInputUEFI_NewDisk(t *testing.T) {
+func TestProcessorProvider_InspectUEFI(t *testing.T) {
 	tests := []struct {
 		isUEFIDisk               bool
 		isInputArgUEFICompatible bool
@@ -70,7 +70,7 @@ func TestProcessorProvider_InspectUEFIWithoutInputUEFI_NewDisk(t *testing.T) {
 			assert.NoError(t, err)
 			actualProcessor, ok := processor.(*bootableDiskProcessor)
 			assert.True(t, ok, "processor is not bootableDiskProcessor")
-			pd, err := actualProcessor.inspectDisk()
+			pd, err := actualProcessor.inspectAndPreProcess()
 			assert.NoError(t, err)
 
 			if tt.isUEFIDisk && !tt.isInputArgUEFICompatible {

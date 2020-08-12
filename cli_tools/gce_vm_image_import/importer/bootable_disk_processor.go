@@ -40,7 +40,8 @@ type bootableDiskProcessor struct {
 }
 
 func (b bootableDiskProcessor) process() (persistentDisk, error) {
-	pd, err := b.inspectDisk()
+	var err error
+	pd, err := b.inspectAndPreProcess()
 	if err != nil {
 		return pd, err
 	}
@@ -56,24 +57,24 @@ func (b bootableDiskProcessor) process() (persistentDisk, error) {
 	return pd, err
 }
 
-func (b bootableDiskProcessor) inspectDisk() (persistentDisk, error) {
-	var inspectionResult disk.InspectionResult
-	var err error
-	if b.Inspect && b.diskInspector != nil {
-		log.Printf("Running experimental disk inspections on %v.", b.pd.uri)
-		inspectionResult, err = b.diskInspector.Inspect(b.pd.uri)
-		if err != nil {
-			log.Printf("Disk inspection error=%v", err)
-			return b.pd, daisy.Errf("Disk inspection error: %v", err)
-		}
-
-		log.Printf("Disk inspection result=%v", inspectionResult)
+func (b bootableDiskProcessor) inspectAndPreProcess() (persistentDisk, error) {
+	if !b.Inspect || b.diskInspector == nil {
+		return b.pd, nil
 	}
 
+	ir, err := b.inspectDisk()
+	if err != nil {
+		return b.pd, err
+	}
+
+	return b.recreateDisk(ir)
+}
+
+func (b bootableDiskProcessor) recreateDisk(ir disk.InspectionResult) (persistentDisk, error) {
 	// If UEFI_COMPATIBLE is enforced in user input args (by d.ImportArguments.UefiCompatible),
 	// then it has been honored in inflation stage, so no need to create a new disk here.
-	// Only create new disk with UEFI_COMPATIBLE when inspection result tells us to do it.
-	if !b.UefiCompatible && inspectionResult.HasEFIPartition {
+	// Create new disk with UEFI_COMPATIBLE only when inspection result tells us to do.
+	if !b.UefiCompatible && ir.HasEFIPartition {
 		diskName := fmt.Sprintf("disk-%v-uefi", b.ExecutionID)
 		err := b.computeClient.CreateDisk(b.Project, b.Zone, &compute.Disk{
 			Name:            diskName,
@@ -91,15 +92,27 @@ func (b bootableDiskProcessor) inspectDisk() (persistentDisk, error) {
 		b.pd.uri = fmt.Sprintf("zones/%v/disks/%v", b.Zone, diskName)
 	}
 
-	if b.UefiCompatible || inspectionResult.HasEFIPartition {
+	if b.UefiCompatible || ir.HasEFIPartition {
 		b.pd.isUEFICompatible = true
 	}
 
-	if inspectionResult.HasEFIPartition {
+	if ir.HasEFIPartition {
 		b.pd.isUEFIDetected = true
 	}
 
 	return b.pd, nil
+}
+
+func (b bootableDiskProcessor) inspectDisk() (disk.InspectionResult, error) {
+	log.Printf("Running experimental disk inspections on %v.", b.pd.uri)
+	ir, err := b.diskInspector.Inspect(b.pd.uri)
+	if err != nil {
+		log.Printf("Disk inspection error=%v", err)
+		return ir, daisy.Errf("Disk inspection error: %v", err)
+	}
+
+	log.Printf("Disk inspection result=%v", ir)
+	return ir, nil
 }
 
 func (b bootableDiskProcessor) cancel(reason string) bool {
