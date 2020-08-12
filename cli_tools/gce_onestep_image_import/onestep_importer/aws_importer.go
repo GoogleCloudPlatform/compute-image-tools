@@ -25,6 +25,7 @@ import (
 	"runtime"
 	"time"
 
+	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
@@ -41,6 +42,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/dustin/go-humanize"
 	"google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 const (
@@ -131,9 +133,13 @@ func createGCSClient(ctx context.Context, oauth string) (domain.StorageClientInt
 		TLSHandshakeTimeout:   5 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
-	http.DefaultTransport = baseTransport
+	// Create a new transport with baseTransport. The default scope for Cloud Storage client is ScopeFullControl.
+	transport, err := htransport.NewTransport(ctx, baseTransport, option.WithCredentialsFile(oauth), option.WithScopes(storage.ScopeFullControl))
+	if err != nil {
+		return nil, daisy.Errf("failed to create Cloud Storage client: %v", err)
+	}
 
-	storage, err := storageutils.NewStorageClient(ctx, logger, option.WithCredentialsFile(oauth))
+	storage, err := storageutils.NewStorageClient(ctx, logger, option.WithHTTPClient(&http.Client{Transport: transport}))
 	if err != nil {
 		return nil, daisy.Errf("failed to create Cloud Storage client: %v", err)
 	}
