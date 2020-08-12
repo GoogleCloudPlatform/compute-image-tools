@@ -34,10 +34,9 @@ func TestRun_HappyCase_CollectAllLogs(t *testing.T) {
 	processorLogs := []string{"log-c", "log-d"}
 	expectedLogs := []string{"log-a", "log-b", "log-c", "log-d"}
 	pd := persistentDisk{
-		sizeGb:           100,
-		sourceGb:         10,
-		sourceType:       "vmdk",
-		isUEFICompatible: false,
+		sizeGb:     100,
+		sourceGb:   10,
+		sourceType: "vmdk",
 	}
 	mockProcessor := mockProcessor{
 		serialLogs: processorLogs,
@@ -61,6 +60,7 @@ func TestRun_HappyCase_CollectAllLogs(t *testing.T) {
 	assert.Equal(t, []int64{10}, loggable.GetValueAsInt64Slice("source-size-gb"))
 	assert.Equal(t, []int64{100}, loggable.GetValueAsInt64Slice("target-size-gb"))
 	assert.Equal(t, true, loggable.GetValueAsBool("is-uefi-compatible-image"))
+	assert.Equal(t, true, loggable.GetValueAsBool("is-uefi-detected"))
 	assert.Equal(t, 1, mockProcessor.interactions)
 }
 
@@ -377,6 +377,7 @@ func (m *mockProcessor) process() (persistentDisk, error) {
 	}
 
 	m.pd.isUEFICompatible = true
+	m.pd.isUEFIDetected = true
 
 	return m.pd, m.err
 }

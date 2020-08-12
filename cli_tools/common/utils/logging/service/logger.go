@@ -66,6 +66,7 @@ const (
 	shadowInflationTime   = "shadow-inflation-time"
 	shadowDiskMatchResult = "shadow-disk-match-result"
 	isUEFICompatibleImage = "is-uefi-compatible-image"
+	isUEFIDetected        = "is-uefi-detected"
 
 	statusStart   = "Start"
 	statusSuccess = "Success"
@@ -188,6 +189,7 @@ func (l *Logger) getOutputInfo(loggable Loggable, err error) *OutputInfo {
 		o.ShadowInflationTime = loggable.GetValueAsInt64Slice(shadowInflationTime)
 		o.ShadowDiskMatchResult = loggable.GetValue(shadowDiskMatchResult)
 		o.IsUEFICompatibleImage = loggable.GetValueAsBool(isUEFICompatibleImage)
+		o.IsUEFIDetected = loggable.GetValueAsBool(isUEFIDetected)
 	}
 
 	if err != nil {

@@ -252,6 +252,8 @@ type OutputInfo struct {
 	ShadowDiskMatchResult string `json:"shadow_disk_match_result,omitempty"`
 	// Indicates whether the image is imported and marked as UEFI_COMPATIBLE
 	IsUEFICompatibleImage bool `json:"is_uefi_compatible_image,omitempty"`
+	// Indicates whether the image is auto-detected to be UEFI compatible
+	IsUEFIDetected bool `json:"is_uefi_detected,omitempty"`
 }
 
 func (l *Logger) updateParams(projectPointer *string) {

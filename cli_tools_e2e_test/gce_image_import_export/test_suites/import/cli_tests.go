@@ -78,7 +78,6 @@ func CLITestSuite(
 		imageImportWindowsNonUEFITestCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import UEFI test for windows non-UEFI"))
 
-
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, utils.CLITestType){}
 		testsMap[testType][imageImportDataDiskTestCase] = runImageImportDataDiskTest
@@ -295,7 +294,7 @@ func runImageImportWithSubnetWithoutNetworkSpecified(ctx context.Context, testCa
 }
 
 func runImageImportLinuxUEFITest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
+	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	// source created from projects/gce-uefi-images/global/images/rhel-7-v20200403
 	runImageImportUEFITest(ctx, testCase, logger, testProjectConfig, testType,
@@ -303,7 +302,7 @@ func runImageImportLinuxUEFITest(ctx context.Context, testCase *junitxml.TestCas
 }
 
 func runImageImportLinuxUEFIFromImageTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
+	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	// // image created from projects/gce-uefi-images/global/images/rhel-7-v20200403
 	runImageImportUEFITest(ctx, testCase, logger, testProjectConfig, testType,
@@ -311,7 +310,7 @@ func runImageImportLinuxUEFIFromImageTest(ctx context.Context, testCase *junitxm
 }
 
 func runImageImportLinuxNonUEFITest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
+	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	// source created from projects/debian-cloud/global/images/debian-9-stretch-v20200714
 	runImageImportUEFITest(ctx, testCase, logger, testProjectConfig, testType,
@@ -319,7 +318,7 @@ func runImageImportLinuxNonUEFITest(ctx context.Context, testCase *junitxml.Test
 }
 
 func runImageImportLinuxHybridTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
+	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	// source created from projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317
 	runImageImportUEFITest(ctx, testCase, logger, testProjectConfig, testType,
@@ -327,7 +326,7 @@ func runImageImportLinuxHybridTest(ctx context.Context, testCase *junitxml.TestC
 }
 
 func runImageImportLinuxUEFIMBRTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
+	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	// source created from projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317 and converted from GPT to MBR
 	runImageImportUEFITest(ctx, testCase, logger, testProjectConfig, testType,
@@ -335,7 +334,7 @@ func runImageImportLinuxUEFIMBRTest(ctx context.Context, testCase *junitxml.Test
 }
 
 func runImageImportWindowsUEFITest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
+	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	// source created from projects/gce-uefi-images/global/images/windows-server-2019-dc-core-v20200609
 	runImageImportUEFITest(ctx, testCase, logger, testProjectConfig, testType,
@@ -343,7 +342,7 @@ func runImageImportWindowsUEFITest(ctx context.Context, testCase *junitxml.TestC
 }
 
 func runImageImportWindowsNonUEFITest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
+	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	// source created from projects/windows-cloud/global/images/windows-server-2019-dc-v20200114
 	runImageImportUEFITest(ctx, testCase, logger, testProjectConfig, testType,
@@ -351,8 +350,8 @@ func runImageImportWindowsNonUEFITest(ctx context.Context, testCase *junitxml.Te
 }
 
 func runImageImportUEFITest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-		testProjectConfig *testconfig.Project, testType utils.CLITestType, os string, source string, isSourceFile bool,
-		isUEFICompatible bool) {
+	testProjectConfig *testconfig.Project, testType utils.CLITestType, os string, source string, isSourceFile bool,
+	isUEFICompatible bool) {
 
 	suffix := path.RandString(5)
 	imageName := "e2e-test-image-import-" + suffix

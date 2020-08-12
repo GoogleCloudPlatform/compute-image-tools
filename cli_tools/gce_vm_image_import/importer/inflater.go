@@ -184,6 +184,7 @@ type persistentDisk struct {
 	sourceGb         int64
 	sourceType       string
 	isUEFICompatible bool
+	isUEFIDetected   bool
 
 	// Below fields are for shadow API inflation test
 	checksum            string

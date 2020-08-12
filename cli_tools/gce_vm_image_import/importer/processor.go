@@ -79,9 +79,9 @@ func (d defaultProcessorProvider) inspectDisk(pd persistentDisk) (persistentDisk
 	// Only create new disk with UEFI_COMPATIBLE when inspection result tells us to do it.
 	if !d.ImportArguments.UefiCompatible && inspectionResult.HasEFIPartition {
 		diskName := fmt.Sprintf("disk-%v-uefi", d.ImportArguments.ExecutionID)
-		err := d.computeClient.CreateDisk(d.ImportArguments.Project, d.ImportArguments.Zone, &compute.Disk {
-			Name: diskName,
-			SourceDisk: pd.uri,
+		err := d.computeClient.CreateDisk(d.ImportArguments.Project, d.ImportArguments.Zone, &compute.Disk{
+			Name:            diskName,
+			SourceDisk:      pd.uri,
 			GuestOsFeatures: []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}},
 		})
 		if err != nil {
@@ -93,6 +93,10 @@ func (d defaultProcessorProvider) inspectDisk(pd persistentDisk) (persistentDisk
 
 	if d.ImportArguments.UefiCompatible || inspectionResult.HasEFIPartition {
 		pd.isUEFICompatible = true
+	}
+
+	if inspectionResult.HasEFIPartition {
+		pd.isUEFIDetected = true
 	}
 
 	return pd, nil

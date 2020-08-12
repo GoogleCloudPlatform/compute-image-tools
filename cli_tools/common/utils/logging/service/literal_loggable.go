@@ -17,7 +17,7 @@ package service
 type literalLoggable struct {
 	strings   map[string]string
 	int64s    map[string][]int64
-	bools			map[string]bool
+	bools     map[string]bool
 	traceLogs []string
 }
 
@@ -33,7 +33,7 @@ func (w literalLoggable) ReadSerialPortLogs() []string { return w.traceLogs }
 // fields that are relevant when importing a single image file.
 func SingleImageImportLoggable(fileFormat string, sourceSize, resultSize int64, matchResult string,
 	inflationTypeStr string, inflationTimeInt64 int64, shadowInflationTimeInt64 int64,
-	isUEFICompatibleImageBool bool, traceLogs []string) Loggable {
+	isUEFICompatibleImageBool bool, isUEFIDetectedBool bool, traceLogs []string) Loggable {
 	return literalLoggable{
 		strings: map[string]string{
 			importFileFormat:      fileFormat,
@@ -48,6 +48,7 @@ func SingleImageImportLoggable(fileFormat string, sourceSize, resultSize int64, 
 		},
 		bools: map[string]bool{
 			isUEFICompatibleImage: isUEFICompatibleImageBool,
+			isUEFIDetected:        isUEFIDetectedBool,
 		},
 		traceLogs: traceLogs,
 	}

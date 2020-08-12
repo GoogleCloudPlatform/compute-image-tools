@@ -58,6 +58,7 @@ func TestSingleImageImportLoggable(t *testing.T) {
 	shadowInflationTimeValue := int64(5000)
 	matchResultValue := "true"
 	isUEFICompatibleImageValue := true
+	isUEFIDetectedValue := true
 	expected := literalLoggable{
 		strings: map[string]string{
 			importFileFormat:      format,
@@ -72,10 +73,11 @@ func TestSingleImageImportLoggable(t *testing.T) {
 		},
 		bools: map[string]bool{
 			isUEFICompatibleImage: isUEFICompatibleImageValue,
+			isUEFIDetected:        isUEFIDetectedValue,
 		},
 		traceLogs: traceLogs,
 	}
 	assert.Equal(t, expected, SingleImageImportLoggable(format, sourceGb, targetGb,
 		matchResultValue, inflationTypeValue, inflationTimeValue, shadowInflationTimeValue,
-		isUEFICompatibleImageValue, traceLogs))
+		isUEFICompatibleImageValue, isUEFIDetectedValue, traceLogs))
 }
