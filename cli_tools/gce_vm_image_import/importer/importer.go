@@ -16,19 +16,19 @@ package importer
 
 import (
 	"context"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
+	"fmt"
 	"log"
 	"path"
 	"sync"
 	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/googleapi"
-
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 )
 
 // LogPrefix is a string that conforms to gcloud's output filter.
@@ -166,16 +166,19 @@ func (i *importer) getCtxError(ctx context.Context) (err error) {
 }
 
 func (i *importer) cleanupDisk() {
-	if i.pd.uri == "" {
+	cleanupDisk(i.diskClient, i.project, i.zone, i.pd)
+}
+
+func cleanupDisk(diskClient diskClient, project string, zone string, pd persistentDisk) {
+	if pd.uri == "" {
 		return
 	}
 
-	diskName := path.Base(i.pd.uri)
-
-	if err := i.diskClient.DeleteDisk(i.project, i.zone, diskName); err != nil {
+	diskName := path.Base(pd.uri)
+	if err := diskClient.DeleteDisk(project, zone, diskName); err != nil {
 		gAPIErr, isGAPIErr := err.(*googleapi.Error)
 		if isGAPIErr && gAPIErr.Code != 404 {
-			log.Printf("Failed to remove temporary disk %v: %e", i.pd, err)
+			log.Printf("Failed to remove temporary disk %v: %e", pd, err)
 		}
 	}
 }

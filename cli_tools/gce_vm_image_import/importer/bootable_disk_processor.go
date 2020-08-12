@@ -24,12 +24,11 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
+	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
-
-	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
 
 type bootableDiskProcessor struct {
@@ -85,6 +84,10 @@ func (b bootableDiskProcessor) inspectDisk() (persistentDisk, error) {
 			return b.pd, daisy.Errf("Failed to create UEFI disk: %v", err)
 		}
 		log.Println("UEFI disk created: ", diskName)
+
+		// Cleanup the old disk after the new disk is created.
+		cleanupDisk(b.computeClient, b.Project, b.Zone, b.pd)
+
 		b.pd.uri = fmt.Sprintf("zones/%v/disks/%v", b.Zone, diskName)
 	}
 
