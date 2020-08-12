@@ -17,17 +17,15 @@ package importer
 import (
 	"log"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
 )
 
 type dataDiskProcessor struct {
-	client        daisyCompute.Client
-	diskInspector disk.Inspector
-	project       string
-	request       compute.Image
-	pd            persistentDisk
+	client  daisyCompute.Client
+	project string
+	request compute.Image
+	pd      persistentDisk
 }
 
 func newDataDiskProcessor(pd persistentDisk, client daisyCompute.Client, project string,
