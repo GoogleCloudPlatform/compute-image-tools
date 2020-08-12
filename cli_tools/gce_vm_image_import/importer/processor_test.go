@@ -44,7 +44,7 @@ func TestProcessorProvider_InspectDataDisk(t *testing.T) {
 
 func TestProcessorProvider_InspectUEFIWithoutInputUEFI_NewDisk(t *testing.T) {
 	tests := []struct {
-		isUEFIDisk bool
+		isUEFIDisk               bool
 		isInputArgUEFICompatible bool
 	}{
 		{isUEFIDisk: true, isInputArgUEFICompatible: false},
@@ -57,9 +57,9 @@ func TestProcessorProvider_InspectUEFIWithoutInputUEFI_NewDisk(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			processorProvider := defaultProcessorProvider{
 				ImportArguments{
-					Inspect: true,
-					WorkflowDir: "testdata",
-					OS: "ubuntu-1804",
+					Inspect:        true,
+					WorkflowDir:    "testdata",
+					OS:             "ubuntu-1804",
 					UefiCompatible: tt.isInputArgUEFICompatible,
 				},
 				mockCreateDiskSuccessClient{},
