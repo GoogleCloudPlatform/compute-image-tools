@@ -72,6 +72,10 @@ var cases = []testCase{
 		os:        "rhel-7",
 		extraArgs: []string{"-uefi_compatible=true"},
 	}, {
+		caseName: "rhel-8",
+		source:   "projects/compute-image-tools-test/global/images/rhel-8-import",
+		os:       "rhel-8",
+	}, {
 		caseName:  "windows-2019-uefi",
 		source:    "projects/compute-image-tools-test/global/images/windows-2019-uefi-nodrivers",
 		os:        "windows-2019",
