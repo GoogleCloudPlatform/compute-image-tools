@@ -97,7 +97,7 @@ func importFromCloudProvider(args *OneStepImportArguments) error {
 
 // runImageImport calls image import
 func runImageImport(args *OneStepImportArguments) error {
-	imageImportPath := filepath.Join(filepath.Dir(args.ExecutablePath), "gce_vm_image_import")
+	imageImportPath := "./" + filepath.Join(filepath.Dir(args.ExecutablePath), "gce_vm_image_import")
 	err := runCmd(imageImportPath, []string{
 		fmt.Sprintf("-image_name=%v", args.ImageName),
 		fmt.Sprintf("-client_id=%v", args.ClientID),
