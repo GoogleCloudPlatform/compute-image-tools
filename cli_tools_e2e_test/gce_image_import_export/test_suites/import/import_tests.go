@@ -164,14 +164,16 @@ func (t testCase) runPostTranslateTest(ctx context.Context, imagePath string,
 	if err != nil {
 		return err
 	}
-	wf.Vars = map[string]daisy.Var{
-		"image_under_test": {
-			Value: imagePath,
-		},
-		"path_to_post_translate_test": {
-			Value: t.testScript(),
-		},
+
+	varMap := map[string]string{
+		"image_under_test":            imagePath,
+		"path_to_post_translate_test": t.testScript(),
 	}
+
+	for k, v := range varMap {
+		wf.AddVar(k, v)
+	}
+
 	wf.Logger = logging.AsDaisyLogger(logger)
 	wf.Project = testProjectConfig.TestProjectID
 	wf.Zone = testProjectConfig.TestZone

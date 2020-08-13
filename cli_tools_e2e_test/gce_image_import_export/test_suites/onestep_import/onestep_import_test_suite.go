@@ -107,6 +107,7 @@ func runOnestepImageImportFromAWSLinuxAMI(ctx context.Context, testCase *junitxm
 		amiID:         ubuntuAMIID,
 		os:            "ubuntu-1804",
 		startupScript: "post_translate_test.sh",
+		skipOSConfig:  "true",
 	}
 
 	runOnestepImportTest(ctx, props, testProjectConfig, testType, logger, testCase)
@@ -121,6 +122,7 @@ func runOnestepImageImportFromAWSLinuxVMDK(ctx context.Context, testCase *junitx
 		sourceAMIFilePath: ubuntuVMDKFilePath,
 		os:                "ubuntu-1804",
 		startupScript:     "post_translate_test.sh",
+		skipOSConfig:      "true",
 	}
 
 	runOnestepImportTest(ctx, props, testProjectConfig, testType, logger, testCase)
@@ -231,8 +233,11 @@ func verifyImportedImageFile(ctx context.Context, testCase *junitxml.TestCase, p
 		"image_under_test": {
 			Value: imagePath,
 		},
-		"post_translate_test": {
+		"path_to_post_translate_test": {
 			Value: props.startupScript,
+		},
+		"osconfig_not_supported": {
+			Value: props.skipOSConfig,
 		},
 	}
 
