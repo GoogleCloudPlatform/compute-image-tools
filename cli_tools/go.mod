@@ -8,7 +8,7 @@ require (
 	github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200812174820-48d917200e28
 	github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils v0.0.0-20200128181915-c0775e429077 // indirect
 	github.com/GoogleCloudPlatform/compute-image-tools/mocks v0.0.0-20200414213327-359251a2c860
-	github.com/GoogleCloudPlatform/osconfig v0.0.0-20200811201211-fa7e4ba5ee85
+	github.com/GoogleCloudPlatform/osconfig v0.0.0-20200721210327-c9ab1b6aeb02
 	github.com/aws/aws-sdk-go v1.34.3
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/dustin/go-humanize v1.0.0
