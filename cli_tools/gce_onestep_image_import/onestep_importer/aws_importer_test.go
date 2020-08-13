@@ -120,7 +120,7 @@ func TestNewImporterFailWhenBadOauth(t *testing.T) {
 	args := setUpAWSArgs("", true)
 	awsArgs := getAWSImportArgs(args)
 	_, err := newAWSImporter("bad-oauth", nil, awsArgs)
-	assert.Regexp(t, "failed to create compute client: .* open bad-oauth: no such file or directory", err)
+	assert.Regexp(t, "failed to create Cloud Storage client: .* open bad-oauth: no such file or directory", err)
 }
 
 func TestRunImporterFailWhenValidateFail(t *testing.T) {
