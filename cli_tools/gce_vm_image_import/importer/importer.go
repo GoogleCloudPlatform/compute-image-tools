@@ -16,6 +16,7 @@ package importer
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"path"
 	"sync"
@@ -180,6 +181,7 @@ func cleanupDisk(diskClient diskClient, project string, zone string, pd persiste
 			log.Printf("Failed to remove temporary disk %v: %e", pd, err)
 		}
 	}
+	fmt.Println(">>>>>>>>>>>>", diskName) // TODO
 }
 
 func (i *importer) buildLoggable() service.Loggable {

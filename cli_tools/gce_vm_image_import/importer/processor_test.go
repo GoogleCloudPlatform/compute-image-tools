@@ -70,16 +70,16 @@ func TestProcessorProvider_InspectUEFI(t *testing.T) {
 			assert.NoError(t, err)
 			actualProcessor, ok := processor.(*bootableDiskProcessor)
 			assert.True(t, ok, "processor is not bootableDiskProcessor")
-			pd, err := actualProcessor.inspectAndPreProcess()
+			err = actualProcessor.inspectAndPreProcess()
 			assert.NoError(t, err)
 
 			if tt.isUEFIDisk && !tt.isInputArgUEFICompatible {
-				assert.Truef(t, strings.Contains(pd.uri, "uefi"), "UEFI Disk URI should contains 'uefi', actual: %v", pd.uri)
+				assert.Truef(t, strings.Contains(actualProcessor.pd.uri, "uefi"), "UEFI Disk URI should contains 'uefi', actual: %v", actualProcessor.pd.uri)
 			} else {
-				assert.Falsef(t, strings.Contains(pd.uri, "uefi"), "Disk URI shouldn't contain 'uefi', actual: %v", pd.uri)
+				assert.Falsef(t, strings.Contains(actualProcessor.pd.uri, "uefi"), "Disk URI shouldn't contain 'uefi', actual: %v", actualProcessor.pd.uri)
 			}
-			assert.Equal(t, tt.isUEFIDisk, pd.isUEFIDetected)
-			assert.Equal(t, tt.isInputArgUEFICompatible || tt.isUEFIDisk, pd.isUEFICompatible)
+			assert.Equal(t, tt.isUEFIDisk, actualProcessor.pd.isUEFIDetected)
+			assert.Equal(t, tt.isInputArgUEFICompatible || tt.isUEFIDisk, actualProcessor.pd.isUEFICompatible)
 		})
 	}
 }

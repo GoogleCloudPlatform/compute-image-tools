@@ -32,79 +32,77 @@ import (
 )
 
 type bootableDiskProcessor struct {
-	ImportArguments
+	args          ImportArguments
 	computeClient daisyCompute.Client
 	diskInspector disk.Inspector
 	workflow      *daisy.Workflow
 	pd            persistentDisk
 }
 
-func (b bootableDiskProcessor) process() (persistentDisk, error) {
-	var err error
-	pd, err := b.inspectAndPreProcess()
-	if err != nil {
-		return pd, err
-	}
-
-	err = b.workflow.RunWithModifiers(context.Background(), b.preValidateFunc(), b.postValidateFunc())
-	if err != nil {
-		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.Network, b.workflow)
-		err = customizeErrorToDetectionResults(b.OS,
-			b.workflow.GetSerialConsoleOutputValue("detected_distro"),
-			b.workflow.GetSerialConsoleOutputValue("detected_major_version"),
-			b.workflow.GetSerialConsoleOutputValue("detected_minor_version"), err)
-	}
-	return pd, err
-}
-
-func (b bootableDiskProcessor) inspectAndPreProcess() (persistentDisk, error) {
-	if !b.Inspect || b.diskInspector == nil {
-		return b.pd, nil
-	}
-
-	ir, err := b.inspectDisk()
+func (b *bootableDiskProcessor) process() (persistentDisk, error) {
+	err := b.inspectAndPreProcess()
 	if err != nil {
 		return b.pd, err
 	}
 
-	return b.recreateDisk(ir)
+	err = b.workflow.RunWithModifiers(context.Background(), b.preValidateFunc(), b.postValidateFunc())
+	if err != nil {
+		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.args.Network, b.workflow)
+		err = customizeErrorToDetectionResults(b.args.OS,
+			b.workflow.GetSerialConsoleOutputValue("detected_distro"),
+			b.workflow.GetSerialConsoleOutputValue("detected_major_version"),
+			b.workflow.GetSerialConsoleOutputValue("detected_minor_version"), err)
+	}
+	return b.pd, err
 }
 
-func (b bootableDiskProcessor) recreateDisk(ir disk.InspectionResult) (persistentDisk, error) {
+func (b *bootableDiskProcessor) inspectAndPreProcess() error {
+	if !b.args.Inspect || b.diskInspector == nil {
+		return nil
+	}
+
+	ir, err := b.inspectDisk()
+	if err != nil {
+		return err
+	}
+
+	return b.processDiskForUEFI(ir)
+}
+
+// Due to GuestOS features limitations, a new disk might be created to add the additional "UEFI_COMPATIBLE".
+// In that case, the old disk will be deleted.
+func (b *bootableDiskProcessor) processDiskForUEFI(ir disk.InspectionResult) error {
 	// If UEFI_COMPATIBLE is enforced in user input args (by d.ImportArguments.UefiCompatible),
 	// then it has been honored in inflation stage, so no need to create a new disk here.
 	// Create new disk with UEFI_COMPATIBLE only when inspection result tells us to do.
-	if !b.UefiCompatible && ir.HasEFIPartition {
-		diskName := fmt.Sprintf("disk-%v-uefi", b.ExecutionID)
-		err := b.computeClient.CreateDisk(b.Project, b.Zone, &compute.Disk{
+	if !b.args.UefiCompatible && ir.HasEFIPartition {
+		diskName := fmt.Sprintf("disk-%v-uefi", b.args.ExecutionID)
+		err := b.computeClient.CreateDisk(b.args.Project, b.args.Zone, &compute.Disk{
 			Name:            diskName,
 			SourceDisk:      b.pd.uri,
 			GuestOsFeatures: []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}},
 		})
 		if err != nil {
-			return b.pd, daisy.Errf("Failed to create UEFI disk: %v", err)
+			return daisy.Errf("Failed to create UEFI disk: %v", err)
 		}
 		log.Println("UEFI disk created: ", diskName)
 
 		// Cleanup the old disk after the new disk is created.
-		cleanupDisk(b.computeClient, b.Project, b.Zone, b.pd)
+		cleanupDisk(b.computeClient, b.args.Project, b.args.Zone, b.pd)
 
-		b.pd.uri = fmt.Sprintf("zones/%v/disks/%v", b.Zone, diskName)
+		// Update the new disk URI
+		b.pd.uri = fmt.Sprintf("zones/%v/disks/%v", b.args.Zone, diskName)
+		b.workflow.AddVar("source_disk", b.pd.uri)
 	}
 
-	if b.UefiCompatible || ir.HasEFIPartition {
-		b.pd.isUEFICompatible = true
-	}
+	b.pd.isUEFICompatible = b.args.UefiCompatible || ir.HasEFIPartition
+	b.pd.isUEFIDetected = ir.HasEFIPartition
 
-	if ir.HasEFIPartition {
-		b.pd.isUEFIDetected = true
-	}
-
-	return b.pd, nil
+	return nil
 }
 
-func (b bootableDiskProcessor) inspectDisk() (disk.InspectionResult, error) {
-	log.Printf("Running experimental disk inspections on %v.", b.pd.uri)
+func (b *bootableDiskProcessor) inspectDisk() (disk.InspectionResult, error) {
+	log.Printf("Running disk inspections on %v.", b.pd.uri)
 	ir, err := b.diskInspector.Inspect(b.pd.uri)
 	if err != nil {
 		log.Printf("Disk inspection error=%v", err)
@@ -115,12 +113,12 @@ func (b bootableDiskProcessor) inspectDisk() (disk.InspectionResult, error) {
 	return ir, nil
 }
 
-func (b bootableDiskProcessor) cancel(reason string) bool {
+func (b *bootableDiskProcessor) cancel(reason string) bool {
 	b.workflow.CancelWithReason(reason)
 	return true
 }
 
-func (b bootableDiskProcessor) traceLogs() []string {
+func (b *bootableDiskProcessor) traceLogs() []string {
 	if b.workflow.Logger != nil {
 		return b.workflow.Logger.ReadSerialPortLogs()
 	}
@@ -162,23 +160,23 @@ func newBootableDiskProcessor(client daisyCompute.Client, diskInspector disk.Ins
 	workflow.Name = LogPrefix
 
 	return &bootableDiskProcessor{
-		ImportArguments: args,
-		computeClient:   client,
-		diskInspector:   diskInspector,
-		workflow:        workflow,
-		pd:              pd,
+		args:          args,
+		computeClient: client,
+		diskInspector: diskInspector,
+		workflow:      workflow,
+		pd:            pd,
 	}, err
 }
 
-func (b bootableDiskProcessor) postValidateFunc() daisy.WorkflowModifier {
+func (b *bootableDiskProcessor) postValidateFunc() daisy.WorkflowModifier {
 	return func(w *daisy.Workflow) {
 		buildID := os.Getenv(daisy_utils.BuildIDOSEnvVarName)
 		w.LogWorkflowInfo("Cloud Build ID: %s", buildID)
 		rl := &daisy_utils.ResourceLabeler{
 			BuildID:         buildID,
-			UserLabels:      b.Labels,
+			UserLabels:      b.args.Labels,
 			BuildIDLabelKey: "gce-image-import-build-id",
-			ImageLocation:   b.StorageLocation,
+			ImageLocation:   b.args.StorageLocation,
 			InstanceLabelKeyRetriever: func(instanceName string) string {
 				return "gce-image-import-tmp"
 			},
@@ -193,11 +191,11 @@ func (b bootableDiskProcessor) postValidateFunc() daisy.WorkflowModifier {
 				return imageTypeLabel
 			}}
 		rl.LabelResources(w)
-		daisy_utils.UpdateAllInstanceNoExternalIP(w, b.NoExternalIP)
+		daisy_utils.UpdateAllInstanceNoExternalIP(w, b.args.NoExternalIP)
 	}
 }
 
-func (b bootableDiskProcessor) preValidateFunc() daisy.WorkflowModifier {
+func (b *bootableDiskProcessor) preValidateFunc() daisy.WorkflowModifier {
 	return func(w *daisy.Workflow) {
 		w.SetLogProcessHook(daisy_utils.RemovePrivacyLogTag)
 	}

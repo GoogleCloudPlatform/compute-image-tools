@@ -358,17 +358,17 @@ func runImageImportUEFITest(ctx context.Context, testCase *junitxml.TestCase, lo
 
 	argsMap := map[utils.CLITestType][]string{
 		utils.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-image_name=%v", imageName), fmt.Sprintf("-os=%v", os), getSourceArg(isSourceFile, source),
+			fmt.Sprintf("-image_name=%v", imageName), fmt.Sprintf("-os=%v", os), getSourceFlag(isSourceFile, source),
 			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone), "-inspect",
 		},
 		utils.GcloudProdWrapperLatest: {"compute", "images", "import", imageName, "--quiet",
 			"--docker-image-tag=latest", fmt.Sprintf("--os=%v", os), fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-			getSourceArg(isSourceFile, source),
+			getSourceFlag(isSourceFile, source),
 			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone), "--inspect",
 		},
 		utils.GcloudLatestWrapperLatest: {"compute", "images", "import", imageName, "--quiet",
 			"--docker-image-tag=latest", fmt.Sprintf("--os=%v", os), fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-			getSourceArg(isSourceFile, source),
+			getSourceFlag(isSourceFile, source),
 			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone), "--inspect",
 		},
 	}
@@ -384,7 +384,7 @@ func runImageImportUEFITest(ctx context.Context, testCase *junitxml.TestCase, lo
 	runImportTestWithExtraParams(ctx, argsMap[testType], testType, testProjectConfig, imageName, logger, testCase, expectedGuestOsFeatures, unexpectedGuestOsFeatures, "", "", nil)
 }
 
-func getSourceArg(isSourceFile bool, source string) string {
+func getSourceFlag(isSourceFile bool, source string) string {
 	if isSourceFile {
 		return fmt.Sprintf("--source_file=%v", source)
 	}
