@@ -1,0 +1,93 @@
+{
+  "Name": "v2v-adapt",
+  "Vars": {
+    "image_name": {
+      "Required": true,
+      "Description": "The name of the imported image."
+    },
+    "source_disk": {
+      "Required": true
+    },
+    "worker_disk": {
+      "Value": "worker-disk"
+    }
+  },
+  "Steps": {
+    "create-disk": {
+      "CreateDisks": [
+        {
+          "Name": "${worker_disk}",
+          "SourceImage": "projects/v2v-dev/global/images/family/v2v-candidate",
+	        "SizeGb": "200",
+          "Type": "pd-standard",
+          "Licenses": [
+            "https://compute.googleapis.com/compute/v1/projects/vm-options/global/licenses/enable-vmx"
+          ]
+        }
+      ]
+    },
+    "create-instance": {
+      "CreateInstances": [
+        {
+          "Name": "worker",
+          "Disks": [
+            {
+              "Source": "${worker_disk}",
+              "DeviceName": "disk"
+            },
+            {
+              "Source": "${source_disk}",
+              "DeviceName": "workload-disk1"
+            }
+          ],
+          "MachineType": "n1-standard-2",
+          "Metadata": {
+            "block-project-ssh-keys": "true",
+            "enable-guest-attributes": "true",
+            "startup-script": "docker run --privileged -v /dev/disk/by-id:/dev/disk/by-id:ro v2v -vv --log file=/dev/ttyS1,level=debug --log file=/dev/ttyS2,level=trace --report file=/dev/ttyS3 --report file=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/v2v/report,headers=Metadata-Flavor=Google --drive file=/dev/disk/by-id/google-workload-disk1 --in-place --byol"
+          },
+          "NoCleanup": true
+        }
+      ]
+    },
+    "wait-for-log": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "worker",
+          "SerialOutput": {
+            "Port": 4,
+            "SuccessMatch": "  \"status\": \"success\"",
+            "StatusMatch": " ",
+            "FailureMatch": ["  \"status\": \"error\""]
+          }
+        }
+      ],
+      "Timeout": "60m"
+    },
+    "delete-instance": {
+      "DeleteResources": {
+        "Instances": [
+          "worker"
+        ]
+      }
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "${image_name}",
+          "SourceDisk": "${source_disk}",
+          "Licenses": ["projects/windows-cloud/global/licenses/windows-server-2016-dc"],
+          "GuestOsFeatures": [{"Type":"MULTI_IP_SUBNET"}, {"Type":"VIRTIO_SCSI_MULTIQUEUE"}, {"Type":"WINDOWS"}],
+          "NoCleanup": true,
+          "ExactName": true
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-instance": ["create-disk"],
+    "wait-for-log": ["create-instance"],
+    "delete-instance": ["wait-for-log"],
+    "create-image": ["delete-instance"]
+  }
+}

@@ -9,6 +9,9 @@
     },
     "source_image": {
       "Value": "projects/compute-image-tools-test/global/images/windows-8-1-x64"
+    },
+    "translate_workflow": {
+      "Value": "../daisy_workflows/image_import/windows/translate_windows_8_x64_byol.wf.json"
     }
   },
   "Steps": {
@@ -24,7 +27,7 @@
     "run": {
       "Timeout": "30m",
       "IncludeWorkflow": {
-        "Path": "../daisy_workflows/image_import/windows/translate_windows_8_x64_byol.wf.json",
+        "Path": "${translate_workflow}",
         "Vars": {
           "source_disk": "pre-translate",
           "image_name": "${image_name}"
