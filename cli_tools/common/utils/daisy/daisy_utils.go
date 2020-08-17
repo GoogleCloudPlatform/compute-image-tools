@@ -55,6 +55,7 @@ var (
 		"ubuntu-1404":         "ubuntu/translate_ubuntu_1404.wf.json",
 		"ubuntu-1604":         "ubuntu/translate_ubuntu_1604.wf.json",
 		"ubuntu-1804":         "ubuntu/translate_ubuntu_1804.wf.json",
+		"ubuntu-2004":         "ubuntu/translate_ubuntu_2004.wf.json",
 		"windows-2008r2":      "windows/translate_windows_2008_r2.wf.json",
 		"windows-2008r2-byol": "windows/translate_windows_2008_r2_byol.wf.json",
 		"windows-2012":        "windows/translate_windows_2012.wf.json",

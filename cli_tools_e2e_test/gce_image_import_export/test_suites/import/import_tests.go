@@ -23,8 +23,10 @@ import (
 	"log"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -54,6 +56,9 @@ type testCase struct {
 
 	// Additional args passed to gce_vm_image_import.
 	extraArgs []string
+
+	// Whether the image-under-test is expected to have the OS config agent installed.
+	osConfigNotSupported bool
 }
 
 var cases = []testCase{
@@ -61,6 +66,31 @@ var cases = []testCase{
 		caseName: "debian-9",
 		source:   "projects/compute-image-tools-test/global/images/debian-9-translate",
 		os:       "debian-9",
+	}, {
+		caseName:             "ubuntu-1404",
+		source:               "projects/compute-image-tools-test/global/images/ubuntu-1404-img-import",
+		os:                   "ubuntu-1404",
+		osConfigNotSupported: true,
+	}, {
+		caseName:             "ubuntu-1604",
+		source:               "projects/compute-image-tools-test/global/images/ubuntu-1604-vmware-import",
+		os:                   "ubuntu-1604",
+		osConfigNotSupported: true,
+	}, {
+		caseName:             "ubuntu-1804",
+		source:               "gs://compute-image-tools-test-resources/ubuntu-1804-vmware.vmdk",
+		os:                   "ubuntu-1804",
+		osConfigNotSupported: true,
+	}, {
+		caseName:             "ubuntu-2004",
+		source:               "projects/compute-image-tools-test/global/images/ubuntu-2004",
+		os:                   "ubuntu-2004",
+		osConfigNotSupported: true,
+	}, {
+		caseName:             "ubuntu-2004-aws",
+		source:               "projects/compute-image-tools-test/global/images/ubuntu-2004-aws",
+		os:                   "ubuntu-2004",
+		osConfigNotSupported: true,
 	}, {
 		caseName:      "incorrect OS specified",
 		source:        "projects/compute-image-tools-test/global/images/debian-9-translate",
@@ -89,6 +119,7 @@ var cases = []testCase{
 
 func (t testCase) run(ctx context.Context, junit *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
+	start := time.Now()
 	logger = t.createTestScopedLogger(junit, logger)
 	imageName := "e2e-test-image-import" + path.RandString(5)
 	imagePath := fmt.Sprintf("projects/%s/global/images/%s", testProjectConfig.TestProjectID, imageName)
@@ -105,6 +136,7 @@ func (t testCase) run(ctx context.Context, junit *junitxml.TestCase, logger *log
 			junit.WriteFailure("Failed post translate test: %v", err)
 		}
 	}
+	junit.Time = time.Now().Sub(start).Seconds()
 }
 
 // createTestScopedLogger returns a new logger that is prefixed with the name of the test.
@@ -172,6 +204,7 @@ func (t testCase) runPostTranslateTest(ctx context.Context, imagePath string,
 	varMap := map[string]string{
 		"image_under_test":            imagePath,
 		"path_to_post_translate_test": t.testScript(),
+		"osconfig_not_supported":      strconv.FormatBool(t.osConfigNotSupported),
 	}
 
 	for k, v := range varMap {

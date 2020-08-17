@@ -17,40 +17,45 @@
 
 Parameters (retrieved from instance metadata):
 
-ubuntu_release: The version of the distro
+ubuntu_release: The nickname of the distro (eg: trusty).
 install_gce_packages: True if GCE agent and SDK should be installed
 """
 
 import logging
 
+import guestfs
 import utils
 import utils.diskutils as diskutils
 
-
-tinyproxy_cfg = '''
-User tinyproxy
-Group tinyproxy
-Port 8888
-Timeout 600
-LogLevel Info
-PidFile "/run/tinyproxy/tinyproxy.pid"
-MaxClients 100
-MinSpareServers 5
-MaxSpareServers 20
-StartServers 10
-MaxRequestsPerChild 0
-Allow 127.0.0.1
-ViaProxyName "tinyproxy"
-ConnectPort 443
-ConnectPort 563
+# Google Cloud SDK
+#
+# The official images provide the Google Cloud SDK.
+#
+# Starting at 18, it's installed using snap. Since guestfs
+# issues commands via a chroot, we don't have access to the
+# snapd daemon. Therefore we schedule the SDK to be installed
+# using cloud-init on the first boot.
+#
+# Prior to 18, the official images installed the cloud SDK
+# using a partner apt repo.
+cloud_init_cloud_sdk = '''
+snap:
+   commands:
+      00: snap install google-cloud-sdk --classic
 '''
 
-partner_list = '''
+apt_cloud_sdk = '''
 # Enabled for Google Cloud SDK
-deb http://archive.canonical.com/ubuntu {ubu_release} partner
+deb http://archive.canonical.com/ubuntu {ubuntu_release} partner
 '''
 
-gce_system = '''
+# Repo Mirrors
+#
+# This configures apt to prefer GCE's apt repos. It mirrors what's
+# provided on the official images in
+# /etc/cloud/cloud.cfg.d/91-gce.cfg and
+# /etc/cloud/cloud.cfg.d/91-gce-system.cfg.
+cloud_init_repos = '''
 datasource_list: [ GCE ]
 system_info:
    package_mirrors:
@@ -70,7 +75,20 @@ system_info:
          security: http://ports.ubuntu.com/ubuntu-ports
 '''
 
-trusty_network = '''
+
+# Network configs
+#
+# cloud-init will overwrite these after performing its
+# network detection. They're required, however, so that
+# cloud init can reach the metadata server to determine
+# that it's running on GCE.
+#
+# https://cloudinit.readthedocs.io/en/latest/topics/boot.html
+#
+# netplan is default starting at 18.
+# https://ubuntu.com/blog/ubuntu-bionic-netplan
+
+network_trusty = '''
 # The loopback network interface
 auto lo
 iface lo inet loopback
@@ -82,7 +100,7 @@ iface eth0 inet dhcp
 source /etc/network/interfaces.d/*.cfg
 '''
 
-xenial_network = '''
+network_xenial = '''
 # The loopback network interface
 auto lo
 iface lo inet loopback
@@ -94,72 +112,98 @@ iface ens4 inet dhcp
 source /etc/network/interfaces.d/*.cfg
 '''
 
+network_netplan = '''
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    ens4:
+      dhcp4: true
+'''
+
+
+def install_cloud_sdk(g: guestfs.GuestFS, ubuntu_release: str) -> None:
+  """ Installs Google Cloud SDK, supporting apt and snap.
+
+  Args:
+    g: A mounted GuestFS instance.
+    ubuntu_release: The release nickname (eg: trusty).
+  """
+  try:
+    g.sh('gcloud --version')
+    logging.info('Found gcloud. Skipping installation of Google Cloud SDK.')
+    return
+  except RuntimeError:
+    logging.info('Did not find previous install of gcloud.')
+
+  if g.gcp_image_major >= '18':
+    # Starting at 18.04, the ubuntu-os-cloud images install the sdk
+    # using snap. Running `snap install` directly is not an option
+    # here since it requires the snapd daemon to be running on the guest.
+    g.write('/etc/cloud/cloud.cfg.d/91-google-cloud-sdk.cfg',
+            cloud_init_cloud_sdk)
+    logging.info(
+        'Google Cloud SDK will be installed using snap with cloud-init.')
+  else:
+    g.write('/etc/apt/sources.list.d/partner.list',
+            apt_cloud_sdk.format(ubuntu_release=ubuntu_release))
+    utils.update_apt(g)
+    utils.install_apt_packages(g, 'google-cloud-sdk')
+    logging.info('Installed Google Cloud SDK with apt.')
+
 
 def DistroSpecific(g):
-  ubu_release = utils.GetMetadataAttribute('ubuntu_release')
+  ubuntu_release = utils.GetMetadataAttribute('ubuntu_release')
   install_gce = utils.GetMetadataAttribute('install_gce_packages')
 
   # If present, remove any hard coded DNS settings in resolvconf.
-  if ubu_release != 'bionic' and \
-      g.exists('/etc/resolvconf/resolv.conf.d/base'):
+  # This is a common workaround to include permanent changes:
+  # https://askubuntu.com/questions/157154
+  if g.exists('/etc/resolvconf/resolv.conf.d/base'):
     logging.info('Resetting resolvconf base.')
     g.sh('echo "" > /etc/resolvconf/resolv.conf.d/base')
 
-  # Try to reset the network to DHCP.
-  if ubu_release == 'trusty':
-    g.write('/etc/network/interfaces', trusty_network)
-  elif ubu_release == 'xenial':
-    g.write('/etc/network/interfaces', xenial_network)
+  # Reset the network to DHCP.
+  if ubuntu_release == 'trusty':
+    g.write('/etc/network/interfaces', network_trusty)
+  elif ubuntu_release == 'xenial':
+    g.write('/etc/network/interfaces', network_xenial)
+  elif g.is_dir('/etc/netplan'):
+    g.sh('rm -f /etc/netplan/*')
+    g.write('/etc/netplan/config.yaml', network_netplan)
+    g.sh('netplan apply')
 
   if install_gce == 'true':
     utils.update_apt(g)
     logging.info('Installing cloud-init.')
     utils.install_apt_packages(g, 'cloud-init')
+    # Ubuntu 14.04's version of cloud-init doesn't have `clean`.
+    if g.gcp_image_major > '14':
+      g.sh('cloud-init clean')
 
-    # Try to remove azure or aws configs so cloud-init has a chance.
-    g.sh('rm -f /etc/cloud/cloud.cfg.d/*azure*')
-    g.sh('rm -f /etc/cloud/cloud.cfg.d/*curtin*')
-    g.sh('rm -f /etc/cloud/cloud.cfg.d/*waagent*')
-    g.sh('rm -f /etc/cloud/cloud.cfg.d/*walinuxagent*')
-    g.sh('rm -f /etc/cloud/cloud.cfg.d/*aws*')
-    g.sh('rm -f /etc/cloud/cloud.cfg.d/*amazon*')
-    if ubu_release == 'bionic':
-      g.sh('rm -f /etc/netplan/*')
-      logging.debug(g.sh('cloud-init clean'))
+    # Remove cloud-init configs that may conflict with GCE's.
+    #
+    # - subiquity disables automatic network configuration
+    #     https://bugs.launchpad.net/ubuntu/+source/cloud-init/+bug/1871975
+    for cfg in [
+        'azure', 'curtin', 'waagent', 'walinuxagent', 'aws', 'amazon',
+        'subiquity'
+    ]:
+      g.sh('rm -f /etc/cloud/cloud.cfg.d/*%s*' % cfg)
 
     remove_azure_agents(g)
 
-    g.write(
-        '/etc/apt/sources.list.d/partner.list',
-        partner_list.format(ubu_release=ubu_release))
+    g.write('/etc/cloud/cloud.cfg.d/91-gce-system.cfg', cloud_init_repos)
 
-    g.write('/etc/cloud/cloud.cfg.d/91-gce-system.cfg', gce_system)
+    utils.install_apt_packages(g, 'gce-compute-image-packages')
+    install_cloud_sdk(g, ubuntu_release)
 
-    # Use host machine as http proxy so cloud-init can access GCE API
-    with open('/etc/tinyproxy/tinyproxy.conf', 'w') as cfg:
-        cfg.write(tinyproxy_cfg)
-    utils.Execute(['/etc/init.d/tinyproxy', 'restart'])
-    default_gw = g.sh("ip route | awk '/default/ { printf $3 }'")
-    try:
-      logging.debug(
-          g.sh('http_proxy="http://%s:8888" cloud-init -d init' % default_gw))
-    except Exception as e:
-      logging.debug('Failed to run cloud-init. Details: {}.'.format(e))
-      raise RuntimeError(
-        'Failed to run cloud-init. Connect to a shell in the original VM '
-        'and ensure that the following command executes successfully: '
-        'apt-get install -y --no-install-recommends cloud-init '
-        '&& cloud-init -d init')
-    logging.info('Installing GCE packages.')
-    utils.update_apt(g)
-    utils.install_apt_packages(g, 'gce-compute-image-packages',
-                               'google-cloud-sdk')
   # Update grub config to log to console.
-  g.command(
-      ['sed', '-i',
+  g.command([
+      'sed', '-i',
       r's#^\(GRUB_CMDLINE_LINUX=".*\)"$#\1 console=ttyS0,38400n8"#',
-      '/etc/default/grub'])
-
+      '/etc/default/grub'
+  ])
   g.command(['update-grub2'])
 
 
