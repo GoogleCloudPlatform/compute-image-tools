@@ -9,6 +9,9 @@
     },
     "source_image": {
       "Value": "projects/compute-image-tools-test/global/images/windows-2016-import"
+    },
+    "translate_workflow": {
+      "Value": "../daisy_workflows/image_import/windows/translate_windows_2016.wf.json"
     }
   },
   "Steps": {
@@ -54,7 +57,7 @@
     "translate-2016": {
       "Timeout": "30m",
       "IncludeWorkflow": {
-        "Path": "../daisy_workflows/image_import/windows/translate_windows_2016.wf.json",
+        "Path": "${translate_workflow}",
         "Vars": {
           "image_name": "${image_name}",
           "source_disk": "translate-me"
