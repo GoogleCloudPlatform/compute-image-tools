@@ -20,12 +20,12 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/dustin/go-humanize"
 )
@@ -97,7 +97,7 @@ func importFromCloudProvider(args *OneStepImportArguments) error {
 
 // runImageImport calls image import
 func runImageImport(args *OneStepImportArguments) error {
-	imageImportPath := "./" + filepath.Join(filepath.Dir(args.ExecutablePath), "gce_vm_image_import")
+	imageImportPath := path.ToWorkingDir("gce_vm_image_import", args.ExecutablePath)
 	err := runCmd(imageImportPath, []string{
 		fmt.Sprintf("-image_name=%v", args.ImageName),
 		fmt.Sprintf("-client_id=%v", args.ClientID),
