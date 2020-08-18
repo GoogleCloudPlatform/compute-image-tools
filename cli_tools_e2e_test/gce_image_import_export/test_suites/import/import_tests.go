@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/common/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
@@ -41,8 +42,17 @@ const (
 	suite = "ImageImport"
 )
 
+type testCaseInterface interface {
+	getTestCase() testCase
+	run(ctx context.Context, junit *junitxml.TestCase, logger *log.Logger,
+		testProjectConfig *testconfig.Project, testType utils.CLITestType)
+}
+
 type testCase struct {
 	caseName string
+
+	// Imported image name.
+	imageName string
 
 	// Specify either image for file.
 	source string
@@ -61,7 +71,21 @@ type testCase struct {
 	osConfigNotSupported bool
 }
 
-var cases = []testCase{
+func (t *testCase) getTestCase() testCase {
+	return *t
+}
+
+type inspectUEFITestCase struct {
+	*testCase
+
+	expectUEFICompatible bool
+}
+
+func (t *inspectUEFITestCase) getTestCase() testCase {
+	return *t.testCase
+}
+
+var basicCases = []*testCase{
 	{
 		caseName: "debian-9",
 		source:   "projects/compute-image-tools-test/global/images/debian-9-translate",
@@ -139,26 +163,153 @@ var cases = []testCase{
 	},
 }
 
-func (t testCase) run(ctx context.Context, junit *junitxml.TestCase, logger *log.Logger,
+var inspectUEFICases = []*inspectUEFITestCase{
+	{
+		testCase: &testCase{
+			caseName: "inspect-uefi-linux-uefi-rhel-7",
+			// source created from projects/gce-uefi-images/global/images/rhel-7-v20200403
+			source: "gs://compute-image-tools-test-resources/uefi/linux-uefi-rhel-7.vmdk",
+			os:     "rhel-7",
+		},
+		expectUEFICompatible: true,
+	}, {
+		testCase: &testCase{
+			caseName: "inspect-uefi-linux-uefi-rhel-7-from-image",
+			// image created from projects/gce-uefi-images/global/images/rhel-7-v20200403 and removed UEFI_COMPATIBLE
+			source: "projects/compute-image-tools-test/global/images/linux-uefi-no-guestosfeature-rhel7",
+			os:     "rhel-7",
+		},
+		expectUEFICompatible: true,
+	}, {
+		testCase: &testCase{
+			caseName: "inspect-uefi-linux-nonuefi-debian-9",
+			// source created from projects/debian-cloud/global/images/debian-9-stretch-v20200714
+			source: "gs://compute-image-tools-test-resources/uefi/linux-nonuefi-debian-9.vmdk",
+			os:     "debian-9",
+		},
+		expectUEFICompatible: false,
+	}, {
+		testCase: &testCase{
+			caseName: "inspect-uefi-linux-hybrid-ubuntu-1804",
+			// source created from projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317
+			source:               "gs://compute-image-tools-test-resources/uefi/linux-hybrid-ubuntu-1804.vmdk",
+			os:                   "ubuntu-1804",
+			osConfigNotSupported: true,
+		},
+		expectUEFICompatible: true,
+	}, {
+		testCase: &testCase{
+			caseName: "inspect-uefi-linux-mbr-uefi-rhel-7",
+			// source created from projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317 and converted from GPT to MBR
+			source:               "gs://compute-image-tools-test-resources/uefi/linux-ubuntu-mbr-uefi.vmdk",
+			os:                   "ubuntu-1804",
+			osConfigNotSupported: true,
+		},
+		expectUEFICompatible: true,
+	}, {
+		testCase: &testCase{
+			caseName: "inspect-uefi-windows-uefi-windows",
+			// source created from projects/gce-uefi-images/global/images/windows-server-2019-dc-core-v20200609
+			source: "gs://compute-image-tools-test-resources/uefi/windows-uefi-2019.vmdk",
+			os:     "windows-2019",
+		},
+		expectUEFICompatible: true,
+	}, {
+		testCase: &testCase{
+			caseName: "inspect-uefi-windows-nonuefi-windows",
+			// source created from projects/windows-cloud/global/images/windows-server-2019-dc-v20200114
+			source: "gs://compute-image-tools-test-resources/uefi/windows-nonuefi-2019.vmdk",
+			os:     "windows-2019",
+		},
+		expectUEFICompatible: false,
+	},
+}
+
+func (t *testCase) run(ctx context.Context, junit *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
+
+	t.runImportAndVerifyImage(ctx, junit, logger, testProjectConfig, testType, nil)
+}
+
+func (t *testCase) runImportAndVerifyImage(ctx context.Context, junit *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType utils.CLITestType,
+	verifyImageFunc func(ctx context.Context, junit *junitxml.TestCase, logger *log.Logger, testProjectConfig *testconfig.Project)) {
+
 	start := time.Now()
 	logger = t.createTestScopedLogger(junit, logger)
-	imageName := "e2e-test-image-import" + path.RandString(5)
-	imagePath := fmt.Sprintf("projects/%s/global/images/%s", testProjectConfig.TestProjectID, imageName)
+	t.imageName = "e2e-test-image-import" + path.RandString(5)
+	imagePath := fmt.Sprintf("projects/%s/global/images/%s", testProjectConfig.TestProjectID, t.imageName)
 
-	importLogs, err := t.runImport(junit, logger, testProjectConfig, imageName)
+	importLogs, err := t.runImport(junit, logger, testProjectConfig, t.imageName)
 
 	if t.expectedError != "" {
 		t.verifyExpectedError(junit, err, importLogs)
 	} else if err != nil {
 		t.writeImportFailed(junit, importLogs)
 	} else {
+		if verifyImageFunc != nil {
+			verifyImageFunc(ctx, junit, logger, testProjectConfig)
+		}
 		err = t.runPostTranslateTest(ctx, imagePath, testProjectConfig, logger)
 		if err != nil {
 			junit.WriteFailure("Failed post translate test: %v", err)
 		}
 	}
 	junit.Time = time.Now().Sub(start).Seconds()
+}
+
+func (t *inspectUEFITestCase) run(ctx context.Context, junit *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
+
+	t.testCase.runImportAndVerifyImage(ctx, junit, logger, testProjectConfig, testType, t.verifyImage)
+	if junit.Failure != nil {
+		return
+	}
+}
+
+func (t *inspectUEFITestCase) verifyImage(ctx context.Context, junit *junitxml.TestCase, logger *log.Logger, testProjectConfig *testconfig.Project) {
+	logger.Printf("Verifying imported image...")
+	image, err := compute.CreateImageObject(ctx, testProjectConfig.TestProjectID, t.imageName)
+	if err != nil {
+		junit.WriteFailure("Image '%v' doesn't exist after import: %v", t.imageName, err)
+		logger.Printf("Image '%v' doesn't exist after import: %v", t.imageName, err)
+		return
+	}
+	logger.Printf("Image '%v' exists! Import success.", t.imageName)
+
+	guestOsFeatureForUEFICompatible := []string{"UEFI_COMPATIBLE"}
+	var expectedGuestOsFeatures, unexpectedGuestOsFeatures []string
+	if t.expectUEFICompatible {
+		expectedGuestOsFeatures = guestOsFeatureForUEFICompatible
+	} else {
+		unexpectedGuestOsFeatures = guestOsFeatureForUEFICompatible
+	}
+
+	t.verifyGuestOSFeatures(expectedGuestOsFeatures, image, junit, logger, unexpectedGuestOsFeatures)
+}
+
+func (t inspectUEFITestCase) verifyGuestOSFeatures(expectedGuestOsFeatures []string, image *compute.Image, junit *junitxml.TestCase, logger *log.Logger, unexpectedGuestOsFeatures []string) {
+	if expectedGuestOsFeatures != nil {
+		guestOsFeatures := make([]string, 0, len(image.GuestOsFeatures))
+		for _, f := range image.GuestOsFeatures {
+			guestOsFeatures = append(guestOsFeatures, f.Type)
+		}
+		if !containsAll(guestOsFeatures, expectedGuestOsFeatures) {
+			junit.WriteFailure("Image '%v' GuestOsFeatures expect: %v, actual: %v", t.imageName, strings.Join(expectedGuestOsFeatures, ","), strings.Join(guestOsFeatures, ","))
+			logger.Printf("Image '%v' GuestOsFeatures expect: %v, actual: %v", t.imageName, strings.Join(expectedGuestOsFeatures, ","), strings.Join(guestOsFeatures, ","))
+		}
+	}
+
+	if unexpectedGuestOsFeatures != nil {
+		guestOsFeatures := make([]string, 0, len(image.GuestOsFeatures))
+		for _, f := range image.GuestOsFeatures {
+			guestOsFeatures = append(guestOsFeatures, f.Type)
+		}
+		if containsAny(guestOsFeatures, expectedGuestOsFeatures) {
+			junit.WriteFailure("Image '%v' GuestOsFeatures unexpect: %v, actual: %v", t.imageName, strings.Join(unexpectedGuestOsFeatures, ","), strings.Join(guestOsFeatures, ","))
+			logger.Printf("Image '%v' GuestOsFeatures unexpect: %v, actual: %v", t.imageName, strings.Join(unexpectedGuestOsFeatures, ","), strings.Join(guestOsFeatures, ","))
+		}
+	}
 }
 
 // createTestScopedLogger returns a new logger that is prefixed with the name of the test.
@@ -247,6 +398,18 @@ func (t testCase) testScript() string {
 	return "post_translate_test.sh"
 }
 
+func getAllTestCases() []testCaseInterface {
+	var cases []testCaseInterface
+	for _, tc := range basicCases {
+		cases = append(cases, tc)
+	}
+	for _, tc := range inspectUEFICases {
+		cases = append(cases, tc)
+	}
+
+	return cases
+}
+
 // ImageImportSuite performs image imports, and verifies that the results are bootable and are
 // are able to perform basic GCP operations. The suite includes support for negative test cases,
 // where error messages are validated against expected error messages.
@@ -258,10 +421,11 @@ func ImageImportSuite(
 	junits := map[*junitxml.TestCase]func(
 		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, utils.CLITestType){}
 
-	for _, testCase := range cases {
+	cases := getAllTestCases()
+	for _, tc := range cases {
 		junit := junitxml.NewTestCase(
-			suite, fmt.Sprintf("[%v]", testCase.caseName))
-		junits[junit] = testCase.run
+			suite, fmt.Sprintf("[%v]", tc.getTestCase().caseName))
+		junits[junit] = tc.run
 	}
 
 	testsMap := map[utils.CLITestType]map[*junitxml.TestCase]func(
