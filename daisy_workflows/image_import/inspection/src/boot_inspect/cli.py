@@ -54,8 +54,8 @@ def _inspect_uefi(device):
     stream = os.popen('fdisk -l {} -o type'.format(device))
     output = stream.read()
 
-    # 1. For GPT, the ESP output should be "EFI System", which matches partition
-    # GUID "C12A7328-F81F-11D2-BA4B-00A0C93EC93B".
+    # 1. For GPT, the ESP output should be "EFI System", which matches
+    # partition GUID "C12A7328-F81F-11D2-BA4B-00A0C93EC93B".
     # 2. For MBR, the ESP output should be "EFI (FAT-12/16/32)", which matches
     # partition type "0xef"
     if "EFI" in output:
