@@ -30,8 +30,7 @@ RUN cd gce_onestep_image_import && CGO_ENABLED=0 go build -o /gce_onestep_image_
 RUN chmod +x /gce_onestep_image_import
 
 # Build test container
-# TODO
-FROM gcr.io/compute-image-tools-test/wrapper-with-gcloud:latest
+FROM gcr.io/$PROJECT_ID/wrapper-with-gcloud:latest
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=0 /gce_image_import_export_test_runner gce_image_import_export_test_runner
