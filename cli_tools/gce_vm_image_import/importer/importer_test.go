@@ -40,7 +40,6 @@ func TestRun_HappyCase_CollectAllLogs(t *testing.T) {
 	}
 	mockProcessor := mockProcessor{
 		serialLogs: processorLogs,
-		pd:         pd,
 	}
 	importer := importer{
 		preValidator: mockValidator{},
@@ -49,7 +48,7 @@ func TestRun_HappyCase_CollectAllLogs(t *testing.T) {
 			pd:         pd,
 		},
 		processorProvider: &mockProcessorProvider{
-			processor: &mockProcessor,
+			processors: []processor{&mockProcessor},
 		},
 	}
 	loggable, actualError := importer.Run(context.Background())
@@ -84,7 +83,7 @@ func TestRun_DeleteDisk(t *testing.T) {
 			pd: pd,
 		},
 		processorProvider: &mockProcessorProvider{
-			processor: &mockProcessor{pd: pd},
+			processors: []processor{&mockProcessor{}},
 		},
 	}
 	_, actualError := importer.Run(context.Background())
@@ -121,7 +120,7 @@ func TestRun_NoErrorLoggedWhenDeletingDiskThatWasNotCreated(t *testing.T) {
 			pd: pd,
 		},
 		processorProvider: &mockProcessorProvider{
-			processor: &mockProcessor{pd: pd},
+			processors: []processor{&mockProcessor{}},
 		},
 	}
 	_, actualError := importer.Run(context.Background())
@@ -158,7 +157,7 @@ func TestRun_ErrorLoggedWhenErrorDeletingDisk(t *testing.T) {
 			pd: pd,
 		},
 		processorProvider: &mockProcessorProvider{
-			processor: &mockProcessor{pd: pd},
+			processors: []processor{&mockProcessor{}},
 		},
 	}
 	_, actualError := importer.Run(context.Background())
@@ -214,7 +213,7 @@ func TestRun_IncludeInflaterLogs_WhenFailureToCreateProcessor(t *testing.T) {
 		},
 		processorProvider: &mockProcessorProvider{
 			err:       expectedError,
-			processor: &mockProcessor,
+			processors: []processor{&mockProcessor},
 		},
 	}
 	loggable, actualError := importer.Run(context.Background())
@@ -263,7 +262,7 @@ func TestRun_DontRunProcessIfTimedOutDuringInflate(t *testing.T) {
 		processingTime: 10 * time.Second,
 	}
 	mockProcessorProvider := mockProcessorProvider{
-		processor: &mockProcessor,
+		processors: []processor{&mockProcessor},
 	}
 	inflater := &mockInflater{
 		inflationTime: 5 * time.Second,
@@ -293,7 +292,7 @@ func TestRun_ProcessInterruptedTimeout(t *testing.T) {
 		processingTime: time.Duration(10) * time.Second,
 	}
 	mockProcessorProvider := mockProcessorProvider{
-		processor: &mockProcessor,
+		processors: []processor{&mockProcessor},
 	}
 	mockInflater := &mockInflater{}
 	importer := importer{
@@ -321,7 +320,7 @@ func TestRun_ProcessCantTimeoutImportSucceeds(t *testing.T) {
 		cantCancel:     true,
 	}
 	mockProcessorProvider := mockProcessorProvider{
-		processor: &mockProcessor,
+		processors: []processor{&mockProcessor},
 	}
 	mockInflater := &mockInflater{}
 	importer := importer{
@@ -342,14 +341,14 @@ func TestRun_ProcessCantTimeoutImportSucceeds(t *testing.T) {
 }
 
 type mockProcessorProvider struct {
-	processor    processor
+	processors   []processor
 	err          error
 	interactions int
 }
 
-func (m *mockProcessorProvider) provide(pd persistentDisk) (processor, error) {
+func (m *mockProcessorProvider) provide(pd persistentDisk) ([]processor, error) {
 	m.interactions++
-	return m.processor, m.err
+	return m.processors, m.err
 }
 
 type mockProcessor struct {
@@ -360,10 +359,9 @@ type mockProcessor struct {
 	processingChan chan bool
 	cantCancel     bool
 	cancelChan     chan bool
-	pd             persistentDisk
 }
 
-func (m *mockProcessor) process() (persistentDisk, error) {
+func (m *mockProcessor) process(pd persistentDisk) (persistentDisk, error) {
 	m.interactions++
 	m.cancelChan = make(chan bool)
 
@@ -376,10 +374,10 @@ func (m *mockProcessor) process() (persistentDisk, error) {
 		}
 	}
 
-	m.pd.isUEFICompatible = true
-	m.pd.isUEFIDetected = true
+	pd.isUEFICompatible = true
+	pd.isUEFIDetected = true
 
-	return m.pd, m.err
+	return pd, m.err
 }
 
 func (m *mockProcessor) traceLogs() []string {

@@ -16,8 +16,6 @@ package importer
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"os"
 	"path"
 	"strconv"
@@ -27,24 +25,19 @@ import (
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"google.golang.org/api/compute/v1"
 )
 
 type bootableDiskProcessor struct {
 	args          ImportArguments
-	computeClient daisyCompute.Client
 	diskInspector disk.Inspector
 	workflow      *daisy.Workflow
-	pd            persistentDisk
 }
 
-func (b *bootableDiskProcessor) process() (persistentDisk, error) {
-	err := b.inspectAndPreProcess()
-	if err != nil {
-		return b.pd, err
-	}
+func (b *bootableDiskProcessor) process(pd persistentDisk) (persistentDisk, error) {
+	// Reset "source_disk" due that disk URI may have been changed.
+	b.workflow.AddVar("source_disk", pd.uri)
 
+	var err error
 	err = b.workflow.RunWithModifiers(context.Background(), b.preValidateFunc(), b.postValidateFunc())
 	if err != nil {
 		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.args.Network, b.workflow)
@@ -53,64 +46,7 @@ func (b *bootableDiskProcessor) process() (persistentDisk, error) {
 			b.workflow.GetSerialConsoleOutputValue("detected_major_version"),
 			b.workflow.GetSerialConsoleOutputValue("detected_minor_version"), err)
 	}
-	return b.pd, err
-}
-
-func (b *bootableDiskProcessor) inspectAndPreProcess() error {
-	if !b.args.Inspect || b.diskInspector == nil {
-		return nil
-	}
-
-	ir, err := b.inspectDisk()
-	if err != nil {
-		return err
-	}
-
-	return b.processDiskForUEFI(ir)
-}
-
-// Due to GuestOS features limitations, a new disk might be created to add the additional "UEFI_COMPATIBLE".
-// In that case, the old disk will be deleted.
-func (b *bootableDiskProcessor) processDiskForUEFI(ir disk.InspectionResult) error {
-	// If UEFI_COMPATIBLE is enforced in user input args (by d.ImportArguments.UefiCompatible),
-	// then it has been honored in inflation stage, so no need to create a new disk here.
-	// Create new disk with UEFI_COMPATIBLE only when inspection result tells us to do.
-	if !b.args.UefiCompatible && ir.HasEFIPartition {
-		diskName := fmt.Sprintf("disk-%v-uefi", b.args.ExecutionID)
-		err := b.computeClient.CreateDisk(b.args.Project, b.args.Zone, &compute.Disk{
-			Name:            diskName,
-			SourceDisk:      b.pd.uri,
-			GuestOsFeatures: []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}},
-		})
-		if err != nil {
-			return daisy.Errf("Failed to create UEFI disk: %v", err)
-		}
-		log.Println("UEFI disk created: ", diskName)
-
-		// Cleanup the old disk after the new disk is created.
-		cleanupDisk(b.computeClient, b.args.Project, b.args.Zone, b.pd)
-
-		// Update the new disk URI
-		b.pd.uri = fmt.Sprintf("zones/%v/disks/%v", b.args.Zone, diskName)
-		b.workflow.AddVar("source_disk", b.pd.uri)
-	}
-
-	b.pd.isUEFICompatible = b.args.UefiCompatible || ir.HasEFIPartition
-	b.pd.isUEFIDetected = ir.HasEFIPartition
-
-	return nil
-}
-
-func (b *bootableDiskProcessor) inspectDisk() (disk.InspectionResult, error) {
-	log.Printf("Running disk inspections on %v.", b.pd.uri)
-	ir, err := b.diskInspector.Inspect(b.pd.uri)
-	if err != nil {
-		log.Printf("Disk inspection error=%v", err)
-		return ir, daisy.Errf("Disk inspection error: %v", err)
-	}
-
-	log.Printf("Disk inspection result=%v", ir)
-	return ir, nil
+	return pd, err
 }
 
 func (b *bootableDiskProcessor) cancel(reason string) bool {
@@ -125,8 +61,7 @@ func (b *bootableDiskProcessor) traceLogs() []string {
 	return []string{}
 }
 
-func newBootableDiskProcessor(client daisyCompute.Client, diskInspector disk.Inspector,
-	args ImportArguments, pd persistentDisk) (processor, error) {
+func newBootableDiskProcessor(args ImportArguments, diskURI string) (processor, error) {
 
 	var translateWorkflowPath string
 	if args.CustomWorkflow != "" {
@@ -140,7 +75,7 @@ func newBootableDiskProcessor(client daisyCompute.Client, diskInspector disk.Ins
 		"image_name":           args.ImageName,
 		"install_gce_packages": strconv.FormatBool(!args.NoGuestEnvironment),
 		"sysprep":              strconv.FormatBool(args.SysprepWindows),
-		"source_disk":          pd.uri,
+		"source_disk":          diskURI,
 		"family":               args.Family,
 		"description":          args.Description,
 		"import_subnet":        args.Subnet,
@@ -160,11 +95,8 @@ func newBootableDiskProcessor(client daisyCompute.Client, diskInspector disk.Ins
 	workflow.Name = LogPrefix
 
 	return &bootableDiskProcessor{
-		args:          args,
-		computeClient: client,
-		diskInspector: diskInspector,
-		workflow:      workflow,
-		pd:            pd,
+		args:     args,
+		workflow: workflow,
 	}, err
 }
 

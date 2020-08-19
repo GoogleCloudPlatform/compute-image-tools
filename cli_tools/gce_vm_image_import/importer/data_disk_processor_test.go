@@ -39,7 +39,7 @@ func Test_ImageIncludesTrackingLabelAndLicense(t *testing.T) {
 		"family-name",
 		"image-name")
 
-	_, err := processor.process()
+	_, err := processor.process(persistentDisk{})
 	assert.NoError(t, err)
 	assert.Equal(t, 1, mockClient.invocations)
 	assert.Equal(t, compute.Image{

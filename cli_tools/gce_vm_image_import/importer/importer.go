@@ -110,16 +110,25 @@ func (i *importer) runInflate(ctx context.Context) (err error) {
 	}, i.inflater.cancel, i.inflater.traceLogs)
 }
 
-func (i *importer) runProcess(ctx context.Context) (err error) {
-	processor, err := i.processorProvider.provide(i.pd)
+func (i *importer) runProcess(ctx context.Context) error {
+	processors, err := i.processorProvider.provide(i.pd)
 	if err != nil {
 		return err
 	}
-	return i.runStep(ctx, func() error {
-		var err error
-		i.pd, err = processor.process()
-		return err
-	}, processor.cancel, processor.traceLogs)
+	for _, processor := range processors {
+		err = i.runStep(ctx, func() error {
+			var err error
+			i.pd, err = processor.process(i.pd)
+			if err != nil {
+				return err
+			}
+			return nil
+		}, processor.cancel, processor.traceLogs)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (i *importer) runStep(ctx context.Context, step func() error, cancel func(string) bool, getTraceLogs func() []string) (err error) {

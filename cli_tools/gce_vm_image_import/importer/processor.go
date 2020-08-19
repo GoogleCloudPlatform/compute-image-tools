@@ -25,14 +25,14 @@ import (
 //
 // Implementers can expose detailed logs using the traceLogs() method.
 type processor interface {
-	process() (persistentDisk, error)
+	process(pd persistentDisk) (persistentDisk, error)
 	traceLogs() []string
 	cancel(reason string) bool
 }
 
 // processorProvider allows the processor to be determined after the pd has been inflated.
 type processorProvider interface {
-	provide(pd persistentDisk) (processor, error)
+	provide(pd persistentDisk) ([]processor, error)
 }
 
 type defaultProcessorProvider struct {
@@ -41,12 +41,19 @@ type defaultProcessorProvider struct {
 	diskInspector disk.Inspector
 }
 
-func (d defaultProcessorProvider) provide(pd persistentDisk) (processor, error) {
+func (d defaultProcessorProvider) provide(pd persistentDisk) (processors []processor, err error) {
 	if d.DataDisk {
-		return newDataDiskProcessor(pd, d.computeClient, d.Project,
+		processors = append(processors, newDataDiskProcessor(pd, d.computeClient, d.Project,
 			d.Labels, d.StorageLocation, d.Description,
-			d.Family, d.ImageName), nil
+			d.Family, d.ImageName))
+		return
 	}
 
-	return newBootableDiskProcessor(d.computeClient, d.diskInspector, d.ImportArguments, pd)
+	processors = append(processors, newDiskInspectionProcessor(d.computeClient, d.diskInspector, d.ImportArguments))
+	bootableDiskProcessor, err := newBootableDiskProcessor(d.ImportArguments, pd.uri)
+	if err != nil {
+		return
+	}
+	processors = append(processors, bootableDiskProcessor)
+	return
 }
