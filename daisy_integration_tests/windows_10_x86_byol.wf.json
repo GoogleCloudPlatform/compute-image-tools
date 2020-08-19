@@ -9,6 +9,9 @@
     },
     "source_image": {
       "Value": "projects/compute-image-tools-test/global/images/windows-10-1909-ent-x86-nodrivers"
+    },
+    "translate_workflow": {
+      "Value": "../daisy_workflows/image_import/windows/translate_windows_10_x86_byol.wf.json"
     }
   },
   "Steps": {
@@ -58,7 +61,7 @@
     "run": {
       "Timeout": "30m",
       "IncludeWorkflow": {
-        "Path": "../daisy_workflows/image_import/windows/translate_windows_10_x86_byol.wf.json",
+        "Path": "${translate_workflow}",
         "Vars": {
           "source_disk": "pre-translate",
           "image_name": "${image_name}"
