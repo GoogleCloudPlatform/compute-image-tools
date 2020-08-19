@@ -32,6 +32,7 @@ type Inspector interface {
 	// Inspect finds partition and boot-related properties for a disk and
 	// returns an InspectionResult. The reference is implementation specific.
 	Inspect(reference string) (InspectionResult, error)
+	GetWorkflow() *daisy.Workflow
 }
 
 // InspectionResult contains the partition and boot-related properties of a disk.
@@ -67,4 +68,8 @@ func (inspector defaultInspector) Inspect(reference string) (ir InspectionResult
 
 	ir.HasEFIPartition, _ = strconv.ParseBool(inspector.wf.GetSerialConsoleOutputValue("has_efi_partition"))
 	return
+}
+
+func (inspector defaultInspector) GetWorkflow() *daisy.Workflow {
+	return inspector.wf
 }

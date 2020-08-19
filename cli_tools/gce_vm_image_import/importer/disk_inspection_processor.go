@@ -25,9 +25,9 @@ import (
 )
 
 type diskInspectionProcessor struct {
-	args          ImportArguments
-	computeClient daisyCompute.Client
-	diskInspector disk.Inspector
+	args              ImportArguments
+	computeDiskClient daisyCompute.Client
+	diskInspector     disk.Inspector
 }
 
 func (d *diskInspectionProcessor) process(pd persistentDisk) (persistentDisk, error) {
@@ -46,7 +46,7 @@ func (d *diskInspectionProcessor) process(pd persistentDisk) (persistentDisk, er
 	// then it has been honored in inflation stage, so no need to recreate a new disk here.
 	if !d.args.UefiCompatible && ir.HasEFIPartition {
 		diskName := fmt.Sprintf("disk-%v-uefi", d.args.ExecutionID)
-		err := d.computeClient.CreateDisk(d.args.Project, d.args.Zone, &compute.Disk{
+		err := d.computeDiskClient.CreateDisk(d.args.Project, d.args.Zone, &compute.Disk{
 			Name:            diskName,
 			SourceDisk:      pd.uri,
 			GuestOsFeatures: []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}},
@@ -57,7 +57,7 @@ func (d *diskInspectionProcessor) process(pd persistentDisk) (persistentDisk, er
 		log.Println("UEFI disk created: ", diskName)
 
 		// Cleanup the old disk after the new disk is created.
-		cleanupDisk(d.computeClient, d.args.Project, d.args.Zone, pd)
+		cleanupDisk(d.computeDiskClient, d.args.Project, d.args.Zone, pd)
 
 		// Update the new disk URI
 		pd.uri = fmt.Sprintf("zones/%v/disks/%v", d.args.Zone, diskName)
@@ -81,11 +81,25 @@ func (d *diskInspectionProcessor) inspectDisk(uri string) (disk.InspectionResult
 }
 
 func (d *diskInspectionProcessor) cancel(reason string) bool {
+	if d.diskInspector != nil {
+		wf := d.diskInspector.GetWorkflow()
+		if wf != nil {
+			wf.CancelWithReason(reason)
+			return true
+		}
+	}
+
 	//indicate cancel was not performed
 	return false
 }
 
 func (d *diskInspectionProcessor) traceLogs() []string {
+	if d.diskInspector != nil {
+		wf := d.diskInspector.GetWorkflow()
+		if wf != nil && wf.Logger != nil {
+			return wf.Logger.ReadSerialPortLogs()
+		}
+	}
 	return []string{}
 }
 
@@ -93,8 +107,8 @@ func newDiskInspectionProcessor(client daisyCompute.Client, diskInspector disk.I
 	args ImportArguments) processor {
 
 	return &diskInspectionProcessor{
-		args:          args,
-		computeClient: client,
-		diskInspector: diskInspector,
+		args:              args,
+		computeDiskClient: client,
+		diskInspector:     diskInspector,
 	}
 }

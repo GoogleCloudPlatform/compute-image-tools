@@ -27,14 +27,12 @@ import (
 // constructs the log prefix using the workflow's name.
 func TestBootableDiskProcessor_SetsWorkflowNameToGcloudPrefix(t *testing.T) {
 	args := defaultImportArgs()
-	processor, e := newBootableDiskProcessor(args, "")
+	processor, e := newBootableDiskProcessor(args)
 	assert.NoError(t, e)
 	assert.Equal(t, (processor.(*bootableDiskProcessor)).workflow.Name, "import-image")
 }
 
 func TestBootableDiskProcessor_PopulatesWorkflowVarsUsingArgs(t *testing.T) {
-	pd := persistentDisk{uri: "global/projects/test/pd/id"}
-
 	imageSpec := defaultImportArgs()
 	imageSpec.Description = "Fedora 12 customized"
 	imageSpec.Family = "fedora"
@@ -45,9 +43,9 @@ func TestBootableDiskProcessor_PopulatesWorkflowVarsUsingArgs(t *testing.T) {
 	imageSpec.Region = "us-central"
 	imageSpec.SysprepWindows = true
 
-	actual := asMap(createAndRunPrePostFunctions(t, pd, imageSpec).workflow.Vars)
+	actual := asMap(createAndRunPrePostFunctions(t, imageSpec).workflow.Vars)
 	assert.Equal(t, map[string]string{
-		"source_disk":          "global/projects/test/pd/id",
+		"source_disk":          "", // not set yet
 		"description":          "Fedora 12 customized",
 		"family":               "fedora",
 		"image_name":           "fedora-12-imported",
@@ -59,7 +57,7 @@ func TestBootableDiskProcessor_PopulatesWorkflowVarsUsingArgs(t *testing.T) {
 }
 
 func TestBootableDiskProcessor_SupportsWorkflowDefaultVars(t *testing.T) {
-	actual := asMap(createAndRunPrePostFunctions(t, persistentDisk{}, defaultImportArgs()).workflow.Vars)
+	actual := asMap(createAndRunPrePostFunctions(t, defaultImportArgs()).workflow.Vars)
 	assert.Equal(t, map[string]string{
 		"description":          "",
 		"family":               "",
@@ -79,7 +77,7 @@ func TestBootableDiskProcessor_SetsWorkerDiskTrackingValues(t *testing.T) {
 	os.Setenv("BUILD_ID", "build-id")
 	imageSpec := defaultImportArgs()
 	imageSpec.Labels = userLabels
-	actual := createAndRunPrePostFunctions(t, persistentDisk{}, imageSpec)
+	actual := createAndRunPrePostFunctions(t, imageSpec)
 	disk := getFirstCreatedDisk(t, actual.workflow)
 
 	assert.Equal(t, map[string]string{
@@ -96,7 +94,7 @@ func TestBootableDiskProcessor_SetsWorkerTrackingValues(t *testing.T) {
 	os.Setenv("BUILD_ID", "build-id")
 	imageSpec := defaultImportArgs()
 	imageSpec.Labels = userLabels
-	actual := createAndRunPrePostFunctions(t, persistentDisk{}, imageSpec)
+	actual := createAndRunPrePostFunctions(t, imageSpec)
 	worker := getWorkerInstance(t, actual.workflow)
 
 	assert.Equal(t, map[string]string{
@@ -113,7 +111,7 @@ func TestBootableDiskProcessor_SetsImageTrackingValues(t *testing.T) {
 	os.Setenv("BUILD_ID", "build-id")
 	imageSpec := defaultImportArgs()
 	imageSpec.Labels = userLabels
-	actual := createAndRunPrePostFunctions(t, persistentDisk{}, imageSpec)
+	actual := createAndRunPrePostFunctions(t, imageSpec)
 	image := getImage(t, actual.workflow)
 
 	assert.Equal(t, map[string]string{
@@ -125,14 +123,14 @@ func TestBootableDiskProcessor_SetsImageTrackingValues(t *testing.T) {
 func TestBootableDiskProcessor_SupportsStorageLocation(t *testing.T) {
 	imageSpec := defaultImportArgs()
 	imageSpec.StorageLocation = "north-america"
-	actual := createAndRunPrePostFunctions(t, persistentDisk{}, imageSpec)
+	actual := createAndRunPrePostFunctions(t, imageSpec)
 	image := getImage(t, actual.workflow)
 
 	assert.Equal(t, []string{"north-america"}, image.StorageLocations)
 }
 
 func TestBootableDiskProcessor_PermitsUnsetStorageLocation(t *testing.T) {
-	actual := createAndRunPrePostFunctions(t, persistentDisk{}, defaultImportArgs())
+	actual := createAndRunPrePostFunctions(t, defaultImportArgs())
 	image := getImage(t, actual.workflow)
 
 	assert.Empty(t, image.StorageLocations)
@@ -141,7 +139,7 @@ func TestBootableDiskProcessor_PermitsUnsetStorageLocation(t *testing.T) {
 func TestBootableDiskProcessor_SupportsSerialLogs(t *testing.T) {
 	expected := []string{"serials"}
 	args := defaultImportArgs()
-	translator, e := newBootableDiskProcessor(args, "")
+	translator, e := newBootableDiskProcessor(args)
 	realTranslator := translator.(*bootableDiskProcessor)
 	realTranslator.workflow.Logger = daisyLogger{
 		serials: expected,
@@ -152,7 +150,7 @@ func TestBootableDiskProcessor_SupportsSerialLogs(t *testing.T) {
 
 func TestBootableDiskProcessor_SupportsCancel(t *testing.T) {
 	args := defaultImportArgs()
-	processor, e := newBootableDiskProcessor(args, "")
+	processor, e := newBootableDiskProcessor(args)
 	assert.NoError(t, e)
 
 	realProcessor := processor.(*bootableDiskProcessor)
@@ -161,8 +159,8 @@ func TestBootableDiskProcessor_SupportsCancel(t *testing.T) {
 	assert.False(t, channelOpen, "realProcessor.workflow.Cancel should be closed on timeout")
 }
 
-func createAndRunPrePostFunctions(t *testing.T, pd persistentDisk, args ImportArguments) *bootableDiskProcessor {
-	translator, e := newBootableDiskProcessor(args, pd.uri)
+func createAndRunPrePostFunctions(t *testing.T, args ImportArguments) *bootableDiskProcessor {
+	translator, e := newBootableDiskProcessor(args)
 	assert.NoError(t, e)
 	realTranslator := translator.(*bootableDiskProcessor)
 	// A concrete logger is required since the import/export logging framework writes a log entry

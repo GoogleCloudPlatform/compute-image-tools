@@ -22,9 +22,9 @@ import (
 )
 
 type dataDiskProcessor struct {
-	client  daisyCompute.Client
-	project string
-	request compute.Image
+	computeImageClient daisyCompute.Client
+	project            string
+	request            compute.Image
 }
 
 func newDataDiskProcessor(pd persistentDisk, client daisyCompute.Client, project string,
@@ -40,8 +40,8 @@ func newDataDiskProcessor(pd persistentDisk, client daisyCompute.Client, project
 	}
 
 	return &dataDiskProcessor{
-		client:  client,
-		project: project,
+		computeImageClient: client,
+		project:            project,
 		request: compute.Image{
 			Description:      description,
 			Family:           family,
@@ -60,7 +60,7 @@ func (d dataDiskProcessor) traceLogs() []string {
 
 func (d dataDiskProcessor) process(pd persistentDisk) (persistentDisk, error) {
 	log.Printf("Creating image \"%v\"", d.request.Name)
-	return pd, d.client.CreateImage(d.project, &d.request)
+	return pd, d.computeImageClient.CreateImage(d.project, &d.request)
 }
 
 func (d dataDiskProcessor) cancel(reason string) bool {

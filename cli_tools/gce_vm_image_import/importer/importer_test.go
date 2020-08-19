@@ -212,7 +212,7 @@ func TestRun_IncludeInflaterLogs_WhenFailureToCreateProcessor(t *testing.T) {
 			},
 		},
 		processorProvider: &mockProcessorProvider{
-			err:       expectedError,
+			err:        expectedError,
 			processors: []processor{&mockProcessor},
 		},
 	}

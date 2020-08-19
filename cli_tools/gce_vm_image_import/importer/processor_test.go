@@ -21,6 +21,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/stretchr/testify/assert"
 	v1 "google.golang.org/api/compute/v1"
 )
@@ -32,7 +33,7 @@ func TestProcessorProvider_InspectDataDisk(t *testing.T) {
 			WorkflowDir: "testdata",
 			DataDisk:    true,
 		},
-		mockCreateDiskSuccessClient{},
+		mockComputeDiskClient{},
 		mockDiskInspector{true},
 	}
 
@@ -63,28 +64,31 @@ func TestProcessorProvider_InspectUEFI(t *testing.T) {
 					OS:             "ubuntu-1804",
 					UefiCompatible: tt.isInputArgUEFICompatible,
 				},
-				mockCreateDiskSuccessClient{},
+				mockComputeDiskClient{},
 				mockDiskInspector{tt.isUEFIDisk},
 			}
 
-			pd := persistentDisk{}
+			pd := persistentDisk{uri: "old-uri"}
 			processors, err := processorProvider.provide(pd)
 			assert.NoError(t, err)
 			assert.Equal(t, 2, len(processors), "there should be 2 processors, got %v", len(processors))
-			_, ok := processors[1].(*bootableDiskProcessor)
-			assert.True(t, ok, "the 2nd processor is not bootableDiskProcessor")
 			diskInspectionProcessor, ok := processors[0].(*diskInspectionProcessor)
 			assert.True(t, ok, "the 1st processor is not diskInspectionDiskProcessor")
+			bootableDiskProcessor, ok := processors[1].(*bootableDiskProcessor)
+			assert.True(t, ok, "the 2nd processor is not bootableDiskProcessor")
 
 			pd, err = diskInspectionProcessor.process(pd)
 			assert.NoError(t, err)
 			if tt.isUEFIDisk && !tt.isInputArgUEFICompatible {
-				assert.Truef(t, strings.Contains(pd.uri, "uefi"), "UEFI Disk URI should contains 'uefi', actual: %v", pd.uri)
+				assert.Truef(t, strings.HasSuffix(pd.uri, "uefi"), "UEFI Disk URI should have suffix 'uefi', actual: %v", pd.uri)
 			} else {
-				assert.Falsef(t, strings.Contains(pd.uri, "uefi"), "Disk URI shouldn't contain 'uefi', actual: %v", pd.uri)
+				assert.Falsef(t, strings.HasSuffix(pd.uri, "uefi"), "Disk URI shouldn't have suffix 'uefi', actual: %v", pd.uri)
 			}
 			assert.Equal(t, tt.isUEFIDisk, pd.isUEFIDetected)
 			assert.Equal(t, tt.isInputArgUEFICompatible || tt.isUEFIDisk, pd.isUEFICompatible)
+
+			bootableDiskProcessor.process(pd)
+			assert.NotEmpty(t, bootableDiskProcessor.workflow.Vars["source_disk"].Value)
 		})
 	}
 }
@@ -98,10 +102,18 @@ func (m mockDiskInspector) Inspect(reference string) (ir disk.InspectionResult, 
 	return
 }
 
-type mockCreateDiskSuccessClient struct {
+func (m mockDiskInspector) GetWorkflow() *daisy.Workflow {
+	return nil
+}
+
+type mockComputeDiskClient struct {
 	*mocks.MockClient
 }
 
-func (m mockCreateDiskSuccessClient) CreateDisk(arg0, arg1 string, arg2 *v1.Disk) error {
+func (m mockComputeDiskClient) CreateDisk(arg0, arg1 string, arg2 *v1.Disk) error {
+	return nil
+}
+
+func (m mockComputeDiskClient) DeleteDisk(arg0, arg1, arg2 string) error {
 	return nil
 }

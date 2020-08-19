@@ -21,27 +21,29 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 type bootableDiskProcessor struct {
-	args          ImportArguments
-	diskInspector disk.Inspector
-	workflow      *daisy.Workflow
+	workflow        *daisy.Workflow
+	userLabels      map[string]string
+	storageLocation string
+	uefiCompatible  bool
+	noExternalIP    bool
+	network         string
+	OS              string
 }
 
 func (b *bootableDiskProcessor) process(pd persistentDisk) (persistentDisk, error) {
-	// Reset "source_disk" due that disk URI may have been changed.
 	b.workflow.AddVar("source_disk", pd.uri)
 
 	var err error
 	err = b.workflow.RunWithModifiers(context.Background(), b.preValidateFunc(), b.postValidateFunc())
 	if err != nil {
-		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.args.Network, b.workflow)
-		err = customizeErrorToDetectionResults(b.args.OS,
+		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.network, b.workflow)
+		err = customizeErrorToDetectionResults(b.OS,
 			b.workflow.GetSerialConsoleOutputValue("detected_distro"),
 			b.workflow.GetSerialConsoleOutputValue("detected_major_version"),
 			b.workflow.GetSerialConsoleOutputValue("detected_minor_version"), err)
@@ -61,8 +63,7 @@ func (b *bootableDiskProcessor) traceLogs() []string {
 	return []string{}
 }
 
-func newBootableDiskProcessor(args ImportArguments, diskURI string) (processor, error) {
-
+func newBootableDiskProcessor(args ImportArguments) (processor, error) {
 	var translateWorkflowPath string
 	if args.CustomWorkflow != "" {
 		translateWorkflowPath = args.CustomWorkflow
@@ -75,7 +76,6 @@ func newBootableDiskProcessor(args ImportArguments, diskURI string) (processor, 
 		"image_name":           args.ImageName,
 		"install_gce_packages": strconv.FormatBool(!args.NoGuestEnvironment),
 		"sysprep":              strconv.FormatBool(args.SysprepWindows),
-		"source_disk":          diskURI,
 		"family":               args.Family,
 		"description":          args.Description,
 		"import_subnet":        args.Subnet,
@@ -95,8 +95,13 @@ func newBootableDiskProcessor(args ImportArguments, diskURI string) (processor, 
 	workflow.Name = LogPrefix
 
 	return &bootableDiskProcessor{
-		args:     args,
-		workflow: workflow,
+		workflow:        workflow,
+		userLabels:      args.Labels,
+		storageLocation: args.StorageLocation,
+		uefiCompatible:  args.UefiCompatible,
+		noExternalIP:    args.NoExternalIP,
+		network:         args.Network,
+		OS:              args.OS,
 	}, err
 }
 
@@ -106,9 +111,9 @@ func (b *bootableDiskProcessor) postValidateFunc() daisy.WorkflowModifier {
 		w.LogWorkflowInfo("Cloud Build ID: %s", buildID)
 		rl := &daisy_utils.ResourceLabeler{
 			BuildID:         buildID,
-			UserLabels:      b.args.Labels,
+			UserLabels:      b.userLabels,
 			BuildIDLabelKey: "gce-image-import-build-id",
-			ImageLocation:   b.args.StorageLocation,
+			ImageLocation:   b.storageLocation,
 			InstanceLabelKeyRetriever: func(instanceName string) string {
 				return "gce-image-import-tmp"
 			},
@@ -123,7 +128,7 @@ func (b *bootableDiskProcessor) postValidateFunc() daisy.WorkflowModifier {
 				return imageTypeLabel
 			}}
 		rl.LabelResources(w)
-		daisy_utils.UpdateAllInstanceNoExternalIP(w, b.args.NoExternalIP)
+		daisy_utils.UpdateAllInstanceNoExternalIP(w, b.noExternalIP)
 	}
 }
 
