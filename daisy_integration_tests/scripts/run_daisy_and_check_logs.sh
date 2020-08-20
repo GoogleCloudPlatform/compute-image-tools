@@ -50,7 +50,7 @@ run_daisy() {
 
 verify_logs() {
   echo 'BuildStatus: Waiting for logs to propagate to StackDriver.'
-  sleep 30
+  sleep 120
   LOGS=$(gcloud logging read "resource.labels.instance_id=$INSTANCE_ID jsonPayload.workflow=create-disks-test")
   if [ "$SHOULD_HAVE_LOGS" = 'true' ]; then
     if [ -z "$LOGS" ]; then
