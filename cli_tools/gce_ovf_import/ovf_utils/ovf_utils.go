@@ -157,7 +157,7 @@ var ovfOSIDToImporterOSID = map[int16]osInfo{
 	91:  {description: "TurboLinux", importerOSIDs: []string{}},
 	92:  {description: "TurboLinux 64-Bit", importerOSIDs: []string{}},
 	93:  {description: "Ubuntu", importerOSIDs: []string{}},
-	94:  {description: "Ubuntu 64-Bit", importerOSIDs: []string{"ubuntu-1404", "ubuntu-1604", "ubuntu-1804"}},
+	94:  {description: "Ubuntu 64-Bit", importerOSIDs: []string{"ubuntu-1404", "ubuntu-1604", "ubuntu-1804", "ubuntu-2004"}},
 	95:  {description: "Debian", importerOSIDs: []string{}},
 	96:  {description: "Debian 64-Bit", importerOSIDs: []string{"debian-8", "debian-9"}},
 	97:  {description: "Linux 2.4.x", importerOSIDs: []string{}},
