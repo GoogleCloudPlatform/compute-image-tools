@@ -79,15 +79,15 @@ func TestProcessorProvider_InspectUEFI(t *testing.T) {
 
 			pd, err = diskInspectionProcessor.process(pd)
 			assert.NoError(t, err)
+			assert.Equal(t, tt.isUEFIDisk, pd.isUEFIDetected)
+			assert.Equal(t, tt.isInputArgUEFICompatible || tt.isUEFIDisk, pd.isUEFICompatible)
+
+			pd, err = bootableDiskProcessor.process(pd)
 			if tt.isUEFIDisk && !tt.isInputArgUEFICompatible {
 				assert.Truef(t, strings.HasSuffix(pd.uri, "uefi"), "UEFI Disk URI should have suffix 'uefi', actual: %v", pd.uri)
 			} else {
 				assert.Falsef(t, strings.HasSuffix(pd.uri, "uefi"), "Disk URI shouldn't have suffix 'uefi', actual: %v", pd.uri)
 			}
-			assert.Equal(t, tt.isUEFIDisk, pd.isUEFIDetected)
-			assert.Equal(t, tt.isInputArgUEFICompatible || tt.isUEFIDisk, pd.isUEFICompatible)
-
-			bootableDiskProcessor.process(pd)
 			assert.NotEmpty(t, bootableDiskProcessor.workflow.Vars["source_disk"].Value)
 		})
 	}

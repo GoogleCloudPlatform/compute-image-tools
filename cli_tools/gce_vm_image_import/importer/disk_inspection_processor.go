@@ -15,19 +15,15 @@
 package importer
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"google.golang.org/api/compute/v1"
 )
 
 type diskInspectionProcessor struct {
-	args              ImportArguments
-	computeDiskClient daisyCompute.Client
-	diskInspector     disk.Inspector
+	args          ImportArguments
+	diskInspector disk.Inspector
 }
 
 func (d *diskInspectionProcessor) process(pd persistentDisk) (persistentDisk, error) {
@@ -38,29 +34,6 @@ func (d *diskInspectionProcessor) process(pd persistentDisk) (persistentDisk, er
 	ir, err := d.inspectDisk(pd.uri)
 	if err != nil {
 		return pd, err
-	}
-
-	// Due to GuestOS features limitations, a new disk needs to be created to add the additional "UEFI_COMPATIBLE"
-	// and the old disk will be deleted.
-	// If UEFI_COMPATIBLE is enforced in user input args (d.ImportArguments.UefiCompatible),
-	// then it has been honored in inflation stage, so no need to recreate a new disk here.
-	if !d.args.UefiCompatible && ir.HasEFIPartition {
-		diskName := fmt.Sprintf("disk-%v-uefi", d.args.ExecutionID)
-		err := d.computeDiskClient.CreateDisk(d.args.Project, d.args.Zone, &compute.Disk{
-			Name:            diskName,
-			SourceDisk:      pd.uri,
-			GuestOsFeatures: []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}},
-		})
-		if err != nil {
-			return pd, daisy.Errf("Failed to create UEFI disk: %v", err)
-		}
-		log.Println("UEFI disk created: ", diskName)
-
-		// Cleanup the old disk after the new disk is created.
-		cleanupDisk(d.computeDiskClient, d.args.Project, d.args.Zone, pd)
-
-		// Update the new disk URI
-		pd.uri = fmt.Sprintf("zones/%v/disks/%v", d.args.Zone, diskName)
 	}
 
 	pd.isUEFICompatible = d.args.UefiCompatible || ir.HasEFIPartition
@@ -103,12 +76,11 @@ func (d *diskInspectionProcessor) traceLogs() []string {
 	return []string{}
 }
 
-func newDiskInspectionProcessor(client daisyCompute.Client, diskInspector disk.Inspector,
+func newDiskInspectionProcessor(diskInspector disk.Inspector,
 	args ImportArguments) processor {
 
 	return &diskInspectionProcessor{
-		args:              args,
-		computeDiskClient: client,
-		diskInspector:     diskInspector,
+		args:          args,
+		diskInspector: diskInspector,
 	}
 }
