@@ -71,23 +71,28 @@ func TestProcessorProvider_InspectUEFI(t *testing.T) {
 			pd := persistentDisk{uri: "old-uri"}
 			processors, err := processorProvider.provide(pd)
 			assert.NoError(t, err)
-			assert.Equal(t, 2, len(processors), "there should be 2 processors, got %v", len(processors))
+			assert.Equal(t, 3, len(processors), "there should be 3 processors, got %v", len(processors))
 			diskInspectionProcessor, ok := processors[0].(*diskInspectionProcessor)
 			assert.True(t, ok, "the 1st processor is not diskInspectionDiskProcessor")
-			bootableDiskProcessor, ok := processors[1].(*bootableDiskProcessor)
-			assert.True(t, ok, "the 2nd processor is not bootableDiskProcessor")
+			diskMutationProcessor, ok := processors[1].(*diskMutationProcessor)
+			assert.True(t, ok, "the 2nd processor is not diskMutationProcessor")
+			bootableDiskProcessor, ok := processors[2].(*bootableDiskProcessor)
+			assert.True(t, ok, "the 3rd processor is not bootableDiskProcessor")
 
 			pd, err = diskInspectionProcessor.process(pd)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.isUEFIDisk, pd.isUEFIDetected)
 			assert.Equal(t, tt.isInputArgUEFICompatible || tt.isUEFIDisk, pd.isUEFICompatible)
 
-			pd, err = bootableDiskProcessor.process(pd)
+			pd, err = diskMutationProcessor.process(pd)
+			assert.NoError(t, err)
 			if tt.isUEFIDisk && !tt.isInputArgUEFICompatible {
 				assert.Truef(t, strings.HasSuffix(pd.uri, "uefi"), "UEFI Disk URI should have suffix 'uefi', actual: %v", pd.uri)
 			} else {
 				assert.Falsef(t, strings.HasSuffix(pd.uri, "uefi"), "Disk URI shouldn't have suffix 'uefi', actual: %v", pd.uri)
 			}
+
+			pd, err = bootableDiskProcessor.process(pd)
 			assert.NotEmpty(t, bootableDiskProcessor.workflow.Vars["source_disk"].Value)
 		})
 	}

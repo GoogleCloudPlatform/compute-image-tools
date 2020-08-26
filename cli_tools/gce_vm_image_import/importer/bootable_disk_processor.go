@@ -16,8 +16,6 @@ package importer
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"os"
 	"path"
 	"strconv"
@@ -27,39 +25,14 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"google.golang.org/api/compute/v1"
 )
 
 type bootableDiskProcessor struct {
-	args              ImportArguments
-	workflow          *daisy.Workflow
-	computeDiskClient daisyCompute.Client
+	args     ImportArguments
+	workflow *daisy.Workflow
 }
 
 func (b *bootableDiskProcessor) process(pd persistentDisk) (persistentDisk, error) {
-	// Due to GuestOS features limitations, a new disk needs to be created to add the additional "UEFI_COMPATIBLE"
-	// and the old disk will be deleted.
-	// If UEFI_COMPATIBLE is enforced in user input args (b.uefiCompatible),
-	// then it has been honored in inflation stage, so no need to recreate a new disk here.
-	if !b.args.UefiCompatible && pd.isUEFIDetected {
-		diskName := fmt.Sprintf("disk-%v-uefi", b.args.ExecutionID)
-		err := b.computeDiskClient.CreateDisk(b.args.Project, b.args.Zone, &compute.Disk{
-			Name:            diskName,
-			SourceDisk:      pd.uri,
-			GuestOsFeatures: []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}},
-		})
-		if err != nil {
-			return pd, daisy.Errf("Failed to create UEFI disk: %v", err)
-		}
-		log.Println("UEFI disk created: ", diskName)
-
-		// Cleanup the old disk after the new disk is created.
-		cleanupDisk(b.computeDiskClient, b.args.Project, b.args.Zone, pd)
-
-		// Update the new disk URI
-		pd.uri = fmt.Sprintf("zones/%v/disks/%v", b.args.Zone, diskName)
-	}
-
 	b.workflow.AddVar("source_disk", pd.uri)
 	var err error
 	err = b.workflow.RunWithModifiers(context.Background(), b.preValidateFunc(), b.postValidateFunc())
@@ -117,9 +90,8 @@ func newBootableDiskProcessor(computeDiskClient daisyCompute.Client, args Import
 	workflow.Name = LogPrefix
 
 	return &bootableDiskProcessor{
-		args:              args,
-		workflow:          workflow,
-		computeDiskClient: computeDiskClient,
+		args:     args,
+		workflow: workflow,
 	}, err
 }
 

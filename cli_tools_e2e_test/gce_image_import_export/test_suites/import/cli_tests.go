@@ -327,7 +327,7 @@ func verifyImportedImage(ctx context.Context, testCase *junitxml.TestCase,
 		for k, v := range image.Labels {
 			imageLabels = append(imageLabels, k+"="+v)
 		}
-		if !containsAll(imageLabels, expectedLabels) {
+		if !utils.ContainsAll(imageLabels, expectedLabels) {
 			utils.Failure(testCase, logger, fmt.Sprintf("Image '%v' labels expect: %v, actual: %v", imageName, strings.Join(expectedLabels, ","), strings.Join(imageLabels, ",")))
 		}
 	}
@@ -337,31 +337,4 @@ func verifyImportedImage(ctx context.Context, testCase *junitxml.TestCase,
 	} else {
 		logger.Printf("Image '%v' cleaned up.", imageName)
 	}
-}
-
-func containsAll(arr []string, subarr []string) bool {
-	for item := range subarr {
-		exists := false
-		for i := range arr {
-			if item == i {
-				exists = true
-				break
-			}
-		}
-		if !exists {
-			return false
-		}
-	}
-	return true
-}
-
-func containsAny(arr []string, subarr []string) bool {
-	for item := range subarr {
-		for i := range arr {
-			if item == i {
-				return true
-			}
-		}
-	}
-	return false
 }
