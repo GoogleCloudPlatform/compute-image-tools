@@ -25,7 +25,9 @@ class TestDistro:
   def test_name_lookup_is_case_insensitive(self):
     assert model.Distro.UBUNTU == model.distro_for("ubuntu")
     assert model.Distro.UBUNTU == model.distro_for("Ubuntu")
+    assert model.Distro.OPENSUSE == model.distro_for("opensuse")
     assert model.Distro.OPENSUSE == model.distro_for("openSUSE")
+    assert model.Distro.RHEL == model.distro_for("rhel")
     assert model.Distro.RHEL == model.distro_for("RHEL")
     assert model.Distro.CENTOS == model.distro_for("CentOS")
     assert model.Distro.CENTOS == model.distro_for("centos")
@@ -50,14 +52,14 @@ class TestVersion(unittest.TestCase):
            model.Version.split("fuzzy/fossa")
     assert "fuzzy/fossa" == str(model.Version.split("fuzzy/fossa"))
 
-  def test_repr_happy_case(self):
+  def test_to_string__happy_case(self):
     assert "15.04", str(model.Version("15", "04"))
     assert "2008.3", str(model.Version("2008", "3"))
 
-  def test_repr_omits_period_when_only_major(self):
+  def test_to_string__omits_period_when_only_major(self):
     assert "15" == str(model.Version("15"))
 
-  def test_repr_empty_when_version_empty(self):
+  def test_to_string__empty_when_version_empty(self):
     assert "" == str(model.Version(""))
 
 
