@@ -17,8 +17,8 @@
 import re
 import typing
 
-import model
-import system.filesystems
+from boot_inspect import model
+import boot_inspect.system.filesystems
 
 
 class LegacyFingerprint:
@@ -65,13 +65,13 @@ class LegacyFingerprint:
     self._version_pattern = version_pattern
     self._derivatives = derivative_metadata_files
 
-  def get_version(self, fs: system.filesystems.Filesystem) -> str:
+  def get_version(self, fs: boot_inspect.system.filesystems.Filesystem) -> str:
     if fs.is_file(self._metadata_file):
       m = self._version_pattern.search(fs.read_utf8(self._metadata_file))
       if m:
         return m.group(0)
 
-  def matches(self, fs: system.filesystems.Filesystem) -> bool:
+  def matches(self, fs: boot_inspect.system.filesystems.Filesystem) -> bool:
     for anti in self._derivatives:
       if fs.is_file(anti):
         return False
@@ -103,8 +103,9 @@ class Fingerprint:
       re.IGNORECASE)
     self._legacy = legacy
 
-  def _get_version(self, etc_os_release: typing.Mapping[str, str],
-                   fs: system.filesystems.Filesystem) -> model.Version:
+  def _get_version(
+      self, etc_os_release: typing.Mapping[str, str],
+      fs: boot_inspect.system.filesystems.Filesystem) -> model.Version:
 
     systemd_version, legacy_version = model.Version(''), model.Version('')
 
@@ -124,7 +125,9 @@ class Fingerprint:
       return systemd_version
     return legacy_version
 
-  def match(self, fs: system.filesystems.Filesystem) -> model.OperatingSystem:
+  def match(
+      self,
+      fs: boot_inspect.system.filesystems.Filesystem) -> model.OperatingSystem:
     """Returns the OperatingSystem that is identified."""
     etc_os_rel = {}
     if fs.is_file('/etc/os-release'):
@@ -143,7 +146,7 @@ class Fingerprint:
 class Inspector:
   """Supports offline inspection of Linux systems."""
 
-  def __init__(self, fs: system.filesystems.Filesystem,
+  def __init__(self, fs: boot_inspect.system.filesystems.Filesystem,
                fingerprints: typing.List[Fingerprint]):
     """
     Args:

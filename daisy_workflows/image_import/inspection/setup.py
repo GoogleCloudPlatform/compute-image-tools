@@ -13,26 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import guestfs
-import model
+from setuptools import find_namespace_packages, setup
 
-
-class Inspector:
-
-  def __init__(self, g: guestfs.GuestFS, root: str):
-    """Identifies the CPU architecture of a mounted GuestFS instance.
-
-    Args:
-      g: A guestfs instance that has been mounted.
-      root: The root used for mounting.
-    """
-    self._g = g
-    self._root = root
-
-  def inspect(self) -> model.Architecture:
-    inspected = self._g.inspect_get_arch(self._root)
-    if inspected == 'i386':
-      return model.Architecture.x86
-    elif inspected == 'x86_64':
-      return model.Architecture.x64
-    return model.Architecture.unknown
+setup(
+  name="boot_inspect",
+  version="0.1",
+  package_dir={"": "src"},
+  packages=find_namespace_packages(where="src"),
+  entry_points={
+    "console_scripts": [
+      "boot-inspect = boot_inspect.cli:main",
+    ],
+  }
+)

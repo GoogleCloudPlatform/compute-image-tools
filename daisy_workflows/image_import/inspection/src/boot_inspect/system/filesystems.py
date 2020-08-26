@@ -17,8 +17,6 @@
 import abc
 import typing
 
-import guestfs
-
 
 class Filesystem(object, metaclass=abc.ABCMeta):
 
@@ -45,10 +43,10 @@ class Filesystem(object, metaclass=abc.ABCMeta):
 class GuestFSFilesystem(Filesystem):
   """A Filesystem that delegates to an offline VM."""
 
-  def __init__(self, g: guestfs.GuestFS):
+  def __init__(self, g):
     """Args:
 
-      g: A guestfs instance that has been mounted.
+      g (guestfs.GuestFS): A guestfs instance that has been mounted.
     """
     self._g = g
 

@@ -32,12 +32,10 @@ and will remove support for defunct systems over time.
 import re
 import sys
 
-import guestfs
-from inspectors.os import architecture
-from inspectors.os import linux
-from inspectors.os import windows
-import model
-import system.filesystems
+from boot_inspect import model
+from boot_inspect.inspectors.os import architecture, linux, windows
+import boot_inspect.system.filesystems
+
 
 _LINUX = [
   linux.Fingerprint(model.Distro.AMAZON, aliases=['amzn', 'amazonlinux']),
@@ -78,16 +76,21 @@ _LINUX = [
 ]
 
 
-def inspect_device(device: str) -> model.InspectionResults:
+def inspect_device(g, device: str) -> model.InspectionResults:
   """Finds boot-related properties for a device using offline inspection.
 
   Args:
+    g (guestfs.GuestFS): A launched, but unmounted, GuestFS instance.
     device: a reference to a mounted block device (eg: /dev/sdb), or
     to a virtual disk file (eg: /opt/images/disk.vmdk).
+
+  Example:
+
+    g = guestfs.GuestFS(python_return_dict=True)
+    g.add_drive_opts("/dev/sdb", format="raw")
+    g.launch()
+    results = inspect_device(g, "/dev/sdb")
   """
-  g = guestfs.GuestFS(python_return_dict=True)
-  g.add_drive_opts(device, readonly=1)
-  g.launch()
 
   roots = g.inspect_os()
   if len(roots) == 0:
@@ -100,7 +103,7 @@ def inspect_device(device: str) -> model.InspectionResults:
       g.mount_ro(mp, dev)
     except RuntimeError as msg:
       print('%s (ignored)' % msg, file=sys.stderr)
-  fs = system.filesystems.GuestFSFilesystem(g)
+  fs = boot_inspect.system.filesystems.GuestFSFilesystem(g)
   operating_system = linux.Inspector(fs, _LINUX).inspect()
   if not operating_system:
     operating_system = windows.Inspector(g, root).inspect()
@@ -114,7 +117,8 @@ def inspect_device(device: str) -> model.InspectionResults:
   )
 
 
-def _linux_inspector(fs: system.filesystems.Filesystem) -> linux.Inspector:
+def _linux_inspector(
+    fs: boot_inspect.system.filesystems.Filesystem) -> linux.Inspector:
   """Returns a linux.Inspector that is configured
 
   with all detectable Linux distros.

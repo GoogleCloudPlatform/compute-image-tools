@@ -16,13 +16,17 @@
 # A Google Compute Engine instance startup-script that:
 #  1. Downloads the files specified in the `daisy-sources-path`
 #     metadata variable.
-#  2. Executes the file `inspect-disk`.
+#  2. Installs the disk inspection library.
+#  3. Runs disk inspection against /dev/sdb
 set -euf -o pipefail
 
 ROOT="/tmp/build-root-$RANDOM"
 SOURCE=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/daisy-sources-path" -H "Metadata-Flavor: Google")
-
 mkdir -p "$ROOT" && cd "$ROOT"
 gsutil cp -R "$SOURCE/*" .
-python3 inspect-disk.py --format=daisy /dev/sdb
-echo "Success:"
+pip3 install .
+if boot-inspect --format=daisy /dev/sdb; then
+  echo "Success:"
+else
+  echo "Failed:"
+fi

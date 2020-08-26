@@ -9,11 +9,8 @@
   },
   "Sources": {
     "daisy-shim.sh": "daisy-shim.sh",
-    "inspect-disk.py": "inspect-disk.py",
-    "inspection.py": "inspection.py",
-    "model.py": "model.py",
-    "inspectors": "inspectors/",
-    "system": "system/"
+    "setup.py": "setup.py",
+    "src": "src"
   },
   "Steps": {
     "run-inspection": {
