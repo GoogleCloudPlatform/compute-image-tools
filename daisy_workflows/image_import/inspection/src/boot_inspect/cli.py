@@ -65,6 +65,7 @@ def _inspect_uefi(device):
 
   return False
 
+
 def main():
   format_options_and_help = {
     'json': 'JSON without newlines. Suitable for consumption by '
