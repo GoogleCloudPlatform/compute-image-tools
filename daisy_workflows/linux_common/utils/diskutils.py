@@ -44,9 +44,8 @@ def MountDisk(disk) -> guestfs.GuestFS:
   # hashtables.
   g = guestfs.GuestFS(python_return_dict=True)
   # Set the product name as cloud-init checks it to confirm this is a VM in GCE
-  g.config('-smbios', 'type=1,product=Google Compute Engine')
-  g.set_verbose(1)
-  g.set_trace(1)
+  g.config('-smbios',
+           'type=1,product=Google Compute Engine,manufacturer=Google')
 
   g.set_memsize(4096)
 

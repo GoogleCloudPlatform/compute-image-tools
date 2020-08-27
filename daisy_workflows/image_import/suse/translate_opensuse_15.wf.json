@@ -35,10 +35,9 @@
     }
   },
   "Sources": {
-    "import_files/translate.py": "./translate.py",
-    "import_files/utils/common.py": "../../linux_common/utils/common.py",
-    "import_files/utils/diskutils.py": "../../linux_common/utils/diskutils.py",
-    "import_files/utils/__init__.py": "../../linux_common/utils/__init__.py",
+    "import_files/py/linux_common": "../../linux_common",
+    "import_files/py/suse_import": "suse_import",
+    "import_files/run-translate.sh": "run-translate.sh",
     "startup_script": "../../linux_common/bootstrap.sh"
   },
   "Steps": {
@@ -64,9 +63,11 @@
           "MachineType": "n1-standard-2",
           "Metadata": {
             "files_gcs_dir": "${SOURCESPATH}/import_files",
-            "script": "translate.py",
+            "script": "run-translate.sh",
             "prefix": "Translate",
-            "install_gce_packages": "${install_gce_packages}"
+            "install_gce_packages": "${install_gce_packages}",
+            "distro": "opensuse",
+            "major_version": "15"
           },
           "networkInterfaces": [
             {

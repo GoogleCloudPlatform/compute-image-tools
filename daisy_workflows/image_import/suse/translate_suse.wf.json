@@ -9,18 +9,6 @@
       "Required": true,
       "Description": "The name of the imported GCE disk resource."
     },
-    "image_name": {
-      "Value": "suse-${ID}",
-      "Description": "The name of the final translated SUSE image."
-    },
-    "family": {
-      "Value": "",
-      "Description": "Optional family to set for the translated image"
-    },
-    "description": {
-      "Value": "",
-      "Description": "Optional description to set for the translated image"
-    },
     "import_network": {
       "Value": "global/networks/default",
       "Description": "Network to use for the import instance"
@@ -28,13 +16,32 @@
     "import_subnet": {
       "Value": "",
       "Description": "SubNetwork to use for the import instance"
+    },
+    "subscription_model": {
+      "Default": "byol",
+      "Description": "Either gce or byol. If gce, VM will be registered with SLES's GCP SCC servers."
+    },
+    "license": {
+      "Required": true,
+      "Description": "URI of license to be applied to final image."
+    },
+    "distro": {
+      "Value": "",
+      "Description": "One of 'opensuse' or 'sles'. Empty to use detected results."
+    },
+    "major_version": {
+      "Value": "",
+      "Description": "Major version such as '12' or '15'. Empty to use detected results."
+    },
+    "minor_version": {
+      "Value": "",
+      "Description": "Minor version such as '1' or '5'. Empty to use detected results."
     }
   },
   "Sources": {
-    "import_files/translate.py": "./translate.py",
-    "import_files/utils/common.py": "../../linux_common/utils/common.py",
-    "import_files/utils/diskutils.py": "../../linux_common/utils/diskutils.py",
-    "import_files/utils/__init__.py": "../../linux_common/utils/__init__.py",
+    "import_files/py/linux_common": "../../linux_common",
+    "import_files/py/suse_import": "suse_import",
+    "import_files/run-translate.sh": "run-translate.sh",
     "startup_script": "../../linux_common/bootstrap.sh"
   },
   "Steps": {
@@ -43,6 +50,7 @@
         {
           "Name": "disk-translator",
           "SourceImage": "projects/compute-image-tools/global/images/family/debian-9-worker",
+          "Licenses": ["${license}"],
           "SizeGb": "10",
           "Type": "pd-ssd",
           "FallbackToPdStandard": true
@@ -57,12 +65,16 @@
             {"Source": "disk-translator"},
             {"Source": "${source_disk}"}
           ],
-          "MachineType": "n1-standard-2",
+          "MachineType": "e2-standard-2",
           "Metadata": {
             "files_gcs_dir": "${SOURCESPATH}/import_files",
-            "script": "translate.py",
+            "script": "run-translate.sh",
             "prefix": "Translate",
-            "install_gce_packages": "${install_gce_packages}"
+            "subscription_model": "${subscription_model}",
+            "install_gce_packages": "${install_gce_packages}",
+            "distro": "${distro}",
+            "major_version": "${major_version}",
+            "minor_version": "${minor_version}"
           },
           "networkInterfaces": [
             {
@@ -90,27 +102,13 @@
     },
     "delete-instance": {
       "DeleteResources": {
-        "Instances":["inst-translator"]
+        "Instances": ["inst-translator"]
       }
-    },
-    "create-image": {
-      "CreateImages": [
-        {
-          "Name": "${image_name}",
-          "SourceDisk": "${source_disk}",
-          "Family": "${family}",
-          "Licenses": ["projects/opensuse-cloud/global/licenses/opensuse-leap-42"],
-          "Description": "${description}",
-          "ExactName": true,
-          "NoCleanup": true
-        }
-      ]
     }
   },
   "Dependencies": {
     "translate-disk-inst": ["setup-disk"],
     "wait-for-translator": ["translate-disk-inst"],
-    "delete-instance": ["wait-for-translator"],
-    "create-image": ["delete-instance"]
+    "delete-instance": ["wait-for-translator"]
   }
 }

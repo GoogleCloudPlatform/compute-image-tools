@@ -21,6 +21,7 @@ import (
 	"os/signal"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 
 	stringutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
@@ -43,15 +44,20 @@ var (
 		"centos-7":            "enterprise_linux/translate_centos_7.wf.json",
 		"centos-8":            "enterprise_linux/translate_centos_8.wf.json",
 		"opensuse-15":         "suse/translate_opensuse_15.wf.json",
-		"sles-sap-12-byol":    "suse/translate_sles_sap_12_byol.wf.json",
-		"sles-12-byol":        "suse/translate_sles_12_byol.wf.json",
-		"sles-15-byol":        "suse/translate_sles_15_byol.wf.json",
 		"rhel-6":              "enterprise_linux/translate_rhel_6_licensed.wf.json",
 		"rhel-7":              "enterprise_linux/translate_rhel_7_licensed.wf.json",
 		"rhel-8":              "enterprise_linux/translate_rhel_8_licensed.wf.json",
 		"rhel-6-byol":         "enterprise_linux/translate_rhel_6_byol.wf.json",
 		"rhel-7-byol":         "enterprise_linux/translate_rhel_7_byol.wf.json",
 		"rhel-8-byol":         "enterprise_linux/translate_rhel_8_byol.wf.json",
+		"sles-12":             "suse/translate_sles_12.wf.json",
+		"sles-12-byol":        "suse/translate_sles_12_byol.wf.json",
+		"sles-sap-12":         "suse/translate_sles_sap_12.wf.json",
+		"sles-sap-12-byol":    "suse/translate_sles_sap_12_byol.wf.json",
+		"sles-15":             "suse/translate_sles_15.wf.json",
+		"sles-15-byol":        "suse/translate_sles_15_byol.wf.json",
+		"sles-sap-15":         "suse/translate_sles_sap_15.wf.json",
+		"sles-sap-15-byol":    "suse/translate_sles_sap_15_byol.wf.json",
 		"ubuntu-1404":         "ubuntu/translate_ubuntu_1404.wf.json",
 		"ubuntu-1604":         "ubuntu/translate_ubuntu_1604.wf.json",
 		"ubuntu-1804":         "ubuntu/translate_ubuntu_1804.wf.json",
@@ -81,6 +87,18 @@ var (
 	privacyRegex    = regexp.MustCompile(`\[Privacy\->.*?<\-Privacy\]`)
 	privacyTagRegex = regexp.MustCompile(`(\[Privacy\->)|(<\-Privacy\])`)
 )
+
+// OSChoices returns the supported OS identifiers, sorted.
+func OSChoices() []string {
+	choices := make([]string, len(osChoices))
+	i := 0
+	for k := range osChoices {
+		choices[i] = k
+		i++
+	}
+	sort.Strings(choices)
+	return choices
+}
 
 // ValidateOS validates that osID is supported by Daisy image import
 func ValidateOS(osID string) error {

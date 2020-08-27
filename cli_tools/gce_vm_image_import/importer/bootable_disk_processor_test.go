@@ -231,7 +231,7 @@ func getImage(t *testing.T, workflow *daisy.Workflow) daisy.Image {
 
 func defaultImportArgs() ImportArguments {
 	imageSpec := ImportArguments{
-		OS:          "sles-12-byol",
+		OS:          "opensuse-15",
 		WorkflowDir: "testdata",
 	}
 	return imageSpec

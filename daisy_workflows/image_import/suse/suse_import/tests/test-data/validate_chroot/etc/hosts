@@ -1,0 +1,7 @@
+127.0.0.1       localhost
+::1             localhost ip6-localhost ip6-loopback
+ff02::1         ip6-allnodes
+ff02::2         ip6-allrouters
+
+10.128.0.14 inst-translator-import-image-946jb.c.edens-test.internal inst-translator-import-image-946jb  # Added by Google
+169.254.169.254 metadata.google.internal  # Added by Google

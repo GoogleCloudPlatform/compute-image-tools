@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
@@ -246,11 +247,7 @@ func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
 
 	flagSet.Var((*flags.LowerTrimmedString)(&args.OS), osFlag,
 		"Specifies the OS of the image being imported. OS must be one of: "+
-			"centos-6, centos-7, debian-8, debian-9, opensuse-15, sles-12-byol, "+
-			"sles-15-byol, rhel-6, rhel-6-byol, rhel-7, rhel-7-byol, ubuntu-1404, "+
-			"ubuntu-1604, ubuntu-1804, ubuntu-2004, windows-10-byol, windows-2008r2, windows-2008r2-byol, "+
-			"windows-2012, windows-2012-byol, windows-2012r2, windows-2012r2-byol, "+
-			"windows-2016, windows-2016-byol, windows-7-byol.")
+			"OS must be one of: "+strings.Join(daisy_utils.OSChoices(), ", ")+".")
 
 	flagSet.BoolVar(&args.NoGuestEnvironment, "no_guest_environment", false,
 		"When enabled, the Google Guest Environment will not be installed.")

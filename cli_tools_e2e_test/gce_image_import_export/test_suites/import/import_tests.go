@@ -62,11 +62,23 @@ type testCase struct {
 }
 
 var cases = []testCase{
+	// Error messages
+	{
+		caseName:      "incorrect OS specified",
+		source:        "projects/compute-image-tools-test/global/images/debian-9-translate",
+		os:            "opensuse-15",
+		expectedError: "\"debian-9\" was detected on your disk, but \"opensuse-15\" was specified",
+	},
+
+	// Debian
 	{
 		caseName: "debian-9",
 		source:   "projects/compute-image-tools-test/global/images/debian-9-translate",
 		os:       "debian-9",
-	}, {
+	},
+
+	// Ubuntu
+	{
 		caseName:             "ubuntu-1404",
 		source:               "projects/compute-image-tools-test/global/images/ubuntu-1404-img-import",
 		os:                   "ubuntu-1404",
@@ -91,12 +103,88 @@ var cases = []testCase{
 		source:               "projects/compute-image-tools-test/global/images/ubuntu-2004-aws",
 		os:                   "ubuntu-2004",
 		osConfigNotSupported: true,
-	}, {
-		caseName:      "incorrect OS specified",
-		source:        "projects/compute-image-tools-test/global/images/debian-9-translate",
-		os:            "opensuse-15",
-		expectedError: "\"debian-9\" was detected on your disk, but \"opensuse-15\" was specified",
 	},
+
+	// OpenSUSE
+	{
+		caseName:             "opensuse-15-1",
+		source:               "projects/compute-image-tools-test/global/images/opensuse-15-1",
+		os:                   "opensuse-15",
+		osConfigNotSupported: true,
+	},
+	{
+		caseName:             "opensuse-15-2",
+		source:               "projects/compute-image-tools-test/global/images/opensuse-15-2",
+		os:                   "opensuse-15",
+		osConfigNotSupported: true,
+	},
+
+	// SLES: BYOL
+	{
+		caseName:             "sles-12-5-byol",
+		source:               "projects/compute-image-tools-test/global/images/sles-12-5-registered",
+		os:                   "sles-12-byol",
+		osConfigNotSupported: true,
+	}, {
+		caseName:             "sles-sap-12-5-byol",
+		source:               "projects/compute-image-tools-test/global/images/sles-sap-12-5-registered",
+		os:                   "sles-sap-12-byol",
+		osConfigNotSupported: true,
+	}, {
+		caseName:             "sles-15-2-byol",
+		source:               "projects/compute-image-tools-test/global/images/sles-15-2-registered",
+		os:                   "sles-15-byol",
+		osConfigNotSupported: true,
+	}, {
+		caseName:             "sles-sap-15-2-byol",
+		source:               "projects/compute-image-tools-test/global/images/sles-sap-15-2-registered",
+		os:                   "sles-sap-15-byol",
+		osConfigNotSupported: true,
+	},
+
+	// SLES: On-demand
+	{
+		caseName:             "sles-12-4-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-12-4-unregistered",
+		os:                   "sles-12",
+		osConfigNotSupported: true,
+	}, {
+		caseName:             "sles-12-5-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-12-5-unregistered",
+		os:                   "sles-12",
+		osConfigNotSupported: true,
+	}, {
+		caseName:             "sles-sap-12-4-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-sap-12-4-unregistered",
+		os:                   "sles-sap-12",
+		osConfigNotSupported: true,
+	}, {
+		caseName:             "sles-sap-12-5-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-sap-12-5-unregistered",
+		os:                   "sles-sap-12",
+		osConfigNotSupported: true,
+	}, {
+		caseName:             "sles-15-1-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-15-1-unregistered",
+		os:                   "sles-15",
+		osConfigNotSupported: true,
+	}, {
+		caseName:             "sles-15-2-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-15-2-unregistered",
+		os:                   "sles-15",
+		osConfigNotSupported: true,
+	}, {
+		caseName:             "sles-sap-15-1-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-sap-15-1-unregistered",
+		os:                   "sles-sap-15",
+		osConfigNotSupported: true,
+	}, {
+		caseName:             "sles-sap-15-2-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-sap-15-2-registered2",
+		os:                   "sles-sap-15",
+		osConfigNotSupported: true,
+	},
+
 	// EL
 	{
 		caseName: "el-centos-7-8",
@@ -127,7 +215,10 @@ var cases = []testCase{
 		caseName: "el-rhel-8-2",
 		source:   "projects/compute-image-tools-test/global/images/rhel-8-2",
 		os:       "rhel-8",
-	}, {
+	},
+
+	// Windows
+	{
 		caseName:  "windows-2019-uefi",
 		source:    "projects/compute-image-tools-test/global/images/windows-2019-uefi-nodrivers",
 		os:        "windows-2019",
@@ -171,7 +262,6 @@ func (t testCase) runImport(junit *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, imageName string) (*bytes.Buffer, error) {
 	args := []string{
 		"-client_id", "e2e",
-		"-inspect",
 		"-os", t.os,
 		"-project", testProjectConfig.TestProjectID,
 		"-zone", testProjectConfig.TestZone,
