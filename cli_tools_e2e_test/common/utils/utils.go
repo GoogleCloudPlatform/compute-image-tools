@@ -271,7 +271,7 @@ func ContainsSubString(strs []string, s string) bool {
 	return false
 }
 
-// ContainsAll checks whether all given strings exists
+// ContainsAll checks whether all given strings in subarr exists in arr
 func ContainsAll(arr []string, subarr []string) bool {
 	for item := range subarr {
 		exists := false
@@ -288,7 +288,7 @@ func ContainsAll(arr []string, subarr []string) bool {
 	return true
 }
 
-// ContainsAny checks whether any given strings exists
+// ContainsAny checks whether any given strings in subarr exists in arr
 func ContainsAny(arr []string, subarr []string) bool {
 	for item := range subarr {
 		for i := range arr {

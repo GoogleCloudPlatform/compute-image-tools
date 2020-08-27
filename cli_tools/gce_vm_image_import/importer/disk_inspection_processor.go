@@ -26,24 +26,24 @@ type diskInspectionProcessor struct {
 	diskInspector disk.Inspector
 }
 
-func (d *diskInspectionProcessor) process(pd persistentDisk) (persistentDisk, error) {
-	if !d.args.Inspect || d.diskInspector == nil {
+func (p *diskInspectionProcessor) process(pd persistentDisk) (persistentDisk, error) {
+	if !p.args.Inspect || p.diskInspector == nil {
 		return pd, nil
 	}
 
-	ir, err := d.inspectDisk(pd.uri)
+	ir, err := p.inspectDisk(pd.uri)
 	if err != nil {
 		return pd, err
 	}
 
-	pd.isUEFICompatible = d.args.UefiCompatible || ir.HasEFIPartition
+	pd.isUEFICompatible = p.args.UefiCompatible || ir.HasEFIPartition
 	pd.isUEFIDetected = ir.HasEFIPartition
 	return pd, nil
 }
 
-func (d *diskInspectionProcessor) inspectDisk(uri string) (disk.InspectionResult, error) {
+func (p *diskInspectionProcessor) inspectDisk(uri string) (disk.InspectionResult, error) {
 	log.Printf("Running disk inspections on %v.", uri)
-	ir, err := d.diskInspector.Inspect(uri)
+	ir, err := p.diskInspector.Inspect(uri)
 	if err != nil {
 		log.Printf("Disk inspection error=%v", err)
 		return ir, daisy.Errf("Disk inspection error: %v", err)
@@ -53,9 +53,9 @@ func (d *diskInspectionProcessor) inspectDisk(uri string) (disk.InspectionResult
 	return ir, nil
 }
 
-func (d *diskInspectionProcessor) cancel(reason string) bool {
-	if d.diskInspector != nil {
-		wf := d.diskInspector.GetWorkflow()
+func (p *diskInspectionProcessor) cancel(reason string) bool {
+	if p.diskInspector != nil {
+		wf := p.diskInspector.GetWorkflow()
 		if wf != nil {
 			wf.CancelWithReason(reason)
 			return true
@@ -66,9 +66,9 @@ func (d *diskInspectionProcessor) cancel(reason string) bool {
 	return false
 }
 
-func (d *diskInspectionProcessor) traceLogs() []string {
-	if d.diskInspector != nil {
-		wf := d.diskInspector.GetWorkflow()
+func (p *diskInspectionProcessor) traceLogs() []string {
+	if p.diskInspector != nil {
+		wf := p.diskInspector.GetWorkflow()
 		if wf != nil && wf.Logger != nil {
 			return wf.Logger.ReadSerialPortLogs()
 		}

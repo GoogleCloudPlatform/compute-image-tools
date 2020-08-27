@@ -69,7 +69,7 @@ type testCase struct {
 	unexpectedGuestOsFeatures []string
 }
 
-var basicCases = []testCase{
+var basicCases = []*testCase{
 	{
 		caseName: "debian-9",
 		source:   "projects/compute-image-tools-test/global/images/debian-9-translate",
@@ -147,7 +147,7 @@ var basicCases = []testCase{
 	},
 }
 
-var inspectUEFICases = []testCase{
+var inspectUEFICases = []*testCase{
 	{
 		caseName: "inspect-uefi-linux-uefi-rhel-7",
 		// source created from projects/gce-uefi-images/global/images/rhel-7-v20200403
@@ -318,8 +318,8 @@ func (t testCase) testScript() string {
 	return "post_translate_test.sh"
 }
 
-func getAllTestCases() []testCase {
-	var cases []testCase
+func getAllTestCases() []*testCase {
+	var cases []*testCase
 	cases = append(cases, basicCases...)
 	cases = append(cases, inspectUEFICases...)
 	return cases
@@ -338,9 +338,10 @@ func ImageImportSuite(
 
 	cases := getAllTestCases()
 	for _, tc := range cases {
+		testCase := *tc
 		junit := junitxml.NewTestCase(
 			suite, fmt.Sprintf("[%v]", tc.caseName))
-		junits[junit] = tc.run
+		junits[junit] = testCase.run
 	}
 
 	testsMap := map[utils.CLITestType]map[*junitxml.TestCase]func(

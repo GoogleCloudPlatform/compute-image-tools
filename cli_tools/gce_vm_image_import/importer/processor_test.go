@@ -44,56 +44,90 @@ func TestProcessorProvider_InspectDataDisk(t *testing.T) {
 	assert.True(t, ok, "processor is not dataDiskProcessor")
 }
 
+var tests = []struct {
+	isUEFIDisk               bool
+	isInputArgUEFICompatible bool
+}{
+	{isUEFIDisk: true, isInputArgUEFICompatible: false},
+	{isUEFIDisk: false, isInputArgUEFICompatible: false},
+	{isUEFIDisk: true, isInputArgUEFICompatible: true},
+	{isUEFIDisk: false, isInputArgUEFICompatible: true},
+}
+
 func TestProcessorProvider_InspectUEFI(t *testing.T) {
-	tests := []struct {
-		isUEFIDisk               bool
-		isInputArgUEFICompatible bool
-	}{
-		{isUEFIDisk: true, isInputArgUEFICompatible: false},
-		{isUEFIDisk: false, isInputArgUEFICompatible: false},
-		{isUEFIDisk: true, isInputArgUEFICompatible: true},
-		{isUEFIDisk: false, isInputArgUEFICompatible: true},
+	processorProvider := defaultProcessorProvider{
+		ImportArguments{
+			Inspect:     true,
+			WorkflowDir: "testdata",
+			OS:          "ubuntu-1804",
+		},
+		mockComputeDiskClient{},
+		mockDiskInspector{},
 	}
+
+	pd := persistentDisk{uri: "old-uri"}
+	processors, err := processorProvider.provide(pd)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, len(processors), "there should be 3 processors, got %v", len(processors))
+	_, ok := processors[0].(*diskInspectionProcessor)
+	assert.True(t, ok, "the 1st processor is not diskInspectionDiskProcessor")
+	_, ok = processors[1].(*diskMutationProcessor)
+	assert.True(t, ok, "the 2nd processor is not diskMutationProcessor")
+	_, ok = processors[2].(*bootableDiskProcessor)
+	assert.True(t, ok, "the 3rd processor is not bootableDiskProcessor")
+}
+
+func TestDiskInspectionProcessor(t *testing.T) {
 	for i, tt := range tests {
 		name := fmt.Sprintf("%v. inspect disk: disk is UEFI: %v, input arg UEFI compatible: %v", i+1, tt.isUEFIDisk, tt.isInputArgUEFICompatible)
 		t.Run(name, func(t *testing.T) {
-			processorProvider := defaultProcessorProvider{
-				ImportArguments{
-					Inspect:        true,
-					WorkflowDir:    "testdata",
-					OS:             "ubuntu-1804",
-					UefiCompatible: tt.isInputArgUEFICompatible,
-				},
-				mockComputeDiskClient{},
-				mockDiskInspector{tt.isUEFIDisk},
+			args := ImportArguments{
+				Inspect:        true,
+				UefiCompatible: tt.isInputArgUEFICompatible,
 			}
-
-			pd := persistentDisk{uri: "old-uri"}
-			processors, err := processorProvider.provide(pd)
-			assert.NoError(t, err)
-			assert.Equal(t, 3, len(processors), "there should be 3 processors, got %v", len(processors))
-			diskInspectionProcessor, ok := processors[0].(*diskInspectionProcessor)
-			assert.True(t, ok, "the 1st processor is not diskInspectionDiskProcessor")
-			diskMutationProcessor, ok := processors[1].(*diskMutationProcessor)
-			assert.True(t, ok, "the 2nd processor is not diskMutationProcessor")
-			bootableDiskProcessor, ok := processors[2].(*bootableDiskProcessor)
-			assert.True(t, ok, "the 3rd processor is not bootableDiskProcessor")
-
-			pd, err = diskInspectionProcessor.process(pd)
+			p := newDiskInspectionProcessor(mockDiskInspector{tt.isUEFIDisk}, args)
+			pd, err := p.process(persistentDisk{})
 			assert.NoError(t, err)
 			assert.Equal(t, tt.isUEFIDisk, pd.isUEFIDetected)
 			assert.Equal(t, tt.isInputArgUEFICompatible || tt.isUEFIDisk, pd.isUEFICompatible)
+		})
+	}
+}
 
-			pd, err = diskMutationProcessor.process(pd)
+func TestDiskMutationProcessor(t *testing.T) {
+	for i, tt := range tests {
+		name := fmt.Sprintf("%v. inspect disk: disk is UEFI: %v, input arg UEFI compatible: %v", i+1, tt.isUEFIDisk, tt.isInputArgUEFICompatible)
+		t.Run(name, func(t *testing.T) {
+			args := ImportArguments{
+				Inspect:        true,
+				UefiCompatible: tt.isInputArgUEFICompatible,
+			}
+			p := newDiskMutationProcessor(mockComputeDiskClient{}, args)
+			pd, err := p.process(persistentDisk{uri: "old-uri", isUEFIDetected: tt.isUEFIDisk || tt.isInputArgUEFICompatible})
 			assert.NoError(t, err)
 			if tt.isUEFIDisk && !tt.isInputArgUEFICompatible {
 				assert.Truef(t, strings.HasSuffix(pd.uri, "uefi"), "UEFI Disk URI should have suffix 'uefi', actual: %v", pd.uri)
 			} else {
 				assert.Falsef(t, strings.HasSuffix(pd.uri, "uefi"), "Disk URI shouldn't have suffix 'uefi', actual: %v", pd.uri)
 			}
+		})
+	}
+}
 
-			pd, err = bootableDiskProcessor.process(pd)
-			assert.NotEmpty(t, bootableDiskProcessor.workflow.Vars["source_disk"].Value)
+func TestBootableDiskProcessor(t *testing.T) {
+	for i, tt := range tests {
+		name := fmt.Sprintf("%v. inspect disk: disk is UEFI: %v, input arg UEFI compatible: %v", i+1, tt.isUEFIDisk, tt.isInputArgUEFICompatible)
+		t.Run(name, func(t *testing.T) {
+			args := ImportArguments{
+				Inspect:        true,
+				WorkflowDir:    "testdata",
+				OS:             "ubuntu-1804",
+				UefiCompatible: tt.isInputArgUEFICompatible,
+			}
+			p, err := newBootableDiskProcessor(args)
+			assert.NoError(t, err)
+			_, err = p.process(persistentDisk{uri: "uri"})
+			assert.NotEmpty(t, p.(*bootableDiskProcessor).workflow.Vars["source_disk"].Value)
 		})
 	}
 }

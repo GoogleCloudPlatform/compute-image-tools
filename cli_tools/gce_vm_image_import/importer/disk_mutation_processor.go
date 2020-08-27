@@ -28,10 +28,10 @@ type diskMutationProcessor struct {
 	computeDiskClient daisyCompute.Client
 }
 
-func (d *diskMutationProcessor) process(pd persistentDisk) (persistentDisk, error) {
+func (p *diskMutationProcessor) process(pd persistentDisk) (persistentDisk, error) {
 	// If UEFI_COMPATIBLE is enforced in user input args (b.uefiCompatible),
 	// then it has been honored in inflation stage, so no need to recreate a new disk here.
-	if d.args.UefiCompatible {
+	if p.args.UefiCompatible {
 		return pd, nil
 	}
 
@@ -41,8 +41,8 @@ func (d *diskMutationProcessor) process(pd persistentDisk) (persistentDisk, erro
 
 	// Due to GuestOS features limitations, a new disk needs to be created to add the additional "UEFI_COMPATIBLE"
 	// and the old disk will be deleted.
-	diskName := fmt.Sprintf("disk-%v-uefi", d.args.ExecutionID)
-	err := d.computeDiskClient.CreateDisk(d.args.Project, d.args.Zone, &compute.Disk{
+	diskName := fmt.Sprintf("disk-%v-uefi", p.args.ExecutionID)
+	err := p.computeDiskClient.CreateDisk(p.args.Project, p.args.Zone, &compute.Disk{
 		Name:            diskName,
 		SourceDisk:      pd.uri,
 		GuestOsFeatures: []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}},
@@ -53,19 +53,19 @@ func (d *diskMutationProcessor) process(pd persistentDisk) (persistentDisk, erro
 	log.Println("UEFI disk created: ", diskName)
 
 	// Cleanup the old disk after the new disk is created.
-	cleanupDisk(d.computeDiskClient, d.args.Project, d.args.Zone, pd)
+	cleanupDisk(p.computeDiskClient, p.args.Project, p.args.Zone, pd)
 
 	// Update the new disk URI
-	pd.uri = fmt.Sprintf("zones/%v/disks/%v", d.args.Zone, diskName)
+	pd.uri = fmt.Sprintf("zones/%v/disks/%v", p.args.Zone, diskName)
 	return pd, nil
 }
 
-func (d *diskMutationProcessor) cancel(reason string) bool {
+func (p *diskMutationProcessor) cancel(reason string) bool {
 	//indicate cancel was not performed
 	return false
 }
 
-func (d *diskMutationProcessor) traceLogs() []string {
+func (p *diskMutationProcessor) traceLogs() []string {
 	return []string{}
 }
 

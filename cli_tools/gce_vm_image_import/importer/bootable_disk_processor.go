@@ -24,7 +24,6 @@ import (
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 type bootableDiskProcessor struct {
@@ -58,7 +57,7 @@ func (b *bootableDiskProcessor) traceLogs() []string {
 	return []string{}
 }
 
-func newBootableDiskProcessor(computeDiskClient daisyCompute.Client, args ImportArguments) (processor, error) {
+func newBootableDiskProcessor(args ImportArguments) (processor, error) {
 	var translateWorkflowPath string
 	if args.CustomWorkflow != "" {
 		translateWorkflowPath = args.CustomWorkflow
