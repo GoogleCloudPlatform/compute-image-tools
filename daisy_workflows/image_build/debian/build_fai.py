@@ -47,8 +47,8 @@ def main():
       'debian_version', raise_on_not_found=True)
   google_cloud_repo = utils.GetMetadataAttribute(
       'google_cloud_repo', raise_on_not_found=True)
-  image_dest = utils.GetMetadataAttribute('image_dest',
-                                          raise_on_not_found=True)
+  outs_path = utils.GetMetadataAttribute('daisy-outs-path',
+                                         raise_on_not_found=True)
 
   logging.info('debian-cloud-images version: %s' % debian_cloud_images_version)
   logging.info('debian version: %s' % debian_version)
@@ -172,6 +172,7 @@ def main():
   tar.close()
 
   # Upload tar.
+  image_dest = os.path.join(outs_path, 'root.tar.gz')
   logging.info('Saving %s to %s' % (disk_tar_gz, image_dest))
   utils.UploadFile(disk_tar_gz, image_dest)
 
