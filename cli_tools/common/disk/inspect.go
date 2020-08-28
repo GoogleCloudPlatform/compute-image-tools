@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	workflowFile = "image_import/inspection/inspect-disk.wf.json"
+	workflowFile = "image_import/inspection/boot-inspect.wf.json"
 )
 
 // Inspector finds partition and boot-related properties for a disk.
