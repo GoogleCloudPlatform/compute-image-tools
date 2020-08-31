@@ -31,10 +31,12 @@ def _daisy_kv(key: str, value: str):
 
 def _output_daisy(results: model.InspectionResults):
   if results:
-    print(_daisy_kv('architecture', results.architecture.value))
-    print(_daisy_kv('distro', results.os.distro.value))
-    print(_daisy_kv('major', results.os.version.major))
-    print(_daisy_kv('minor', results.os.version.minor))
+    if results.architecture:
+      print(_daisy_kv('architecture', results.architecture.value))
+    if results.os:
+      print(_daisy_kv('distro', results.os.distro.value))
+      print(_daisy_kv('major', results.os.version.major))
+      print(_daisy_kv('minor', results.os.version.minor))
     if results.has_efi_partition:
       print(_daisy_kv('has_efi_partition', 'true'))
   print('Success: Done!')
@@ -101,6 +103,8 @@ def main():
     g.add_drive_opts(args.device, readonly=1)
     g.launch()
     results = inspection.inspect_device(g, args.device)
+  else:
+    results = model.InspectionResults(device=None, os=None, architecture=None)
 
   results.has_efi_partition = _inspect_uefi(args.device)
 

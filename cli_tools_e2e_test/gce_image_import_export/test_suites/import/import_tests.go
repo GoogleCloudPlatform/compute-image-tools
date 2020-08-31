@@ -66,7 +66,7 @@ type testCase struct {
 	osConfigNotSupported bool
 
 	// Expect to see all given strings in guestOsFeatures
-	expectedGuestOsFeatures   []string
+	expectedGuestOsFeatures []string
 
 	// Expect to see none of given strings in guestOsFeatures
 	unexpectedGuestOsFeatures []string
