@@ -65,8 +65,14 @@ type testCase struct {
 	// Whether the image-under-test is expected to have the OS config agent installed.
 	osConfigNotSupported bool
 
+	// Expect to see all given strings in guestOsFeatures
 	expectedGuestOsFeatures   []string
+
+	// Expect to see none of given strings in guestOsFeatures
 	unexpectedGuestOsFeatures []string
+
+	// Whether to add "inspect" arg
+	inspect bool
 }
 
 var basicCases = []*testCase{
@@ -79,71 +85,86 @@ var basicCases = []*testCase{
 		source:               "projects/compute-image-tools-test/global/images/ubuntu-1404-img-import",
 		os:                   "ubuntu-1404",
 		osConfigNotSupported: true,
+		inspect:              true,
 	}, {
 		caseName:             "ubuntu-1604",
 		source:               "projects/compute-image-tools-test/global/images/ubuntu-1604-vmware-import",
 		os:                   "ubuntu-1604",
 		osConfigNotSupported: true,
+		inspect:              true,
 	}, {
 		caseName:             "ubuntu-1804",
 		source:               "gs://compute-image-tools-test-resources/ubuntu-1804-vmware.vmdk",
 		os:                   "ubuntu-1804",
 		osConfigNotSupported: true,
+		inspect:              true,
 	}, {
 		caseName:             "ubuntu-2004",
 		source:               "projects/compute-image-tools-test/global/images/ubuntu-2004",
 		os:                   "ubuntu-2004",
 		osConfigNotSupported: true,
+		inspect:              true,
 	}, {
 		caseName:             "ubuntu-2004-aws",
 		source:               "projects/compute-image-tools-test/global/images/ubuntu-2004-aws",
 		os:                   "ubuntu-2004",
 		osConfigNotSupported: true,
+		inspect:              true,
 	}, {
 		caseName:      "incorrect OS specified",
 		source:        "projects/compute-image-tools-test/global/images/debian-9-translate",
 		os:            "opensuse-15",
 		expectedError: "\"debian-9\" was detected on your disk, but \"opensuse-15\" was specified",
+		inspect:       true,
 	},
 	// EL
 	{
 		caseName: "el-centos-7-8",
 		source:   "projects/compute-image-tools-test/global/images/centos-7-8",
 		os:       "centos-7",
+		inspect:  true,
 	}, {
 		caseName: "el-centos-8-0",
 		source:   "projects/compute-image-tools-test/global/images/centos-8-import",
 		os:       "centos-8",
+		inspect:  true,
 	}, {
 		caseName: "el-centos-8-2",
 		source:   "projects/compute-image-tools-test/global/images/centos-8-2",
 		os:       "centos-8",
+		inspect:  true,
 	}, {
 		caseName:  "el-rhel-7-uefi",
 		source:    "projects/compute-image-tools-test/global/images/linux-uefi-no-guestosfeature-rhel7",
 		os:        "rhel-7",
 		extraArgs: []string{"-uefi_compatible=true"},
+		inspect:   true,
 	}, {
 		caseName: "el-rhel-7-8",
 		source:   "projects/compute-image-tools-test/global/images/rhel-7-8",
 		os:       "rhel-7",
+		inspect:  true,
 	}, {
 		caseName: "el-rhel-8-0",
 		source:   "projects/compute-image-tools-test/global/images/rhel-8-0",
 		os:       "rhel-8",
+		inspect:  true,
 	}, {
 		caseName: "el-rhel-8-2",
 		source:   "projects/compute-image-tools-test/global/images/rhel-8-2",
 		os:       "rhel-8",
+		inspect:  true,
 	}, {
 		caseName:  "windows-2019-uefi",
 		source:    "projects/compute-image-tools-test/global/images/windows-2019-uefi-nodrivers",
 		os:        "windows-2019",
 		extraArgs: []string{"-uefi_compatible=true"},
+		inspect:   true,
 	}, {
 		caseName: "windows-10-x86-byol",
 		source:   "projects/compute-image-tools-test/global/images/windows-10-1909-ent-x86-nodrivers",
 		os:       "windows-10-x86-byol",
+		inspect:  true,
 	},
 }
 
@@ -242,11 +263,13 @@ func (t testCase) runImport(junit *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, imageName string) (*bytes.Buffer, error) {
 	args := []string{
 		"-client_id", "e2e",
-		"-inspect",
 		"-os", t.os,
 		"-project", testProjectConfig.TestProjectID,
 		"-zone", testProjectConfig.TestZone,
 		"-image_name", imageName,
+	}
+	if t.inspect {
+		args = append(args, "-inspect")
 	}
 	if strings.Contains(t.source, "gs://") {
 		args = append(args, "-source_file", t.source)

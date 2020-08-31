@@ -5,6 +5,9 @@
     "pd_uri": {
       "Required": true,
       "Description": "PD that will be inspected (URI)."
+    },
+    "is_inspect_os": {
+      "Description": "Whether to inspect OS."
     }
   },
   "Sources": {
@@ -30,7 +33,10 @@
             }
           ],
           "MachineType": "n1-standard-4",
-          "StartupScript": "daisy-shim.sh"
+          "StartupScript": "daisy-shim.sh",
+          "Metadata": {
+            "is-inspect-os": "${is_inspect_os}"
+          }
         }
       ]
     },

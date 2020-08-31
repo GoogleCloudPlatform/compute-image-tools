@@ -17,6 +17,7 @@
 import argparse
 import json
 import os
+import urllib.request
 
 from boot_inspect import inspection
 from boot_inspect import model
@@ -89,11 +90,20 @@ def main():
     help='a block device or disk file.'
   )
   args = parser.parse_args()
-  g = guestfs.GuestFS(python_return_dict=True)
-  g.add_drive_opts(args.device, readonly=1)
-  g.launch()
-  results = inspection.inspect_device(g, args.device)
+
+  req = urllib.request.Request(
+      "http://metadata.google.internal/computeMetadata/v1"
+      "/instance/attributes/is-inspect-os",
+      headers={'Metadata-Flavor': 'Google'})
+  is_inspect_os = urllib.request.urlopen(req).read()
+  if is_inspect_os == 'true':
+    g = guestfs.GuestFS(python_return_dict=True)
+    g.add_drive_opts(args.device, readonly=1)
+    g.launch()
+    results = inspection.inspect_device(g, args.device)
+
   results.has_efi_partition = _inspect_uefi(args.device)
+
   globals()['_output_' + args.format](results)
 
 

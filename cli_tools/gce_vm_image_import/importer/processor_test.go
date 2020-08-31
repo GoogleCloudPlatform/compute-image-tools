@@ -29,12 +29,11 @@ import (
 func TestProcessorProvider_InspectDataDisk(t *testing.T) {
 	processorProvider := defaultProcessorProvider{
 		ImportArguments{
-			Inspect:     true,
 			WorkflowDir: "testdata",
 			DataDisk:    true,
 		},
 		mockComputeDiskClient{},
-		mockDiskInspector{true},
+		mockDiskInspector{},
 	}
 
 	processors, err := processorProvider.provide(persistentDisk{})
@@ -54,7 +53,7 @@ var tests = []struct {
 	{isUEFIDisk: false, isInputArgUEFICompatible: true},
 }
 
-func TestProcessorProvider_InspectUEFI(t *testing.T) {
+func TestProcessorProvider_InspectOS(t *testing.T) {
 	processorProvider := defaultProcessorProvider{
 		ImportArguments{
 			Inspect:     true,
@@ -62,7 +61,28 @@ func TestProcessorProvider_InspectUEFI(t *testing.T) {
 			OS:          "ubuntu-1804",
 		},
 		mockComputeDiskClient{},
-		mockDiskInspector{},
+		mockDiskInspector{true, &daisy.Workflow{}},
+	}
+
+	pd := persistentDisk{}
+	processors, err := processorProvider.provide(pd)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, len(processors), "there should be 3 processors, got %v", len(processors))
+	p, ok := processors[0].(*diskInspectionProcessor)
+	assert.True(t, ok, "the 1st processor is not diskInspectionDiskProcessor")
+
+	p.process(pd)
+	assert.Equal(t, "true", p.diskInspector.GetWorkflow().Vars["is_inspect_os"].Value)
+}
+
+func TestProcessorProvider_InspectUEFI(t *testing.T) {
+	processorProvider := defaultProcessorProvider{
+		ImportArguments{
+			WorkflowDir: "testdata",
+			OS:          "ubuntu-1804",
+		},
+		mockComputeDiskClient{},
+		mockDiskInspector{true, &daisy.Workflow{}},
 	}
 
 	pd := persistentDisk{uri: "old-uri"}
@@ -82,10 +102,9 @@ func TestDiskInspectionProcessor(t *testing.T) {
 		name := fmt.Sprintf("%v. inspect disk: disk is UEFI: %v, input arg UEFI compatible: %v", i+1, tt.isUEFIDisk, tt.isInputArgUEFICompatible)
 		t.Run(name, func(t *testing.T) {
 			args := ImportArguments{
-				Inspect:        true,
 				UefiCompatible: tt.isInputArgUEFICompatible,
 			}
-			p := newDiskInspectionProcessor(mockDiskInspector{tt.isUEFIDisk}, args)
+			p := newDiskInspectionProcessor(mockDiskInspector{tt.isUEFIDisk, &daisy.Workflow{}}, args)
 			pd, err := p.process(persistentDisk{})
 			assert.NoError(t, err)
 			assert.Equal(t, tt.isUEFIDisk, pd.isUEFIDetected)
@@ -99,7 +118,6 @@ func TestDiskMutationProcessor(t *testing.T) {
 		name := fmt.Sprintf("%v. inspect disk: disk is UEFI: %v, input arg UEFI compatible: %v", i+1, tt.isUEFIDisk, tt.isInputArgUEFICompatible)
 		t.Run(name, func(t *testing.T) {
 			args := ImportArguments{
-				Inspect:        true,
 				UefiCompatible: tt.isInputArgUEFICompatible,
 			}
 			p := newDiskMutationProcessor(mockComputeDiskClient{}, args)
@@ -119,7 +137,6 @@ func TestBootableDiskProcessor(t *testing.T) {
 		name := fmt.Sprintf("%v. inspect disk: disk is UEFI: %v, input arg UEFI compatible: %v", i+1, tt.isUEFIDisk, tt.isInputArgUEFICompatible)
 		t.Run(name, func(t *testing.T) {
 			args := ImportArguments{
-				Inspect:        true,
 				WorkflowDir:    "testdata",
 				OS:             "ubuntu-1804",
 				UefiCompatible: tt.isInputArgUEFICompatible,
@@ -134,6 +151,7 @@ func TestBootableDiskProcessor(t *testing.T) {
 
 type mockDiskInspector struct {
 	hasEFIPartition bool
+	wf              *daisy.Workflow
 }
 
 func (m mockDiskInspector) Inspect(reference string) (ir disk.InspectionResult, err error) {
@@ -142,7 +160,7 @@ func (m mockDiskInspector) Inspect(reference string) (ir disk.InspectionResult, 
 }
 
 func (m mockDiskInspector) GetWorkflow() *daisy.Workflow {
-	return nil
+	return m.wf
 }
 
 type mockComputeDiskClient struct {

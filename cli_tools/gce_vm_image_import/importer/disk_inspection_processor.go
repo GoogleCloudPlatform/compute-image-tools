@@ -16,6 +16,7 @@ package importer
 
 import (
 	"log"
+	"strconv"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -27,7 +28,7 @@ type diskInspectionProcessor struct {
 }
 
 func (p *diskInspectionProcessor) process(pd persistentDisk) (persistentDisk, error) {
-	if !p.args.Inspect || p.diskInspector == nil {
+	if p.diskInspector == nil {
 		return pd, nil
 	}
 
@@ -43,6 +44,7 @@ func (p *diskInspectionProcessor) process(pd persistentDisk) (persistentDisk, er
 
 func (p *diskInspectionProcessor) inspectDisk(uri string) (disk.InspectionResult, error) {
 	log.Printf("Running disk inspections on %v.", uri)
+	p.diskInspector.GetWorkflow().AddVar("is_inspect_os", strconv.FormatBool(p.args.Inspect))
 	ir, err := p.diskInspector.Inspect(uri)
 	if err != nil {
 		log.Printf("Disk inspection error=%v", err)
