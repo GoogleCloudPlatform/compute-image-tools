@@ -85,17 +85,12 @@ steps:
   dir: 'cli_tools/gce_vm_image_import'
   args: ['go', 'build', '-o=/workspace/linux/gce_vm_image_import']
   env: ['CGO_ENABLED=0']
-- name: 'gcr.io/kaniko-project/executor@sha256:d60705cb55460f32cee586570d7b14a0e8a5f23030a0532230aaf707ad05cecd'
-  args: 
-  - --destination=gcr.io/$PROJECT_ID/gce_vm_image_import:$_RELEASE
-  - --destination=gcr.io/$PROJECT_ID/gce_vm_image_import:$COMMIT_SHA
+- name: 'gcr.io/kaniko-project/executor:v1.0.0'
+  args:
   - --destination=us-central1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
   - --destination=us-central1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
-  - --destination=us-west1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
-  - --destination=us-west1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --context=/workspace
   - --dockerfile=gce_vm_image_import.Dockerfile
-  - --cache=true
 
 # Build gce_vm_image_export.
 - name: 'golang'
