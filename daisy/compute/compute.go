@@ -38,6 +38,7 @@ type Client interface {
 	DetachDisk(project, zone, instance, disk string) error
 	CreateDisk(project, zone string, d *compute.Disk) error
 	CreateDiskAlpha(project, zone string, d *computeAlpha.Disk) error
+	CreateDiskBeta(project, zone string, d *computeBeta.Disk) error
 	CreateForwardingRule(project, region string, fr *compute.ForwardingRule) error
 	CreateFirewallRule(project string, i *compute.Firewall) error
 	CreateImage(project string, i *compute.Image) error
@@ -67,6 +68,7 @@ type Client interface {
 	GetInstanceBeta(project, zone, name string) (*computeBeta.Instance, error)
 	GetDisk(project, zone, name string) (*compute.Disk, error)
 	GetDiskAlpha(project, zone, name string) (*computeAlpha.Disk, error)
+	GetDiskBeta(project, zone, name string) (*computeBeta.Disk, error)
 	GetForwardingRule(project, region, name string) (*compute.ForwardingRule, error)
 	GetFirewallRule(project, name string) (*compute.Firewall, error)
 	GetImage(project, name string) (*compute.Image, error)
@@ -459,6 +461,25 @@ func (c *client) CreateDiskAlpha(project, zone string, d *computeAlpha.Disk) err
 
 	var createdDisk *computeAlpha.Disk
 	if createdDisk, err = c.i.GetDiskAlpha(project, zone, d.Name); err != nil {
+		return err
+	}
+	*d = *createdDisk
+	return nil
+}
+
+// CreateDiskBeta creates a GCE persistent disk.
+func (c *client) CreateDiskBeta(project, zone string, d *computeBeta.Disk) error {
+	op, err := c.RetryBeta(c.rawBeta.Disks.Insert(project, zone, d).Do)
+	if err != nil {
+		return err
+	}
+
+	if err := c.i.zoneOperationsWait(project, zone, op.Name); err != nil {
+		return err
+	}
+
+	var createdDisk *computeBeta.Disk
+	if createdDisk, err = c.i.GetDiskBeta(project, zone, d.Name); err != nil {
 		return err
 	}
 	*d = *createdDisk
@@ -948,6 +969,15 @@ func (c *client) GetDiskAlpha(project, zone, name string) (*computeAlpha.Disk, e
 	d, err := c.rawAlpha.Disks.Get(project, zone, name).Do()
 	if shouldRetryWithWait(c.hc.Transport, err, 2) {
 		return c.rawAlpha.Disks.Get(project, zone, name).Do()
+	}
+	return d, err
+}
+
+// GetDiskBeta gets a GCE Disk.
+func (c *client) GetDiskBeta(project, zone, name string) (*computeBeta.Disk, error) {
+	d, err := c.rawBeta.Disks.Get(project, zone, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.rawBeta.Disks.Get(project, zone, name).Do()
 	}
 	return d, err
 }

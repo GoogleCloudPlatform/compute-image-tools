@@ -858,7 +858,7 @@ func TestValidateErrors(t *testing.T) {
 	// Error from populate().
 	w = testWorkflow()
 	w.Steps = map[string]*Step{"s0": {Timeout: "10", testType: &mockStep{}}}
-	want = "error populating workflow: error populating step \"s0\": time: missing unit in duration 10"
+	want = "error populating workflow: error populating step \"s0\": time: missing unit in duration \"10\""
 	if err := testValidateErrors(w, want); err != nil {
 		t.Error(err)
 	}
