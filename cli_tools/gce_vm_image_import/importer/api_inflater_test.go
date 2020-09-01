@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	computeAlpha "google.golang.org/api/compute/v0.alpha"
+	computeBeta "google.golang.org/api/compute/v0.beta"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
@@ -58,7 +58,7 @@ func TestCreateInflater_File(t *testing.T) {
 
 	realInflater, _ := facade.shadowInflater.(*apiInflater)
 	assert.NotContains(t, realInflater.guestOsFeatures,
-		&computeAlpha.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
+		&computeBeta.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
 }
 
 func TestCreateInflater_Image(t *testing.T) {
@@ -84,5 +84,5 @@ func TestCreateAPIInflater_IncludesUEFIGuestOSFeature(t *testing.T) {
 	}
 	realInflater, _ := createAPIInflater(args, nil, storage.Client{}).(*apiInflater)
 	assert.Contains(t, realInflater.guestOsFeatures,
-		&computeAlpha.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
+		&computeBeta.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
 }

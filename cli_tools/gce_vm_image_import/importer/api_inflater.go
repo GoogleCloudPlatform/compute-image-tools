@@ -23,7 +23,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	computeAlpha "google.golang.org/api/compute/v0.alpha"
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -47,7 +47,7 @@ type apiInflater struct {
 	args            ImportArguments
 	computeClient   daisyCompute.Client
 	storageClient   storage.Client
-	guestOsFeatures []*computeAlpha.GuestOsFeature
+	guestOsFeatures []*computeBeta.GuestOsFeature
 }
 
 func createAPIInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client) inflater {
@@ -58,7 +58,7 @@ func createAPIInflater(args ImportArguments, computeClient daisyCompute.Client, 
 		storageClient: storageClient,
 	}
 	if args.UefiCompatible {
-		inflater.guestOsFeatures = []*computeAlpha.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}}
+		inflater.guestOsFeatures = []*computeBeta.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}}
 	}
 	return &inflater
 }
@@ -75,13 +75,13 @@ func (inflater *apiInflater) inflate() (persistentDisk, error) {
 	ctx := context.Background()
 	startTime := time.Now()
 	diskName := fmt.Sprintf("shadow-disk-%v", inflater.args.ExecutionID)
-	cd := computeAlpha.Disk{
+	cd := computeBeta.Disk{
 		Name:                diskName,
 		SourceStorageObject: inflater.args.SourceFile,
 		GuestOsFeatures:     inflater.guestOsFeatures,
 	}
 
-	err := inflater.computeClient.CreateDiskAlpha(inflater.args.Project, inflater.args.Zone, &cd)
+	err := inflater.computeClient.CreateDiskBeta(inflater.args.Project, inflater.args.Zone, &cd)
 	if err != nil {
 		return persistentDisk{}, err
 	}

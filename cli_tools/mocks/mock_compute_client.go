@@ -167,6 +167,20 @@ func (mr *MockClientMockRecorder) CreateDiskAlpha(arg0, arg1, arg2 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDiskAlpha", reflect.TypeOf((*MockClient)(nil).CreateDiskAlpha), arg0, arg1, arg2)
 }
 
+// CreateDiskBeta mocks base method
+func (m *MockClient) CreateDiskBeta(arg0, arg1 string, arg2 *v0_beta.Disk) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateDiskBeta", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateDiskBeta indicates an expected call of CreateDiskBeta
+func (mr *MockClientMockRecorder) CreateDiskBeta(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDiskBeta", reflect.TypeOf((*MockClient)(nil).CreateDiskBeta), arg0, arg1, arg2)
+}
+
 // CreateFirewallRule mocks base method
 func (m *MockClient) CreateFirewallRule(arg0 string, arg1 *v1.Firewall) error {
 	m.ctrl.T.Helper()
@@ -517,6 +531,21 @@ func (m *MockClient) GetDiskAlpha(arg0, arg1, arg2 string) (*v0_alpha.Disk, erro
 func (mr *MockClientMockRecorder) GetDiskAlpha(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDiskAlpha", reflect.TypeOf((*MockClient)(nil).GetDiskAlpha), arg0, arg1, arg2)
+}
+
+// GetDiskBeta mocks base method
+func (m *MockClient) GetDiskBeta(arg0, arg1, arg2 string) (*v0_beta.Disk, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDiskBeta", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*v0_beta.Disk)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDiskBeta indicates an expected call of GetDiskBeta
+func (mr *MockClientMockRecorder) GetDiskBeta(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDiskBeta", reflect.TypeOf((*MockClient)(nil).GetDiskBeta), arg0, arg1, arg2)
 }
 
 // GetFirewallRule mocks base method
