@@ -6,11 +6,11 @@ require (
 	cloud.google.com/go v0.65.0
 	cloud.google.com/go/logging v1.1.0 // indirect
 	cloud.google.com/go/storage v1.11.0
-	github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200901050010-b852af830991
+	github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200901185527-c0181782adcc
 	github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils v0.0.0-20200128181915-c0775e429077 // indirect
 	github.com/GoogleCloudPlatform/compute-image-tools/mocks v0.0.0-20200414213327-359251a2c860
 	github.com/GoogleCloudPlatform/osconfig v0.0.0-20200721210327-c9ab1b6aeb02
-	github.com/aws/aws-sdk-go v1.34.14
+	github.com/aws/aws-sdk-go v1.34.15
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/dustin/go-humanize v1.0.0
 	github.com/go-ole/go-ole v1.2.4
@@ -36,5 +36,3 @@ require (
 	google.golang.org/genproto v0.0.0-20200901141002-b3bf27a9dbd1 // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
 )
-
-replace github.com/GoogleCloudPlatform/compute-image-tools/daisy => ../daisy
