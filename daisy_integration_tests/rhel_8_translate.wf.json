@@ -8,7 +8,7 @@
       "Value": "rhel-8-licensed-translate-test-${ID}"
     },
     "source_image": {
-      "Value": "projects/compute-image-tools-test/global/images/rhel-8-import"
+      "Value": "projects/compute-image-tools-test/global/images/rhel-8-0"
     },
     "test-id": {
       "Value": "",
