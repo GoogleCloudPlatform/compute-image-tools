@@ -89,8 +89,6 @@ steps:
   args:
   - --destination=us-central1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
   - --destination=us-central1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
-  - --destination=us-west1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
-  - --destination=us-west1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --context=/workspace
   - --dockerfile=gce_vm_image_import.Dockerfile
 
