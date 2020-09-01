@@ -95,6 +95,7 @@ steps:
   - --destination=us-west1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --context=/workspace
   - --dockerfile=gce_vm_image_import.Dockerfile
+  - --cache=true
 
 # Build gce_vm_image_export.
 - name: 'golang'
