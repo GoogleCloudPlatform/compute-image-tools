@@ -96,14 +96,36 @@ var cases = []testCase{
 		source:        "projects/compute-image-tools-test/global/images/debian-9-translate",
 		os:            "opensuse-15",
 		expectedError: "\"debian-9\" was detected on your disk, but \"opensuse-15\" was specified",
+	},
+	// EL
+	{
+		caseName: "el-centos-7-8",
+		source:   "projects/compute-image-tools-test/global/images/centos-7-8",
+		os:       "centos-7",
 	}, {
-		caseName:  "rhel-7-uefi",
+		caseName: "el-centos-8-0",
+		source:   "projects/compute-image-tools-test/global/images/centos-8-import",
+		os:       "centos-8",
+	}, {
+		caseName: "el-centos-8-2",
+		source:   "projects/compute-image-tools-test/global/images/centos-8-2",
+		os:       "centos-8",
+	}, {
+		caseName:  "el-rhel-7-uefi",
 		source:    "projects/compute-image-tools-test/global/images/linux-uefi-no-guestosfeature-rhel7",
 		os:        "rhel-7",
 		extraArgs: []string{"-uefi_compatible=true"},
 	}, {
-		caseName: "rhel-8",
-		source:   "projects/compute-image-tools-test/global/images/rhel-8-import",
+		caseName: "el-rhel-7-8",
+		source:   "projects/compute-image-tools-test/global/images/rhel-7-8",
+		os:       "rhel-7",
+	}, {
+		caseName: "el-rhel-8-0",
+		source:   "projects/compute-image-tools-test/global/images/rhel-8-0",
+		os:       "rhel-8",
+	}, {
+		caseName: "el-rhel-8-2",
+		source:   "projects/compute-image-tools-test/global/images/rhel-8-2",
 		os:       "rhel-8",
 	}, {
 		caseName:  "windows-2019-uefi",
