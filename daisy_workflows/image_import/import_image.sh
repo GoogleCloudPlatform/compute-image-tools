@@ -76,11 +76,14 @@ function resizeDisk() {
     fi
     exit
   fi
+  echo "Resizing result: $out"
 
   echo "Import: Checking for ${deviceId} ${requiredSizeInGb}G"
   for t in {1..60}; do
     if [[ -e ${deviceId} ]]; then
-      local actualSizeBytes=$(lsblk "${deviceId}" --output=size -b | sed -n 2p)
+      lsblk_out=$(lsblk "${deviceId}" --output=size -b)
+      printf "lsblk output:\n%s" "$lsblk_out"
+      local actualSizeBytes=$(echo "$lsblk_out" | sed -n 2p)
       local actualSizeGb=$(awk "BEGIN {print int(${actualSizeBytes}/${BYTES_1GB})}")
       if [[ "${actualSizeGb}" == "${requiredSizeInGb}" ]]; then
         echo "Import: ${deviceId} is attached and ready."
