@@ -86,17 +86,17 @@ func (i *Instance) StartWithScriptCode(script string, instanceMetadata map[strin
 }
 
 // WaitForSerialOutput waits to a string match on a serial port.
-func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeout time.Duration) error {
-	return WaitForSerialOutput(match, port, interval, timeout, i.Project, i.Zone, i.Name, i.Client)
+func (i *Instance) WaitForSerialOutput(match string, failureMatches []string, port int64, interval, timeout time.Duration) error {
+	return WaitForSerialOutput(match, failureMatches, port, interval, timeout, i.Project, i.Zone, i.Name, i.Client)
 }
 
 // WaitForSerialOutput waits to a string match on a serial port.
-func (i *InstanceBeta) WaitForSerialOutput(match string, port int64, interval, timeout time.Duration) error {
-	return WaitForSerialOutput(match, port, interval, timeout, i.Project, i.Zone, i.Name, i.Client)
+func (i *InstanceBeta) WaitForSerialOutput(match string, failureMatches []string, port int64, interval, timeout time.Duration) error {
+	return WaitForSerialOutput(match, failureMatches, port, interval, timeout, i.Project, i.Zone, i.Name, i.Client)
 }
 
 // WaitForSerialOutput waits to a string match on a serial port.
-func WaitForSerialOutput(match string, port int64, interval, timeout time.Duration, project, zone, instanceName string, client daisyCompute.Client) error {
+func WaitForSerialOutput(successMatch string, failureMatches []string, port int64, interval, timeout time.Duration, project, zone, instanceName string, client daisyCompute.Client) error {
 	var start int64
 	var errs int
 	tick := time.Tick(interval)
@@ -104,7 +104,7 @@ func WaitForSerialOutput(match string, port int64, interval, timeout time.Durati
 	for {
 		select {
 		case <-timedout:
-			return fmt.Errorf("timed out waiting for %q", match)
+			return fmt.Errorf("timed out waiting for %q", successMatch)
 		case <-tick:
 			resp, err := client.GetSerialPortOutput(project, zone, instanceName, port, start)
 			if err != nil {
@@ -130,8 +130,19 @@ func WaitForSerialOutput(match string, port int64, interval, timeout time.Durati
 			}
 			start = resp.Next
 			for _, ln := range strings.Split(resp.Contents, "\n") {
-				if i := strings.Index(strings.ToLower(ln), strings.ToLower(match)); i != -1 {
-					return nil
+				if len(failureMatches) > 0 {
+					for _, failureMatch := range failureMatches {
+						if i := strings.Index(strings.ToLower(ln), strings.ToLower(failureMatch)); i != -1 {
+							errMsg := strings.TrimSpace(ln[i:])
+							format := "WaitForSerialOutput FailureMatch found for %q: %q"
+							return fmt.Errorf(format, instanceName, errMsg)
+						}
+					}
+				}
+				if successMatch != "" {
+					if i := strings.Index(strings.ToLower(ln), strings.ToLower(successMatch)); i != -1 {
+						return nil
+					}
 				}
 			}
 			errs = 0
