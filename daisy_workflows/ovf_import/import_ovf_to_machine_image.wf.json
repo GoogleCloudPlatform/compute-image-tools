@@ -117,6 +117,11 @@
         }
       ]
     },
+    "stop-instance": {
+      "StopInstances": {
+        "Instances": ["${instance_name}"]
+      }
+    },
     "create-machine-image": {
       "CreateMachineImages": [
         {
@@ -140,7 +145,8 @@
     "translate": ["import-boot-disk"],
     "create-boot-disk": ["translate"],
     "create-instance": ["create-boot-disk"],
-    "create-machine-image": ["create-instance"],
+    "stop-instance": ["create-instance"],
+    "create-machine-image": ["stop-instance"],
     "cleanup": ["create-machine-image"]
   }
 }
