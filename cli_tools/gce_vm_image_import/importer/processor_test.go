@@ -72,7 +72,6 @@ func TestProcessorProvider_InspectOS(t *testing.T) {
 	assert.True(t, ok, "the 1st processor is not diskInspectionDiskProcessor")
 
 	p.process(pd)
-	assert.Equal(t, "true", p.diskInspector.GetWorkflow().Vars["is_inspect_os"].Value)
 }
 
 func TestProcessorProvider_InspectUEFI(t *testing.T) {
@@ -154,13 +153,17 @@ type mockDiskInspector struct {
 	wf              *daisy.Workflow
 }
 
-func (m mockDiskInspector) Inspect(reference string) (ir disk.InspectionResult, err error) {
+func (m mockDiskInspector) Inspect(reference string, inspectOS bool) (ir disk.InspectionResult, err error) {
 	ir.HasEFIPartition = m.hasEFIPartition
 	return
 }
 
-func (m mockDiskInspector) GetWorkflow() *daisy.Workflow {
-	return m.wf
+func (m mockDiskInspector) Cancel(reason string) bool {
+	return false
+}
+
+func (m mockDiskInspector) TraceLogs() []string {
+	return []string{}
 }
 
 type mockComputeDiskClient struct {

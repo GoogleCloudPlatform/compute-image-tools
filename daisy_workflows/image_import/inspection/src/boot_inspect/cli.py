@@ -53,9 +53,9 @@ def _output_human(results: model.InspectionResults):
 
 def _inspect_uefi(device):
   try:
-    os.system('fdisk -l {} -o type'.format(device))
     stream = os.popen('fdisk -l {} -o type'.format(device))
     output = stream.read()
+    print(output)
 
     # 1. For GPT, the ESP output should be "EFI System", which matches
     # partition GUID "C12A7328-F81F-11D2-BA4B-00A0C93EC93B".

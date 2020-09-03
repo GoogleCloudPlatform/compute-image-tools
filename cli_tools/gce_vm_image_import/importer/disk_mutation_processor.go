@@ -61,7 +61,7 @@ func (p *diskMutationProcessor) process(pd persistentDisk) (persistentDisk, erro
 }
 
 func (p *diskMutationProcessor) cancel(reason string) bool {
-	//indicate cancel was not performed
+	// Cancel is not performed since there is only one critical API call - CreateDisk
 	return false
 }
 

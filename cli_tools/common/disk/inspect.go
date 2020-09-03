@@ -31,8 +31,9 @@ const (
 type Inspector interface {
 	// Inspect finds partition and boot-related properties for a disk and
 	// returns an InspectionResult. The reference is implementation specific.
-	Inspect(reference string) (InspectionResult, error)
-	GetWorkflow() *daisy.Workflow
+	Inspect(reference string, inspectOS bool) (InspectionResult, error)
+	Cancel(reason string) bool
+	TraceLogs() []string
 }
 
 // InspectionResult contains the partition and boot-related properties of a disk.
@@ -48,7 +49,7 @@ func NewInspector(wfAttributes daisycommon.WorkflowAttributes) (Inspector, error
 		return nil, err
 	}
 	daisycommon.SetWorkflowAttributes(wf, wfAttributes)
-	return defaultInspector{wf}, nil
+	return &defaultInspector{wf}, nil
 }
 
 // defaultInspector implements disk.Inspector using a Daisy workflow.
@@ -59,8 +60,9 @@ type defaultInspector struct {
 // Inspect finds partition and boot-related properties for a GCP persistent disk, and
 // returns an InspectionResult. `reference` is a fully-qualified PD URI, such as
 // "projects/project-name/zones/us-central1-a/disks/disk-name".
-func (inspector defaultInspector) Inspect(reference string) (ir InspectionResult, err error) {
+func (inspector *defaultInspector) Inspect(reference string, inspectOS bool) (ir InspectionResult, err error) {
 	inspector.wf.AddVar("pd_uri", reference)
+	inspector.wf.AddVar("is_inspect_os", strconv.FormatBool(inspectOS))
 	err = inspector.wf.Run(context.Background())
 	if err != nil {
 		return
@@ -70,6 +72,19 @@ func (inspector defaultInspector) Inspect(reference string) (ir InspectionResult
 	return
 }
 
-func (inspector defaultInspector) GetWorkflow() *daisy.Workflow {
-	return inspector.wf
+func (inspector *defaultInspector) Cancel(reason string) bool {
+	if inspector.wf != nil {
+		inspector.wf.CancelWithReason(reason)
+		return true
+	}
+
+	//indicate cancel was not performed
+	return false
+}
+
+func (inspector *defaultInspector) TraceLogs() []string {
+	if inspector.wf != nil && inspector.wf.Logger != nil {
+		return inspector.wf.Logger.ReadSerialPortLogs()
+	}
+	return []string{}
 }

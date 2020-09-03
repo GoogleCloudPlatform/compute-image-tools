@@ -16,7 +16,6 @@ package importer
 
 import (
 	"log"
-	"strconv"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -44,8 +43,7 @@ func (p *diskInspectionProcessor) process(pd persistentDisk) (persistentDisk, er
 
 func (p *diskInspectionProcessor) inspectDisk(uri string) (disk.InspectionResult, error) {
 	log.Printf("Running disk inspections on %v.", uri)
-	p.diskInspector.GetWorkflow().AddVar("is_inspect_os", strconv.FormatBool(p.args.Inspect))
-	ir, err := p.diskInspector.Inspect(uri)
+	ir, err := p.diskInspector.Inspect(uri, p.args.Inspect)
 	if err != nil {
 		log.Printf("Disk inspection error=%v", err)
 		return ir, daisy.Errf("Disk inspection error: %v", err)
@@ -57,11 +55,7 @@ func (p *diskInspectionProcessor) inspectDisk(uri string) (disk.InspectionResult
 
 func (p *diskInspectionProcessor) cancel(reason string) bool {
 	if p.diskInspector != nil {
-		wf := p.diskInspector.GetWorkflow()
-		if wf != nil {
-			wf.CancelWithReason(reason)
-			return true
-		}
+		return p.diskInspector.Cancel(reason)
 	}
 
 	//indicate cancel was not performed
@@ -70,10 +64,7 @@ func (p *diskInspectionProcessor) cancel(reason string) bool {
 
 func (p *diskInspectionProcessor) traceLogs() []string {
 	if p.diskInspector != nil {
-		wf := p.diskInspector.GetWorkflow()
-		if wf != nil && wf.Logger != nil {
-			return wf.Logger.ReadSerialPortLogs()
-		}
+		return p.diskInspector.TraceLogs()
 	}
 	return []string{}
 }

@@ -66,10 +66,10 @@ type testCase struct {
 	osConfigNotSupported bool
 
 	// Expect to see all given strings in guestOsFeatures
-	expectedGuestOsFeatures []string
+	requiredGuestOsFeatures []string
 
 	// Expect to see none of given strings in guestOsFeatures
-	unexpectedGuestOsFeatures []string
+	notAllowedGuestOsFeatures []string
 
 	// Whether to add "inspect" arg
 	inspect bool
@@ -174,45 +174,45 @@ var inspectUEFICases = []*testCase{
 		// source created from projects/gce-uefi-images/global/images/rhel-7-v20200403
 		source:                  "gs://compute-image-tools-test-resources/uefi/linux-uefi-rhel-7.vmdk",
 		os:                      "rhel-7",
-		expectedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
+		requiredGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
 	}, {
 		caseName: "inspect-uefi-linux-uefi-rhel-7-from-image",
 		// image created from projects/gce-uefi-images/global/images/rhel-7-v20200403 and removed UEFI_COMPATIBLE
 		source:                  "projects/compute-image-tools-test/global/images/linux-uefi-no-guestosfeature-rhel7",
 		os:                      "rhel-7",
-		expectedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
+		requiredGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
 	}, {
 		caseName: "inspect-uefi-linux-nonuefi-debian-9",
 		// source created from projects/debian-cloud/global/images/debian-9-stretch-v20200714
 		source:                    "gs://compute-image-tools-test-resources/uefi/linux-nonuefi-debian-9.vmdk",
 		os:                        "debian-9",
-		unexpectedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
+		notAllowedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
 	}, {
 		caseName: "inspect-uefi-linux-hybrid-ubuntu-1804",
 		// source created from projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317
 		source:                  "gs://compute-image-tools-test-resources/uefi/linux-hybrid-ubuntu-1804.vmdk",
 		os:                      "ubuntu-1804",
 		osConfigNotSupported:    true,
-		expectedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
+		requiredGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
 	}, {
 		caseName: "inspect-uefi-linux-mbr-uefi-rhel-7",
 		// source created from projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317 and converted from GPT to MBR
 		source:                  "gs://compute-image-tools-test-resources/uefi/linux-ubuntu-mbr-uefi.vmdk",
 		os:                      "ubuntu-1804",
 		osConfigNotSupported:    true,
-		expectedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
+		requiredGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
 	}, {
 		caseName: "inspect-uefi-windows-uefi-windows",
 		// source created from projects/gce-uefi-images/global/images/windows-server-2019-dc-core-v20200609
 		source:                  "gs://compute-image-tools-test-resources/uefi/windows-uefi-2019.vmdk",
 		os:                      "windows-2019",
-		expectedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
+		requiredGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
 	}, {
 		caseName: "inspect-uefi-windows-nonuefi-windows",
 		// source created from projects/windows-cloud/global/images/windows-server-2019-dc-v20200114
 		source:                    "gs://compute-image-tools-test-resources/uefi/windows-nonuefi-2019.vmdk",
 		os:                        "windows-2019",
-		unexpectedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
+		notAllowedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
 	},
 }
 
@@ -248,9 +248,9 @@ func (t *testCase) verifyImage(ctx context.Context, junit *junitxml.TestCase, lo
 		logger.Printf("Image '%v' doesn't exist after import: %v", t.imageName, err)
 		return
 	}
-	logger.Printf("Image '%v' exists! Import success.", t.imageName)
+	logger.Printf("Image '%v' exists! Import finished.", t.imageName)
 
-	assert.GuestOSFeatures(t.expectedGuestOsFeatures, t.unexpectedGuestOsFeatures, image.GuestOsFeatures, junit, logger)
+	assert.GuestOSFeatures(t.requiredGuestOsFeatures, t.notAllowedGuestOsFeatures, image.GuestOsFeatures, junit, logger)
 }
 
 // createTestScopedLogger returns a new logger that is prefixed with the name of the test.

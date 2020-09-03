@@ -25,6 +25,7 @@ import (
 //
 // Implementers can expose detailed logs using the traceLogs() method.
 type processor interface {
+	// Returns a pd with updated values. It can be a different pd with different URI.
 	process(pd persistentDisk) (persistentDisk, error)
 	traceLogs() []string
 	cancel(reason string) bool
