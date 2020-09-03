@@ -55,6 +55,7 @@ type ovfInstanceImportTestProperties struct {
 	instanceName              string
 	isWindows                 bool
 	expectedStartupOutput     string
+	failureMatches            []string
 	verificationStartupScript string
 	zone                      string
 	sourceURI                 string
@@ -129,6 +130,7 @@ func runOVFInstanceImportUbuntu3Disks(ctx context.Context, testCase *junitxml.Te
 			"scripts/ovf_import_test_ubuntu_3_disks.sh", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All tests passed!",
+		failureMatches:        []string{"FAILED:", "TestFailed:"},
 		sourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-1604-three-disks", ovaBucket),
 		os:                    "ubuntu-1604",
 		machineType:           "n1-standard-4"}
@@ -146,6 +148,7 @@ func runOVFInstanceImportCentos68(ctx context.Context, testCase *junitxml.TestCa
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All tests passed!",
+		failureMatches:        []string{"FAILED:", "TestFailed:"},
 		sourceURI:             fmt.Sprintf("gs://%v/", ovaBucket),
 		os:                    "centos-6",
 		machineType:           "n1-standard-4",
@@ -164,6 +167,7 @@ func runOVFInstanceImportWindows2012R2TwoDisks(ctx context.Context, testCase *ju
 			"scripts/ovf_import_test_windows_two_disks.ps1", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All Tests Passed",
+		failureMatches:        []string{"Test Failed:"},
 		sourceURI:             fmt.Sprintf("gs://%v/ova/w2k12-r2", ovaBucket),
 		os:                    "windows-2012r2",
 		machineType:           "n1-standard-8",
@@ -183,6 +187,7 @@ func runOVFInstanceImportWindows2016(ctx context.Context, testCase *junitxml.Tes
 			"daisy_integration_tests/scripts/post_translate_test.ps1", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All Tests Passed",
+		failureMatches:        []string{"Test Failed:"},
 		sourceURI:             fmt.Sprintf("gs://%v/ova/w2k16/w2k16.ovf", ovaBucket),
 		os:                    "windows-2016",
 		machineType:           "n2-standard-2",
@@ -202,6 +207,7 @@ func runOVFInstanceImportWindows2008R2FourNICs(ctx context.Context, testCase *ju
 			"daisy_integration_tests/scripts/post_translate_test.ps1", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All Tests Passed",
+		failureMatches:        []string{"Test Failed:"},
 		sourceURI:             fmt.Sprintf("gs://%v/ova/win2008r2-all-updates-four-nic.ova", ovaBucket),
 		os:                    "windows-2008r2",
 		instanceMetadata:      skipOSConfigMetadata,
@@ -238,6 +244,7 @@ func runOVFInstanceImportUbuntu16FromVirtualBox(ctx context.Context, testCase *j
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All tests passed!",
+		failureMatches:        []string{"FAILED:", "TestFailed:"},
 		sourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-16.04-virtualbox.ova", ovaBucket),
 		os:                    "ubuntu-1604",
 		instanceMetadata:      skipOSConfigMetadata,
@@ -272,6 +279,7 @@ func runOVFInstanceImportNetworkSettingsName(ctx context.Context, testCase *juni
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All tests passed!",
+		failureMatches:        []string{"FAILED:", "TestFailed:"},
 		sourceURI:             fmt.Sprintf("gs://%v/", ovaBucket),
 		os:                    "centos-6",
 		machineType:           "n1-standard-4",
@@ -293,6 +301,7 @@ func runOVFInstanceImportNetworkSettingsPath(ctx context.Context, testCase *juni
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All tests passed!",
+		failureMatches:        []string{"FAILED:", "TestFailed:"},
 		sourceURI:             fmt.Sprintf("gs://%v/", ovaBucket),
 		os:                    "centos-6",
 		machineType:           "n1-standard-4",
@@ -439,7 +448,7 @@ func verifyImportedInstance(
 	logger.Printf("[%v] Waiting for `%v` in instance serial console.", props.instanceName,
 		props.expectedStartupOutput)
 	if err := instance.WaitForSerialOutput(
-		props.expectedStartupOutput, 1, 5*time.Second, 15*time.Minute); err != nil {
+		props.expectedStartupOutput, props.failureMatches, 1, 5*time.Second, 15*time.Minute); err != nil {
 		testCase.WriteFailure("Error during VM validation: %v", err)
 	}
 }

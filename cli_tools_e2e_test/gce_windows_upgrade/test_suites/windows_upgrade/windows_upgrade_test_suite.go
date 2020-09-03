@@ -376,7 +376,7 @@ func runTest(ctx context.Context, image string, args []string, testType utils.CL
 				logger.Printf("[%v] Waiting for `%v` in instance serial console.", instanceName,
 					expectedOutput)
 				if err := instance.WaitForSerialOutput(
-					expectedOutput, 1, 15*time.Second, 20*time.Minute); err != nil {
+					expectedOutput, nil, 1, 15*time.Second, 20*time.Minute); err != nil {
 					testCase.WriteFailure("Error during waiting for preparation finished: %v", err)
 					return
 				}
@@ -498,7 +498,7 @@ func verifyOSVersion(instance *computeUtils.Instance, testCase *junitxml.TestCas
 	logger.Printf("[%v] Waiting for `%v` in instance serial console.", instanceName,
 		expectedOutput)
 	if err := instance.WaitForSerialOutput(
-		expectedOutput, 1, 15*time.Second, 15*time.Minute); err != nil {
+		expectedOutput, nil, 1, 15*time.Second, 15*time.Minute); err != nil {
 		testCase.WriteFailure("Error during validation: %v", err)
 	}
 	return true
