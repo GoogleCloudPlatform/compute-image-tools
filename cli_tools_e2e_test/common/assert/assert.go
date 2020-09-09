@@ -68,7 +68,7 @@ func containsAll(arr []string, subarr []string) bool {
 }
 
 // ContainsNone asserts some given strings in subarr exists in arr
-func ContainsNone(arr []string, subarr []string, junit *junitxml.TestCase, logger *log.Logger, failureMessage string) bool {
+func ContainsNone(arr []string, subarr []string, junit *junitxml.TestCase, logger *log.Logger, failureMessage string) {
 	if containsAny(arr, subarr) {
 		utils.Failure(junit, logger, failureMessage)
 	}
