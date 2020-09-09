@@ -36,7 +36,7 @@ import utils
 
 utils.AptGetInstall(
     ['git', 'python-pip', 'qemu-utils', 'parted', 'kpartx', 'debootstrap',
-     'python-termcolor', 'python-fysom',  'python-jsonschema', 'python-yaml',
+     'python-termcolor', 'python-fysom', 'python-jsonschema', 'python-yaml',
      'python-docopt', 'python3-yaml'])
 utils.PipInstall(
     ['json_minify'])
