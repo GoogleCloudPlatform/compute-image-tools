@@ -23,12 +23,13 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
-type diskMutationProcessor struct {
+// uefiProcessor mutate the disk in order to make the image compatible with UEFI boot.
+type uefiProcessor struct {
 	args              ImportArguments
 	computeDiskClient daisyCompute.Client
 }
 
-func (p *diskMutationProcessor) process(pd persistentDisk) (persistentDisk, error) {
+func (p *uefiProcessor) process(pd persistentDisk) (persistentDisk, error) {
 	// If UEFI_COMPATIBLE is enforced in user input args (b.uefiCompatible),
 	// then it has been honored in inflation stage, so no need to recreate a new disk here.
 	if p.args.UefiCompatible {
@@ -39,8 +40,10 @@ func (p *diskMutationProcessor) process(pd persistentDisk) (persistentDisk, erro
 		return pd, nil
 	}
 
-	// Due to GuestOS features limitations, a new disk needs to be created to add the additional "UEFI_COMPATIBLE"
-	// and the old disk will be deleted.
+	// GuestOSFeatures are immutable properties. Therefore:
+	// 1. Copy the existing disk, adding "UEFI_COMPATIBLE"
+	// 2. Update the reference
+	// 3. Delete the previous disk.
 	diskName := fmt.Sprintf("disk-%v-uefi", p.args.ExecutionID)
 	err := p.computeDiskClient.CreateDisk(p.args.Project, p.args.Zone, &compute.Disk{
 		Name:            diskName,
@@ -53,26 +56,26 @@ func (p *diskMutationProcessor) process(pd persistentDisk) (persistentDisk, erro
 	log.Println("UEFI disk created: ", diskName)
 
 	// Cleanup the old disk after the new disk is created.
-	cleanupDisk(p.computeDiskClient, p.args.Project, p.args.Zone, pd)
+	deleteDisk(p.computeDiskClient, p.args.Project, p.args.Zone, pd)
 
 	// Update the new disk URI
 	pd.uri = fmt.Sprintf("zones/%v/disks/%v", p.args.Zone, diskName)
 	return pd, nil
 }
 
-func (p *diskMutationProcessor) cancel(reason string) bool {
+func (p *uefiProcessor) cancel(reason string) bool {
 	// Cancel is not performed since there is only one critical API call - CreateDisk
 	return false
 }
 
-func (p *diskMutationProcessor) traceLogs() []string {
+func (p *uefiProcessor) traceLogs() []string {
 	return []string{}
 }
 
 func newDiskMutationProcessor(computeDiskClient daisyCompute.Client,
 	args ImportArguments) processor {
 
-	return &diskMutationProcessor{
+	return &uefiProcessor{
 		args:              args,
 		computeDiskClient: computeDiskClient,
 	}

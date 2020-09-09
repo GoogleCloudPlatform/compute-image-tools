@@ -88,7 +88,7 @@ func (i *importer) Run(ctx context.Context) (loggable service.Loggable, err erro
 		return i.buildLoggable(), err
 	}
 
-	defer i.cleanupDisk()
+	defer i.deleteDisk()
 
 	if err := i.runInflate(ctx); err != nil {
 		return i.buildLoggable(), err
@@ -173,11 +173,11 @@ func (i *importer) getCtxError(ctx context.Context) (err error) {
 	return err
 }
 
-func (i *importer) cleanupDisk() {
-	cleanupDisk(i.diskClient, i.project, i.zone, i.pd)
+func (i *importer) deleteDisk() {
+	deleteDisk(i.diskClient, i.project, i.zone, i.pd)
 }
 
-func cleanupDisk(diskClient diskClient, project string, zone string, pd persistentDisk) {
+func deleteDisk(diskClient diskClient, project string, zone string, pd persistentDisk) {
 	if pd.uri == "" {
 		return
 	}
@@ -192,10 +192,11 @@ func cleanupDisk(diskClient diskClient, project string, zone string, pd persiste
 }
 
 func (i *importer) buildLoggable() service.Loggable {
-	return service.SingleImageImportLoggable(i.pd.sourceType, i.pd.sourceGb, i.pd.sizeGb,
-		i.pd.matchResult, i.pd.inflationType, int64(i.pd.inflationTime.Milliseconds()),
-		int64(i.pd.shadowInflationTime.Milliseconds()), i.pd.isUEFICompatible, i.pd.isUEFIDetected,
-		i.traceLogs)
+	b := &service.SingleImageImportLoggableBuilder{}
+	return b.SetDiskAttributes(i.pd.sourceType, i.pd.sourceGb, i.pd.sizeGb, i.pd.isUEFICompatible, i.pd.isUEFIDetected).
+		SetInflationAttributes(i.pd.matchResult, i.pd.inflationType, i.pd.inflationTime.Milliseconds(), i.pd.shadowInflationTime.Milliseconds()).
+		SetTraceLogs(i.traceLogs).
+		Build()
 }
 
 // diskClient is the subset of the GCP API that is used by importer.

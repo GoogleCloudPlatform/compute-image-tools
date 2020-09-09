@@ -59,7 +59,8 @@ type defaultInspector struct {
 
 // Inspect finds partition and boot-related properties for a GCP persistent disk, and
 // returns an InspectionResult. `reference` is a fully-qualified PD URI, such as
-// "projects/project-name/zones/us-central1-a/disks/disk-name".
+// "projects/project-name/zones/us-central1-a/disks/disk-name". `inspectOS` is a flag
+// to determine whether to inspect OS on the disk.
 func (inspector *defaultInspector) Inspect(reference string, inspectOS bool) (ir InspectionResult, err error) {
 	inspector.wf.AddVar("pd_uri", reference)
 	inspector.wf.AddVar("is_inspect_os", strconv.FormatBool(inspectOS))

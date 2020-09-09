@@ -16,12 +16,30 @@ package importer
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestBootableDiskProcessor_Process(t *testing.T) {
+	for i, tt := range uefiTests {
+		name := fmt.Sprintf("%v. inspect disk: disk is UEFI: %v, input arg UEFI compatible: %v", i+1, tt.isUEFIDisk, tt.isInputArgUEFICompatible)
+		t.Run(name, func(t *testing.T) {
+			args := ImportArguments{
+				WorkflowDir:    "testdata",
+				OS:             "ubuntu-1804",
+				UefiCompatible: tt.isInputArgUEFICompatible,
+			}
+			p, err := newBootableDiskProcessor(args)
+			assert.NoError(t, err)
+			_, err = p.process(persistentDisk{uri: "uri"})
+			assert.NotEmpty(t, p.(*bootableDiskProcessor).workflow.Vars["source_disk"].Value)
+		})
+	}
+}
 
 // gcloud expects log lines to start with the substring "[import". Daisy
 // constructs the log prefix using the workflow's name.

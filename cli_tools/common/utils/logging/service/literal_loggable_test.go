@@ -48,7 +48,7 @@ func TestLiteralLoggable_ReadSerialPortLogs(t *testing.T) {
 	assert.Equal(t, []string{"log-a", "log-b"}, loggable.ReadSerialPortLogs())
 }
 
-func TestSingleImageImportLoggable(t *testing.T) {
+func TestSingleImageImportLoggableBuilder(t *testing.T) {
 	format := "vmdk"
 	sourceGb := int64(12)
 	targetGb := int64(100)
@@ -77,9 +77,11 @@ func TestSingleImageImportLoggable(t *testing.T) {
 				},
 				traceLogs: traceLogs,
 			}
-			assert.Equal(t, expected, SingleImageImportLoggable(format, sourceGb, targetGb,
-				matchResultValue, inflationTypeValue, inflationTimeValue, shadowInflationTimeValue,
-				isUEFICompatibleImageValue, isUEFIDetectedValue, traceLogs))
+			assert.Equal(t, expected, (&SingleImageImportLoggableBuilder{}).
+				SetDiskAttributes(format, sourceGb, targetGb, isUEFICompatibleImageValue, isUEFIDetectedValue).
+				SetInflationAttributes(matchResultValue, inflationTypeValue, inflationTimeValue, shadowInflationTimeValue).
+				SetTraceLogs(traceLogs).
+				Build())
 		}
 	}
 }

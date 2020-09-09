@@ -15,8 +15,6 @@
 package importer
 
 import (
-	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
@@ -26,7 +24,7 @@ import (
 	v1 "google.golang.org/api/compute/v1"
 )
 
-func TestProcessorProvider_InspectDataDisk(t *testing.T) {
+func TestDefaultProcessorProvider_InspectDataDisk(t *testing.T) {
 	processorProvider := defaultProcessorProvider{
 		ImportArguments{
 			WorkflowDir: "testdata",
@@ -43,7 +41,7 @@ func TestProcessorProvider_InspectDataDisk(t *testing.T) {
 	assert.True(t, ok, "processor is not dataDiskProcessor")
 }
 
-var tests = []struct {
+var uefiTests = []struct {
 	isUEFIDisk               bool
 	isInputArgUEFICompatible bool
 }{
@@ -53,7 +51,7 @@ var tests = []struct {
 	{isUEFIDisk: false, isInputArgUEFICompatible: true},
 }
 
-func TestProcessorProvider_InspectOS(t *testing.T) {
+func TestDefaultProcessorProvider_InspectOS(t *testing.T) {
 	processorProvider := defaultProcessorProvider{
 		ImportArguments{
 			Inspect:     true,
@@ -74,7 +72,7 @@ func TestProcessorProvider_InspectOS(t *testing.T) {
 	p.process(pd)
 }
 
-func TestProcessorProvider_InspectUEFI(t *testing.T) {
+func TestDefaultProcessorProvider_InspectUEFI(t *testing.T) {
 	processorProvider := defaultProcessorProvider{
 		ImportArguments{
 			WorkflowDir: "testdata",
@@ -90,62 +88,10 @@ func TestProcessorProvider_InspectUEFI(t *testing.T) {
 	assert.Equal(t, 3, len(processors), "there should be 3 processors, got %v", len(processors))
 	_, ok := processors[0].(*diskInspectionProcessor)
 	assert.True(t, ok, "the 1st processor is not diskInspectionDiskProcessor")
-	_, ok = processors[1].(*diskMutationProcessor)
-	assert.True(t, ok, "the 2nd processor is not diskMutationProcessor")
+	_, ok = processors[1].(*uefiProcessor)
+	assert.True(t, ok, "the 2nd processor is not uefiProcessor")
 	_, ok = processors[2].(*bootableDiskProcessor)
 	assert.True(t, ok, "the 3rd processor is not bootableDiskProcessor")
-}
-
-func TestDiskInspectionProcessor(t *testing.T) {
-	for i, tt := range tests {
-		name := fmt.Sprintf("%v. inspect disk: disk is UEFI: %v, input arg UEFI compatible: %v", i+1, tt.isUEFIDisk, tt.isInputArgUEFICompatible)
-		t.Run(name, func(t *testing.T) {
-			args := ImportArguments{
-				UefiCompatible: tt.isInputArgUEFICompatible,
-			}
-			p := newDiskInspectionProcessor(mockDiskInspector{tt.isUEFIDisk, &daisy.Workflow{}}, args)
-			pd, err := p.process(persistentDisk{})
-			assert.NoError(t, err)
-			assert.Equal(t, tt.isUEFIDisk, pd.isUEFIDetected)
-			assert.Equal(t, tt.isInputArgUEFICompatible || tt.isUEFIDisk, pd.isUEFICompatible)
-		})
-	}
-}
-
-func TestDiskMutationProcessor(t *testing.T) {
-	for i, tt := range tests {
-		name := fmt.Sprintf("%v. inspect disk: disk is UEFI: %v, input arg UEFI compatible: %v", i+1, tt.isUEFIDisk, tt.isInputArgUEFICompatible)
-		t.Run(name, func(t *testing.T) {
-			args := ImportArguments{
-				UefiCompatible: tt.isInputArgUEFICompatible,
-			}
-			p := newDiskMutationProcessor(mockComputeDiskClient{}, args)
-			pd, err := p.process(persistentDisk{uri: "old-uri", isUEFIDetected: tt.isUEFIDisk || tt.isInputArgUEFICompatible})
-			assert.NoError(t, err)
-			if tt.isUEFIDisk && !tt.isInputArgUEFICompatible {
-				assert.Truef(t, strings.HasSuffix(pd.uri, "uefi"), "UEFI Disk URI should have suffix 'uefi', actual: %v", pd.uri)
-			} else {
-				assert.Falsef(t, strings.HasSuffix(pd.uri, "uefi"), "Disk URI shouldn't have suffix 'uefi', actual: %v", pd.uri)
-			}
-		})
-	}
-}
-
-func TestBootableDiskProcessor(t *testing.T) {
-	for i, tt := range tests {
-		name := fmt.Sprintf("%v. inspect disk: disk is UEFI: %v, input arg UEFI compatible: %v", i+1, tt.isUEFIDisk, tt.isInputArgUEFICompatible)
-		t.Run(name, func(t *testing.T) {
-			args := ImportArguments{
-				WorkflowDir:    "testdata",
-				OS:             "ubuntu-1804",
-				UefiCompatible: tt.isInputArgUEFICompatible,
-			}
-			p, err := newBootableDiskProcessor(args)
-			assert.NoError(t, err)
-			_, err = p.process(persistentDisk{uri: "uri"})
-			assert.NotEmpty(t, p.(*bootableDiskProcessor).workflow.Vars["source_disk"].Value)
-		})
-	}
 }
 
 type mockDiskInspector struct {

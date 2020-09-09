@@ -21,6 +21,8 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
+// diskInspectionProcessor executes inspection towards the disk, including OS info,
+// UEFI partition, etc, so that other processors can consume.
 type diskInspectionProcessor struct {
 	args          ImportArguments
 	diskInspector disk.Inspector
