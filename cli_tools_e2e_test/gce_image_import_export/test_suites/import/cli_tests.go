@@ -25,6 +25,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/common/assert"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/common/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/common/utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
@@ -327,9 +328,8 @@ func verifyImportedImage(ctx context.Context, testCase *junitxml.TestCase,
 		for k, v := range image.Labels {
 			imageLabels = append(imageLabels, k+"="+v)
 		}
-		if !utils.ContainsAll(imageLabels, expectedLabels) {
-			utils.Failure(testCase, logger, fmt.Sprintf("Image '%v' labels expect: %v, actual: %v", imageName, strings.Join(expectedLabels, ","), strings.Join(imageLabels, ",")))
-		}
+		assert.ContainsAll(imageLabels, expectedLabels, testCase, logger,
+			fmt.Sprintf("Image '%v' labels expect: %v, actual: %v", imageName, strings.Join(expectedLabels, ","), strings.Join(imageLabels, ",")))
 	}
 
 	if err := image.Cleanup(); err != nil {

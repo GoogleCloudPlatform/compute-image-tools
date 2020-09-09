@@ -258,7 +258,7 @@ func Failure(testCase *junitxml.TestCase, logger *log.Logger, msg string) {
 		prefix = testCase.Name
 		testCase.WriteFailure(msg)
 	}
-	logger.Printf("[%v] %v", prefix, msg)
+	testCase.Logf("[%v] %v", prefix, msg)
 }
 
 // ContainsSubString checks whether the string slice contains a substring anywhere.
@@ -266,35 +266,6 @@ func ContainsSubString(strs []string, s string) bool {
 	for _, str := range strs {
 		if strings.Contains(str, s) {
 			return true
-		}
-	}
-	return false
-}
-
-// ContainsAll checks whether all given strings in subarr exists in arr
-func ContainsAll(arr []string, subarr []string) bool {
-	for _, item := range subarr {
-		exists := false
-		for _, i := range arr {
-			if item == i {
-				exists = true
-				break
-			}
-		}
-		if !exists {
-			return false
-		}
-	}
-	return true
-}
-
-// ContainsAny checks whether any given strings in subarr exists in arr
-func ContainsAny(arr []string, subarr []string) bool {
-	for _, item := range subarr {
-		for _, i := range arr {
-			if item == i {
-				return true
-			}
 		}
 	}
 	return false

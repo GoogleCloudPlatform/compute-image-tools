@@ -16,6 +16,7 @@
 package assert
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -25,23 +26,62 @@ import (
 )
 
 // GuestOSFeatures asserts expected & unexpected guestOSFeatures.
-func GuestOSFeatures(expectedGuestOsFeatures []string, unexpectedGuestOsFeatures []string, actualGuestOSFeatures []*compute.GuestOsFeature, junit *junitxml.TestCase, logger *log.Logger) {
+func GuestOSFeatures(requiredGuestOsFeatures []string, notAllowedGuestOsFeatures []string, actualGuestOSFeatures []*compute.GuestOsFeature, junit *junitxml.TestCase, logger *log.Logger) {
 	guestOsFeatures := make([]string, 0, len(actualGuestOSFeatures))
 	for _, f := range actualGuestOSFeatures {
 		guestOsFeatures = append(guestOsFeatures, f.Type)
 	}
 
-	if expectedGuestOsFeatures != nil {
-		if !utils.ContainsAll(guestOsFeatures, expectedGuestOsFeatures) {
-			junit.WriteFailure("GuestOsFeatures expect: %v, actual: %v", strings.Join(expectedGuestOsFeatures, ","), strings.Join(guestOsFeatures, ","))
-			logger.Printf("GuestOsFeatures expect: %v, actual: %v", strings.Join(expectedGuestOsFeatures, ","), strings.Join(guestOsFeatures, ","))
-		}
+	if requiredGuestOsFeatures != nil {
+		ContainsAll(guestOsFeatures, requiredGuestOsFeatures, junit, logger,
+			fmt.Sprintf("GuestOsFeatures expect: %v, actual: %v", strings.Join(requiredGuestOsFeatures, ","), strings.Join(guestOsFeatures, ",")))
 	}
 
-	if unexpectedGuestOsFeatures != nil {
-		if utils.ContainsAny(guestOsFeatures, unexpectedGuestOsFeatures) {
-			junit.WriteFailure("GuestOsFeatures unexpect: %v, actual: %v", strings.Join(unexpectedGuestOsFeatures, ","), strings.Join(guestOsFeatures, ","))
-			logger.Printf("GuestOsFeatures unexpect: %v, actual: %v", strings.Join(unexpectedGuestOsFeatures, ","), strings.Join(guestOsFeatures, ","))
+	if notAllowedGuestOsFeatures != nil {
+		ContainsNone(guestOsFeatures, notAllowedGuestOsFeatures, junit, logger,
+			fmt.Sprintf("GuestOsFeatures unexpect: %v, actual: %v", strings.Join(notAllowedGuestOsFeatures, ","), strings.Join(guestOsFeatures, ",")))
+	}
+}
+
+// ContainsAll asserts all given strings in subarr exists in arr
+func ContainsAll(arr []string, subarr []string, junit *junitxml.TestCase, logger *log.Logger, failureMessage string) {
+	if !containsAll(arr, subarr) {
+		utils.Failure(junit, logger, failureMessage)
+	}
+}
+
+// containsAll checks whether all given strings in subarr exists in arr
+func containsAll(arr []string, subarr []string) bool {
+	for _, item := range subarr {
+		exists := false
+		for _, i := range arr {
+			if item == i {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			return false
 		}
 	}
+	return true
+}
+
+// ContainsNone asserts some given strings in subarr exists in arr
+func ContainsNone(arr []string, subarr []string, junit *junitxml.TestCase, logger *log.Logger, failureMessage string) bool {
+	if containsAny(arr, subarr) {
+		utils.Failure(junit, logger, failureMessage)
+	}
+}
+
+// containsAny checks whether any given strings in subarr exists in arr
+func containsAny(arr []string, subarr []string) bool {
+	for _, item := range subarr {
+		for _, i := range arr {
+			if item == i {
+				return true
+			}
+		}
+	}
+	return false
 }
