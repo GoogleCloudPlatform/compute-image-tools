@@ -15,8 +15,56 @@
 
 # Tests to validate if Ubuntu OVF with 3 disks was imported successfully.
 
+
+# To disable checking for the OS config agent, add an instance metadata
+# value of osconfig_not_supported: true.
+url=http://metadata.google.internal/computeMetadata/v1/instance/attributes/osconfig_not_supported
+if command -v curl; then
+  OSCONFIG_NOT_SUPPORTED="$(curl --header "Metadata-Flavor: Google" $url)"
+elif command -v wget; then
+  OSCONFIG_NOT_SUPPORTED="$(wget --header "Metadata-Flavor: Google" -O - $url)"
+else
+  echo "TestFailed: Either curl or wget is required to run test suite."
+  exit 1
+fi
+
 FAIL=0
 FAILURES=""
+
+function wait_for_connectivity {
+  if grep -q 'CentOS release 6' /etc/centos-release && command -v nmcli; then
+    status "CentOS 6: Waiting for network connectivity using nmcli."
+  else
+    return
+  fi
+
+  for i in {0..60}; do
+    if [[ $(nmcli -t -f STATE nm) == "connected" ]]; then
+      status "Network ready."
+      return
+    fi
+    sleep 5s
+  done
+
+  echo "FAILED: Unable to initialize network connection."
+  exit 1
+}
+
+# Assert that a service is running; first trying `initctl`,
+# then trying `service`.
+function assert_running {
+  local service="${1}"
+  status "Checking $service"
+  if command -v initctl; then
+    if ! initctl status "$service"; then
+      fail "$service not running."
+    fi
+  else
+    if ! service "$service" status; then
+      fail "$service not running."
+    fi
+  fi
+}
 
 function status {
   local message="${1}"
@@ -29,63 +77,43 @@ function fail {
   FAILURES+="TestFailed: $message"$'\n'
 }
 
-# Check network connectivity.
-function check_connectivity {
+function check_metadata_connectivity {
   status "Checking metadata connection."
-  ping -q -c 2 metadata.google.internal
-  if [[ $? -ne 0 ]]; then
-    fail "Failed to connect to metadata.google.internal."
-  fi
+  for i in $(seq 1 20) ; do
+    ping -q -w 10 metadata.google.internal && return 0
+    status "Waiting for connectivity to metadata.google.internal."
+    sleep $((i**2))
+  done
+  fail "Failed to connect to metadata.google.internal."
+}
 
+function check_internet_connectivity {
   status "Checking external connectivity."
-  ping -q -c 2 google.com
-  if [[ $? -ne 0 ]]; then
-    fail "Failed to ping google.com."
-  fi
+  for i in $(seq 1 20) ; do
+    ping -q -w 10 google.com && return 0
+    status "Waiting for connectivity to google.com."
+    sleep $((i**2))
+  done
+  fail "Failed to connect to google.com."
 }
 
 # Check Google services.
 function check_google_services {
-  status "Checking if instance setup ran."
-  if [[ ! -f /etc/default/instance_configs.cfg ]]; then
-    fail "Instance setup failed."
-  fi
-
-  # Upstart
-  if [[ -d /etc/init ]]; then
-    status "Checking google-accounts-daemon."
-    if initctl status google-accounts-daemon | grep -qv 'running'; then
-      fail "Google accounts daemon not running."
-    fi
-
-    status "Checking google-network-daemon."
-    if initctl status google-network-daemon | grep -qv 'running'; then
-      fail "Google Network daemon not running."
-    fi
-
-    status "Checking google-clock-skew-daemon."
-    if initctl status google-clock-skew-daemon | grep -qv 'running'; then
-      fail "Google Clock Skew daemon not running."
-    fi
+  if [[ -f /usr/bin/google_guest_agent ]]; then
+    # Services expected when using the new guest environment (NGE).
+    assert_running google-guest-agent
   else
-    status "Checking google-accounts-daemon."
-    service google-accounts-daemon status
-    if [[ $? -ne 0 ]]; then
-      fail "Google accounts daemon not running."
-    fi
-
-    status "Checking google-network-daemon."
-    service google-network-daemon status
-    if [[ $? -ne 0 ]]; then
-      fail "Google Network daemon not running."
-    fi
-
-    status "Checking google-clock-skew-daemon."
-    service google-clock-skew-daemon status
-    if [[ $? -ne 0 ]]; then
-      fail "Google Clock Skew daemon not running."
-    fi
+     # Services expected when using the legacy guest environment.
+    assert_running google-accounts-daemon
+    assert_running google-network-daemon
+    assert_running google-clock-skew-daemon
   fi
+
+  if [[ $OSCONFIG_NOT_SUPPORTED =~ "true" ]]; then
+    status "Skipping check for google-osconfig-agent, since it's not supported for this distro."
+    return 0
+  fi
+  assert_running google-osconfig-agent
 }
 
 # Check Google Cloud SDK.
@@ -93,6 +121,22 @@ function check_google_cloud_sdk {
   # Skip for EL6
   if [ -f /etc/redhat-release ]; then
     grep -q "release 6" /etc/redhat-release
+    if [ $? -eq 0 ]; then
+      return
+    fi
+  fi
+
+    # Skip for Debian 8, (Cloud SDK requires Python 3.5+)
+  if [ -f /etc/os-release ]; then
+    grep -qi "jessie" /etc/os-release
+    if [ $? -eq 0 ]; then
+      return
+    fi
+  fi
+
+  # Skip for SUSE (gcloud and gsutil aren't in all of their repos)
+  if [ -f /etc/os-release ]; then
+    grep -qi "suse" /etc/os-release
     if [ $? -eq 0 ]; then
       return
     fi
@@ -115,45 +159,49 @@ function check_google_cloud_sdk {
 function check_cloud_init {
   if [[ -x /usr/bin/cloud-init ]]; then
     status "Checking if cloud-init runs."
-    cloud-init init
-    if [[ $? -ne 0 ]]; then
-      fail "cloud-init failed to run."
-    fi
+    for i in $(seq 1 20) ; do
+      cloud-init init && return 0
+      status "Waiting until cloud-init finishes its startup run."
+      sleep $((i**2))
+    done
+    fail "cloud-init failed to run."
   fi
 }
 
-# Check package installs.
+# Check package installs. Using iputils to ensure
+# ping is available for the check_metadata_connectivity test.
 function check_package_install {
   # Apt
   if [[ -d /etc/apt ]]; then
-    status "Checking if apt can update cache."
-    apt-get update
-    if [[ $? -ne 0 ]]; then
-      fail "apt-get update failed."
-    fi
-
     status "Checking if apt can install a package."
-    apt-get install --reinstall make
-    if [[ $? -ne 0 ]]; then
-      fail "apt-get cannot install make."
-    fi
+    for i in $(seq 1 20) ; do
+      apt-get update && apt-get install --reinstall iputils-ping && return 0
+      status "Waiting until apt is available."
+      sleep $((i**2))
+    done
+    fail "apt-get cannot install iputils-ping."
   fi
 
   # Yum
   if [[ -d /etc/yum ]]; then
     status "Checking if yum can install a package."
-    yum -y reinstall make
+    if rpm -q iputils; then
+      yum -y update iputils
+    else
+      yum -y install iputils
+    fi
+    yum -y reinstall iputils
     if [[ $? -ne 0 ]]; then
-      fail "yum cannot install make."
+      fail "yum cannot install iputils."
     fi
   fi
 
   # Zypper
   if [[ -d /etc/zypp ]]; then
     status "Checking if zypper can install a package."
-    zypper install -f -y make
+    zypper install -f -y iputils
     if [[ $? -ne 0 ]]; then
-      fail "zypper cannot install make."
+      fail "zypper cannot install iputils."
     fi
   fi
 }
@@ -167,12 +215,16 @@ function check_data_disk_content {
   fi
 }
 
+# Ensure there's network connectivity before running the tests.
+wait_for_connectivity
+
 # Run tests.
 check_google_services
 check_google_cloud_sdk
 check_cloud_init
 check_package_install
-check_connectivity
+check_metadata_connectivity
+check_internet_connectivity
 check_data_disk_content
 
 # Return results.
