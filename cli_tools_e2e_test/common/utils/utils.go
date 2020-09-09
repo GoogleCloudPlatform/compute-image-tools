@@ -258,7 +258,7 @@ func Failure(testCase *junitxml.TestCase, logger *log.Logger, msg string) {
 		prefix = testCase.Name
 		testCase.WriteFailure(msg)
 	}
-	testCase.Logf("[%v] %v", prefix, msg)
+	logger.Printf("[%v] %v", prefix, msg)
 }
 
 // ContainsSubString checks whether the string slice contains a substring anywhere.
