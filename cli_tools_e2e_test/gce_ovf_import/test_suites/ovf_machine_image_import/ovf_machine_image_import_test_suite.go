@@ -47,6 +47,10 @@ var (
 		utils.GcloudProdWrapperLatest:   "gcloud",
 		utils.GcloudLatestWrapperLatest: "gcloud",
 	}
+
+	// Apply this as instance metadata if the OS config agent is not
+	// supported for the platform or version being imported.
+	skipOSConfigMetadata = map[string]string{"osconfig_not_supported": "true"}
 )
 
 type ovfMachineImageImportTestProperties struct {
@@ -62,6 +66,7 @@ type ovfMachineImageImportTestProperties struct {
 	network                   string
 	subnet                    string
 	storageLocation           string
+	instanceMetadata          map[string]string
 }
 
 // TestSuite is image import test suite.
@@ -116,26 +121,8 @@ func runOVFMachineImageImportUbuntu3Disks(ctx context.Context, testCase *junitxm
 		failureMatches:        []string{"TestFailed:"},
 		sourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-1604-three-disks", ovaBucket),
 		os:                    "ubuntu-1604",
+		instanceMetadata:      skipOSConfigMetadata,
 		machineType:           "n1-standard-4"}
-
-	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
-}
-
-func runOVFMachineImageImportCentos68(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
-
-	suffix := path.RandString(5)
-	props := &ovfMachineImageImportTestProperties{
-		machineImageName: fmt.Sprintf("test-machine-image-centos-6-%v", suffix),
-		verificationStartupScript: loadScriptContent(
-			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-		zone:                  testProjectConfig.TestZone,
-		expectedStartupOutput: "All tests passed!",
-		failureMatches:        []string{"FAILED:", "TestFailed:"},
-		sourceURI:             fmt.Sprintf("gs://%v/", ovaBucket),
-		os:                    "centos-6",
-		machineType:           "n1-standard-4",
-	}
 
 	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
@@ -356,7 +343,7 @@ func verifyImportedMachineImage(
 		return
 	}
 
-	err = instance.StartWithScriptCode(props.verificationStartupScript)
+	err = instance.StartWithScriptCode(props.verificationStartupScript, props.instanceMetadata)
 	if err != nil {
 		testCase.WriteFailure("Error starting instance `%v` with script: `%v`: %v", testInstanceName, err)
 		return
