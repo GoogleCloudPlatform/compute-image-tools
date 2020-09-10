@@ -56,6 +56,16 @@ function Get-MetadataValue {
   }
 }
 
+function Check-OSConfigAgent {
+  # To disable checking for the OS config agent, add an instance metadata
+  # value of osconfig_not_supported: true.
+  $osconfig_not_supported = Get-MetadataValue -key 'osconfig_not_supported' -default 'false'
+  if ($osconfig_not_supported.ToLower() -ne 'true') {
+    Write-Output 'Test: OS Config agent'
+    Get-Service google_osconfig_agent
+  }
+}
+
 function Check-Activation {
   # Force activation as this is on a timer.
   & cscript c:\windows\system32\slmgr.vbs /ato
@@ -63,12 +73,16 @@ function Check-Activation {
   $out = & cscript C:\Windows\system32\slmgr.vbs /dli
   Write-Output $out
   if ($out -notcontains 'License Status: Licensed') {
-    throw 'Windows is not activated'
+    Write-Output 'Windows is not activated'
+    return $false
   }
 
   if ($out -notcontains '    Registered KMS machine name: kms.windows.googlecloud.com:1688') {
-    throw 'Windows is not activated against GCE kms server'
+    Write-Output  'Windows is not activated against GCE kms server'
+    return $false
   }
+
+  return $true
 }
 
 function Check-SkipActivation {
@@ -95,16 +109,29 @@ try {
   Check-VMWareTools
   Write-Output 'Test: Check-MetadataAccessibility'
   Check-MetadataAccessibility
+  Write-Output 'Test: Check-OSConfigAgent'
+  Check-OSConfigAgent
   if ($byol.ToLower() -eq 'true') {
     Write-Output 'Test: Check-SkipActivation'
     Check-SkipActivation
   }
   else {
     Write-Output 'Test: Check-Activation'
-    Check-Activation
+    $activated = $false
+    for ($i = 0; $i -le 10; $i += 1) {
+      $activated = Check-Activation
+      if ($activated) {
+        break
+      }
+      Start-Sleep -s 10
+    }
+    if (!$activated) {
+      throw 'Activation failed'
+    }
   }
+  Write-Output 'Test:Check-ThreeVolumes'
   Check-ThreeVolumes
-  Write-Output 'All Tests Passed'
+  Write-Output 'PASSED: All Tests Passed'
 }
 catch {
   Write-Output 'Exception caught in script:'
