@@ -77,7 +77,7 @@ func TestSingleImageImportLoggableBuilder(t *testing.T) {
 				},
 				traceLogs: traceLogs,
 			}
-			assert.Equal(t, expected, (&SingleImageImportLoggableBuilder{}).
+			assert.Equal(t, expected, NewSingleImageImportLoggableBuilder().
 				SetDiskAttributes(format, sourceGb, targetGb, isUEFICompatibleImageValue, isUEFIDetectedValue).
 				SetInflationAttributes(matchResultValue, inflationTypeValue, inflationTimeValue, shadowInflationTimeValue).
 				SetTraceLogs(traceLogs).

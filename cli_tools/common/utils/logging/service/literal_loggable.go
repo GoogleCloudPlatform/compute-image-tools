@@ -32,27 +32,27 @@ func (w literalLoggable) ReadSerialPortLogs() []string { return w.traceLogs }
 // SingleImageImportLoggableBuilder initializes and builds a Loggable with the metadata
 // fields that are relevant when importing a single image.
 type SingleImageImportLoggableBuilder struct {
-	fileFormat                string
-	sourceSize                int64
-	resultSize                int64
-	matchResult               string
-	inflationTypeStr          string
-	inflationTimeInt64        int64
-	shadowInflationTimeInt64  int64
-	isUEFICompatibleImageBool bool
-	isUEFIDetectedBool        bool
-	traceLogs                 []string
+	literalLoggable
+}
+
+// NewSingleImageImportLoggableBuilder creates and initializes a SingleImageImportLoggableBuilder.
+func NewSingleImageImportLoggableBuilder() *SingleImageImportLoggableBuilder {
+	return &SingleImageImportLoggableBuilder{literalLoggable{
+		strings: map[string]string{},
+		int64s:  map[string][]int64{},
+		bools:   map[string]bool{},
+	}}
 }
 
 // SetDiskAttributes sets disk related attributes.
 func (b *SingleImageImportLoggableBuilder) SetDiskAttributes(fileFormat string, sourceSize int64,
-	resultSize int64, isUEFICompatibleImageBool bool, isUEFIDetectedBool bool) *SingleImageImportLoggableBuilder {
+	targetSize int64, isUEFICompatibleImageBool bool, isUEFIDetectedBool bool) *SingleImageImportLoggableBuilder {
 
-	b.fileFormat = fileFormat
-	b.sourceSize = sourceSize
-	b.resultSize = resultSize
-	b.isUEFICompatibleImageBool = isUEFICompatibleImageBool
-	b.isUEFIDetectedBool = isUEFIDetectedBool
+	b.strings[importFileFormat] = fileFormat
+	b.int64s[sourceSizeGb] = []int64{sourceSize}
+	b.int64s[targetSizeGb] = []int64{targetSize}
+	b.bools[isUEFICompatibleImage] = isUEFICompatibleImageBool
+	b.bools[isUEFIDetected] = isUEFIDetectedBool
 	return b
 }
 
@@ -60,10 +60,10 @@ func (b *SingleImageImportLoggableBuilder) SetDiskAttributes(fileFormat string, 
 func (b *SingleImageImportLoggableBuilder) SetInflationAttributes(matchResult string, inflationTypeStr string,
 	inflationTimeInt64 int64, shadowInflationTimeInt64 int64) *SingleImageImportLoggableBuilder {
 
-	b.matchResult = matchResult
-	b.inflationTypeStr = inflationTypeStr
-	b.inflationTimeInt64 = inflationTimeInt64
-	b.shadowInflationTimeInt64 = shadowInflationTimeInt64
+	b.strings[inflationType] = inflationTypeStr
+	b.strings[shadowDiskMatchResult] = matchResult
+	b.int64s[inflationTime] = []int64{inflationTimeInt64}
+	b.int64s[shadowInflationTime] = []int64{shadowInflationTimeInt64}
 	return b
 }
 
@@ -75,22 +75,5 @@ func (b *SingleImageImportLoggableBuilder) SetTraceLogs(traceLogs []string) *Sin
 
 // Build builds the actual Loggable object.
 func (b *SingleImageImportLoggableBuilder) Build() Loggable {
-	return literalLoggable{
-		strings: map[string]string{
-			importFileFormat:      b.fileFormat,
-			inflationType:         b.inflationTypeStr,
-			shadowDiskMatchResult: b.matchResult,
-		},
-		int64s: map[string][]int64{
-			sourceSizeGb:        {b.sourceSize},
-			targetSizeGb:        {b.resultSize},
-			inflationTime:       {b.inflationTimeInt64},
-			shadowInflationTime: {b.shadowInflationTimeInt64},
-		},
-		bools: map[string]bool{
-			isUEFICompatibleImage: b.isUEFICompatibleImageBool,
-			isUEFIDetected:        b.isUEFIDetectedBool,
-		},
-		traceLogs: b.traceLogs,
-	}
+	return b.literalLoggable
 }

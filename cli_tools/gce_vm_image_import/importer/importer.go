@@ -192,8 +192,7 @@ func deleteDisk(diskClient diskClient, project string, zone string, pd persisten
 }
 
 func (i *importer) buildLoggable() service.Loggable {
-	b := &service.SingleImageImportLoggableBuilder{}
-	return b.SetDiskAttributes(i.pd.sourceType, i.pd.sourceGb, i.pd.sizeGb, i.pd.isUEFICompatible, i.pd.isUEFIDetected).
+	return service.NewSingleImageImportLoggableBuilder().SetDiskAttributes(i.pd.sourceType, i.pd.sourceGb, i.pd.sizeGb, i.pd.isUEFICompatible, i.pd.isUEFIDetected).
 		SetInflationAttributes(i.pd.matchResult, i.pd.inflationType, i.pd.inflationTime.Milliseconds(), i.pd.shadowInflationTime.Milliseconds()).
 		SetTraceLogs(i.traceLogs).
 		Build()
