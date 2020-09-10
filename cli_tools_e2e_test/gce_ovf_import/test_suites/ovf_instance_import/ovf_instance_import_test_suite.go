@@ -132,6 +132,7 @@ func runOVFInstanceImportUbuntu3Disks(ctx context.Context, testCase *junitxml.Te
 		expectedStartupOutput: "All tests passed!",
 		failureMatches:        []string{"FAILED:", "TestFailed:"},
 		sourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-1604-three-disks", ovaBucket),
+		instanceMetadata:      skipOSConfigMetadata,
 		os:                    "ubuntu-1604",
 		machineType:           "n1-standard-4"}
 

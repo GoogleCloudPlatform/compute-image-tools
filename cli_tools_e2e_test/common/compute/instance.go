@@ -56,7 +56,7 @@ func (i *Instance) RestartWithScriptCode(script string) error {
 	return i.StartWithScriptCode(script, nil)
 }
 
-// StartWithScriptCode starts the instance with given startup script.
+// StartWithScriptCode starts the instance with given startup script and metadata
 func (i *Instance) StartWithScriptCode(script string, instanceMetadata map[string]string) error {
 	if instanceMetadata == nil {
 		instanceMetadata = make(map[string]string)
@@ -204,20 +204,30 @@ func CreateInstanceBeta(ctx context.Context, project string, zone string, name s
 	return i, nil
 }
 
-// StartWithScriptCode starts the instance with given startup script.
-func (i *InstanceBeta) StartWithScriptCode(script string) error {
-	startupScriptKey := "startup-script"
-	if i.IsWindows {
-		startupScriptKey = "windows-startup-script-ps1"
+// StartWithScriptCode starts the instance with given startup script and metadata.
+func (i *InstanceBeta) StartWithScriptCode(script string, instanceMetadata map[string]string) error {
+	if instanceMetadata == nil {
+		instanceMetadata = make(map[string]string)
 	}
-	if err := i.Client.SetInstanceMetadata(i.Project, i.Zone,
-		i.Name, &api.Metadata{Items: []*api.MetadataItems{BuildInstanceMetadataItem(
-			startupScriptKey, script)},
-			Fingerprint: i.Metadata.Fingerprint}); err != nil {
+
+	if i.IsWindows {
+		instanceMetadata["windows-startup-script-ps1"] = script
+	} else {
+		instanceMetadata["startup-script"] = script
+	}
+
+	var metadataItems []*api.MetadataItems
+	for k, v := range instanceMetadata {
+		metadataItems = append(metadataItems, BuildInstanceMetadataItem(k, v))
+	}
+	err := i.Client.SetInstanceMetadata(i.Project, i.Zone,
+		i.Name, &api.Metadata{Items: metadataItems, Fingerprint: i.Metadata.Fingerprint})
+
+	if err != nil {
 		return err
 	}
 
-	if err := i.Client.StartInstance(i.Project, i.Zone, i.Name); err != nil {
+	if err = i.Client.StartInstance(i.Project, i.Zone, i.Name); err != nil {
 		return err
 	}
 	return nil
