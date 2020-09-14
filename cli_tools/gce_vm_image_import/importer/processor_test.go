@@ -23,7 +23,7 @@ import (
 func TestDefaultProcessorProvider_InspectDataDisk(t *testing.T) {
 	processorProvider := defaultProcessorProvider{
 		ImportArguments: ImportArguments{
-			WorkflowDir: "testdata",
+			WorkflowDir: "../../../daisy_workflows",
 			DataDisk:    true,
 		},
 	}
@@ -39,7 +39,7 @@ func TestDefaultProcessorProvider_InspectOS(t *testing.T) {
 	processorProvider := defaultProcessorProvider{
 		ImportArguments: ImportArguments{
 			Inspect:     true,
-			WorkflowDir: "testdata",
+			WorkflowDir: "../../../daisy_workflows",
 			OS:          "ubuntu-1804",
 		},
 	}
@@ -57,7 +57,7 @@ func TestDefaultProcessorProvider_InspectOS(t *testing.T) {
 func TestDefaultProcessorProvider_InspectUEFI(t *testing.T) {
 	processorProvider := defaultProcessorProvider{
 		ImportArguments: ImportArguments{
-			WorkflowDir: "testdata",
+			WorkflowDir: "../../../daisy_workflows",
 			OS:          "ubuntu-1804",
 		},
 	}

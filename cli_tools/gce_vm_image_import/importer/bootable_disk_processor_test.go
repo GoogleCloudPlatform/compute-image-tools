@@ -36,7 +36,7 @@ func TestBootableDiskProcessor_ProcessUEFI(t *testing.T) {
 		name := fmt.Sprintf("%v. input arg UEFI compatible: %v", i+1, tt.isInputArgUEFICompatible)
 		t.Run(name, func(t *testing.T) {
 			args := ImportArguments{
-				WorkflowDir:    "testdata",
+				WorkflowDir:    "../../../daisy_workflows",
 				OS:             "ubuntu-1804",
 				UefiCompatible: tt.isInputArgUEFICompatible,
 			}
