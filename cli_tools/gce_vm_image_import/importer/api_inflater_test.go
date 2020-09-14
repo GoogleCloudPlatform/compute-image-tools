@@ -24,6 +24,8 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 )
 
+const daisyWorkflows = "../../../daisy_workflows"
+
 func TestCreateInflater_File(t *testing.T) {
 	inflater, err := createInflater(ImportArguments{
 		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
@@ -32,7 +34,7 @@ func TestCreateInflater_File(t *testing.T) {
 		Zone:         "us-west1-c",
 		ExecutionID:  "1234",
 		NoExternalIP: false,
-		WorkflowDir:  "testdata",
+		WorkflowDir:  daisyWorkflows,
 	},
 		nil,
 		storage.Client{},
@@ -66,7 +68,7 @@ func TestCreateInflater_Image(t *testing.T) {
 		Source:      imageSource{uri: "projects/test/uri/image"},
 		Zone:        "us-west1-b",
 		ExecutionID: "1234",
-		WorkflowDir: "testdata",
+		WorkflowDir: daisyWorkflows,
 	}, nil, storage.Client{}, nil)
 	assert.NoError(t, err)
 	realInflater, ok := inflater.(*daisyInflater)
