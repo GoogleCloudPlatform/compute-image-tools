@@ -17,21 +17,15 @@ package importer
 import (
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/stretchr/testify/assert"
-	v1 "google.golang.org/api/compute/v1"
 )
 
 func TestDefaultProcessorProvider_InspectDataDisk(t *testing.T) {
 	processorProvider := defaultProcessorProvider{
-		ImportArguments{
+		ImportArguments: ImportArguments{
 			WorkflowDir: "testdata",
 			DataDisk:    true,
 		},
-		mockComputeDiskClient{},
-		mockDiskInspector{},
 	}
 
 	processors, err := processorProvider.provide(persistentDisk{})
@@ -41,25 +35,13 @@ func TestDefaultProcessorProvider_InspectDataDisk(t *testing.T) {
 	assert.True(t, ok, "processor is not dataDiskProcessor")
 }
 
-var uefiTests = []struct {
-	isUEFIDisk               bool
-	isInputArgUEFICompatible bool
-}{
-	{isUEFIDisk: true, isInputArgUEFICompatible: false},
-	{isUEFIDisk: false, isInputArgUEFICompatible: false},
-	{isUEFIDisk: true, isInputArgUEFICompatible: true},
-	{isUEFIDisk: false, isInputArgUEFICompatible: true},
-}
-
 func TestDefaultProcessorProvider_InspectOS(t *testing.T) {
 	processorProvider := defaultProcessorProvider{
-		ImportArguments{
+		ImportArguments: ImportArguments{
 			Inspect:     true,
 			WorkflowDir: "testdata",
 			OS:          "ubuntu-1804",
 		},
-		mockComputeDiskClient{},
-		mockDiskInspector{true, &daisy.Workflow{}},
 	}
 
 	pd := persistentDisk{}
@@ -74,12 +56,10 @@ func TestDefaultProcessorProvider_InspectOS(t *testing.T) {
 
 func TestDefaultProcessorProvider_InspectUEFI(t *testing.T) {
 	processorProvider := defaultProcessorProvider{
-		ImportArguments{
+		ImportArguments: ImportArguments{
 			WorkflowDir: "testdata",
 			OS:          "ubuntu-1804",
 		},
-		mockComputeDiskClient{},
-		mockDiskInspector{true, &daisy.Workflow{}},
 	}
 
 	pd := persistentDisk{uri: "old-uri"}
@@ -92,34 +72,4 @@ func TestDefaultProcessorProvider_InspectUEFI(t *testing.T) {
 	assert.True(t, ok, "the 2nd processor is not uefiProcessor")
 	_, ok = processors[2].(*bootableDiskProcessor)
 	assert.True(t, ok, "the 3rd processor is not bootableDiskProcessor")
-}
-
-type mockDiskInspector struct {
-	hasEFIPartition bool
-	wf              *daisy.Workflow
-}
-
-func (m mockDiskInspector) Inspect(reference string, inspectOS bool) (ir disk.InspectionResult, err error) {
-	ir.HasEFIPartition = m.hasEFIPartition
-	return
-}
-
-func (m mockDiskInspector) Cancel(reason string) bool {
-	return false
-}
-
-func (m mockDiskInspector) TraceLogs() []string {
-	return []string{}
-}
-
-type mockComputeDiskClient struct {
-	*mocks.MockClient
-}
-
-func (m mockComputeDiskClient) CreateDisk(arg0, arg1 string, arg2 *v1.Disk) error {
-	return nil
-}
-
-func (m mockComputeDiskClient) DeleteDisk(arg0, arg1, arg2 string) error {
-	return nil
 }

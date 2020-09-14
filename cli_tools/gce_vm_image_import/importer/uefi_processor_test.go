@@ -19,23 +19,41 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUefiProcessor(t *testing.T) {
-	for i, tt := range uefiTests {
+func TestUefiProcessor_RecreateDisk(t *testing.T) {
+	tests := []struct {
+		isUEFIDisk               bool
+		isInputArgUEFICompatible bool
+	}{
+		{isUEFIDisk: true, isInputArgUEFICompatible: false},
+		{isUEFIDisk: false, isInputArgUEFICompatible: false},
+		{isUEFIDisk: true, isInputArgUEFICompatible: true},
+		{isUEFIDisk: false, isInputArgUEFICompatible: true},
+	}
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockComputeClient := mocks.NewMockClient(mockCtrl)
+	mockComputeClient.EXPECT().CreateDisk(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	mockComputeClient.EXPECT().DeleteDisk(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+	for i, tt := range tests {
 		name := fmt.Sprintf("%v. inspect disk: disk is UEFI: %v, input arg UEFI compatible: %v", i+1, tt.isUEFIDisk, tt.isInputArgUEFICompatible)
 		t.Run(name, func(t *testing.T) {
 			args := ImportArguments{
 				UefiCompatible: tt.isInputArgUEFICompatible,
 			}
-			p := newDiskMutationProcessor(mockComputeDiskClient{}, args)
+			p := newDiskMutationProcessor(mockComputeClient, args)
 			pd, err := p.process(persistentDisk{uri: "old-uri", isUEFIDetected: tt.isUEFIDisk || tt.isInputArgUEFICompatible})
 			assert.NoError(t, err)
 			if tt.isUEFIDisk && !tt.isInputArgUEFICompatible {
 				assert.Truef(t, strings.HasSuffix(pd.uri, "uefi"), "UEFI Disk URI should have suffix 'uefi', actual: %v", pd.uri)
 			} else {
-				assert.Falsef(t, strings.HasSuffix(pd.uri, "uefi"), "Disk URI shouldn't have suffix 'uefi', actual: %v", pd.uri)
+				assert.Falsef(t, strings.HasSuffix(pd.uri, "uefi"), "Non-UEFI Disk URI shouldn't have suffix 'uefi', actual: %v", pd.uri)
 			}
 		})
 	}

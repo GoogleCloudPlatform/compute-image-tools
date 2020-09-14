@@ -18,12 +18,23 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDiskInspectionProcessor(t *testing.T) {
-	for i, tt := range uefiTests {
+func TestDiskInspectionProcessor_ProcessUEFI(t *testing.T) {
+	tests := []struct {
+		isUEFIDisk               bool
+		isInputArgUEFICompatible bool
+	}{
+		{isUEFIDisk: true, isInputArgUEFICompatible: false},
+		{isUEFIDisk: false, isInputArgUEFICompatible: false},
+		{isUEFIDisk: true, isInputArgUEFICompatible: true},
+		{isUEFIDisk: false, isInputArgUEFICompatible: true},
+	}
+
+	for i, tt := range tests {
 		name := fmt.Sprintf("%v. inspect disk: disk is UEFI: %v, input arg UEFI compatible: %v", i+1, tt.isUEFIDisk, tt.isInputArgUEFICompatible)
 		t.Run(name, func(t *testing.T) {
 			args := ImportArguments{
@@ -36,4 +47,22 @@ func TestDiskInspectionProcessor(t *testing.T) {
 			assert.Equal(t, tt.isInputArgUEFICompatible || tt.isUEFIDisk, pd.isUEFICompatible)
 		})
 	}
+}
+
+type mockDiskInspector struct {
+	hasEFIPartition bool
+	wf              *daisy.Workflow
+}
+
+func (m mockDiskInspector) Inspect(reference string, inspectOS bool) (ir disk.InspectionResult, err error) {
+	ir.HasEFIPartition = m.hasEFIPartition
+	return
+}
+
+func (m mockDiskInspector) Cancel(reason string) bool {
+	return false
+}
+
+func (m mockDiskInspector) TraceLogs() []string {
+	return []string{}
 }

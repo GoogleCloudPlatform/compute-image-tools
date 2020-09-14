@@ -24,9 +24,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBootableDiskProcessor_Process(t *testing.T) {
-	for i, tt := range uefiTests {
-		name := fmt.Sprintf("%v. inspect disk: disk is UEFI: %v, input arg UEFI compatible: %v", i+1, tt.isUEFIDisk, tt.isInputArgUEFICompatible)
+func TestBootableDiskProcessor_ProcessUEFI(t *testing.T) {
+	tests := []struct {
+		isInputArgUEFICompatible bool
+	}{
+		{isInputArgUEFICompatible: false},
+		{isInputArgUEFICompatible: true},
+	}
+
+	for i, tt := range tests {
+		name := fmt.Sprintf("%v. input arg UEFI compatible: %v", i+1, tt.isInputArgUEFICompatible)
 		t.Run(name, func(t *testing.T) {
 			args := ImportArguments{
 				WorkflowDir:    "testdata",
@@ -63,7 +70,7 @@ func TestBootableDiskProcessor_PopulatesWorkflowVarsUsingArgs(t *testing.T) {
 
 	actual := asMap(createAndRunPrePostFunctions(t, imageSpec).workflow.Vars)
 	assert.Equal(t, map[string]string{
-		"source_disk":          "", // not set yet
+		"source_disk":          "", // source_disk is written in process, since a previous processor may create a new disk
 		"description":          "Fedora 12 customized",
 		"family":               "fedora",
 		"image_name":           "fedora-12-imported",
