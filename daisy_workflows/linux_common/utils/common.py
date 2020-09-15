@@ -174,7 +174,7 @@ def _GetMetadataParam(name, default_value=None, raise_on_not_found=None):
     url = 'http://metadata.google.internal/computeMetadata/v1/instance/%s' % \
         name
     return HttpGet(url, headers={'Metadata-Flavor': 'Google'}).decode()
-  except urllib.error.HTTPError:
+  except (urllib.error.HTTPError, urllib.error.URLError):
     if raise_on_not_found:
       raise ValueError('Metadata key "%s" not found' % name)
     else:

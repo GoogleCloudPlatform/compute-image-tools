@@ -41,7 +41,8 @@ func (p *diskInspectionProcessor) process(pd persistentDisk,
 		return pd, err
 	}
 
-	pd.isUEFICompatible = p.args.UefiCompatible || ir.HasEFIPartition
+	// Hardcoding to false due to b/168671324
+	pd.isUEFICompatible = false
 	loggableBuilder.SetUEFIMetrics(pd.isUEFICompatible, ir.HasEFIPartition)
 	return pd, nil
 }

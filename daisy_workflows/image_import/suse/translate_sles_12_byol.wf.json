@@ -1,5 +1,5 @@
 {
-  "Name": "translate-suse",
+  "Name": "sles-12-byol",
   "Vars": {
     "sysprep": {
       "Value": "false",
@@ -32,70 +32,21 @@
     "import_subnet": {
       "Value": "",
       "Description": "SubNetwork to use for the import instance"
+    },
+    "license": {
+      "Value": "projects/suse-byos-cloud/global/licenses/sles-12-byos"
     }
   },
-  "Sources": {
-    "import_files/translate.py": "./translate.py",
-    "import_files/utils/common.py": "../../linux_common/utils/common.py",
-    "import_files/utils/diskutils.py": "../../linux_common/utils/diskutils.py",
-    "import_files/utils/__init__.py": "../../linux_common/utils/__init__.py",
-    "startup_script": "../../linux_common/bootstrap.sh"
-  },
   "Steps": {
-    "setup-disk": {
-      "CreateDisks": [
-        {
-          "Name": "disk-translator",
-          "SourceImage": "projects/compute-image-tools/global/images/family/debian-9-worker",
-          "SizeGb": "10",
-          "Type": "pd-ssd",
-          "FallbackToPdStandard": true
+    "translate-disk": {
+      "IncludeWorkflow": {
+        "Path": "./translate_suse.wf.json",
+        "Vars": {
+          "install_gce_packages": "${install_gce_packages}",
+          "source_disk": "${source_disk}",
+          "import_network": "${import_network}",
+          "import_subnet": "${import_subnet}"
         }
-      ]
-    },
-    "translate-disk-inst": {
-      "CreateInstances": [
-        {
-          "Name": "inst-translator",
-          "Disks": [
-            {"Source": "disk-translator"},
-            {"Source": "${source_disk}"}
-          ],
-          "MachineType": "n1-standard-2",
-          "Metadata": {
-            "files_gcs_dir": "${SOURCESPATH}/import_files",
-            "script": "translate.py",
-            "prefix": "Translate",
-            "install_gce_packages": "${install_gce_packages}",
-            "licensing": "byol"
-          },
-          "networkInterfaces": [
-            {
-              "network": "${import_network}",
-              "subnetwork": "${import_subnet}"
-            }
-          ],
-          "StartupScript": "startup_script"
-        }
-      ]
-    },
-    "wait-for-translator": {
-      "WaitForInstancesSignal": [
-        {
-          "Name": "inst-translator",
-          "SerialOutput": {
-            "Port": 1,
-            "SuccessMatch": "TranslateSuccess:",
-            "FailureMatch": "TranslateFailed:",
-            "StatusMatch": "TranslateStatus:"
-          }
-        }
-      ],
-      "TimeoutDescription": "Ensure that the disk is bootable on Google Compute Engine. For more information about disk requirements for import, see [Importing virtual disks](https://cloud.google.com/compute/docs/import/importing-virtual-disks)."
-    },
-    "delete-instance": {
-      "DeleteResources": {
-        "Instances":["inst-translator"]
       }
     },
     "create-image": {
@@ -104,7 +55,7 @@
           "Name": "${image_name}",
           "SourceDisk": "${source_disk}",
           "Family": "${family}",
-          "Licenses": ["projects/suse-byos-cloud/global/licenses/sles-12-byos"],
+          "Licenses": ["${license}"],
           "Description": "${description}",
           "ExactName": true,
           "NoCleanup": true
@@ -113,9 +64,6 @@
     }
   },
   "Dependencies": {
-    "translate-disk-inst": ["setup-disk"],
-    "wait-for-translator": ["translate-disk-inst"],
-    "delete-instance": ["wait-for-translator"],
-    "create-image": ["delete-instance"]
+    "create-image": ["translate-disk"]
   }
 }

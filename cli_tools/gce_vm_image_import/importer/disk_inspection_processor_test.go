@@ -25,6 +25,7 @@ import (
 )
 
 func TestDiskInspectionProcessor_ProcessUEFI(t *testing.T) {
+	t.Skip("b/168671324")
 	tests := []struct {
 		isUEFIDisk               bool
 		isInputArgUEFICompatible bool
