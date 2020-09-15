@@ -1,4 +1,4 @@
-timeout: 900s
+timeout: 1200s
 
 options:
   env:
@@ -28,7 +28,7 @@ steps:
   args: ['go', 'build', '-o=/workspace/darwin/daisy']
   env: ['GOOS=darwin']
 - name: 'gcr.io/kaniko-project/executor:v1.0.0'
-  args: 
+  args:
   - --destination=gcr.io/$PROJECT_ID/daisy:$_RELEASE
   - --destination=gcr.io/$PROJECT_ID/daisy:$COMMIT_SHA
   - --context=/workspace
@@ -48,7 +48,7 @@ steps:
   args: ['go', 'build', '-o=/workspace/darwin/gce_image_publish']
   env: ['GOOS=darwin']
 - name: 'gcr.io/kaniko-project/executor:v1.0.0'
-  args: 
+  args:
   - --destination=gcr.io/$PROJECT_ID/gce_image_publish:$_RELEASE
   - --destination=gcr.io/$PROJECT_ID/gce_image_publish:$COMMIT_SHA
   - --context=/workspace
@@ -64,7 +64,7 @@ steps:
   args: ['go', 'build', '-o=/workspace/windows/gce_export']
   env: ['GOOS=windows']
 - name: 'gcr.io/kaniko-project/executor:v1.0.0'
-  args: 
+  args:
   - --destination=gcr.io/$PROJECT_ID/gce_export:$_RELEASE
   - --destination=gcr.io/$PROJECT_ID/gce_export:$COMMIT_SHA
   - --context=/workspace
@@ -94,6 +94,13 @@ steps:
 
 - name: 'gcr.io/kaniko-project/executor:v1.0.0'
   args:
+  - --destination=us-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
+  - --destination=us-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
+  - --context=/workspace
+  - --dockerfile=gce_vm_image_import.Dockerfile
+  -
+- name: 'gcr.io/kaniko-project/executor:v1.0.0'
+  args:
   - --destination=us-central1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
   - --destination=us-central1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --context=/workspace
@@ -105,14 +112,49 @@ steps:
   - --destination=us-west1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --context=/workspace
   - --dockerfile=gce_vm_image_import.Dockerfile
-  -
+
+- name: 'gcr.io/kaniko-project/executor:v1.0.0'
+  args:
+  - --destination=us-west2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
+  - --destination=us-west2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
+  - --context=/workspace
+  - --dockerfile=gce_vm_image_import.Dockerfile
+
+- name: 'gcr.io/kaniko-project/executor:v1.0.0'
+  args:
+  - --destination=us-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
+  - --destination=us-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
+  - --context=/workspace
+  - --dockerfile=gce_vm_image_import.Dockerfile
+
+- name: 'gcr.io/kaniko-project/executor:v1.0.0'
+  args:
+  - --destination=us-east4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
+  - --destination=us-east4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
+  - --context=/workspace
+  - --dockerfile=gce_vm_image_import.Dockerfile
+
+- name: 'gcr.io/kaniko-project/executor:v1.0.0'
+  args:
+  - --destination=northamerica-northeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
+  - --destination=northamerica-northeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
+  - --context=/workspace
+  - --dockerfile=gce_vm_image_import.Dockerfile
+
+- name: 'gcr.io/kaniko-project/executor:v1.0.0'
+  args:
+  - --destination=southamerica-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
+  - --destination=southamerica-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
+  - --context=/workspace
+  - --dockerfile=gce_vm_image_import.Dockerfile
+
 # Build gce_vm_image_export.
 - name: 'golang'
   dir: 'cli_tools/gce_vm_image_export'
   args: ['go', 'build', '-o=/workspace/linux/gce_vm_image_export']
   env: ['CGO_ENABLED=0']
 - name: 'gcr.io/kaniko-project/executor:v1.0.0'
-  args: 
+  args:
   - --destination=gcr.io/$PROJECT_ID/gce_vm_image_export:$_RELEASE
   - --destination=gcr.io/$PROJECT_ID/gce_vm_image_export:$COMMIT_SHA
   - --context=/workspace
@@ -124,7 +166,7 @@ steps:
   args: ['go', 'build', '-o=/workspace/linux/gce_ovf_import']
   env: ['CGO_ENABLED=0']
 - name: 'gcr.io/kaniko-project/executor:v1.0.0'
-  args: 
+  args:
   - --destination=gcr.io/$PROJECT_ID/gce_ovf_import:$_RELEASE
   - --destination=gcr.io/$PROJECT_ID/gce_ovf_import:$COMMIT_SHA
   - --context=/workspace
