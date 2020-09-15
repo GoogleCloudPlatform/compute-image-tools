@@ -1,5 +1,5 @@
 {
-  "Name": "sles-sap-15-byol",
+  "Name": "sles-sap-15-gce",
   "Vars": {
     "sysprep": {
       "Value": "false",
@@ -34,10 +34,10 @@
       "Description": "SubNetwork to use for the import instance"
     },
     "license": {
-      "Value": "projects/suse-byos-cloud/global/licenses/sles-sap-15-byos"
+      "Value": "projects/suse-sap-cloud/global/licenses/sles-sap-15"
     },
     "subscription_model": {
-      "Value": "byol"
+      "Value": "gce"
     }
   },
   "Steps": {

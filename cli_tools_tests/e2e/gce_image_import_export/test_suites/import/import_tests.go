@@ -166,6 +166,58 @@ var basicCases = []*testCase{
 		osConfigNotSupported: true,
 		inspect:              true,
 	},
+
+	// SLES: On-demand
+	{
+		caseName:             "sles-12-4-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-12-4-unregistered",
+		os:                   "sles-12",
+		osConfigNotSupported: true,
+		inspect:              true,
+	}, {
+		caseName:             "sles-12-5-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-12-5-unregistered",
+		os:                   "sles-12",
+		osConfigNotSupported: true,
+		inspect:              true,
+	}, {
+		caseName:             "sles-sap-12-4-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-sap-12-4-unregistered",
+		os:                   "sles-sap-12",
+		osConfigNotSupported: true,
+		inspect:              true,
+	}, {
+		caseName:             "sles-sap-12-5-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-sap-12-5-unregistered",
+		os:                   "sles-sap-12",
+		osConfigNotSupported: true,
+		inspect:              true,
+	}, {
+		caseName:             "sles-15-1-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-15-1-unregistered",
+		os:                   "sles-15",
+		osConfigNotSupported: true,
+		inspect:              true,
+	}, {
+		caseName:             "sles-15-2-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-15-2-unregistered",
+		os:                   "sles-15",
+		osConfigNotSupported: true,
+		inspect:              true,
+	}, {
+		caseName:             "sles-sap-15-1-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-sap-15-1-unregistered",
+		os:                   "sles-sap-15",
+		osConfigNotSupported: true,
+		inspect:              true,
+	}, {
+		caseName:             "sles-sap-15-2-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-sap-15-2-unregistered",
+		os:                   "sles-sap-15",
+		osConfigNotSupported: true,
+		inspect:              true,
+	},
+
 	// EL
 	{
 		caseName: "el-centos-7-8",
