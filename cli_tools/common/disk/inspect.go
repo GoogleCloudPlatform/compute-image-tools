@@ -39,7 +39,7 @@ type Inspector interface {
 // InspectionResult contains the partition and boot-related properties of a disk.
 type InspectionResult struct {
 	// HasEFIPartition indicates whether the disk has a EFI partition.
-	HasEFIPartition bool
+	HasEFIPartition                    bool
 	Architecture, Distro, Major, Minor string
 }
 
@@ -88,4 +88,11 @@ func (inspector *defaultInspector) Cancel(reason string) bool {
 
 	//indicate cancel was not performed
 	return false
+}
+
+func (inspector *defaultInspector) TraceLogs() []string {
+	if inspector.wf != nil && inspector.wf.Logger != nil {
+		return inspector.wf.Logger.ReadSerialPortLogs()
+	}
+	return []string{}
 }

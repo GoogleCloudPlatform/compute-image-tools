@@ -1,4 +1,18 @@
-package boot_inspect
+//  Copyright 2020 Google Inc. All Rights Reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+
+package diskinspect
 
 import (
 	"context"
@@ -43,18 +57,20 @@ func TestBootInspect(t *testing.T) {
 		{
 			"projects/opensuse-cloud/global/images/opensuse-leap-15-2-v20200702",
 			disk.InspectionResult{
-				Architecture: "x64",
-				Distro:       "opensuse",
-				Major:        "15",
-				Minor:        "2",
+				Architecture:    "x64",
+				Distro:          "opensuse",
+				Major:           "15",
+				Minor:           "2",
+				HasEFIPartition: true,
 			},
 		}, {
 			"projects/suse-sap-cloud/global/images/sles-15-sp1-sap-v20200803",
 			disk.InspectionResult{
-				Architecture: "x64",
-				Distro:       "sles-sap",
-				Major:        "15",
-				Minor:        "1",
+				Architecture:    "x64",
+				Distro:          "sles-sap",
+				Major:           "15",
+				Minor:           "1",
+				HasEFIPartition: true,
 			},
 		}, {
 			"projects/compute-image-tools-test/global/images/windows-7-ent-x86-nodrivers",
@@ -67,6 +83,7 @@ func TestBootInspect(t *testing.T) {
 		},
 	} {
 		// Without this, each parallel test will reference the same tc instance.
+		// https://github.com/golang/go/wiki/CommonMistakes#using-goroutines-on-loop-iterator-variables
 		tt := tt
 		t.Run(tt.imageURI, func(t *testing.T) {
 			t.Parallel()
@@ -77,7 +94,7 @@ func TestBootInspect(t *testing.T) {
 
 			diskURI := createDisk(t, client, tt.imageURI)
 
-			actual, err := inspector.Inspect(diskURI)
+			actual, err := inspector.Inspect(diskURI, true)
 			assert.NoError(t, err)
 			// Manual formatting for two reasons:
 			//  1. go-junit-report doesn't have good support for testify/assert:

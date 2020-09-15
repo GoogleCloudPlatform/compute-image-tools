@@ -1,4 +1,4 @@
-This is an integration test for `cli_tools/common/disk/inspect.go`.
+This is an e2e test for `cli_tools/common/disk/inspect.go`.
 
 ## Running
 
@@ -9,7 +9,7 @@ This is an integration test for `cli_tools/common/disk/inspect.go`.
 gcloud auth application-default login
 gcloud config set compute/zone $ZONE
 gcloud config set project $PROJECT
-cd cli_tools_integ_tests/boot_inspect
+cd cli_tools_e2e_test/diskinspect
 
 # Re-run as needed:
 go test
