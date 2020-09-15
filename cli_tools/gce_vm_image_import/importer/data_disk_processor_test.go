@@ -17,6 +17,7 @@ package importer
 import (
 	"testing"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
@@ -39,7 +40,7 @@ func Test_ImageIncludesTrackingLabelAndLicense(t *testing.T) {
 		"family-name",
 		"image-name")
 
-	_, err := processor.process(persistentDisk{})
+	_, err := processor.process(persistentDisk{}, service.NewSingleImageImportLoggableBuilder())
 	assert.NoError(t, err)
 	assert.Equal(t, 1, mockClient.invocations)
 	assert.Equal(t, compute.Image{

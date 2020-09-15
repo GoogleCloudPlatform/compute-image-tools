@@ -17,7 +17,9 @@ package importer
 import (
 	"fmt"
 	"log"
+	"strings"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
@@ -29,37 +31,48 @@ type uefiProcessor struct {
 	computeDiskClient daisyCompute.Client
 }
 
-func (p *uefiProcessor) process(pd persistentDisk) (persistentDisk, error) {
-	// If UEFI_COMPATIBLE is enforced in user input args (b.uefiCompatible),
-	// then it has been honored in inflation stage, so no need to recreate a new disk here.
-	if p.args.UefiCompatible {
+func (p *uefiProcessor) process(pd persistentDisk,
+	loggableBuilder *service.SingleImageImportLoggableBuilder) (persistentDisk, error) {
+
+	// If this is not a UEFI disk, don't add "UEFI_COMPATIBLE" for it.
+	if !pd.isUEFICompatible {
 		return pd, nil
 	}
 
-	if !pd.isUEFIDetected {
-		return pd, nil
+	// If "UEFI_COMPATIBLE" has already existed on the disk, nothing extra needs to be done.
+	split := strings.Split("/", pd.uri)
+	diskName := split[len(split)-1]
+	d, err := p.computeDiskClient.GetDisk(p.args.Project, p.args.Zone, diskName)
+	if err != nil {
+		return pd, daisy.Errf("Failed to get disk: %v", err)
+	}
+	for _, f := range d.GuestOsFeatures {
+		if f.Type == "UEFI_COMPATIBLE" {
+			return pd, nil
+		}
 	}
 
+	// Now let's add "UEFI_COMPATIBLE" to the disk's guestOsFeatures.
 	// GuestOSFeatures are immutable properties. Therefore:
 	// 1. Copy the existing disk, adding "UEFI_COMPATIBLE"
 	// 2. Update the reference
 	// 3. Delete the previous disk.
-	diskName := fmt.Sprintf("disk-%v-uefi", p.args.ExecutionID)
-	err := p.computeDiskClient.CreateDisk(p.args.Project, p.args.Zone, &compute.Disk{
-		Name:            diskName,
+	newDiskName := fmt.Sprintf("%v-uefi", diskName)
+	err = p.computeDiskClient.CreateDisk(p.args.Project, p.args.Zone, &compute.Disk{
+		Name:            newDiskName,
 		SourceDisk:      pd.uri,
 		GuestOsFeatures: []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}},
 	})
 	if err != nil {
 		return pd, daisy.Errf("Failed to create UEFI disk: %v", err)
 	}
-	log.Println("UEFI disk created: ", diskName)
+	log.Println("UEFI disk created: ", newDiskName)
 
-	// Cleanup the old disk after the new disk is created.
+	// Delete the old disk after the new disk is created.
 	deleteDisk(p.computeDiskClient, p.args.Project, p.args.Zone, pd)
 
 	// Update the new disk URI
-	pd.uri = fmt.Sprintf("zones/%v/disks/%v", p.args.Zone, diskName)
+	pd.uri = fmt.Sprintf("zones/%v/disks/%v", p.args.Zone, newDiskName)
 	return pd, nil
 }
 
@@ -72,7 +85,7 @@ func (p *uefiProcessor) traceLogs() []string {
 	return []string{}
 }
 
-func newDiskMutationProcessor(computeDiskClient daisyCompute.Client,
+func newUefiProcessor(computeDiskClient daisyCompute.Client,
 	args ImportArguments) processor {
 
 	return &uefiProcessor{

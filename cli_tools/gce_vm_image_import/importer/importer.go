@@ -62,6 +62,7 @@ func NewImporter(args ImportArguments, computeClient compute.Client, storageClie
 		processorProvider: defaultProcessorProvider{args, computeClient, inspector},
 		traceLogs:         []string{},
 		diskClient:        computeClient,
+		loggableBuilder:   service.NewSingleImageImportLoggableBuilder(),
 	}, nil
 }
 
@@ -75,6 +76,7 @@ type importer struct {
 	processorProvider processorProvider
 	traceLogs         []string
 	diskClient        diskClient
+	loggableBuilder   *service.SingleImageImportLoggableBuilder
 	timeout           time.Duration
 }
 
@@ -105,7 +107,7 @@ func (i *importer) Run(ctx context.Context) (loggable service.Loggable, err erro
 func (i *importer) runInflate(ctx context.Context) (err error) {
 	return i.runStep(ctx, func() error {
 		var err error
-		i.pd, err = i.inflater.inflate()
+		i.pd, _, err = i.inflater.inflate(i.loggableBuilder)
 		return err
 	}, i.inflater.cancel, i.inflater.traceLogs)
 }
@@ -118,7 +120,7 @@ func (i *importer) runProcess(ctx context.Context) error {
 	for _, processor := range processors {
 		err = i.runStep(ctx, func() error {
 			var err error
-			i.pd, err = processor.process(i.pd)
+			i.pd, err = processor.process(i.pd, i.loggableBuilder)
 			if err != nil {
 				return err
 			}
@@ -192,8 +194,7 @@ func deleteDisk(diskClient diskClient, project string, zone string, pd persisten
 }
 
 func (i *importer) buildLoggable() service.Loggable {
-	return service.NewSingleImageImportLoggableBuilder().SetDiskAttributes(i.pd.sourceType, i.pd.sourceGb, i.pd.sizeGb, i.pd.isUEFICompatible, i.pd.isUEFIDetected).
-		SetInflationAttributes(i.pd.matchResult, i.pd.inflationType, i.pd.inflationTime.Milliseconds(), i.pd.shadowInflationTime.Milliseconds()).
+	return i.loggableBuilder.SetDiskAttributes(i.pd.sourceType, i.pd.sourceGb, i.pd.sizeGb).
 		SetTraceLogs(i.traceLogs).
 		Build()
 }

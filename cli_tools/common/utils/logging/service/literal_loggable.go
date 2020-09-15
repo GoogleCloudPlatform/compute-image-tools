@@ -44,15 +44,20 @@ func NewSingleImageImportLoggableBuilder() *SingleImageImportLoggableBuilder {
 	}}
 }
 
+// SetUEFIMetrics sets UEFI related metrics.
+func (b *SingleImageImportLoggableBuilder) SetUEFIMetrics(isUEFICompatibleImageBool bool, isUEFIDetectedBool bool) *SingleImageImportLoggableBuilder {
+	b.bools[isUEFICompatibleImage] = isUEFICompatibleImageBool
+	b.bools[isUEFIDetected] = isUEFIDetectedBool
+	return b
+}
+
 // SetDiskAttributes sets disk related attributes.
 func (b *SingleImageImportLoggableBuilder) SetDiskAttributes(fileFormat string, sourceSize int64,
-	targetSize int64, isUEFICompatibleImageBool bool, isUEFIDetectedBool bool) *SingleImageImportLoggableBuilder {
+	targetSize int64) *SingleImageImportLoggableBuilder {
 
 	b.strings[importFileFormat] = fileFormat
 	b.int64s[sourceSizeGb] = []int64{sourceSize}
 	b.int64s[targetSizeGb] = []int64{targetSize}
-	b.bools[isUEFICompatibleImage] = isUEFICompatibleImageBool
-	b.bools[isUEFIDetected] = isUEFIDetectedBool
 	return b
 }
 

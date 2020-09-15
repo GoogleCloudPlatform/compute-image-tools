@@ -18,6 +18,7 @@ import (
 	"log"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -28,7 +29,9 @@ type diskInspectionProcessor struct {
 	diskInspector disk.Inspector
 }
 
-func (p *diskInspectionProcessor) process(pd persistentDisk) (persistentDisk, error) {
+func (p *diskInspectionProcessor) process(pd persistentDisk,
+	loggableBuilder *service.SingleImageImportLoggableBuilder) (persistentDisk, error) {
+
 	if p.diskInspector == nil {
 		return pd, nil
 	}
@@ -39,7 +42,7 @@ func (p *diskInspectionProcessor) process(pd persistentDisk) (persistentDisk, er
 	}
 
 	pd.isUEFICompatible = p.args.UefiCompatible || ir.HasEFIPartition
-	pd.isUEFIDetected = ir.HasEFIPartition
+	loggableBuilder.SetUEFIMetrics(pd.isUEFICompatible, ir.HasEFIPartition)
 	return pd, nil
 }
 

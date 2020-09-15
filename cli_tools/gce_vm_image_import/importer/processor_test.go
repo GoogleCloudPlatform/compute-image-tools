@@ -17,6 +17,7 @@ package importer
 import (
 	"testing"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -51,7 +52,7 @@ func TestDefaultProcessorProvider_InspectOS(t *testing.T) {
 	p, ok := processors[0].(*diskInspectionProcessor)
 	assert.True(t, ok, "the 1st processor is not diskInspectionDiskProcessor")
 
-	p.process(pd)
+	p.process(pd, service.NewSingleImageImportLoggableBuilder())
 }
 
 func TestDefaultProcessorProvider_InspectUEFI(t *testing.T) {

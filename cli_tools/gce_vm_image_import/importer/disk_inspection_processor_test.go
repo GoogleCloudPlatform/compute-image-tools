@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/stretchr/testify/assert"
 )
@@ -41,9 +42,8 @@ func TestDiskInspectionProcessor_ProcessUEFI(t *testing.T) {
 				UefiCompatible: tt.isInputArgUEFICompatible,
 			}
 			p := newDiskInspectionProcessor(mockDiskInspector{tt.isUEFIDisk, &daisy.Workflow{}}, args)
-			pd, err := p.process(persistentDisk{})
+			pd, err := p.process(persistentDisk{}, service.NewSingleImageImportLoggableBuilder())
 			assert.NoError(t, err)
-			assert.Equal(t, tt.isUEFIDisk, pd.isUEFIDetected)
 			assert.Equal(t, tt.isInputArgUEFICompatible || tt.isUEFIDisk, pd.isUEFICompatible)
 		})
 	}

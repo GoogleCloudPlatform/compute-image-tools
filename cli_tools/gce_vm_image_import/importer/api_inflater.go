@@ -19,6 +19,7 @@ import (
 	"time"
 
 	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -71,7 +72,7 @@ func (inflater *apiInflater) addTraceLog(l string) {
 	inflater.serialLogs = append(inflater.serialLogs, l)
 }
 
-func (inflater *apiInflater) inflate() (persistentDisk, error) {
+func (inflater *apiInflater) inflate(loggableBuilder *service.SingleImageImportLoggableBuilder) (persistentDisk, inflationInfo, error) {
 	ctx := context.Background()
 	startTime := time.Now()
 	diskName := fmt.Sprintf("shadow-disk-%v", inflater.args.ExecutionID)
@@ -83,7 +84,7 @@ func (inflater *apiInflater) inflate() (persistentDisk, error) {
 
 	err := inflater.computeClient.CreateDiskBeta(inflater.args.Project, inflater.args.Zone, &cd)
 	if err != nil {
-		return persistentDisk{}, err
+		return persistentDisk{}, inflationInfo{}, err
 	}
 
 	// Cleanup the shadow disk ignoring error
@@ -91,27 +92,30 @@ func (inflater *apiInflater) inflate() (persistentDisk, error) {
 
 	bkt, objPath, err := storage.GetGCSObjectPathElements(inflater.args.SourceFile)
 	if err != nil {
-		return persistentDisk{}, err
+		return persistentDisk{}, inflationInfo{}, err
 	}
 	sourceFile := inflater.storageClient.GetObject(bkt, objPath).GetObjectHandle()
 	attrs, err := sourceFile.Attrs(ctx)
 	if err != nil {
-		return persistentDisk{}, daisy.Errf("Failed to get source file attributes: %v", err)
+		return persistentDisk{}, inflationInfo{}, daisy.Errf("Failed to get source file attributes: %v", err)
 	}
 	sourceFileSizeGb := (attrs.Size-1)/1073741824 + 1
 
 	diskURI := fmt.Sprintf("zones/%s/disks/%s", inflater.args.Zone, diskName)
 	pd := persistentDisk{
-		uri:           diskURI,
-		sizeGb:        cd.SizeGb,
-		sourceGb:      sourceFileSizeGb,
-		sourceType:    "vmdk", // only vmdk is supported right now
+		uri:        diskURI,
+		sizeGb:     cd.SizeGb,
+		sourceGb:   sourceFileSizeGb,
+		sourceType: "vmdk", // only vmdk is supported right now
+	}
+	ii := inflationInfo{
+		inflationType: "api",
 		inflationTime: time.Since(startTime),
 	}
 
 	inflater.addTraceLog("Started checksum calculation.")
-	pd.checksum, err = inflater.calculateChecksum(ctx, diskURI)
-	return pd, err
+	ii.checksum, err = inflater.calculateChecksum(ctx, diskURI)
+	return pd, ii, err
 }
 
 // Can't cancel the single disk.insert API call

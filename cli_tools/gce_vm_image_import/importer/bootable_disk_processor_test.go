@@ -16,36 +16,23 @@ package importer
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"testing"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBootableDiskProcessor_ProcessUEFI(t *testing.T) {
-	tests := []struct {
-		isInputArgUEFICompatible bool
-	}{
-		{isInputArgUEFICompatible: false},
-		{isInputArgUEFICompatible: true},
+func TestBootableDiskProcessor_Process_WritesSourceDiskVar(t *testing.T) {
+	args := ImportArguments{
+		WorkflowDir: "../../../daisy_workflows",
+		OS:          "ubuntu-1804",
 	}
-
-	for i, tt := range tests {
-		name := fmt.Sprintf("%v. input arg UEFI compatible: %v", i+1, tt.isInputArgUEFICompatible)
-		t.Run(name, func(t *testing.T) {
-			args := ImportArguments{
-				WorkflowDir:    "../../../daisy_workflows",
-				OS:             "ubuntu-1804",
-				UefiCompatible: tt.isInputArgUEFICompatible,
-			}
-			p, err := newBootableDiskProcessor(args)
-			assert.NoError(t, err)
-			_, err = p.process(persistentDisk{uri: "uri"})
-			assert.NotEmpty(t, p.(*bootableDiskProcessor).workflow.Vars["source_disk"].Value)
-		})
-	}
+	p, err := newBootableDiskProcessor(args)
+	assert.NoError(t, err)
+	_, err = p.process(persistentDisk{uri: "uri"}, service.NewSingleImageImportLoggableBuilder())
+	assert.Equal(t, "uri", p.(*bootableDiskProcessor).workflow.Vars["source_disk"].Value)
 }
 
 // gcloud expects log lines to start with the substring "[import". Daisy

@@ -17,6 +17,7 @@ package importer
 import (
 	"log"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
 )
@@ -58,7 +59,9 @@ func (d dataDiskProcessor) traceLogs() []string {
 	return []string{}
 }
 
-func (d dataDiskProcessor) process(pd persistentDisk) (persistentDisk, error) {
+func (d dataDiskProcessor) process(pd persistentDisk,
+	loggableBuilder *service.SingleImageImportLoggableBuilder) (persistentDisk, error) {
+
 	log.Printf("Creating image \"%v\"", d.request.Name)
 	return pd, d.computeImageClient.CreateImage(d.project, &d.request)
 }
