@@ -17,8 +17,8 @@ package importer
 import (
 	"fmt"
 	"log"
-	"strings"
 
+	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
@@ -40,8 +40,7 @@ func (p *uefiProcessor) process(pd persistentDisk,
 	}
 
 	// If "UEFI_COMPATIBLE" has already existed on the disk, nothing extra needs to be done.
-	split := strings.Split("/", pd.uri)
-	diskName := split[len(split)-1]
+	diskName := daisyUtils.GetResourceID(pd.uri)
 	d, err := p.computeDiskClient.GetDisk(p.args.Project, p.args.Zone, diskName)
 	if err != nil {
 		return pd, daisy.Errf("Failed to get disk: %v", err)
