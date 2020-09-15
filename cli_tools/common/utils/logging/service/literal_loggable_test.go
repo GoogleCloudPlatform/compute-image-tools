@@ -48,7 +48,7 @@ func TestLiteralLoggable_ReadSerialPortLogs(t *testing.T) {
 	assert.Equal(t, []string{"log-a", "log-b"}, loggable.ReadSerialPortLogs())
 }
 
-func TestSingleImageImportLoggable(t *testing.T) {
+func TestSingleImageImportLoggableBuilder(t *testing.T) {
 	format := "vmdk"
 	sourceGb := int64(12)
 	targetGb := int64(100)
@@ -57,20 +57,32 @@ func TestSingleImageImportLoggable(t *testing.T) {
 	inflationTimeValue := int64(10000)
 	shadowInflationTimeValue := int64(5000)
 	matchResultValue := "true"
-	expected := literalLoggable{
-		strings: map[string]string{
-			importFileFormat:      format,
-			inflationType:         inflationTypeValue,
-			shadowDiskMatchResult: matchResultValue,
-		},
-		int64s: map[string][]int64{
-			sourceSizeGb:        {sourceGb},
-			targetSizeGb:        {targetGb},
-			inflationTime:       {inflationTimeValue},
-			shadowInflationTime: {shadowInflationTimeValue},
-		},
-		traceLogs: traceLogs,
+	for _, isUEFICompatibleImageValue := range []bool{true, false} {
+		for _, isUEFIDetectedValue := range []bool{true, false} {
+			expected := literalLoggable{
+				strings: map[string]string{
+					importFileFormat:      format,
+					inflationType:         inflationTypeValue,
+					shadowDiskMatchResult: matchResultValue,
+				},
+				int64s: map[string][]int64{
+					sourceSizeGb:        {sourceGb},
+					targetSizeGb:        {targetGb},
+					inflationTime:       {inflationTimeValue},
+					shadowInflationTime: {shadowInflationTimeValue},
+				},
+				bools: map[string]bool{
+					isUEFICompatibleImage: isUEFICompatibleImageValue,
+					isUEFIDetected:        isUEFIDetectedValue,
+				},
+				traceLogs: traceLogs,
+			}
+			assert.Equal(t, expected, NewSingleImageImportLoggableBuilder().
+				SetDiskAttributes(format, sourceGb, targetGb).
+				SetUEFIMetrics(isUEFICompatibleImageValue, isUEFIDetectedValue).
+				SetInflationAttributes(matchResultValue, inflationTypeValue, inflationTimeValue, shadowInflationTimeValue).
+				SetTraceLogs(traceLogs).
+				Build())
+		}
 	}
-	assert.Equal(t, expected, SingleImageImportLoggable(format, sourceGb, targetGb,
-		matchResultValue, inflationTypeValue, inflationTimeValue, shadowInflationTimeValue, traceLogs))
 }

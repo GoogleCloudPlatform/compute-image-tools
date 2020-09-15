@@ -17,16 +17,18 @@ package importer
 import (
 	"log"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
 )
 
 type dataDiskProcessor struct {
-	client  createImageClient
-	project string
-	request compute.Image
+	computeImageClient daisyCompute.Client
+	project            string
+	request            compute.Image
 }
 
-func newDataDiskProcessor(pd persistentDisk, client createImageClient, project string,
+func newDataDiskProcessor(pd persistentDisk, client daisyCompute.Client, project string,
 	userLabels map[string]string, userStorageLocation string,
 	description string, family string, imageName string) processor {
 	labels := map[string]string{"gce-image-import": "true"}
@@ -39,8 +41,8 @@ func newDataDiskProcessor(pd persistentDisk, client createImageClient, project s
 	}
 
 	return &dataDiskProcessor{
-		client:  client,
-		project: project,
+		computeImageClient: client,
+		project:            project,
 		request: compute.Image{
 			Description:      description,
 			Family:           family,
@@ -57,17 +59,14 @@ func (d dataDiskProcessor) traceLogs() []string {
 	return []string{}
 }
 
-func (d dataDiskProcessor) process() (err error) {
+func (d dataDiskProcessor) process(pd persistentDisk,
+	loggableBuilder *service.SingleImageImportLoggableBuilder) (persistentDisk, error) {
+
 	log.Printf("Creating image \"%v\"", d.request.Name)
-	return d.client.CreateImage(d.project, &d.request)
+	return pd, d.computeImageClient.CreateImage(d.project, &d.request)
 }
 
 func (d dataDiskProcessor) cancel(reason string) bool {
 	//indicate cancel was not performed
 	return false
-}
-
-// createImageClient is the subset of the GCP compute API that is used by dataDiskProcessor.
-type createImageClient interface {
-	CreateImage(project string, i *compute.Image) error
 }

@@ -21,47 +21,46 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 type bootableDiskProcessor struct {
-	workflow        *daisy.Workflow
-	userLabels      map[string]string
-	storageLocation string
-	uefiCompatible  bool
-	noExternalIP    bool
-	network         string
-	OS              string
+	args     ImportArguments
+	workflow *daisy.Workflow
 }
 
-func (b bootableDiskProcessor) process() (err error) {
+func (b *bootableDiskProcessor) process(pd persistentDisk,
+	loggableBuilder *service.SingleImageImportLoggableBuilder) (persistentDisk, error) {
+
+	b.workflow.AddVar("source_disk", pd.uri)
+	var err error
 	err = b.workflow.RunWithModifiers(context.Background(), b.preValidateFunc(), b.postValidateFunc())
 	if err != nil {
-		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.network, b.workflow)
-		err = customizeErrorToDetectionResults(b.OS,
+		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.args.Network, b.workflow)
+		err = customizeErrorToDetectionResults(b.args.OS,
 			b.workflow.GetSerialConsoleOutputValue("detected_distro"),
 			b.workflow.GetSerialConsoleOutputValue("detected_major_version"),
 			b.workflow.GetSerialConsoleOutputValue("detected_minor_version"), err)
 	}
-	return err
+	return pd, err
 }
 
-func (b bootableDiskProcessor) cancel(reason string) bool {
+func (b *bootableDiskProcessor) cancel(reason string) bool {
 	b.workflow.CancelWithReason(reason)
 	return true
 }
 
-func (b bootableDiskProcessor) traceLogs() []string {
+func (b *bootableDiskProcessor) traceLogs() []string {
 	if b.workflow.Logger != nil {
 		return b.workflow.Logger.ReadSerialPortLogs()
 	}
 	return []string{}
 }
 
-func newBootableDiskProcessor(args ImportArguments, pd persistentDisk) (processor, error) {
+func newBootableDiskProcessor(args ImportArguments) (processor, error) {
 	var translateWorkflowPath string
 	if args.CustomWorkflow != "" {
 		translateWorkflowPath = args.CustomWorkflow
@@ -74,7 +73,6 @@ func newBootableDiskProcessor(args ImportArguments, pd persistentDisk) (processo
 		"image_name":           args.ImageName,
 		"install_gce_packages": strconv.FormatBool(!args.NoGuestEnvironment),
 		"sysprep":              strconv.FormatBool(args.SysprepWindows),
-		"source_disk":          pd.uri,
 		"family":               args.Family,
 		"description":          args.Description,
 		"import_subnet":        args.Subnet,
@@ -94,25 +92,20 @@ func newBootableDiskProcessor(args ImportArguments, pd persistentDisk) (processo
 	workflow.Name = LogPrefix
 
 	return &bootableDiskProcessor{
-		workflow:        workflow,
-		userLabels:      args.Labels,
-		storageLocation: args.StorageLocation,
-		uefiCompatible:  args.UefiCompatible,
-		noExternalIP:    args.NoExternalIP,
-		network:         args.Network,
-		OS:              args.OS,
+		args:     args,
+		workflow: workflow,
 	}, err
 }
 
-func (b bootableDiskProcessor) postValidateFunc() daisy.WorkflowModifier {
+func (b *bootableDiskProcessor) postValidateFunc() daisy.WorkflowModifier {
 	return func(w *daisy.Workflow) {
 		buildID := os.Getenv(daisy_utils.BuildIDOSEnvVarName)
 		w.LogWorkflowInfo("Cloud Build ID: %s", buildID)
 		rl := &daisy_utils.ResourceLabeler{
 			BuildID:         buildID,
-			UserLabels:      b.userLabels,
+			UserLabels:      b.args.Labels,
 			BuildIDLabelKey: "gce-image-import-build-id",
-			ImageLocation:   b.storageLocation,
+			ImageLocation:   b.args.StorageLocation,
 			InstanceLabelKeyRetriever: func(instanceName string) string {
 				return "gce-image-import-tmp"
 			},
@@ -127,14 +120,11 @@ func (b bootableDiskProcessor) postValidateFunc() daisy.WorkflowModifier {
 				return imageTypeLabel
 			}}
 		rl.LabelResources(w)
-		daisy_utils.UpdateAllInstanceNoExternalIP(w, b.noExternalIP)
-		if b.uefiCompatible {
-			daisy_utils.UpdateToUEFICompatible(w)
-		}
+		daisy_utils.UpdateAllInstanceNoExternalIP(w, b.args.NoExternalIP)
 	}
 }
 
-func (b bootableDiskProcessor) preValidateFunc() daisy.WorkflowModifier {
+func (b *bootableDiskProcessor) preValidateFunc() daisy.WorkflowModifier {
 	return func(w *daisy.Workflow) {
 		w.SetLogProcessHook(daisy_utils.RemovePrivacyLogTag)
 	}

@@ -21,6 +21,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	string_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
@@ -56,14 +57,15 @@ const (
 	sigShadowInflaterErr  = "shadow err"
 )
 
-func (facade *inflaterFacade) inflate() (persistentDisk, error) {
+func (facade *inflaterFacade) inflate(loggableBuilder *service.SingleImageImportLoggableBuilder) (persistentDisk, inflationInfo, error) {
 	inflaterChan := make(chan string)
 
 	// Launch main inflater.
 	var pd persistentDisk
+	var ii inflationInfo
 	var err error
 	go func() {
-		pd, err = facade.mainInflater.inflate()
+		pd, ii, err = facade.mainInflater.inflate(loggableBuilder)
 		if err != nil {
 			inflaterChan <- sigMainInflaterErr
 		} else {
@@ -73,9 +75,10 @@ func (facade *inflaterFacade) inflate() (persistentDisk, error) {
 
 	// Launch shadow inflater.
 	var shadowPd persistentDisk
+	var shadowIi inflationInfo
 	var shadowErr error
 	go func() {
-		shadowPd, shadowErr = facade.shadowInflater.inflate()
+		shadowPd, shadowIi, shadowErr = facade.shadowInflater.inflate(loggableBuilder)
 		if shadowErr != nil {
 			inflaterChan <- sigShadowInflaterErr
 		} else {
@@ -83,34 +86,38 @@ func (facade *inflaterFacade) inflate() (persistentDisk, error) {
 		}
 	}()
 
+	var matchResult string
+
 	// Return early if main inflater finished first.
 	result := <-inflaterChan
 	if result == sigMainInflaterDone || result == sigMainInflaterErr {
 		if result == sigMainInflaterDone {
-			pd.matchResult = "Main inflater finished earlier"
+			matchResult = "Main inflater finished earlier"
 		}
-		return pd, err
+		return pd, ii, err
 	}
 
 	// Wait for main inflater to finish, then process shadow inflater's result.
 	mainResult := <-inflaterChan
 	if result == sigShadowInflaterDone {
 		if mainResult == sigMainInflaterErr {
-			pd.matchResult = "Main inflater failed while shadow inflater succeeded"
+			matchResult = "Main inflater failed while shadow inflater succeeded"
 		} else {
-			facade.compareWithShadowInflater(&pd, &shadowPd)
+			matchResult = facade.compareWithShadowInflater(&pd, &shadowPd, &ii, &shadowIi)
 		}
 	} else if result == sigShadowInflaterErr && mainResult == sigMainInflaterDone {
 		if isCausedByUnsupportedFormat(shadowErr) {
-			pd.matchResult = "Shadow inflater doesn't support the format while main inflater supports"
+			matchResult = "Shadow inflater doesn't support the format while main inflater supports"
 		} else if isCausedByAlphaAPIAccess(shadowErr) {
-			pd.matchResult = "Shadow inflater not executed: no Alpha API access"
+			matchResult = "Shadow inflater not executed: no Alpha API access"
 		} else {
-			pd.matchResult = "Shadow inflater failed while main inflater succeeded"
+			matchResult = "Shadow inflater failed while main inflater succeeded"
 		}
 	}
 
-	return pd, err
+	loggableBuilder.SetInflationAttributes(matchResult, ii.inflationType, ii.inflationTime.Milliseconds(), shadowIi.inflationTime.Milliseconds())
+
+	return pd, ii, err
 }
 
 func (facade *inflaterFacade) cancel(reason string) bool {
@@ -122,11 +129,11 @@ func (facade *inflaterFacade) traceLogs() []string {
 	return facade.mainInflater.traceLogs()
 }
 
-func (facade *inflaterFacade) compareWithShadowInflater(mainPd, shadowPd *persistentDisk) {
+func (facade *inflaterFacade) compareWithShadowInflater(mainPd, shadowPd *persistentDisk, mainIi, shadowIi *inflationInfo) string {
 	matchFormat := "sizeGb-%v,sourceGb-%v,content-%v"
 	sizeGbMatch := shadowPd.sizeGb == mainPd.sizeGb
 	sourceGbMatch := shadowPd.sourceGb == mainPd.sourceGb
-	contentMatch := shadowPd.checksum == mainPd.checksum
+	contentMatch := shadowIi.checksum == mainIi.checksum
 	match := sizeGbMatch && sourceGbMatch && contentMatch
 
 	var result string
@@ -135,8 +142,7 @@ func (facade *inflaterFacade) compareWithShadowInflater(mainPd, shadowPd *persis
 	} else {
 		result = fmt.Sprintf(matchFormat, sizeGbMatch, sourceGbMatch, contentMatch)
 	}
-	mainPd.matchResult = result
-	mainPd.shadowInflationTime = shadowPd.inflationTime
+	return result
 }
 
 // inflater constructs a new persistentDisk, typically starting from a
@@ -144,7 +150,7 @@ func (facade *inflaterFacade) compareWithShadowInflater(mainPd, shadowPd *persis
 //
 // Implementers can expose detailed logs using the traceLogs() method.
 type inflater interface {
-	inflate() (persistentDisk, error)
+	inflate(*service.SingleImageImportLoggableBuilder) (persistentDisk, inflationInfo, error)
 	traceLogs() []string
 	cancel(reason string) bool
 }
@@ -157,7 +163,7 @@ type daisyInflater struct {
 	serialLogs      []string
 }
 
-func (inflater *daisyInflater) inflate() (persistentDisk, error) {
+func (inflater *daisyInflater) inflate(_ *service.SingleImageImportLoggableBuilder) (persistentDisk, inflationInfo, error) {
 	startTime := time.Now()
 	err := inflater.wf.Run(context.Background())
 	if inflater.wf.Logger != nil {
@@ -169,27 +175,30 @@ func (inflater *daisyInflater) inflate() (persistentDisk, error) {
 	importFileFormat := inflater.wf.GetSerialConsoleOutputValue("import-file-format")
 	checksum := inflater.wf.GetSerialConsoleOutputValue("disk-checksum")
 	return persistentDisk{
-		uri:           inflater.inflatedDiskURI,
-		sizeGb:        string_utils.SafeStringToInt(targetSizeGB),
-		sourceGb:      string_utils.SafeStringToInt(sourceSizeGB),
-		sourceType:    importFileFormat,
-		checksum:      checksum,
-		inflationTime: time.Since(startTime),
-	}, err
+			uri:        inflater.inflatedDiskURI,
+			sizeGb:     string_utils.SafeStringToInt(targetSizeGB),
+			sourceGb:   string_utils.SafeStringToInt(sourceSizeGB),
+			sourceType: importFileFormat,
+		}, inflationInfo{
+			checksum:      checksum,
+			inflationTime: time.Since(startTime),
+			inflationType: "qemu",
+		}, err
 }
 
 type persistentDisk struct {
-	uri        string
-	sizeGb     int64
-	sourceGb   int64
-	sourceType string
+	uri              string
+	sizeGb           int64
+	sourceGb         int64
+	sourceType       string
+	isUEFICompatible bool
+}
 
-	// Below fields are for shadow API inflation test
-	checksum            string
-	inflationTime       time.Duration
-	shadowInflationTime time.Duration
-	matchResult         string
-	inflationType       string
+type inflationInfo struct {
+	// Below fields are for shadow API inflation metrics
+	checksum      string
+	inflationTime time.Duration
+	inflationType string
 }
 
 func createInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client, inspector imagefile.Inspector) (inflater, error) {

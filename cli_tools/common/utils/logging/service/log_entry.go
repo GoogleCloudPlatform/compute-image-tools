@@ -250,6 +250,10 @@ type OutputInfo struct {
 	ShadowInflationTime []int64 `json:"shadow_inflation_time_ms,omitempty"`
 	// Shadow disk match result for shadow disk inflater
 	ShadowDiskMatchResult string `json:"shadow_disk_match_result,omitempty"`
+	// Indicates whether UEFI_COMPATIBLE was added to the image's guestOSFeatures, either due to inspection or user request
+	IsUEFICompatibleImage bool `json:"is_uefi_compatible_image,omitempty"`
+	// Indicates whether the image is auto-detected to be UEFI compatible
+	IsUEFIDetected bool `json:"is_uefi_detected,omitempty"`
 }
 
 func (l *Logger) updateParams(projectPointer *string) {

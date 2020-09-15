@@ -16,7 +16,8 @@ package importer
 
 import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
-	"log"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 // processor represents the second (and final) phase of import. For bootable
@@ -25,35 +26,37 @@ import (
 //
 // Implementers can expose detailed logs using the traceLogs() method.
 type processor interface {
-	process() error
+	// Returns a pd with updated values. It can be a different pd with different URI.
+	process(persistentDisk, *service.SingleImageImportLoggableBuilder) (persistentDisk, error)
 	traceLogs() []string
 	cancel(reason string) bool
 }
 
 // processorProvider allows the processor to be determined after the pd has been inflated.
 type processorProvider interface {
-	provide(pd persistentDisk) (processor, error)
+	provide(pd persistentDisk) ([]processor, error)
 }
 
 type defaultProcessorProvider struct {
 	ImportArguments
-	imageClient   createImageClient
+	computeClient daisyCompute.Client
 	diskInspector disk.Inspector
 }
 
-func (d defaultProcessorProvider) provide(pd persistentDisk) (processor, error) {
+func (d defaultProcessorProvider) provide(pd persistentDisk) (processors []processor, err error) {
 	if d.DataDisk {
-		return newDataDiskProcessor(pd, d.imageClient, d.Project,
+		processors = append(processors, newDataDiskProcessor(pd, d.computeClient, d.Project,
 			d.Labels, d.StorageLocation, d.Description,
-			d.Family, d.ImageName), nil
+			d.Family, d.ImageName))
+		return
 	}
-	if d.Inspect && d.diskInspector != nil {
-		log.Printf("Running experimental disk inspections on %v.", pd.uri)
-		inspectionResult, err := d.diskInspector.Inspect(pd.uri)
-		if err != nil {
-			return nil, err
-		}
-		log.Printf("Inspection result=%v", inspectionResult)
+
+	processors = append(processors, newDiskInspectionProcessor(d.diskInspector, d.ImportArguments))
+	processors = append(processors, newUefiProcessor(d.computeClient, d.ImportArguments))
+	bootableDiskProcessor, err := newBootableDiskProcessor(d.ImportArguments)
+	if err != nil {
+		return
 	}
-	return newBootableDiskProcessor(d.ImportArguments, pd)
+	processors = append(processors, bootableDiskProcessor)
+	return
 }

@@ -65,6 +65,8 @@ const (
 	inflationTime         = "inflation-time"
 	shadowInflationTime   = "shadow-inflation-time"
 	shadowDiskMatchResult = "shadow-disk-match-result"
+	isUEFICompatibleImage = "is-uefi-compatible-image"
+	isUEFIDetected        = "is-uefi-detected"
 
 	statusStart   = "Start"
 	statusSuccess = "Success"
@@ -186,6 +188,8 @@ func (l *Logger) getOutputInfo(loggable Loggable, err error) *OutputInfo {
 		o.InflationTime = loggable.GetValueAsInt64Slice(inflationTime)
 		o.ShadowInflationTime = loggable.GetValueAsInt64Slice(shadowInflationTime)
 		o.ShadowDiskMatchResult = loggable.GetValue(shadowDiskMatchResult)
+		o.IsUEFICompatibleImage = loggable.GetValueAsBool(isUEFICompatibleImage)
+		o.IsUEFIDetected = loggable.GetValueAsBool(isUEFIDetected)
 	}
 
 	if err != nil {
@@ -376,6 +380,7 @@ func Hash(s string) string {
 // Loggable contains fields relevant to import and export logging.
 type Loggable interface {
 	GetValue(key string) string
+	GetValueAsBool(key string) bool
 	GetValueAsInt64Slice(key string) []int64
 	ReadSerialPortLogs() []string
 }

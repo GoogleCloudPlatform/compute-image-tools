@@ -25,6 +25,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/common/assert"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/common/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/common/utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
@@ -72,7 +73,6 @@ func CLITestSuite(
 		testsMap[testType][imageImportWithRichParamsTestCase] = runImageImportWithRichParamsTest
 		testsMap[testType][imageImportWithDifferentNetworkParamStylesTestCase] = runImageImportWithDifferentNetworkParamStyles
 		testsMap[testType][imageImportWithSubnetWithoutNetworkSpecifiedTestCase] = runImageImportWithSubnetWithoutNetworkSpecified
-
 	}
 	utils.CLITestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
 		testProjectConfig, testSuiteName, testsMap)
@@ -328,9 +328,8 @@ func verifyImportedImage(ctx context.Context, testCase *junitxml.TestCase,
 		for k, v := range image.Labels {
 			imageLabels = append(imageLabels, k+"="+v)
 		}
-		if !contains(imageLabels, expectedLabels) {
-			utils.Failure(testCase, logger, fmt.Sprintf("Image '%v' labels expect: %v, actual: %v", imageName, strings.Join(expectedLabels, ","), strings.Join(imageLabels, ",")))
-		}
+		assert.ContainsAll(imageLabels, expectedLabels, testCase, logger,
+			fmt.Sprintf("Image '%v' labels expect: %v, actual: %v", imageName, strings.Join(expectedLabels, ","), strings.Join(imageLabels, ",")))
 	}
 
 	if err := image.Cleanup(); err != nil {
@@ -338,20 +337,4 @@ func verifyImportedImage(ctx context.Context, testCase *junitxml.TestCase,
 	} else {
 		logger.Printf("Image '%v' cleaned up.", imageName)
 	}
-}
-
-func contains(arr []string, subarr []string) bool {
-	for item := range subarr {
-		exists := false
-		for i := range arr {
-			if item == i {
-				exists = true
-				break
-			}
-		}
-		if !exists {
-			return false
-		}
-	}
-	return true
 }

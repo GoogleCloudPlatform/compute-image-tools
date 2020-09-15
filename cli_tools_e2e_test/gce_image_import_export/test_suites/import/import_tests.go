@@ -29,6 +29,8 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/common/assert"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/common/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
@@ -43,6 +45,9 @@ const (
 
 type testCase struct {
 	caseName string
+
+	// Imported image name.
+	imageName string
 
 	// Specify either image for file.
 	source string
@@ -59,9 +64,18 @@ type testCase struct {
 
 	// Whether the image-under-test is expected to have the OS config agent installed.
 	osConfigNotSupported bool
+
+	// Expect to see all given strings in guestOsFeatures
+	requiredGuestOsFeatures []string
+
+	// Expect to see none of given strings in guestOsFeatures
+	notAllowedGuestOsFeatures []string
+
+	// Whether to add "inspect" arg
+	inspect bool
 }
 
-var cases = []testCase{
+var basicCases = []*testCase{
 	{
 		caseName: "debian-9",
 		source:   "projects/compute-image-tools-test/global/images/debian-9-translate",
@@ -71,94 +85,172 @@ var cases = []testCase{
 		source:               "projects/compute-image-tools-test/global/images/ubuntu-1404-img-import",
 		os:                   "ubuntu-1404",
 		osConfigNotSupported: true,
+		inspect:              true,
 	}, {
 		caseName:             "ubuntu-1604",
 		source:               "projects/compute-image-tools-test/global/images/ubuntu-1604-vmware-import",
 		os:                   "ubuntu-1604",
 		osConfigNotSupported: true,
+		inspect:              true,
 	}, {
 		caseName:             "ubuntu-1804",
 		source:               "gs://compute-image-tools-test-resources/ubuntu-1804-vmware.vmdk",
 		os:                   "ubuntu-1804",
 		osConfigNotSupported: true,
+		inspect:              true,
 	}, {
 		caseName:             "ubuntu-2004",
 		source:               "projects/compute-image-tools-test/global/images/ubuntu-2004",
 		os:                   "ubuntu-2004",
 		osConfigNotSupported: true,
+		inspect:              true,
 	}, {
 		caseName:             "ubuntu-2004-aws",
 		source:               "projects/compute-image-tools-test/global/images/ubuntu-2004-aws",
 		os:                   "ubuntu-2004",
 		osConfigNotSupported: true,
+		inspect:              true,
 	}, {
 		caseName:      "incorrect OS specified",
 		source:        "projects/compute-image-tools-test/global/images/debian-9-translate",
 		os:            "opensuse-15",
 		expectedError: "\"debian-9\" was detected on your disk, but \"opensuse-15\" was specified",
+		inspect:       true,
 	},
 	// EL
 	{
 		caseName: "el-centos-7-8",
 		source:   "projects/compute-image-tools-test/global/images/centos-7-8",
 		os:       "centos-7",
+		inspect:  true,
 	}, {
 		caseName: "el-centos-8-0",
 		source:   "projects/compute-image-tools-test/global/images/centos-8-import",
 		os:       "centos-8",
+		inspect:  true,
 	}, {
 		caseName: "el-centos-8-2",
 		source:   "projects/compute-image-tools-test/global/images/centos-8-2",
 		os:       "centos-8",
+		inspect:  true,
 	}, {
 		caseName:  "el-rhel-7-uefi",
 		source:    "projects/compute-image-tools-test/global/images/linux-uefi-no-guestosfeature-rhel7",
 		os:        "rhel-7",
 		extraArgs: []string{"-uefi_compatible=true"},
+		inspect:   true,
 	}, {
 		caseName: "el-rhel-7-8",
 		source:   "projects/compute-image-tools-test/global/images/rhel-7-8",
 		os:       "rhel-7",
+		inspect:  true,
 	}, {
 		caseName: "el-rhel-8-0",
 		source:   "projects/compute-image-tools-test/global/images/rhel-8-0",
 		os:       "rhel-8",
+		inspect:  true,
 	}, {
 		caseName: "el-rhel-8-2",
 		source:   "projects/compute-image-tools-test/global/images/rhel-8-2",
 		os:       "rhel-8",
+		inspect:  true,
 	}, {
 		caseName:  "windows-2019-uefi",
 		source:    "projects/compute-image-tools-test/global/images/windows-2019-uefi-nodrivers",
 		os:        "windows-2019",
 		extraArgs: []string{"-uefi_compatible=true"},
+		inspect:   true,
 	}, {
 		caseName: "windows-10-x86-byol",
 		source:   "projects/compute-image-tools-test/global/images/windows-10-1909-ent-x86-nodrivers",
 		os:       "windows-10-x86-byol",
+		inspect:  true,
 	},
 }
 
-func (t testCase) run(ctx context.Context, junit *junitxml.TestCase, logger *log.Logger,
+var inspectUEFICases = []*testCase{
+	{
+		caseName: "inspect-uefi-linux-uefi-rhel-7",
+		// source created from projects/gce-uefi-images/global/images/rhel-7-v20200403
+		source:                  "gs://compute-image-tools-test-resources/uefi/linux-uefi-rhel-7.vmdk",
+		os:                      "rhel-7",
+		requiredGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
+	}, {
+		caseName: "inspect-uefi-linux-uefi-rhel-7-from-image",
+		// image created from projects/gce-uefi-images/global/images/rhel-7-v20200403 and removed UEFI_COMPATIBLE
+		source:                  "projects/compute-image-tools-test/global/images/linux-uefi-no-guestosfeature-rhel7",
+		os:                      "rhel-7",
+		requiredGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
+	}, {
+		caseName: "inspect-uefi-linux-nonuefi-debian-9",
+		// source created from projects/debian-cloud/global/images/debian-9-stretch-v20200714
+		source:                    "gs://compute-image-tools-test-resources/uefi/linux-nonuefi-debian-9.vmdk",
+		os:                        "debian-9",
+		notAllowedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
+	}, {
+		caseName: "inspect-uefi-linux-hybrid-ubuntu-1804",
+		// source created from projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317
+		source:                  "gs://compute-image-tools-test-resources/uefi/linux-hybrid-ubuntu-1804.vmdk",
+		os:                      "ubuntu-1804",
+		osConfigNotSupported:    true,
+		requiredGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
+	}, {
+		caseName: "inspect-uefi-linux-mbr-uefi-rhel-7",
+		// source created from projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317 and converted from GPT to MBR
+		source:                  "gs://compute-image-tools-test-resources/uefi/linux-ubuntu-mbr-uefi.vmdk",
+		os:                      "ubuntu-1804",
+		osConfigNotSupported:    true,
+		requiredGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
+	}, {
+		caseName: "inspect-uefi-windows-uefi-windows",
+		// source created from projects/gce-uefi-images/global/images/windows-server-2019-dc-core-v20200609
+		source:                  "gs://compute-image-tools-test-resources/uefi/windows-uefi-2019.vmdk",
+		os:                      "windows-2019",
+		requiredGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
+	}, {
+		caseName: "inspect-uefi-windows-nonuefi-windows",
+		// source created from projects/windows-cloud/global/images/windows-server-2019-dc-v20200114
+		source:                    "gs://compute-image-tools-test-resources/uefi/windows-nonuefi-2019.vmdk",
+		os:                        "windows-2019",
+		notAllowedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
+	},
+}
+
+func (t *testCase) run(ctx context.Context, junit *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
+
 	start := time.Now()
 	logger = t.createTestScopedLogger(junit, logger)
-	imageName := "e2e-test-image-import" + path.RandString(5)
-	imagePath := fmt.Sprintf("projects/%s/global/images/%s", testProjectConfig.TestProjectID, imageName)
+	t.imageName = "e2e-test-image-import" + path.RandString(5)
+	imagePath := fmt.Sprintf("projects/%s/global/images/%s", testProjectConfig.TestProjectID, t.imageName)
 
-	importLogs, err := t.runImport(junit, logger, testProjectConfig, imageName)
+	importLogs, err := t.runImport(junit, logger, testProjectConfig, t.imageName)
 
 	if t.expectedError != "" {
 		t.verifyExpectedError(junit, err, importLogs)
 	} else if err != nil {
 		t.writeImportFailed(junit, importLogs)
 	} else {
+		t.verifyImage(ctx, junit, logger, testProjectConfig)
 		err = t.runPostTranslateTest(ctx, imagePath, testProjectConfig, logger)
 		if err != nil {
 			junit.WriteFailure("Failed post translate test: %v", err)
 		}
 	}
 	junit.Time = time.Now().Sub(start).Seconds()
+}
+
+func (t *testCase) verifyImage(ctx context.Context, junit *junitxml.TestCase, logger *log.Logger, testProjectConfig *testconfig.Project) {
+	logger.Printf("Verifying imported image...")
+	image, err := compute.CreateImageObject(ctx, testProjectConfig.TestProjectID, t.imageName)
+	if err != nil {
+		junit.WriteFailure("Image '%v' doesn't exist after import: %v", t.imageName, err)
+		logger.Printf("Image '%v' doesn't exist after import: %v", t.imageName, err)
+		return
+	}
+	logger.Printf("Image '%v' exists! Import finished.", t.imageName)
+
+	assert.GuestOSFeatures(t.requiredGuestOsFeatures, t.notAllowedGuestOsFeatures, image.GuestOsFeatures, junit, logger)
 }
 
 // createTestScopedLogger returns a new logger that is prefixed with the name of the test.
@@ -171,11 +263,13 @@ func (t testCase) runImport(junit *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, imageName string) (*bytes.Buffer, error) {
 	args := []string{
 		"-client_id", "e2e",
-		"-inspect",
 		"-os", t.os,
 		"-project", testProjectConfig.TestProjectID,
 		"-zone", testProjectConfig.TestZone,
 		"-image_name", imageName,
+	}
+	if t.inspect {
+		args = append(args, "-inspect")
 	}
 	if strings.Contains(t.source, "gs://") {
 		args = append(args, "-source_file", t.source)
@@ -247,6 +341,13 @@ func (t testCase) testScript() string {
 	return "post_translate_test.sh"
 }
 
+func getAllTestCases() []*testCase {
+	var cases []*testCase
+	cases = append(cases, basicCases...)
+	cases = append(cases, inspectUEFICases...)
+	return cases
+}
+
 // ImageImportSuite performs image imports, and verifies that the results are bootable and are
 // are able to perform basic GCP operations. The suite includes support for negative test cases,
 // where error messages are validated against expected error messages.
@@ -258,9 +359,11 @@ func ImageImportSuite(
 	junits := map[*junitxml.TestCase]func(
 		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, utils.CLITestType){}
 
-	for _, testCase := range cases {
+	cases := getAllTestCases()
+	for _, tc := range cases {
+		testCase := *tc
 		junit := junitxml.NewTestCase(
-			suite, fmt.Sprintf("[%v]", testCase.caseName))
+			suite, fmt.Sprintf("[%v]", tc.caseName))
 		junits[junit] = testCase.run
 	}
 
