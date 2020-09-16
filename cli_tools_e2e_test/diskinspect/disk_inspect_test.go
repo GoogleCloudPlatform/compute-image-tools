@@ -82,7 +82,7 @@ func TestBootInspect(t *testing.T) {
 			},
 		},
 	} {
-		// Without this, each parallel test will reference the same tc instance.
+		// Without this, each parallel test will reference the last tt instance.
 		// https://github.com/golang/go/wiki/CommonMistakes#using-goroutines-on-loop-iterator-variables
 		tt := tt
 		t.Run(tt.imageURI, func(t *testing.T) {
