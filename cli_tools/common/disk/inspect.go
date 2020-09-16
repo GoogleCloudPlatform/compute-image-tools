@@ -69,7 +69,8 @@ func (inspector *defaultInspector) Inspect(reference string, inspectOS bool) (ir
 		return
 	}
 
-	ir.HasEFIPartition, _ = strconv.ParseBool(inspector.wf.GetSerialConsoleOutputValue("has_efi_partition"))
+	// TODO: Mute the UEFI detection results for now. Restore it till we got the reason of b/168671324
+	// ir.HasEFIPartition, _ = strconv.ParseBool(inspector.wf.GetSerialConsoleOutputValue("has_efi_partition"))
 	return
 }
 
