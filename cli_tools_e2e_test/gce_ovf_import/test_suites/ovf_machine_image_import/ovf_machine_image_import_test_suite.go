@@ -43,9 +43,10 @@ const (
 
 var (
 	cmds = map[utils.CLITestType]string{
-		utils.Wrapper:                   "./gce_ovf_import",
-		utils.GcloudProdWrapperLatest:   "gcloud",
-		utils.GcloudLatestWrapperLatest: "gcloud",
+		utils.Wrapper:                       "./gce_ovf_import",
+		utils.GcloudBetaProdWrapperLatest:   "gcloud",
+		utils.GcloudBetaLatestWrapperLatest: "gcloud",
+		utils.GcloudGaLatestWrapperRelease:  "gcloud",
 	}
 
 	// Apply this as instance metadata if the OS config agent is not
@@ -80,8 +81,8 @@ func TestSuite(
 
 	testTypes := []utils.CLITestType{
 		utils.Wrapper,
-		utils.GcloudProdWrapperLatest,
-		utils.GcloudLatestWrapperLatest,
+		utils.GcloudBetaProdWrapperLatest,
+		utils.GcloudBetaLatestWrapperLatest,
 	}
 	for _, testType := range testTypes {
 		machineImageImportUbuntu3DisksTestCase := junitxml.NewTestCase(
@@ -212,9 +213,15 @@ func runOVFMachineImageImportNetworkSettingsPath(ctx context.Context, testCase *
 }
 
 func buildTestArgs(props *ovfMachineImageImportTestProperties, testProjectConfig *testconfig.Project) map[utils.CLITestType][]string {
-	gcloudArgs := []string{
+	gcloudBetaArgs := []string{
 		"beta", "compute", "machine-images", "import", props.machineImageName, "--quiet",
 		"--docker-image-tag=latest",
+		fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+		fmt.Sprintf("--source-uri=%v", props.sourceURI),
+		fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+	}
+	gcloudArgs := []string{
+		"compute", "machine-images", "import", props.machineImageName, "--quiet",
 		fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
 		fmt.Sprintf("--source-uri=%v", props.sourceURI),
 		fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
@@ -226,30 +233,36 @@ func buildTestArgs(props *ovfMachineImageImportTestProperties, testProjectConfig
 	}
 
 	if props.os != "" {
-		gcloudArgs = append(gcloudArgs, fmt.Sprintf("--os=%v", props.os))
+		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--os=%v", props.os))
+		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--os=%v", props.os))
 		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-os=%v", props.os))
 	}
 	if props.machineType != "" {
-		gcloudArgs = append(gcloudArgs, fmt.Sprintf("--machine-type=%v", props.machineType))
+		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--machine-type=%v", props.machineType))
+		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--machine-type=%v", props.machineType))
 		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-machine-type=%v", props.machineType))
 	}
 	if props.network != "" {
-		gcloudArgs = append(gcloudArgs, fmt.Sprintf("--network=%v", props.network))
+		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--network=%v", props.network))
+		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--network=%v", props.network))
 		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-network=%v", props.network))
 	}
 	if props.subnet != "" {
-		gcloudArgs = append(gcloudArgs, fmt.Sprintf("--subnet=%v", props.subnet))
+		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--subnet=%v", props.subnet))
+		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--subnet=%v", props.subnet))
 		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-subnet=%v", props.subnet))
 	}
 	if props.storageLocation != "" {
-		gcloudArgs = append(gcloudArgs, fmt.Sprintf("--storage-location=%v", props.storageLocation))
+		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--storage-location=%v", props.storageLocation))
+		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--storage-location=%v", props.storageLocation))
 		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-machine-image-storage-location=%v", props.storageLocation))
 	}
 
 	argsMap := map[utils.CLITestType][]string{
-		utils.Wrapper:                   wrapperArgs,
-		utils.GcloudProdWrapperLatest:   gcloudArgs,
-		utils.GcloudLatestWrapperLatest: gcloudArgs,
+		utils.Wrapper:                       wrapperArgs,
+		utils.GcloudBetaProdWrapperLatest:   gcloudBetaArgs,
+		utils.GcloudBetaLatestWrapperLatest: gcloudBetaArgs,
+		utils.GcloudGaLatestWrapperRelease:  gcloudArgs,
 	}
 	return argsMap
 }

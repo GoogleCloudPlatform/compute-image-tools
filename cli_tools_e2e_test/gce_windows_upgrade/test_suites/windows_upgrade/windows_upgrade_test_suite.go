@@ -41,9 +41,9 @@ const (
 
 var (
 	cmds = map[utils.CLITestType]string{
-		utils.Wrapper:                   "./gce_windows_upgrade",
-		utils.GcloudProdWrapperLatest:   "gcloud",
-		utils.GcloudLatestWrapperLatest: "gcloud",
+		utils.Wrapper:                       "./gce_windows_upgrade",
+		utils.GcloudBetaProdWrapperLatest:   "gcloud",
+		utils.GcloudBetaLatestWrapperLatest: "gcloud",
 	}
 )
 
@@ -55,8 +55,8 @@ func TestSuite(
 
 	testTypes := []utils.CLITestType{
 		utils.Wrapper,
-		utils.GcloudProdWrapperLatest,
-		utils.GcloudLatestWrapperLatest,
+		utils.GcloudBetaProdWrapperLatest,
+		utils.GcloudBetaLatestWrapperLatest,
 	}
 
 	testsMap := map[utils.CLITestType]map[*junitxml.TestCase]func(
@@ -114,14 +114,14 @@ func runWindowsUpgradeNormalCase(ctx context.Context, testCase *junitxml.TestCas
 			fmt.Sprintf("-target-os=%v", "windows-2012r2"),
 			fmt.Sprintf("-instance=%v", instance),
 		},
-		utils.GcloudProdWrapperLatest: {
+		utils.GcloudBetaProdWrapperLatest: {
 			"beta", "compute", "os-config", "os-upgrade", "--quiet", "--docker-image-tag=latest",
 			fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
 			fmt.Sprintf("--source-os=%v", "windows-2008r2"),
 			fmt.Sprintf("--target-os=%v", "windows-2012r2"),
 			instance,
 		},
-		utils.GcloudLatestWrapperLatest: {
+		utils.GcloudBetaLatestWrapperLatest: {
 			"beta", "compute", "os-config", "os-upgrade", "--quiet", "--docker-image-tag=latest",
 			fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
 			fmt.Sprintf("--source-os=%v", "windows-2008r2"),
@@ -154,7 +154,7 @@ func runWindowsUpgradeWithRichParamsAndLatestInstallMedia(ctx context.Context, t
 			fmt.Sprintf("-zone=%v", "fake-zone"),
 			"-use-staging-install-media",
 		},
-		utils.GcloudProdWrapperLatest: {
+		utils.GcloudBetaProdWrapperLatest: {
 			"beta", "compute", "os-config", "os-upgrade", "--quiet", "--docker-image-tag=latest",
 			fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
 			fmt.Sprintf("--source-os=%v", "windows-2008r2"),
@@ -166,7 +166,7 @@ func runWindowsUpgradeWithRichParamsAndLatestInstallMedia(ctx context.Context, t
 			"--use-staging-install-media",
 			instance,
 		},
-		utils.GcloudLatestWrapperLatest: {
+		utils.GcloudBetaLatestWrapperLatest: {
 			"beta", "compute", "os-config", "os-upgrade", "--quiet", "--docker-image-tag=latest",
 			fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
 			fmt.Sprintf("--source-os=%v", "windows-2008r2"),
@@ -243,7 +243,7 @@ func runWindowsUpgradeInsufficientDiskSpace(ctx context.Context, testCase *junit
 			fmt.Sprintf("-instance=%v", instance),
 			fmt.Sprintf("-auto-rollback"),
 		},
-		utils.GcloudProdWrapperLatest: {
+		utils.GcloudBetaProdWrapperLatest: {
 			"beta", "compute", "os-config", "os-upgrade", "--quiet", "--docker-image-tag=latest",
 			fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
 			fmt.Sprintf("--source-os=%v", "windows-2008r2"),
@@ -251,7 +251,7 @@ func runWindowsUpgradeInsufficientDiskSpace(ctx context.Context, testCase *junit
 			fmt.Sprintf("--auto-rollback"),
 			instance,
 		},
-		utils.GcloudLatestWrapperLatest: {
+		utils.GcloudBetaLatestWrapperLatest: {
 			"beta", "compute", "os-config", "os-upgrade", "--quiet", "--docker-image-tag=latest",
 			fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
 			fmt.Sprintf("--source-os=%v", "windows-2008r2"),
@@ -280,7 +280,7 @@ func runWindowsUpgradeBYOL(ctx context.Context, testCase *junitxml.TestCase, log
 			fmt.Sprintf("-instance=%v", instance),
 			fmt.Sprintf("-create-machine-backup=false"),
 		},
-		utils.GcloudProdWrapperLatest: {
+		utils.GcloudBetaProdWrapperLatest: {
 			"beta", "compute", "os-config", "os-upgrade", "--quiet", "--docker-image-tag=latest",
 			fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
 			fmt.Sprintf("--source-os=%v", "windows-2008r2"),
@@ -288,7 +288,7 @@ func runWindowsUpgradeBYOL(ctx context.Context, testCase *junitxml.TestCase, log
 			fmt.Sprintf("--no-create-machine-backup"),
 			instance,
 		},
-		utils.GcloudLatestWrapperLatest: {
+		utils.GcloudBetaLatestWrapperLatest: {
 			"beta", "compute", "os-config", "os-upgrade", "--quiet", "--docker-image-tag=latest",
 			fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
 			fmt.Sprintf("--source-os=%v", "windows-2008r2"),
@@ -396,7 +396,7 @@ func runTest(ctx context.Context, image string, args []string, testType utils.CL
 			success = true
 		}
 	} else {
-		isLatestGcloud := testType == utils.GcloudLatestWrapperLatest
+		isLatestGcloud := testType == utils.GcloudBetaLatestWrapperLatest
 		if !utils.GcloudUpdate(logger, testCase, isLatestGcloud) {
 			success = false
 		} else {

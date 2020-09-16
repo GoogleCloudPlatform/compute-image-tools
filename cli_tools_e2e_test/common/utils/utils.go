@@ -35,9 +35,10 @@ type CLITestType string
 
 // List all test types here
 const (
-	Wrapper                   CLITestType = "1 wrapper"
-	GcloudProdWrapperLatest   CLITestType = "2 gcloud-prod wrapper-latest"
-	GcloudLatestWrapperLatest CLITestType = "3 gcloud-latest wrapper-latest"
+	Wrapper                       CLITestType = "1 wrapper"
+	GcloudBetaProdWrapperLatest   CLITestType = "2 gcloud-beta-prod wrapper-latest"
+	GcloudBetaLatestWrapperLatest CLITestType = "3 gcloud-beta-latest wrapper-latest"
+	GcloudGaLatestWrapperRelease  CLITestType = "4 gcloud-ga-latest wrapper-release"
 )
 
 var (
@@ -233,14 +234,15 @@ func RunTestForTestType(cmd string, args []string, testType CLITestType, logger 
 		if !RunTestCommand(cmd, args, logger, testCase) {
 			return false
 		}
-	case GcloudProdWrapperLatest:
+	case GcloudBetaProdWrapperLatest:
 		if !GcloudUpdate(logger, testCase, false) {
 			return false
 		}
 		if !RunTestCommand(cmd, args, logger, testCase) {
 			return false
 		}
-	case GcloudLatestWrapperLatest:
+	case GcloudBetaLatestWrapperLatest:
+	case GcloudGaLatestWrapperRelease:
 		if !GcloudUpdate(logger, testCase, true) {
 			return false
 		}

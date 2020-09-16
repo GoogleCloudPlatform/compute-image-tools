@@ -42,8 +42,8 @@ func OnestepImageImportSuite(
 
 	testTypes := []utils.CLITestType{
 		utils.Wrapper,
-		utils.GcloudProdWrapperLatest,
-		utils.GcloudLatestWrapperLatest,
+		utils.GcloudBetaProdWrapperLatest,
+		utils.GcloudBetaLatestWrapperLatest,
 	}
 
 	testsMap := map[utils.CLITestType]map[*junitxml.TestCase]func(
@@ -162,9 +162,9 @@ func runOnestepImportTest(ctx context.Context, props *onestepImportAWSTestProper
 	args := buildTestArgs(props, testConfig)[testType]
 
 	cmds := map[utils.CLITestType]string{
-		utils.Wrapper:                   "./gce_onestep_image_import",
-		utils.GcloudProdWrapperLatest:   "gcloud",
-		utils.GcloudLatestWrapperLatest: "gcloud",
+		utils.Wrapper:                       "./gce_onestep_image_import",
+		utils.GcloudBetaProdWrapperLatest:   "gcloud",
+		utils.GcloudBetaLatestWrapperLatest: "gcloud",
 	}
 
 	if utils.RunTestForTestType(cmds[testType], args, testType, logger, testCase) {
@@ -214,9 +214,9 @@ func buildTestArgs(props *onestepImportAWSTestProperties, testProjectConfig *tes
 	}
 
 	argsMap := map[utils.CLITestType][]string{
-		utils.Wrapper:                   wrapperArgs,
-		utils.GcloudProdWrapperLatest:   gcloudArgs,
-		utils.GcloudLatestWrapperLatest: gcloudArgs,
+		utils.Wrapper:                       wrapperArgs,
+		utils.GcloudBetaProdWrapperLatest:   gcloudArgs,
+		utils.GcloudBetaLatestWrapperLatest: gcloudArgs,
 	}
 	return argsMap
 }

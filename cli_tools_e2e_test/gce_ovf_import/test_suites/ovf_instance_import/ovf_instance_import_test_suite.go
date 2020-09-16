@@ -42,9 +42,10 @@ const (
 
 var (
 	cmds = map[utils.CLITestType]string{
-		utils.Wrapper:                   "./gce_ovf_import",
-		utils.GcloudProdWrapperLatest:   "gcloud",
-		utils.GcloudLatestWrapperLatest: "gcloud",
+		utils.Wrapper:                       "./gce_ovf_import",
+		utils.GcloudBetaProdWrapperLatest:   "gcloud",
+		utils.GcloudBetaLatestWrapperLatest: "gcloud",
+		utils.GcloudGaLatestWrapperRelease:  "gcloud",
 	}
 	// Apply this as instance metadata if the OS config agent is not
 	// supported for the platform or version being imported.
@@ -77,8 +78,9 @@ func TestSuite(
 
 	testTypes := []utils.CLITestType{
 		utils.Wrapper,
-		utils.GcloudProdWrapperLatest,
-		utils.GcloudLatestWrapperLatest,
+		utils.GcloudBetaProdWrapperLatest,
+		utils.GcloudBetaLatestWrapperLatest,
+		utils.GcloudGaLatestWrapperRelease,
 	}
 	for _, testType := range testTypes {
 		instanceImportUbuntu3DisksTestCase := junitxml.NewTestCase(
@@ -314,9 +316,15 @@ func runOVFInstanceImportNetworkSettingsPath(ctx context.Context, testCase *juni
 }
 
 func buildTestArgs(props *ovfInstanceImportTestProperties, testProjectConfig *testconfig.Project) map[utils.CLITestType][]string {
-	gcloudArgs := []string{
+	gcloudBetaArgs := []string{
 		"beta", "compute", "instances", "import", props.instanceName, "--quiet",
 		"--docker-image-tag=latest",
+		fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+		fmt.Sprintf("--source-uri=%v", props.sourceURI),
+		fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+	}
+	gcloudArgs := []string{
+		"compute", "instances", "import", props.instanceName, "--quiet",
 		fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
 		fmt.Sprintf("--source-uri=%v", props.sourceURI),
 		fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
@@ -329,26 +337,31 @@ func buildTestArgs(props *ovfInstanceImportTestProperties, testProjectConfig *te
 	}
 
 	if props.os != "" {
-		gcloudArgs = append(gcloudArgs, fmt.Sprintf("--os=%v", props.os))
+		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--os=%v", props.os))
+		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--os=%v", props.os))
 		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-os=%v", props.os))
 	}
 	if props.machineType != "" {
-		gcloudArgs = append(gcloudArgs, fmt.Sprintf("--machine-type=%v", props.machineType))
+		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--machine-type=%v", props.machineType))
+		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--machine-type=%v", props.machineType))
 		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-machine-type=%v", props.machineType))
 	}
 	if props.network != "" {
-		gcloudArgs = append(gcloudArgs, fmt.Sprintf("--network=%v", props.network))
+		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--network=%v", props.network))
+		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--network=%v", props.network))
 		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-network=%v", props.network))
 	}
 	if props.subnet != "" {
-		gcloudArgs = append(gcloudArgs, fmt.Sprintf("--subnet=%v", props.subnet))
+		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--subnet=%v", props.subnet))
+		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--subnet=%v", props.subnet))
 		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-subnet=%v", props.subnet))
 	}
 
 	argsMap := map[utils.CLITestType][]string{
-		utils.Wrapper:                   wrapperArgs,
-		utils.GcloudProdWrapperLatest:   gcloudArgs,
-		utils.GcloudLatestWrapperLatest: gcloudArgs,
+		utils.Wrapper:                       wrapperArgs,
+		utils.GcloudBetaProdWrapperLatest:   gcloudBetaArgs,
+		utils.GcloudBetaLatestWrapperLatest: gcloudBetaArgs,
+		utils.GcloudGaLatestWrapperRelease:  gcloudArgs,
 	}
 	return argsMap
 }
