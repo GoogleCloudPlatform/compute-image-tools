@@ -57,20 +57,18 @@ func TestBootInspect(t *testing.T) {
 		{
 			"projects/opensuse-cloud/global/images/opensuse-leap-15-2-v20200702",
 			disk.InspectionResult{
-				Architecture:    "x64",
-				Distro:          "opensuse",
-				Major:           "15",
-				Minor:           "2",
-				HasEFIPartition: true,
+				Architecture: "x64",
+				Distro:       "opensuse",
+				Major:        "15",
+				Minor:        "2",
 			},
 		}, {
 			"projects/suse-sap-cloud/global/images/sles-15-sp1-sap-v20200803",
 			disk.InspectionResult{
-				Architecture:    "x64",
-				Distro:          "sles-sap",
-				Major:           "15",
-				Minor:           "1",
-				HasEFIPartition: true,
+				Architecture: "x64",
+				Distro:       "sles-sap",
+				Major:        "15",
+				Minor:        "1",
 			},
 		}, {
 			"projects/compute-image-tools-test/global/images/windows-7-ent-x86-nodrivers",
