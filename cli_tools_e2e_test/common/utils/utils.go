@@ -36,9 +36,9 @@ type CLITestType string
 // List all test types here
 const (
 	Wrapper                       CLITestType = "1 wrapper"
-	GcloudBetaProdWrapperLatest   CLITestType = "2 gcloud-beta-prod wrapper-latest"
-	GcloudBetaLatestWrapperLatest CLITestType = "3 gcloud-beta-latest wrapper-latest"
-	GcloudGaLatestWrapperRelease  CLITestType = "4 gcloud-ga-latest wrapper-release"
+	GcloudBetaProdWrapperLatest   CLITestType = "2 gcloud(beta)-prod wrapper-latest"
+	GcloudBetaLatestWrapperLatest CLITestType = "3 gcloud(beta)-latest wrapper-latest"
+	GcloudGaLatestWrapperRelease  CLITestType = "4 gcloud(ga)-latest wrapper-release"
 )
 
 var (
