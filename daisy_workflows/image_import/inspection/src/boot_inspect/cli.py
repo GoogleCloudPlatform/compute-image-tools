@@ -98,7 +98,7 @@ def main():
       "/instance/attributes/is-inspect-os",
       headers={'Metadata-Flavor': 'Google'})
   is_inspect_os = urllib.request.urlopen(req).read()
-  if is_inspect_os == 'true':
+  if is_inspect_os == b'true':
     g = guestfs.GuestFS(python_return_dict=True)
     g.add_drive_opts(args.device, readonly=1)
     g.launch()
