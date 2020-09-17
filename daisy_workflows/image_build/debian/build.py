@@ -35,9 +35,8 @@ import zipfile
 import utils
 
 utils.AptGetInstall(
-    ['git', 'python-pip', 'qemu-utils', 'parted', 'kpartx', 'debootstrap',
-     'python-termcolor', 'python-fysom', 'python-jsonschema', 'python-yaml',
-     'python-docopt', 'python3-yaml'])
+    ['python-pip', 'python-termcolor', 'python-fysom', 'python-jsonschema',
+     'python-yaml', 'python-docopt'])
 utils.PipInstall(
     ['json_minify'])
 
