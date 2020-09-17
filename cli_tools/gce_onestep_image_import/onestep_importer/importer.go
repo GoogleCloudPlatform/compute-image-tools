@@ -200,7 +200,7 @@ func (args *OneStepImportArguments) registerFlags(flagSet *flag.FlagSet) {
 	flagSet.Var((*flags.LowerTrimmedString)(&args.OS), osFlag,
 		"Specifies the OS of the disk image being imported. "+
 			"This must be specified if cloud provider is specified. "+
-			"OS must be one of: "+strings.Join(daisyUtils.OSChoices(), ", ")+".")
+			"OS must be one of: "+strings.Join(daisyUtils.GetSortedOSIDs(), ", ")+".")
 
 	flagSet.BoolVar(&args.NoGuestEnvironment, "no_guest_environment", false,
 		"When enabled, the Google Guest Environment will not be installed.")

@@ -15,6 +15,7 @@
 package daisy
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -34,6 +35,15 @@ func TestValidateOsInvalid(t *testing.T) {
 	err := ValidateOS("not-an-OS")
 	if err == nil {
 		t.Errorf("expected non-nil error")
+	}
+}
+
+func TestGetSortedOSIDs(t *testing.T) {
+	actual := GetSortedOSIDs()
+	assert.Len(t, actual, len(osChoices))
+	assert.True(t, sort.StringsAreSorted(actual))
+	for choice := range osChoices {
+		assert.Contains(t, actual, choice)
 	}
 }
 

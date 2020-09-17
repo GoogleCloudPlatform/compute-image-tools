@@ -84,13 +84,11 @@ var (
 	privacyTagRegex = regexp.MustCompile(`(\[Privacy\->)|(<\-Privacy\])`)
 )
 
-// OSChoices returns the supported OS identifiers, sorted.
-func OSChoices() []string {
-	choices := make([]string, len(osChoices))
-	i := 0
+// GetSortedOSIDs returns the supported OS identifiers, sorted.
+func GetSortedOSIDs() []string {
+	choices := make([]string, 0, len(osChoices))
 	for k := range osChoices {
-		choices[i] = k
-		i++
+		choices = append(choices, k)
 	}
 	sort.Strings(choices)
 	return choices
