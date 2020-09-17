@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	testSuiteName = "CLI"
+	testSuiteName = "ImageImportCLI"
 )
 
 // CLITestSuite ensures that gcloud and the wrapper have consistent behavior for image imports.
@@ -66,6 +66,10 @@ func CLITestSuite(
 		imageImportWithSubnetWithoutNetworkSpecifiedTestCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import with subnet but without network"))
 
+		// Temporary test while ubuntu-2004 is being added to gcloud.
+		newOSUbuntu2004 := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "ubuntu-2004 should be an option for --os"))
+
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, utils.CLITestType){}
 		testsMap[testType][imageImportDataDiskTestCase] = runImageImportDataDiskTest
@@ -74,6 +78,7 @@ func CLITestSuite(
 		testsMap[testType][imageImportWithRichParamsTestCase] = runImageImportWithRichParamsTest
 		testsMap[testType][imageImportWithDifferentNetworkParamStylesTestCase] = runImageImportWithDifferentNetworkParamStyles
 		testsMap[testType][imageImportWithSubnetWithoutNetworkSpecifiedTestCase] = runImageImportWithSubnetWithoutNetworkSpecified
+		testsMap[testType][newOSUbuntu2004] = runImportForImage("projects/compute-image-tools-test/global/images/ubuntu-2004", "ubuntu-2004")
 	}
 	utils.CLITestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
 		testProjectConfig, testSuiteName, testsMap)
@@ -141,6 +146,39 @@ func runImageImportOSTest(ctx context.Context, testCase *junitxml.TestCase, logg
 	}
 
 	runImportTest(ctx, argsMap[testType], testType, testProjectConfig, imageName, logger, testCase)
+}
+
+func runImportForImage(sourceImageURI, osID string) func(
+	context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, utils.CLITestType) {
+
+	return func(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
+		suffix := path.RandString(5)
+		imageName := "e2e-test-image-import-os-" + suffix
+
+		argsMap := map[utils.CLITestType][]string{
+			utils.Wrapper: {"-client_id=e2e",
+				"-project", testProjectConfig.TestProjectID,
+				"-image_name", imageName,
+				"-os", osID,
+				"-source_image", sourceImageURI,
+				"-zone", testProjectConfig.TestZone,
+			},
+			utils.GcloudProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
+				"--docker-image-tag=latest", "--os", osID, "--project", testProjectConfig.TestProjectID,
+				"--source-image", sourceImageURI,
+				"--zone", testProjectConfig.TestZone,
+			},
+			utils.GcloudLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
+				"--docker-image-tag=latest", "--os", osID, "--project", testProjectConfig.TestProjectID,
+				"--source-image", sourceImageURI,
+				"--zone", testProjectConfig.TestZone,
+			},
+		}
+
+		runImportTest(ctx, argsMap[testType], testType, testProjectConfig, imageName, logger, testCase)
+	}
+
 }
 
 func runImageImportOSFromImageTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
