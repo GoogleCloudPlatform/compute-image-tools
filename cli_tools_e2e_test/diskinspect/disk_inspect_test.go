@@ -82,15 +82,15 @@ func TestBootInspect(t *testing.T) {
 	} {
 		// Without this, each parallel test will reference the last tt instance.
 		// https://github.com/golang/go/wiki/CommonMistakes#using-goroutines-on-loop-iterator-variables
-		tt := tt
-		t.Run(tt.imageURI, func(t *testing.T) {
+		currentTest := tt
+		t.Run(currentTest.imageURI, func(t *testing.T) {
 			t.Parallel()
 			inspector, err := disk.NewInspector(wfAttrs)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			diskURI := createDisk(t, client, tt.imageURI)
+			diskURI := createDisk(t, client, currentTest.imageURI)
 
 			actual, err := inspector.Inspect(diskURI, true)
 			assert.NoError(t, err)
@@ -104,9 +104,9 @@ func TestBootInspect(t *testing.T) {
 			//          actual = ...
 			//
 			// Also, since this is consumed by go-junit-report,
-			if tt.expected != actual {
+			if currentTest.expected != actual {
 				t.Errorf("\nexpected = %#v"+
-					"\n  actual = %#v", tt.expected, actual)
+					"\n  actual = %#v", currentTest.expected, actual)
 			}
 			deleteDisk(t, client, diskURI)
 		})
