@@ -23,7 +23,7 @@
         "Vars": {
           "bootstrap_vz_manifest": "official/gce/stretch.yml",
           "bootstrap_vz_version": "${bootstrap_vz_version}",
-          "builder_source_image": "projects/compute-image-tools/global/images/family/debian-9-worker",
+          "builder_source_image": "projects/compute-image-tools/global/images/family/debian-10-worker",
           "google_cloud_repo": "${google_cloud_repo}"
         }
       }

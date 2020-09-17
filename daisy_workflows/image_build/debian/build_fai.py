@@ -55,17 +55,7 @@ def main():
 
   # force an apt-get update before next install
   utils.AptGetInstall.first_run = True
-  utils.AptGetInstall(['apt-transport-https', 'qemu-utils', 'dosfstools'])
-
-  debian_host_version = utils.Execute(['cat', '/etc/debian_version'],
-                                      capture_output=True)
-  # the FAI's version in stretch does not satisfy our need, so the version from
-  # stretch-backports is needed.
-  if debian_host_version[1].startswith('9'):
-    utils.AptGetInstall(
-        ['fai-server', 'fai-setup-storage'], 'stretch-backports')
-  else:
-    utils.AptGetInstall(['fai-server', 'fai-setup-storage'])
+  utils.AptGetInstall(['fai-server', 'fai-setup-storage'])
 
   # Download and setup debian's debian-cloud-images scripts.
   url_params = {

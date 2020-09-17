@@ -5,10 +5,7 @@
     "build_date": {"Value": "${DATE}", "Description": "Build datestamp used to version the image."},
     "debian_cloud_images_version": {"Required": true, "Description": "The debian-cloud-images scripts git commit ID or branch to use."},
     "debian_version": {"Required": true, "Description": "The FAI tool debian version to be requested."},
-    "builder_source_image": {
-      "Value": "projects/debian-cloud/global/images/family/debian-9",
-      "Description": "The image used to run fai-tool."
-    },
+    "builder_source_image": {"Required": true, "Description": "The image used to run fai-tool."},
     "google_cloud_repo": {"Value": "stable", "Description": "The Google Cloud Repo branch to use."}
   },
   "Sources": {
