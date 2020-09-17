@@ -1,4 +1,4 @@
-timeout: 1200s
+timeout: 1500s
 
 options:
   env:
@@ -92,59 +92,97 @@ steps:
   - --context=/workspace
   - --dockerfile=gce_vm_image_import.Dockerfile
 
+# North America
 - name: 'gcr.io/kaniko-project/executor:v1.0.0'
   args:
   - --destination=us-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
   - --destination=us-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --context=/workspace
   - --dockerfile=gce_vm_image_import.Dockerfile
-  -
 - name: 'gcr.io/kaniko-project/executor:v1.0.0'
   args:
   - --destination=us-central1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
   - --destination=us-central1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --context=/workspace
   - --dockerfile=gce_vm_image_import.Dockerfile
-
 - name: 'gcr.io/kaniko-project/executor:v1.0.0'
   args:
   - --destination=us-west1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
   - --destination=us-west1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --context=/workspace
   - --dockerfile=gce_vm_image_import.Dockerfile
-
 - name: 'gcr.io/kaniko-project/executor:v1.0.0'
   args:
   - --destination=us-west2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
   - --destination=us-west2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --context=/workspace
   - --dockerfile=gce_vm_image_import.Dockerfile
-
 - name: 'gcr.io/kaniko-project/executor:v1.0.0'
   args:
   - --destination=us-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
   - --destination=us-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --context=/workspace
   - --dockerfile=gce_vm_image_import.Dockerfile
-
 - name: 'gcr.io/kaniko-project/executor:v1.0.0'
   args:
   - --destination=us-east4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
   - --destination=us-east4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --context=/workspace
   - --dockerfile=gce_vm_image_import.Dockerfile
-
 - name: 'gcr.io/kaniko-project/executor:v1.0.0'
   args:
   - --destination=northamerica-northeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
   - --destination=northamerica-northeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --context=/workspace
   - --dockerfile=gce_vm_image_import.Dockerfile
-
 - name: 'gcr.io/kaniko-project/executor:v1.0.0'
   args:
   - --destination=southamerica-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
   - --destination=southamerica-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
+  - --context=/workspace
+  - --dockerfile=gce_vm_image_import.Dockerfile
+
+#Europe
+- name: 'gcr.io/kaniko-project/executor:v1.0.0'
+  args:
+  - --destination=europe-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
+  - --destination=europe-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
+  - --context=/workspace
+  - --dockerfile=gce_vm_image_import.Dockerfile
+- name: 'gcr.io/kaniko-project/executor:v1.0.0'
+  args:
+  - --destination=europe-north1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
+  - --destination=europe-north1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
+  - --context=/workspace
+  - --dockerfile=gce_vm_image_import.Dockerfile
+- name: 'gcr.io/kaniko-project/executor:v1.0.0'
+  args:
+  - --destination=europe-west1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
+  - --destination=europe-west1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
+  - --context=/workspace
+  - --dockerfile=gce_vm_image_import.Dockerfile
+- name: 'gcr.io/kaniko-project/executor:v1.0.0'
+  args:
+  - --destination=europe-west2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
+  - --destination=europe-west2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
+  - --context=/workspace
+  - --dockerfile=gce_vm_image_import.Dockerfile
+- name: 'gcr.io/kaniko-project/executor:v1.0.0'
+  args:
+  - --destination=europe-west3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
+  - --destination=europe-west3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
+  - --context=/workspace
+  - --dockerfile=gce_vm_image_import.Dockerfile
+- name: 'gcr.io/kaniko-project/executor:v1.0.0'
+  args:
+  - --destination=europe-west4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
+  - --destination=europe-west4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
+  - --context=/workspace
+  - --dockerfile=gce_vm_image_import.Dockerfile
+- name: 'gcr.io/kaniko-project/executor:v1.0.0'
+  args:
+  - --destination=europe-west6-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
+  - --destination=europe-west6-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --context=/workspace
   - --dockerfile=gce_vm_image_import.Dockerfile
 
