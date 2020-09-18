@@ -242,6 +242,7 @@ func RunTestForTestType(cmd string, args []string, testType CLITestType, logger 
 			return false
 		}
 	case GcloudBetaLatestWrapperLatest:
+		fallthrough
 	case GcloudGaLatestWrapperRelease:
 		if !GcloudUpdate(logger, testCase, true) {
 			return false
