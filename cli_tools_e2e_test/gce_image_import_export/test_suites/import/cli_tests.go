@@ -78,7 +78,7 @@ func CLITestSuite(
 		testsMap[testType][imageImportWithRichParamsTestCase] = runImageImportWithRichParamsTest
 		testsMap[testType][imageImportWithDifferentNetworkParamStylesTestCase] = runImageImportWithDifferentNetworkParamStyles
 		testsMap[testType][imageImportWithSubnetWithoutNetworkSpecifiedTestCase] = runImageImportWithSubnetWithoutNetworkSpecified
-		testsMap[testType][newOSUbuntu2004] = runImportForImage("projects/compute-image-tools-test/global/images/ubuntu-2004", "ubuntu-2004")
+		testsMap[testType][newOSUbuntu2004] = verifyNewOSIsAvailableInGcloud("projects/compute-image-tools-test/global/images/ubuntu-2004", "ubuntu-2004")
 	}
 	utils.CLITestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
 		testProjectConfig, testSuiteName, testsMap)
@@ -148,7 +148,7 @@ func runImageImportOSTest(ctx context.Context, testCase *junitxml.TestCase, logg
 	runImportTest(ctx, argsMap[testType], testType, testProjectConfig, imageName, logger, testCase)
 }
 
-func runImportForImage(sourceImageURI, osID string) func(
+func verifyNewOSIsAvailableInGcloud(sourceImageURI, osID string) func(
 	context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, utils.CLITestType) {
 
 	return func(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
@@ -164,21 +164,24 @@ func runImportForImage(sourceImageURI, osID string) func(
 				"-source_image", sourceImageURI,
 				"-zone", testProjectConfig.TestZone,
 			},
-			utils.GcloudProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
-				"--docker-image-tag=latest", "--os", osID, "--project", testProjectConfig.TestProjectID,
+			utils.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
+				"--os", osID, "--project", testProjectConfig.TestProjectID,
 				"--source-image", sourceImageURI,
 				"--zone", testProjectConfig.TestZone,
 			},
-			utils.GcloudLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
-				"--docker-image-tag=latest", "--os", osID, "--project", testProjectConfig.TestProjectID,
+			utils.GcloudBetaLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
+				"--os", osID, "--project", testProjectConfig.TestProjectID,
+				"--source-image", sourceImageURI,
+				"--zone", testProjectConfig.TestZone,
+			},
+			utils.GcloudGaLatestWrapperRelease: {"compute", "images", "import", imageName, "--quiet",
+				"--os", osID, "--project", testProjectConfig.TestProjectID,
 				"--source-image", sourceImageURI,
 				"--zone", testProjectConfig.TestZone,
 			},
 		}
-
 		runImportTest(ctx, argsMap[testType], testType, testProjectConfig, imageName, logger, testCase)
 	}
-
 }
 
 func runImageImportOSFromImageTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
