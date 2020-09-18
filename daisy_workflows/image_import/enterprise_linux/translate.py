@@ -24,6 +24,7 @@ use_rhel_gce_license: True if GCE RHUI package should be installed
 
 import logging
 import os
+import re
 import time
 
 import guestfs
@@ -161,8 +162,29 @@ def DistroSpecific(g: guestfs.GuestFS):
 
   logging.info('Updating initramfs')
   for kver in g.ls('/lib/modules'):
+    # Although each directory in /lib/modules typically corresponds to a
+    # kernel version  [1], that may not always be true.
+    # kernel-abi-whitelists, for example, creates extra directories in
+    # /lib/modules.
+    #
+    # Skip building initramfs if the directory doesn't look like a
+    # kernel version. Emulates the version matching from depmod [2].
+    #
+    # 1. https://tldp.org/LDP/Linux-Filesystem-Hierarchy/html/lib.html
+    # 2. https://kernel.googlesource.com/pub/scm/linux/kernel/git/mmarek/kmod
+    # /+/tip/tools/depmod.c#2537
+    if not re.match(r'^\d+.\d+', kver):
+      logging.debug('Skipping {}'.format(kver))
+      pass
     if not g.exists(os.path.join('/lib/modules', kver, 'modules.dep')):
-      g.command(['depmod', kver])
+      try:
+        g.command(['depmod', kver])
+      except RuntimeError as e:
+        logging.info('Failed to write initramfs for {kver}. If image fails to '
+                     'boot, verify that depmod /lib/modules/{kver} runs on '
+                     'the original machine'.format(kver=kver))
+        logging.debug('depmod error: {}'.format(e))
+        continue
     if el_release == '6':
       # Version 6 doesn't have option --kver
       g.command(['dracut', '-v', '-f', kver])
