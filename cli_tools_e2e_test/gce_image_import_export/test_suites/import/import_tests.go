@@ -160,7 +160,7 @@ var basicCases = []*testCase{
 	// EL - Error cases
 	{
 		caseName: "el-allow-extra-dirs-in-lib-modules", // b/168774581
-		source:   "projects/compute-image-tools-test/global/images/el-depmod-lib-modules",
+		source:   "projects/compute-image-tools-test/global/images/el-depmod-extra-lib-modules",
 		os:       "centos-8",
 		inspect:  true,
 	},

@@ -174,8 +174,9 @@ def DistroSpecific(g: guestfs.GuestFS):
     # 2. https://kernel.googlesource.com/pub/scm/linux/kernel/git/mmarek/kmod
     # /+/tip/tools/depmod.c#2537
     if not re.match(r'^\d+.\d+', kver):
-      logging.debug('Skipping {}'.format(kver))
-      pass
+      logging.debug('/lib/modules/{} doesn\'t look like a kernel directory. '
+                    'Skipping creation of initramfs for it'.format(kver))
+      continue
     if not g.exists(os.path.join('/lib/modules', kver, 'modules.dep')):
       try:
         g.command(['depmod', kver])
