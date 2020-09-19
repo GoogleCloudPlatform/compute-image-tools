@@ -32,9 +32,6 @@
     "import_subnet": {
       "Value": "",
       "Description": "SubNetwork to use for the import instance"
-    },
-    "license": {
-      "Value": "projects/suse-byos-cloud/global/licenses/sles-sap-15-byos"
     }
   },
   "Sources": {
@@ -47,7 +44,7 @@
       "CreateDisks": [
         {
           "Name": "disk-translator",
-          "SourceImage": "projects/debian-cloud/global/images/family/debian-10",
+          "SourceImage": "projects/compute-image-tools/global/images/family/debian-10-worker",
           "SizeGb": "10",
           "Type": "pd-ssd",
           "FallbackToPdStandard": true
@@ -67,9 +64,7 @@
             "files_gcs_dir": "${SOURCESPATH}/import_files",
             "script": "translate.py",
             "prefix": "Translate",
-            "install_gce_packages": "${install_gce_packages}",
-            "distro": "opensuse",
-            "major_version": "15"
+            "install_gce_packages": "${install_gce_packages}"
           },
           "networkInterfaces": [
             {
@@ -106,7 +101,7 @@
           "Name": "${image_name}",
           "SourceDisk": "${source_disk}",
           "Family": "${family}",
-          "Licenses": ["${license}"],
+          "Licenses": ["projects/opensuse-cloud/global/licenses/opensuse-leap-42"],
           "Description": "${description}",
           "ExactName": true,
           "NoCleanup": true

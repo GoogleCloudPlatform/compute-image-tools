@@ -84,6 +84,7 @@ _releases = [
     _SuseRelease(
         flavor='opensuse',
         major='15',
+        minor='1|2',
     ),
     _SuseRelease(
         flavor='sles',
@@ -108,17 +109,15 @@ def _get_release(g) -> _SuseRelease:
     defined in _releases.
   """
 
-  distro = utils.GetMetadataAttribute('distro', g.gcp_image_distro).lower()
-  major = utils.GetMetadataAttribute('major_version',
-                                     g.gcp_image_major).lower()
-  minor = utils.GetMetadataAttribute('minor_version',
-                                     g.gcp_image_minor).lower()
+  distro = g.gcp_image_distro
+  major = g.gcp_image_major
+  minor = g.gcp_image_minor
 
   matched = None
   for r in _releases:
     if re.match(r.flavor, distro) \
         and re.match(r.major, major) \
-        and (not r.minor or re.match(r.minor, minor)):
+        and re.match(r.minor, minor):
       matched = r
   if not matched:
     supported = ', '.join([d.__repr__() for d in _releases])
