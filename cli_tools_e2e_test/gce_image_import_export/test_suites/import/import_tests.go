@@ -117,6 +117,7 @@ var basicCases = []*testCase{
 		expectedError: "\"debian-9\" was detected on your disk, but \"opensuse-15\" was specified",
 		inspect:       true,
 	},
+
 	// EL
 	{
 		caseName: "el-centos-7-8",
@@ -154,7 +155,18 @@ var basicCases = []*testCase{
 		source:   "projects/compute-image-tools-test/global/images/rhel-8-2",
 		os:       "rhel-8",
 		inspect:  true,
-	}, {
+	},
+
+	// EL - Error cases
+	{
+		caseName: "el-allow-extra-dirs-in-lib-modules", // b/168774581
+		source:   "projects/compute-image-tools-test/global/images/el-depmod-extra-lib-modules",
+		os:       "centos-8",
+		inspect:  true,
+	},
+
+	// Windows
+	{
 		caseName:  "windows-2019-uefi",
 		source:    "projects/compute-image-tools-test/global/images/windows-2019-uefi-nodrivers",
 		os:        "windows-2019",
