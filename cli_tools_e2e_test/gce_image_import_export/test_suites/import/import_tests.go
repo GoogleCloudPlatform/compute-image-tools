@@ -76,11 +76,25 @@ type testCase struct {
 }
 
 var basicCases = []*testCase{
+	// Error messages
+	{
+		caseName:      "incorrect OS specified",
+		source:        "projects/compute-image-tools-test/global/images/debian-9-translate",
+		os:            "opensuse-15",
+		expectedError: "\"debian-9\" was detected on your disk, but \"opensuse-15\" was specified",
+		inspect:       true,
+	},
+
+	// Debian
 	{
 		caseName: "debian-9",
 		source:   "projects/compute-image-tools-test/global/images/debian-9-translate",
 		os:       "debian-9",
-	}, {
+		inspect:  true,
+	},
+
+	// Ubuntu
+	{
 		caseName:             "ubuntu-1404",
 		source:               "projects/compute-image-tools-test/global/images/ubuntu-1404-img-import",
 		os:                   "ubuntu-1404",
@@ -110,14 +124,50 @@ var basicCases = []*testCase{
 		os:                   "ubuntu-2004",
 		osConfigNotSupported: true,
 		inspect:              true,
-	}, {
-		caseName:      "incorrect OS specified",
-		source:        "projects/compute-image-tools-test/global/images/debian-9-translate",
-		os:            "opensuse-15",
-		expectedError: "\"debian-9\" was detected on your disk, but \"opensuse-15\" was specified",
-		inspect:       true,
 	},
 
+	// OpenSUSE
+	{
+		caseName:             "opensuse-15-1",
+		source:               "projects/compute-image-tools-test/global/images/opensuse-15-1",
+		os:                   "opensuse-15",
+		osConfigNotSupported: true,
+		inspect:              true,
+	},
+	{
+		caseName:             "opensuse-15-2",
+		source:               "projects/compute-image-tools-test/global/images/opensuse-15-2",
+		os:                   "opensuse-15",
+		osConfigNotSupported: true,
+		inspect:              true,
+	},
+
+	// SLES: BYOL
+	{
+		caseName:             "sles-12-5-byol",
+		source:               "projects/compute-image-tools-test/global/images/sles-12-5-registered",
+		os:                   "sles-12-byol",
+		osConfigNotSupported: true,
+		inspect:              true,
+	}, {
+		caseName:             "sles-sap-12-5-byol",
+		source:               "projects/compute-image-tools-test/global/images/sles-sap-12-5-registered",
+		os:                   "sles-sap-12-byol",
+		osConfigNotSupported: true,
+		inspect:              true,
+	}, {
+		caseName:             "sles-15-2-byol",
+		source:               "projects/compute-image-tools-test/global/images/sles-15-2-registered",
+		os:                   "sles-15-byol",
+		osConfigNotSupported: true,
+		inspect:              true,
+	}, {
+		caseName:             "sles-sap-15-2-byol",
+		source:               "projects/compute-image-tools-test/global/images/sles-sap-15-2-registered",
+		os:                   "sles-sap-15-byol",
+		osConfigNotSupported: true,
+		inspect:              true,
+	},
 	// EL
 	{
 		caseName: "el-centos-7-8",

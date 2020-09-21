@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Translate the SUSE image on a GCE VM.
 
 Parameters (retrieved from instance metadata):
@@ -25,6 +24,7 @@ import logging
 import re
 
 import utils
+import utils.configs as configs
 import utils.diskutils as diskutils
 
 
@@ -32,91 +32,117 @@ class _Package:
   """A Zypper package to be installed.
 
   Attributes:
-      name (str): Zypper's name for the package.
-      gce (bool): Is the package specific to GCP? When set to true, this
-                  package will only be installed if when `install_gce_packages`
-                  is also true.
+      name: Zypper's name for the package.
+      gce: Is the package specific to GCP? When set to true, this
+           package will only be installed if when `install_gce_packages`
+           is also true.
   """
 
-  def __init__(self, name, gce):
+  def __init__(self, name: str, gce: bool):
     self.name = name
     self.gce = gce
 
 
 class _SuseRelease:
-  """Describes which packages and products are required for
-     a particular SUSE release.
+  """Describes packages and products required for a particular SUSE release.
 
   Attributes:
-      flavor (str): The SUSE release variant. Either `opensuse` or `sles`.
-      major (str): The major release number. For example, for SLES 12 SP1,
-                   the major version is 12.
-      minor (str): The minor release number. For example, for SLES 12 SP1,
-                   the major version is 1. SLES 12, it is 0.
-      products (list of str): The SCC products to be added (typically to give
-                              access to required packages.)
+      flavor: The SUSE release variant. Either `opensuse` or `sles`.
+      major: The major release number. For example, for SLES 12 SP1,
+          the major version is 12.
+      minor: The minor release number. For example, for SLES 12 SP1,
+          the major version is 1. SLES 12, it is 0.
+      cloud_product: The SCC product required to access cloud-related packages.
   """
 
-  def __init__(self, flavor, major, minor, products=None):
+  def __init__(self, flavor: str, major: str, minor: str = None,
+               cloud_product: str = ''):
     self.flavor = flavor
     self.major = major
     self.minor = minor
-    self.products = products
+    self.cloud_product = cloud_product
+
+  def __repr__(self):
+    if self.minor:
+      return '{}-{}.{}'.format(self.flavor, self.major, self.minor)
+    else:
+      return '{}-{}'.format(self.flavor, self.major)
 
 
 _packages = [
     _Package('google-compute-engine-init', gce=True),
-    _Package('google-compute-engine-oslogin', gce=True)
+    _Package('google-compute-engine-oslogin', gce=True),
+    # google-compute-engine-init configures rsyslog to show its
+    # daemon logs (including the output of startup scripts)
+    # to the serial console's output.
+    _Package('rsyslog', gce=True)
 ]
 
-_distros = [
+_releases = [
+    # Minor version omitted since libguestfs in Debian 9 doesn't recognize
+    # opensuse 15.
     _SuseRelease(
         flavor='opensuse',
         major='15',
-        minor='1',
+        minor='1|2',
     ),
     _SuseRelease(
         flavor='sles',
         major='15',
-        minor='1',
-        products=['sle-module-public-cloud/15.1/x86_64']
+        minor='1|2',
+        cloud_product='sle-module-public-cloud/{major}.{minor}/x86_64'
     ),
     _SuseRelease(
         flavor='sles',
         major='12',
         minor='4|5',
-        products=['sle-module-public-cloud/12/x86_64']
+        cloud_product='sle-module-public-cloud/{major}/x86_64'
     ),
 ]
 
 
-def _get_distro(g) -> _SuseRelease:
-  """Gets the SuseRelease object for the OS installed on the disk.
+def _get_release(g) -> _SuseRelease:
+  """Gets the _SuseRelease object for the OS installed on the disk.
 
   Raises:
-    ValueError: If there's not a SuseObject for the the OS on the disk.
+    ValueError: If there's not a _SuseRelease for the the OS on the disk
+    defined in _releases.
   """
-  for d in _distros:
-    if re.match(d.flavor, g.gcp_image_distro) \
-        and re.match(d.major, g.gcp_image_major) \
-        and re.match(d.minor, g.gcp_image_minor):
-      return d
-  supported = ', '.join(
-      ['{}-{}.{}'.format(d.flavor, d.major, d.minor) for d in _distros])
-  raise ValueError(
-      'Import of {}-{}.{} is not supported. '
-      'The following versions are supported: [{}]'.format(
-          g.gcp_image_distro, g.gcp_image_major, g.gcp_image_minor, supported))
+
+  distro = g.gcp_image_distro
+  major = g.gcp_image_major
+  minor = g.gcp_image_minor
+
+  matched = None
+  for r in _releases:
+    if re.match(r.flavor, distro) \
+        and re.match(r.major, major) \
+        and re.match(r.minor, minor):
+      matched = r
+  if not matched:
+    supported = ', '.join([d.__repr__() for d in _releases])
+    raise ValueError(
+        'Import of {}-{}.{} is not supported. '
+        'The following versions are supported: [{}]'.format(
+            distro, major, minor,
+            supported))
+  return _SuseRelease(
+      flavor=matched.flavor,
+      major=major,
+      minor=minor,
+      cloud_product=matched.cloud_product.format(major=major, minor=minor)
+  )
 
 
-def _disambiguate_suseconnect_product_error(g, product, error) -> Exception:
+def _disambiguate_suseconnect_product_error(
+    g, product: str, error: Exception) -> Exception:
   """Creates a user-debuggable error after failing to add a product
      using SUSEConnect.
 
   Args:
-      g (GuestFS): Mounted GuestFS instance.
-      product (str): The product that failed to be added.
-      error (Exception): The error returned from `SUSEConnect -p`.
+      g: Mounted GuestFS instance.
+      product: The product that failed to be added.
+      error: The error returned from `SUSEConnect -p`.
   """
   statuses = []
   try:
@@ -168,22 +194,23 @@ def _disambiguate_suseconnect_product_error(g, product, error) -> Exception:
           error)
 
   return ValueError(
-    'Unable to find an active SLES subscription. SCC returned: %s' % statuses)
+      'Unable to find an active SLES subscription. '
+      'SCC returned: %s' % statuses)
 
 
 @utils.RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
-def _install_product(distro, g):
-  """Executes SuseConnect -p for each product on `distro`.
+def _install_product(g, release: _SuseRelease):
+  """Executes SuseConnect -p for each product on `release`.
 
   Raises:
     ValueError: If there was a failure adding the subscription.
   """
-  if distro.products:
-    for product in distro.products:
-      try:
-        g.command(['SUSEConnect', '-p', product])
-      except Exception as e:
-        raise _disambiguate_suseconnect_product_error(g, product, e)
+  if release.cloud_product:
+    try:
+      g.command(['SUSEConnect', '--debug', '-p', release.cloud_product])
+    except Exception as e:
+      raise _disambiguate_suseconnect_product_error(
+          g, release.cloud_product, e)
 
 
 def _install_packages(g, install_gce):
@@ -223,18 +250,22 @@ def refresh_zypper(g):
 
 
 def _update_grub(g):
-  """Update and rebuild grub to ensure image is bootable."""
-  g.command(
-      ['sed', '-i',
-       r's#^\(GRUB_CMDLINE_LINUX=".*\)"$#\1 console=ttyS0,38400n8"#',
-       '/etc/default/grub'])
+  """Update and rebuild grub to ensure the image is bootable on GCP.
+  See https://cloud.google.com/compute/docs/import/import-existing-image
+  """
+  g.write('/etc/default/grub', configs.update_grub_conf(
+      g.cat('/etc/default/grub'),
+      GRUB_CMDLINE_LINUX_DEFAULT='console=ttyS0,38400n8',
+      GRUB_CMDLINE_LINUX='',
+  ))
   g.command(['grub2-mkconfig', '-o', '/boot/grub2/grub.cfg'])
 
 
 def _reset_network(g):
   """Update network to use DHCP."""
   logging.info('Updating network to use DHCP.')
-  g.sh('echo "" > /etc/resolv.conf')
+  if g.exists('/etc/resolv.conf'):
+    g.sh('echo "" > /etc/resolv.conf')
   g.write('/etc/sysconfig/network/ifcfg-eth0', '\n'.join((
       'BOOTPROTO=dhcp',
       'STARTMODE=auto',
@@ -255,9 +286,9 @@ def translate():
       'install_gce_packages', 'true').lower() == 'true'
 
   g = diskutils.MountDisk('/dev/sdb')
-  distro = _get_distro(g)
+  release = _get_release(g)
 
-  _install_product(distro, g)
+  _install_product(g, release)
   _install_packages(g, include_gce_packages)
   _install_virtio_drivers(g)
   if include_gce_packages:

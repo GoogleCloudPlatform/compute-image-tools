@@ -71,13 +71,13 @@ func TestBootableDiskProcessor_PopulatesWorkflowVarsUsingArgs(t *testing.T) {
 func TestBootableDiskProcessor_SupportsWorkflowDefaultVars(t *testing.T) {
 	actual := asMap(createAndRunPrePostFunctions(t, defaultImportArgs()).workflow.Vars)
 	assert.Equal(t, map[string]string{
+		"source_disk":          "",
 		"description":          "",
 		"family":               "",
 		"image_name":           "",
 		"import_network":       "",
 		"import_subnet":        "",
 		"install_gce_packages": "true",
-		"source_disk":          "",
 		"sysprep":              "false"}, actual)
 }
 
@@ -218,7 +218,7 @@ func getImage(t *testing.T, workflow *daisy.Workflow) daisy.Image {
 
 func defaultImportArgs() ImportArguments {
 	imageSpec := ImportArguments{
-		OS:          "sles-12-byol",
+		OS:          "opensuse-15",
 		WorkflowDir: "../../../daisy_workflows",
 	}
 	return imageSpec
