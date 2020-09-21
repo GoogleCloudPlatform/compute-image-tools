@@ -387,7 +387,7 @@ func (m *mockProcessor) process(pd persistentDisk, loggableBuilder *service.Sing
 	}
 
 	pd.isUEFICompatible = true
-	loggableBuilder.SetUEFIMetrics(true, true)
+	loggableBuilder.SetUEFIMetrics(true, true, true, "btrfs")
 
 	return pd, m.err
 }

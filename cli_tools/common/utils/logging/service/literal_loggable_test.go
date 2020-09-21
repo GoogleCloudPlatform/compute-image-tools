@@ -57,32 +57,37 @@ func TestSingleImageImportLoggableBuilder(t *testing.T) {
 	inflationTimeValue := int64(10000)
 	shadowInflationTimeValue := int64(5000)
 	matchResultValue := "true"
+	bootFSValue := "btrfs"
 	for _, isUEFICompatibleImageValue := range []bool{true, false} {
 		for _, isUEFIDetectedValue := range []bool{true, false} {
-			expected := literalLoggable{
-				strings: map[string]string{
-					importFileFormat:      format,
-					inflationType:         inflationTypeValue,
-					shadowDiskMatchResult: matchResultValue,
-				},
-				int64s: map[string][]int64{
-					sourceSizeGb:        {sourceGb},
-					targetSizeGb:        {targetGb},
-					inflationTime:       {inflationTimeValue},
-					shadowInflationTime: {shadowInflationTimeValue},
-				},
-				bools: map[string]bool{
-					isUEFICompatibleImage: isUEFICompatibleImageValue,
-					isUEFIDetected:        isUEFIDetectedValue,
-				},
-				traceLogs: traceLogs,
+			for _, isHybridValue := range []bool{true, false} {
+				expected := literalLoggable{
+					strings: map[string]string{
+						importFileFormat:      format,
+						inflationType:         inflationTypeValue,
+						shadowDiskMatchResult: matchResultValue,
+						bootFS:                bootFSValue,
+					},
+					int64s: map[string][]int64{
+						sourceSizeGb:        {sourceGb},
+						targetSizeGb:        {targetGb},
+						inflationTime:       {inflationTimeValue},
+						shadowInflationTime: {shadowInflationTimeValue},
+					},
+					bools: map[string]bool{
+						isUEFICompatibleImage: isUEFICompatibleImageValue,
+						isUEFIDetected:        isUEFIDetectedValue,
+						isHybrid:              isHybridValue,
+					},
+					traceLogs: traceLogs,
+				}
+				assert.Equal(t, expected, NewSingleImageImportLoggableBuilder().
+					SetDiskAttributes(format, sourceGb, targetGb).
+					SetUEFIMetrics(isUEFICompatibleImageValue, isUEFIDetectedValue, isHybridValue, bootFSValue).
+					SetInflationAttributes(matchResultValue, inflationTypeValue, inflationTimeValue, shadowInflationTimeValue).
+					SetTraceLogs(traceLogs).
+					Build())
 			}
-			assert.Equal(t, expected, NewSingleImageImportLoggableBuilder().
-				SetDiskAttributes(format, sourceGb, targetGb).
-				SetUEFIMetrics(isUEFICompatibleImageValue, isUEFIDetectedValue).
-				SetInflationAttributes(matchResultValue, inflationTypeValue, inflationTimeValue, shadowInflationTimeValue).
-				SetTraceLogs(traceLogs).
-				Build())
 		}
 	}
 }

@@ -37,8 +37,12 @@ def _output_daisy(results: model.InspectionResults):
       print(_daisy_kv('distro', results.os.distro.value))
       print(_daisy_kv('major', results.os.version.major))
       print(_daisy_kv('minor', results.os.version.minor))
+    if results.has_bios_boot:
+      print(_daisy_kv('has_bios', 'true'))
     if results.has_efi_partition:
       print(_daisy_kv('has_efi_partition', 'true'))
+    if results.boot_fs:
+      print(_daisy_kv('boot_fs', results.boot_fs))
   print('Success: Done!')
 
 
@@ -51,22 +55,33 @@ def _output_human(results: model.InspectionResults):
   _output_json(results, indent=4)
 
 
-def _inspect_uefi(device):
+def _inspect_boot_loader(device):
   try:
     stream = os.popen('fdisk -l {} -o type'.format(device))
     output = stream.read()
     print(output)
+
+    has_bios_boot = False
+    has_efi_partition = False
+    boot_fs = ""
+
+    if "BIOS boot" in output:
+      has_bios_boot = True
 
     # 1. For GPT, the ESP output should be "EFI System", which matches
     # partition GUID "C12A7328-F81F-11D2-BA4B-00A0C93EC93B".
     # 2. For MBR, the ESP output should be "EFI (FAT-12/16/32)", which matches
     # partition type "0xef"
     if "EFI" in output:
-      return True
+      has_efi_partition = True
+
+      # Find root partition name, then df -T
+        fss = g.list_filesystems(device)
+        boot_fs = fss[boot_part]
   except Exception as e:
     print("Failed to inspect disk partition: ", e)
 
-  return False
+  return has_bios_boot, has_efi_partition, boot_fs
 
 
 def main():
@@ -106,7 +121,7 @@ def main():
   else:
     results = model.InspectionResults(device=None, os=None, architecture=None)
 
-  results.has_efi_partition = _inspect_uefi(args.device)
+  results.has_bios_boot, results.has_efi_partition, results.boot_fs = _inspect_boot_loader(args.device)
 
   globals()['_output_' + args.format](results)
 

@@ -45,9 +45,13 @@ func NewSingleImageImportLoggableBuilder() *SingleImageImportLoggableBuilder {
 }
 
 // SetUEFIMetrics sets UEFI related metrics.
-func (b *SingleImageImportLoggableBuilder) SetUEFIMetrics(isUEFICompatibleImageBool bool, isUEFIDetectedBool bool) *SingleImageImportLoggableBuilder {
+func (b *SingleImageImportLoggableBuilder) SetUEFIMetrics(isUEFICompatibleImageBool bool, isUEFIDetectedBool bool,
+	isHybridBool bool, bootFSString string) *SingleImageImportLoggableBuilder {
+
 	b.bools[isUEFICompatibleImage] = isUEFICompatibleImageBool
 	b.bools[isUEFIDetected] = isUEFIDetectedBool
+	b.bools[isHybrid] = isHybridBool
+	b.strings[bootFS] = bootFSString
 	return b
 }
 
