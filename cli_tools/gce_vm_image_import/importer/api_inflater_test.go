@@ -43,10 +43,9 @@ func TestCreateInflater_File(t *testing.T) {
 			metaToReturn:      imagefile.Metadata{},
 		})
 	assert.NoError(t, err)
-	facade, ok := inflater.(*inflaterFacade)
+	mainInflater, ok := inflater.(*daisyInflater)
 	assert.True(t, ok)
 
-	mainInflater, ok := facade.mainInflater.(*daisyInflater)
 	assert.True(t, ok)
 	assert.Equal(t, "zones/us-west1-c/disks/disk-1234", mainInflater.inflatedDiskURI)
 	assert.Equal(t, "gs://bucket/vmdk", mainInflater.wf.Vars["source_disk_file"].Value)
@@ -56,9 +55,6 @@ func TestCreateInflater_File(t *testing.T) {
 	network := getWorkerNetwork(t, mainInflater.wf)
 	assert.Nil(t, network.AccessConfigs, "AccessConfigs must be nil to allow ExternalIP to be allocated.")
 
-	realInflater, _ := facade.shadowInflater.(*apiInflater)
-	assert.NotContains(t, realInflater.guestOsFeatures,
-		&computeBeta.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
 }
 
 func TestCreateInflater_Image(t *testing.T) {

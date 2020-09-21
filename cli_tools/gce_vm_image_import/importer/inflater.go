@@ -198,15 +198,7 @@ func createInflater(args ImportArguments, computeClient daisyCompute.Client, sto
 		return nil, err
 	}
 
-	if isImage(args.Source) {
-		return di, nil
-	}
-
-	ai := createAPIInflater(args, computeClient, storageClient)
-	return &inflaterFacade{
-		mainInflater:   di,
-		shadowInflater: ai,
-	}, nil
+	return di, nil
 }
 
 func createDaisyInflater(args ImportArguments, fileInspector imagefile.Inspector) (inflater, error) {
