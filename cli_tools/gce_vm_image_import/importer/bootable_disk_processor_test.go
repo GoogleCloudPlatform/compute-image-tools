@@ -58,7 +58,6 @@ func TestBootableDiskProcessor_PopulatesWorkflowVarsUsingArgs(t *testing.T) {
 	actual := asMap(createAndRunPrePostFunctions(t, imageSpec).workflow.Vars)
 	assert.Equal(t, map[string]string{
 		"source_disk":          "", // source_disk is written in process, since a previous processor may create a new disk
-		"license":              "projects/suse-byos-cloud/global/licenses/sles-sap-15-byos",
 		"description":          "Fedora 12 customized",
 		"family":               "fedora",
 		"image_name":           "fedora-12-imported",
@@ -73,7 +72,6 @@ func TestBootableDiskProcessor_SupportsWorkflowDefaultVars(t *testing.T) {
 	actual := asMap(createAndRunPrePostFunctions(t, defaultImportArgs()).workflow.Vars)
 	assert.Equal(t, map[string]string{
 		"source_disk":          "",
-		"license":              "projects/suse-byos-cloud/global/licenses/sles-sap-15-byos",
 		"description":          "",
 		"family":               "",
 		"image_name":           "",
