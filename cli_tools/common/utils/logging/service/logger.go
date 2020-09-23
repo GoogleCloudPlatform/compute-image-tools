@@ -67,8 +67,9 @@ const (
 	shadowDiskMatchResult = "shadow-disk-match-result"
 	isUEFICompatibleImage = "is-uefi-compatible-image"
 	isUEFIDetected        = "is-uefi-detected"
-	isHybrid              = "is-hybrid"
-	bootFS                = "boot-fs"
+	uefiBootalbe          = "uefi-bootable"
+	biosBootalbe          = "bios-bootable"
+	rootFS                = "root-fs"
 
 	statusStart   = "Start"
 	statusSuccess = "Success"
@@ -192,8 +193,13 @@ func (l *Logger) getOutputInfo(loggable Loggable, err error) *OutputInfo {
 		o.ShadowDiskMatchResult = loggable.GetValue(shadowDiskMatchResult)
 		o.IsUEFICompatibleImage = loggable.GetValueAsBool(isUEFICompatibleImage)
 		o.IsUEFIDetected = loggable.GetValueAsBool(isUEFIDetected)
-		o.IsHybrid = loggable.GetValueAsBool(isHybrid)
-		o.BootFS = loggable.GetValue(bootFS)
+
+		// TODO: merge with Eric's new metrics
+		/*
+		o.InspectionResults.uefiBootable = loggable.GetValueAsBool(uefiBootalbe)
+		o.InspectionResults.biosBootable = loggable.GetValueAsBool(biosBootalbe)
+		o.InspectionResults.RootFS = loggable.GetValue(rootFS)
+	  */
 	}
 
 	if err != nil {

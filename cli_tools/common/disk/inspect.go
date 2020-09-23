@@ -39,15 +39,15 @@ type Inspector interface {
 // InspectionResult contains the partition and boot-related properties of a disk.
 type InspectionResult struct {
 	// HasEFIPartition indicates whether the disk has a EFI partition.
-	HasEFIPartition                    bool
-	Architecture, Distro, Major, Minor string
+	HasEFIPartition bool
 
 	// HasBIOS indicates whether the disk has a BIOS boot loader.
 	HasBIOS bool
 
-	// BootFS indicates the file system of the boot disk.
-	BootFS string
+	// RootFS indicates the file system of the boot disk.
+	RootFS string
 
+	Architecture, Distro, Major, Minor string
 }
 
 // NewInspector creates an Inspector that can inspect GCP disks.
@@ -77,19 +77,14 @@ func (inspector *defaultInspector) Inspect(reference string, inspectOS bool) (ir
 		return
 	}
 
-<<<<<<< HEAD
-	// TODO: Mute the UEFI detection results for now. Restore it till we got the reason of b/168671324
-	// ir.HasEFIPartition, _ = strconv.ParseBool(inspector.wf.GetSerialConsoleOutputValue("has_efi_partition"))
-
 	ir.Architecture = inspector.wf.GetSerialConsoleOutputValue("architecture")
 	ir.Distro = inspector.wf.GetSerialConsoleOutputValue("distro")
 	ir.Major = inspector.wf.GetSerialConsoleOutputValue("major")
 	ir.Minor = inspector.wf.GetSerialConsoleOutputValue("minor")
-=======
+
 	ir.HasEFIPartition, _ = strconv.ParseBool(inspector.wf.GetSerialConsoleOutputValue("has_efi_partition"))
 	ir.HasBIOS, _ = strconv.ParseBool(inspector.wf.GetSerialConsoleOutputValue("has_bios"))
-	ir.BootFS = inspector.wf.GetSerialConsoleOutputValue("boot_fs")
->>>>>>> 1e4238f8 (exclude hybrid)
+	ir.RootFS = inspector.wf.GetSerialConsoleOutputValue("root_fs")
 	return
 }
 

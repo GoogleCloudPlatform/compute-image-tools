@@ -66,7 +66,7 @@ func TestSingleImageImportLoggableBuilder(t *testing.T) {
 						importFileFormat:      format,
 						inflationType:         inflationTypeValue,
 						shadowDiskMatchResult: matchResultValue,
-						bootFS:                bootFSValue,
+						rootFS:                bootFSValue,
 					},
 					int64s: map[string][]int64{
 						sourceSizeGb:        {sourceGb},
@@ -77,7 +77,7 @@ func TestSingleImageImportLoggableBuilder(t *testing.T) {
 					bools: map[string]bool{
 						isUEFICompatibleImage: isUEFICompatibleImageValue,
 						isUEFIDetected:        isUEFIDetectedValue,
-						isHybrid:              isHybridValue,
+						biosBootalbe:          isHybridValue,
 					},
 					traceLogs: traceLogs,
 				}

@@ -254,10 +254,6 @@ type OutputInfo struct {
 	IsUEFICompatibleImage bool `json:"is_uefi_compatible_image,omitempty"`
 	// Indicates whether the image is auto-detected to be UEFI compatible
 	IsUEFIDetected bool `json:"is_uefi_detected,omitempty"`
-	// IsHybrid indicates whether the boot disk has both BIOS and UEFI boot loader.
-	IsHybrid bool `json:"is_hybrid,omitempty"`
-	// BootFS indicates the file system of the boot disk.
-	BootFS string `json:"boot_fs,omitempty"`
 }
 
 func (l *Logger) updateParams(projectPointer *string) {

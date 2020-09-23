@@ -43,11 +43,11 @@ func (p *diskInspectionProcessor) process(pd persistentDisk,
 
 	isHybrid := ir.HasEFIPartition && ir.HasBIOS
 	if !p.args.UefiCompatible && isHybrid {
-		log.Printf("This disk can boot with both BIOS and UEFI. It is imported as BIOS booting now. " +
+		log.Printf("This disk can boot with both BIOS and UEFI. It will be imported as BIOS booting. " +
 			"If you want to use UEFI booting, please specify arg '--uefi_compatible'.")
 	}
 	pd.isUEFICompatible = p.args.UefiCompatible || (ir.HasEFIPartition && !isHybrid)
-	loggableBuilder.SetUEFIMetrics(pd.isUEFICompatible, ir.HasEFIPartition, isHybrid, ir.BootFS)
+	loggableBuilder.SetUEFIMetrics(pd.isUEFICompatible, ir.HasEFIPartition, ir.HasEFIPartition, ir.HasBIOS, ir.RootFS)
 	return pd, nil
 }
 
