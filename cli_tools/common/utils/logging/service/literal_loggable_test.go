@@ -77,8 +77,8 @@ func TestSingleImageImportLoggableBuilder(t *testing.T) {
 					bools: map[string]bool{
 						isUEFICompatibleImage: isUEFICompatibleImageValue,
 						isUEFIDetected:        isUEFIDetectedValue,
-						uefiBootalbe:          isUEFIDetectedValue,
-						biosBootalbe:          biosBootableValue,
+						uefiBootable:          isUEFIDetectedValue,
+						biosBootable:          biosBootableValue,
 					},
 					traceLogs: traceLogs,
 				}

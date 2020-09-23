@@ -44,7 +44,8 @@ type InspectionResult struct {
 	// HasBIOS indicates whether the disk has a BIOS boot loader.
 	HasBIOS bool
 
-	// RootFS indicates the file system of the boot disk.
+	// RootFS indicates the file system type of the partition containing
+	// the root directory ("/").
 	RootFS string
 
 	Architecture, Distro, Major, Minor string

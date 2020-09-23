@@ -50,8 +50,8 @@ func (b *SingleImageImportLoggableBuilder) SetUEFIMetrics(isUEFICompatibleImageB
 
 	b.bools[isUEFICompatibleImage] = isUEFICompatibleImageBool
 	b.bools[isUEFIDetected] = isUEFIDetectedBool
-	b.bools[uefiBootalbe] = isUEFIDetectedBool
-	b.bools[biosBootalbe] = biosBootableBool
+	b.bools[uefiBootable] = isUEFIDetectedBool
+	b.bools[biosBootable] = biosBootableBool
 	b.strings[rootFS] = rootFSString
 	return b
 }

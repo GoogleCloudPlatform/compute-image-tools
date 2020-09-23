@@ -37,7 +37,7 @@ def _output_daisy(results: model.InspectionResults):
       print(_daisy_kv('distro', results.os.distro.value))
       print(_daisy_kv('major', results.os.version.major))
       print(_daisy_kv('minor', results.os.version.minor))
-    if results.has_bios_boot:
+    if results.has_bios:
       print(_daisy_kv('has_bios', 'true'))
     if results.has_efi_partition:
       print(_daisy_kv('has_efi_partition', 'true'))
@@ -61,12 +61,12 @@ def _inspect_boot_loader(device):
     output = stream.read()
     print(output)
 
-    has_bios_boot = False
+    has_bios = False
     has_efi_partition = False
     root_fs = ""
 
     if "BIOS boot" in output:
-      has_bios_boot = True
+      has_bios = True
 
     # 1. For GPT, the ESP output should be "EFI System", which matches
     # partition GUID "C12A7328-F81F-11D2-BA4B-00A0C93EC93B".
@@ -79,7 +79,7 @@ def _inspect_boot_loader(device):
   except Exception as e:
     print("Failed to inspect disk partition: ", e)
 
-  return has_bios_boot, has_efi_partition, root_fs
+  return has_bios, has_efi_partition, root_fs
 
 
 def main():
@@ -119,7 +119,7 @@ def main():
   else:
     results = model.InspectionResults(device=None, os=None, architecture=None)
 
-  results.has_bios_boot, results.has_efi_partition, results.root_fs = _inspect_boot_loader(args.device)
+  results.has_bios, results.has_efi_partition, results.root_fs = _inspect_boot_loader(args.device)
 
   globals()['_output_' + args.format](results)
 
