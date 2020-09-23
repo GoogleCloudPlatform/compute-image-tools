@@ -27,7 +27,8 @@ import urllib.request
 from google.cloud import exceptions
 from google.cloud import storage
 
-METADATA_ENDPOINT = 'http://metadata.google.internal/computeMetadata/v1/instance/attributes/?recursive=true'
+METADATA_ENDPOINT = 'http://metadata.google.internal/computeMetadata/v1' \
+                    '/instance/attributes/?recursive=true '
 
 
 def GetMetadataAttribute():
@@ -66,13 +67,13 @@ def UploadFile(source_file, gcs_dest_file):
                         .format(prefix=prefix, bucket=bucket, obj=obj))
   match = gs_regex.match(gcs_dest_file)
   if not match:
-    raise ValueError('Destination path %s is invalid.'% gcs_dest_file)
+    raise ValueError('Destination path %s is invalid.' % gcs_dest_file)
   client = storage.Client()
   bucket = client.get_bucket(match.group('bucket'))
   blob = bucket.blob(match.group('obj'))
   try:
     blob.upload_from_filename(source_file)
-  except exceptions.from_http_status as e:
+  except exceptions.from_http_status:
     raise ValueError('Upload to bucket %s failed.' % gcs_dest_file)
 
 
