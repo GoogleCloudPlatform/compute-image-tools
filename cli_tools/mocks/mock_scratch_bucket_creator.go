@@ -61,3 +61,17 @@ func (mr *MockScratchBucketCreatorInterfaceMockRecorder) CreateScratchBucket(arg
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateScratchBucket", reflect.TypeOf((*MockScratchBucketCreatorInterface)(nil).CreateScratchBucket), arg0, arg1, arg2)
 }
+
+// IsBucketInProject mocks base method
+func (m *MockScratchBucketCreatorInterface) IsBucketInProject(arg0, arg1 string) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsBucketInProject", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsBucketInProject indicates an expected call of IsBucketInProject
+func (mr *MockScratchBucketCreatorInterfaceMockRecorder) IsBucketInProject(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsBucketInProject", reflect.TypeOf((*MockScratchBucketCreatorInterface)(nil).IsBucketInProject), arg0, arg1)
+}

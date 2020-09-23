@@ -39,6 +39,7 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(
 
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
+	mockScratchBucketCreator.EXPECT().IsBucketInProject(project, "scratchbucket").Return(true)
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockResourceLocationRetriever.EXPECT().GetZone("us-west2", project).Return("",
 		daisy.Errf("zone not found")).Times(1)
@@ -211,6 +212,7 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenPopulateRegionFails(
 
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
+	mockScratchBucketCreator.EXPECT().IsBucketInProject(project, "scratchbucket").Return(true)
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: region}, nil)
@@ -243,6 +245,7 @@ func TestPopulator_PopulateMissingParametersDoesNotChangeProvidedScratchBucketAn
 
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
+	mockScratchBucketCreator.EXPECT().IsBucketInProject(project, "scratchbucket").Return(true)
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockResourceLocationRetriever.EXPECT().GetZone(expectedRegion, project).Return(expectedZone, nil).Times(1)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
@@ -261,6 +264,35 @@ func TestPopulator_PopulateMissingParametersDoesNotChangeProvidedScratchBucketAn
 	assert.Equal(t, "europe-north1-b", zone)
 	assert.Equal(t, "europe-north1", region)
 	assert.Equal(t, "gs://scratchbucket/scratchpath", scratchBucketGcsPath)
+}
+
+func TestPopulator_PopulateMissingParametersFailsOnScratchBucketInAnotherProject(t *testing.T) {
+	project := "a_project"
+	zone := ""
+	region := ""
+	scratchBucketGcsPath := "gs://scratchbucket/scratchpath"
+	storageLocation := "US"
+	file := "gs://sourcebucket/sourcefile"
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
+	mockScratchBucketCreator.EXPECT().IsBucketInProject(project, "scratchbucket").Return(false)
+	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+
+	err := NewPopulator(
+		mockMetadataGce,
+		mockStorageClient,
+		mockResourceLocationRetriever,
+		mockScratchBucketCreator,
+	).PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
+		file, &storageLocation)
+
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "is not in project")
 }
 
 func TestPopulator_PopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T) {
@@ -361,6 +393,7 @@ func TestPopulator_PopulateMissingParametersPopulatesStorageLocationWithScratchB
 
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
+	mockScratchBucketCreator.EXPECT().IsBucketInProject(project, "scratchbucket").Return(true)
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: region}, nil)

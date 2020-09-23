@@ -117,21 +117,38 @@ func (c *ScratchBucketCreator) getBucketAttrsOnFallbackZone(project string, fall
 
 func (c *ScratchBucketCreator) createBucketIfNotExisting(project string,
 	bucketAttrs *storage.BucketAttrs) (string, error) {
-	it := c.BucketIteratorCreator.CreateBucketIterator(c.Ctx, c.StorageClient, project)
-	for itBucketAttrs, err := it.Next(); err != iterator.Done; itBucketAttrs, err = it.Next() {
-		if err != nil {
-			return "", err
-		}
-		if itBucketAttrs.Name == bucketAttrs.Name {
-			return itBucketAttrs.Location, nil
-		}
-	}
 
+	foundBucketAttrs, err := c.getBucketAttrsIfInProject(project, bucketAttrs.Name)
+	if err != nil {
+		return "", err
+	}
+	if foundBucketAttrs != nil {
+		return foundBucketAttrs.Location, nil
+	}
 	log.Printf("Creating scratch bucket `%v` in %v region", bucketAttrs.Name, bucketAttrs.Location)
 	if err := c.StorageClient.CreateBucket(bucketAttrs.Name, project, bucketAttrs); err != nil {
 		return "", err
 	}
 	return bucketAttrs.Location, nil
+}
+
+// IsBucketInProject checks if bucket belongs to a project
+func (c *ScratchBucketCreator) IsBucketInProject(project string, bucketName string) bool {
+	foundBucketAttrs, _ := c.getBucketAttrsIfInProject(project, bucketName)
+	return foundBucketAttrs != nil
+}
+
+func (c *ScratchBucketCreator) getBucketAttrsIfInProject(project string, bucketName string) (*storage.BucketAttrs, error) {
+	it := c.BucketIteratorCreator.CreateBucketIterator(c.Ctx, c.StorageClient, project)
+	for itBucketAttrs, err := it.Next(); err != iterator.Done; itBucketAttrs, err = it.Next() {
+		if err != nil {
+			return nil, err
+		}
+		if itBucketAttrs.Name == bucketName {
+			return itBucketAttrs, nil
+		}
+	}
+	return nil, nil
 }
 
 func (c *ScratchBucketCreator) formatScratchBucketName(project string, location string) string {

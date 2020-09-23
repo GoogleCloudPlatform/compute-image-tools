@@ -371,6 +371,99 @@ func TestCreateScratchBucketErrorWhenCreatingBucket(t *testing.T) {
 	assert.Equal(t, "error creating a bucket", err.Error())
 }
 
+func TestIsBucketInProjectTrue(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	ctx := context.Background()
+
+	projectID := "PROJECT1"
+
+	anotherBucketAttrs := &storage.BucketAttrs{
+		Name:         "anotherbucket",
+		Location:     "europe-north1",
+		StorageClass: "regional",
+	}
+	scratchBucketAttrs := &storage.BucketAttrs{
+		Name:         "project1-daisy-bkt-us-west2",
+		Location:     "us-west2",
+		StorageClass: "regional",
+	}
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockBucketIterator := mocks.NewMockBucketIteratorInterface(mockCtrl)
+	first := mockBucketIterator.EXPECT().Next().Return(anotherBucketAttrs, nil)
+	second := mockBucketIterator.EXPECT().Next().Return(scratchBucketAttrs, nil)
+
+	gomock.InOrder(first, second)
+
+	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
+	mockBucketIteratorCreator.EXPECT().
+		CreateBucketIterator(ctx, mockStorageClient, projectID).
+		Return(mockBucketIterator).
+		Times(1)
+
+	c := ScratchBucketCreator{mockStorageClient, ctx, mockBucketIteratorCreator}
+	result := c.IsBucketInProject(projectID, "project1-daisy-bkt-us-west2")
+	assert.True(t, result)
+}
+
+func TestIsBucketInProjectFalseOnNoBucket(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	ctx := context.Background()
+
+	projectID := "PROJECT1"
+
+	anotherBucketAttrs := &storage.BucketAttrs{
+		Name:         "anotherbucket",
+		Location:     "europe-north1",
+		StorageClass: "regional",
+	}
+	scratchBucketAttrs := &storage.BucketAttrs{
+		Name:         "some-other-bucket",
+		Location:     "us-west2",
+		StorageClass: "regional",
+	}
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockBucketIterator := mocks.NewMockBucketIteratorInterface(mockCtrl)
+	first := mockBucketIterator.EXPECT().Next().Return(anotherBucketAttrs, nil)
+	second := mockBucketIterator.EXPECT().Next().Return(scratchBucketAttrs, nil)
+	third := mockBucketIterator.EXPECT().Next().Return(nil, iterator.Done)
+	gomock.InOrder(first, second, third)
+
+	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
+	mockBucketIteratorCreator.EXPECT().
+		CreateBucketIterator(ctx, mockStorageClient, projectID).
+		Return(mockBucketIterator).
+		Times(1)
+
+	c := ScratchBucketCreator{mockStorageClient, ctx, mockBucketIteratorCreator}
+	result := c.IsBucketInProject(projectID, "project1-daisy-bkt-us-west2")
+	assert.False(t, result)
+}
+
+func TestIsBucketInProjectFalseOnIteratorError(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	ctx := context.Background()
+
+	projectID := "PROJECT1"
+
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockBucketIterator := mocks.NewMockBucketIteratorInterface(mockCtrl)
+	first := mockBucketIterator.EXPECT().Next().Return(nil, fmt.Errorf(""))
+	gomock.InOrder(first)
+
+	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
+	mockBucketIteratorCreator.EXPECT().
+		CreateBucketIterator(ctx, mockStorageClient, projectID).
+		Return(mockBucketIterator).
+		Times(1)
+
+	c := ScratchBucketCreator{mockStorageClient, ctx, mockBucketIteratorCreator}
+	result := c.IsBucketInProject(projectID, "project1-daisy-bkt-us-west2")
+	assert.False(t, result)
+}
+
 func createMockBucketIteratorWithRandomBuckets(mockCtrl *gomock.Controller, ctx *context.Context,
 	storageClient domain.StorageClientInterface,
 	project string) domain.BucketIteratorCreatorInterface {
