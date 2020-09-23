@@ -1,0 +1,103 @@
+{
+  "Name": "export-metadata",
+  "Project": "gce-image-builder",
+  "Zone": "us-central1-b",
+  "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
+  "Vars": {
+    "metadata_dest": {
+      "Required": true,
+      "Description": "The GCS path for the destination image metadata json"
+    },
+    "image_id": {
+      "Required": true,
+      "Description": "The image id used in project"
+    },
+    "image_name": {
+      "Required": true,
+      "Description": "The image name used in project"
+    },
+    "image_family": {
+      "Required": true,
+      "Description": "Image Family"
+    },
+    "source_image": {
+      "Required": true,
+      "Description": "The image that need to export metadata"
+    },
+    "distribution": {
+      "Required":true,
+      "Description": "Use image distribution, enterprise_linux, debian, centos"
+    },
+    "uefi": {
+      "Required":false,
+      "Description": "Whether RHEL is an UEFI image."
+    }
+  },
+  "Sources": {
+    "export_metadata/export-metadata.py": "./export-metadata.py",
+    "export_startup_script": "../linux_common/bootstrap.sh"
+  },
+  "Steps": {
+    "setup-disks": {
+      "CreateDisks": [
+        {
+          "Name": "disk-exporterprep",
+          "SourceImage": "projects/compute-image-tools/global/images/family/debian-9-worker",
+          "Type": "pd-ssd"
+        },
+        {
+          "Name": "source_disk",
+          "SourceImage": "${source_image}",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "run": {
+      "CreateInstances": [
+        {
+          "Name": "inst-exporter",
+          "Disks": [{"Source": "disk-exporterprep"},{"Source": "source_disk"}],
+          "MachineType": "n1-highcpu-4",
+          "Metadata": {
+            "files_gcs_dir": "${SOURCESPATH}/export_metadata",
+            "script": "export-metadata.py",
+            "metadata_dest": "gs://gce-image-metadata/${image_family}/${image_name}/metadata-${image_id}.json",
+            "image_id": "${image_id}",
+            "image_name": "${image_name}",
+            "image_family": "${image_family}",
+            "prefix": "Export",
+            "distribution": "${distribution}",
+            "uefi": "${uefi}"
+          },
+          "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_write"
+          ],
+          "StartupScript": "export_startup_script"
+        }
+      ]
+    },
+    "wait": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-exporter",
+          "SerialOutput": {
+            "Port": 1,
+            "FailureMatch": "ExportFailed:",
+            "SuccessMatch": "ExportSuccess:",
+            "StatusMatch": "ExportStatus:"
+          }
+        }
+      ]
+    },
+    "delete-inst": {
+      "DeleteResources": {
+        "Instances": ["inst-exporter"]
+      }
+    }
+  },
+  "Dependencies": {
+    "run": ["setup-disks"],
+    "wait": ["run"],
+    "delete-inst": ["wait"]
+  }
+}
