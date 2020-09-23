@@ -196,10 +196,10 @@ func (l *Logger) getOutputInfo(loggable Loggable, err error) *OutputInfo {
 
 		// TODO: merge with Eric's new metrics
 		/*
-		o.InspectionResults.uefiBootable = loggable.GetValueAsBool(uefiBootalbe)
-		o.InspectionResults.biosBootable = loggable.GetValueAsBool(biosBootalbe)
-		o.InspectionResults.RootFS = loggable.GetValue(rootFS)
-	  */
+			o.InspectionResults.uefiBootable = loggable.GetValueAsBool(uefiBootalbe)
+			o.InspectionResults.biosBootable = loggable.GetValueAsBool(biosBootalbe)
+			o.InspectionResults.RootFS = loggable.GetValue(rootFS)
+		*/
 	}
 
 	if err != nil {

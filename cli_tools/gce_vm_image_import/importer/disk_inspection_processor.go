@@ -47,7 +47,7 @@ func (p *diskInspectionProcessor) process(pd persistentDisk,
 			"If you want to use UEFI booting, please specify arg '--uefi_compatible'.")
 	}
 	pd.isUEFICompatible = p.args.UefiCompatible || (ir.HasEFIPartition && !isHybrid)
-	loggableBuilder.SetUEFIMetrics(pd.isUEFICompatible, ir.HasEFIPartition, ir.HasEFIPartition, ir.HasBIOS, ir.RootFS)
+	loggableBuilder.SetUEFIMetrics(pd.isUEFICompatible, ir.HasEFIPartition, ir.HasBIOS, ir.RootFS)
 	return pd, nil
 }
 

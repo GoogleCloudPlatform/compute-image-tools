@@ -41,8 +41,8 @@ def _output_daisy(results: model.InspectionResults):
       print(_daisy_kv('has_bios', 'true'))
     if results.has_efi_partition:
       print(_daisy_kv('has_efi_partition', 'true'))
-    if results.boot_fs:
-      print(_daisy_kv('boot_fs', results.boot_fs))
+    if results.root_fs:
+      print(_daisy_kv('root_fs', results.root_fs))
   print('Success: Done!')
 
 
@@ -63,7 +63,7 @@ def _inspect_boot_loader(device):
 
     has_bios_boot = False
     has_efi_partition = False
-    boot_fs = ""
+    root_fs = ""
 
     if "BIOS boot" in output:
       has_bios_boot = True
@@ -74,14 +74,12 @@ def _inspect_boot_loader(device):
     # partition type "0xef"
     if "EFI" in output:
       has_efi_partition = True
+      # TODO: detect root_fs (b/169245755)
 
-      # Find root partition name, then df -T
-        fss = g.list_filesystems(device)
-        boot_fs = fss[boot_part]
   except Exception as e:
     print("Failed to inspect disk partition: ", e)
 
-  return has_bios_boot, has_efi_partition, boot_fs
+  return has_bios_boot, has_efi_partition, root_fs
 
 
 def main():
@@ -121,7 +119,7 @@ def main():
   else:
     results = model.InspectionResults(device=None, os=None, architecture=None)
 
-  results.has_bios_boot, results.has_efi_partition, results.boot_fs = _inspect_boot_loader(args.device)
+  results.has_bios_boot, results.has_efi_partition, results.root_fs = _inspect_boot_loader(args.device)
 
   globals()['_output_' + args.format](results)
 

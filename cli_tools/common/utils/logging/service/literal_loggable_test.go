@@ -60,7 +60,7 @@ func TestSingleImageImportLoggableBuilder(t *testing.T) {
 	bootFSValue := "btrfs"
 	for _, isUEFICompatibleImageValue := range []bool{true, false} {
 		for _, isUEFIDetectedValue := range []bool{true, false} {
-			for _, isHybridValue := range []bool{true, false} {
+			for _, biosBootableValue := range []bool{true, false} {
 				expected := literalLoggable{
 					strings: map[string]string{
 						importFileFormat:      format,
@@ -77,13 +77,14 @@ func TestSingleImageImportLoggableBuilder(t *testing.T) {
 					bools: map[string]bool{
 						isUEFICompatibleImage: isUEFICompatibleImageValue,
 						isUEFIDetected:        isUEFIDetectedValue,
-						biosBootalbe:          isHybridValue,
+						uefiBootalbe:          isUEFIDetectedValue,
+						biosBootalbe:          biosBootableValue,
 					},
 					traceLogs: traceLogs,
 				}
 				assert.Equal(t, expected, NewSingleImageImportLoggableBuilder().
 					SetDiskAttributes(format, sourceGb, targetGb).
-					SetUEFIMetrics(isUEFICompatibleImageValue, isUEFIDetectedValue, isHybridValue, bootFSValue).
+					SetUEFIMetrics(isUEFICompatibleImageValue, isUEFIDetectedValue, biosBootableValue, bootFSValue).
 					SetInflationAttributes(matchResultValue, inflationTypeValue, inflationTimeValue, shadowInflationTimeValue).
 					SetTraceLogs(traceLogs).
 					Build())
