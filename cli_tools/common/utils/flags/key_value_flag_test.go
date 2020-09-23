@@ -23,7 +23,7 @@ import (
 func TestKeyValueSetReturnsMap(t *testing.T) {
 	input := "KEY1=AB,KEY2=CD"
 	expected := map[string]string{"KEY1": "AB", "KEY2": "CD"}
-	var s KeyValueString = nil
+	var s KeyValueString
 	err := s.Set(input)
 	assert.Nil(t, err)
 	assert.Equal(t, expected, map[string]string(s))
@@ -32,7 +32,7 @@ func TestKeyValueSetReturnsMap(t *testing.T) {
 func TestKeyValueSetReturnsEmptyMap(t *testing.T) {
 	input := ""
 	expected := map[string]string{}
-	var s KeyValueString = nil
+	var s KeyValueString
 	err := s.Set(input)
 	assert.Nil(t, err)
 	assert.Equal(t, expected, map[string]string(s))
@@ -48,7 +48,7 @@ func TestKeyValueSetReturnsErrorIfNotNil(t *testing.T) {
 
 func TestKeyValueSetReturnsErrorIfWrongStringFormat(t *testing.T) {
 	input := "KEY1->AB,KEY2->CD"
-	var s KeyValueString = nil
+	var s KeyValueString
 	err := s.Set(input)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "failed to parse key-value pair. "+
