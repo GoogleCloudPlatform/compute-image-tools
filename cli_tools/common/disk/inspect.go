@@ -38,11 +38,11 @@ type Inspector interface {
 
 // InspectionResult contains the partition and boot-related properties of a disk.
 type InspectionResult struct {
-	// HasEFIPartition indicates whether the disk has a EFI partition.
-	HasEFIPartition bool
+	// UEFIBootable indicates whether the disk has a UEFI boot loader.
+	UEFIBootable bool
 
-	// HasBIOS indicates whether the disk has a BIOS boot loader.
-	HasBIOS bool
+	// BIOSBootable indicates whether the disk has a BIOS boot loader.
+	BIOSBootable bool
 
 	// RootFS indicates the file system type of the partition containing
 	// the root directory ("/").
@@ -83,8 +83,8 @@ func (inspector *defaultInspector) Inspect(reference string, inspectOS bool) (ir
 	ir.Major = inspector.wf.GetSerialConsoleOutputValue("major")
 	ir.Minor = inspector.wf.GetSerialConsoleOutputValue("minor")
 
-	ir.HasEFIPartition, _ = strconv.ParseBool(inspector.wf.GetSerialConsoleOutputValue("has_efi_partition"))
-	ir.HasBIOS, _ = strconv.ParseBool(inspector.wf.GetSerialConsoleOutputValue("has_bios"))
+	ir.UEFIBootable, _ = strconv.ParseBool(inspector.wf.GetSerialConsoleOutputValue("uefi_bootable"))
+	ir.BIOSBootable, _ = strconv.ParseBool(inspector.wf.GetSerialConsoleOutputValue("bios_bootable"))
 	ir.RootFS = inspector.wf.GetSerialConsoleOutputValue("root_fs")
 	return
 }
