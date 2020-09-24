@@ -22,11 +22,12 @@ import (
 
 	"google.golang.org/api/option"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 // GetProjectID gets project id from flag if exists; otherwise, try to retrieve from GCE metadata.
@@ -71,8 +72,25 @@ func populateScratchBucketGcsPath(scratchBucketGcsPath *string, zone string, mgc
 		if err != nil {
 			return "", daisy.Errf("invalid scratch bucket GCS path %v", scratchBucketGcsPath)
 		}
+
 		if !scratchBucketCreator.IsBucketInProject(*project, scratchBucketName) {
-			return "", daisy.Errf("Scratch bucket `%v` is not in project `%v`", scratchBucketName, *project)
+			errorParts := []string{
+				fmt.Sprintf("Scratch bucket %q is not in project %q",
+					scratchBucketName, *project),
+			}
+
+			if strings.HasPrefix(file, fmt.Sprintf("gs://%s/", scratchBucketName)) {
+				err := storageClient.DeleteGcsPath(file)
+				if err == nil {
+					errorParts = append(errorParts, fmt.Sprintf("Deleted %q", file))
+				} else {
+					errorParts = append(errorParts, fmt.Sprintf(
+						"Failed to delete %q. Check with the owner of gs://%q for more information",
+						file, scratchBucketName))
+				}
+			}
+
+			return "", daisy.Errf(strings.Join(errorParts, ". "))
 		}
 
 		scratchBucketAttrs, err := storageClient.GetBucketAttrs(scratchBucketName)

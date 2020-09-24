@@ -15,6 +15,7 @@
 package param
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -266,33 +267,78 @@ func TestPopulator_PopulateMissingParametersDoesNotChangeProvidedScratchBucketAn
 	assert.Equal(t, "gs://scratchbucket/scratchpath", scratchBucketGcsPath)
 }
 
-func TestPopulator_PopulateMissingParametersFailsOnScratchBucketInAnotherProject(t *testing.T) {
-	project := "a_project"
-	zone := ""
-	region := ""
-	scratchBucketGcsPath := "gs://scratchbucket/scratchpath"
-	storageLocation := "US"
-	file := "gs://sourcebucket/sourcefile"
+func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.T) {
+	for _, tt := range []struct {
+		caseName             string
+		deleteResult         error
+		deleteExpected       bool
+		expectedError        string
+		scratchBucketGCSPath string
+		fileGCSPath          string
+	}{
+		{
+			caseName:       "In scratch - Successful deletion",
+			deleteResult:   nil,
+			deleteExpected: true,
+			expectedError: "Scratch bucket \"scratchbucket\" is not in project \"a_project\". " +
+				"Deleted \"gs://scratchbucket/sourcefile\"",
+			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
+			fileGCSPath:          "gs://scratchbucket/sourcefile",
+		},
+		{
+			caseName:       "In scratch - Failed deletion",
+			deleteResult:   errors.New("Failed to delete path"),
+			deleteExpected: true,
+			expectedError: "Scratch bucket \"scratchbucket\" is not in project \"a_project\". " +
+				"Failed to delete \"gs://scratchbucket/sourcefile\". Check with the owner of " +
+				"gs://\"scratchbucket\" for more information",
+			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
+			fileGCSPath:          "gs://scratchbucket/sourcefile",
+		},
+		{
+			caseName:             "Not in scratch - Don't delete",
+			expectedError:        "Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
+			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
+			fileGCSPath:          "gs://source-images/sourcefile",
+		},
+		{
+			caseName:             "GCS Image - Don't delete",
+			expectedError:        "Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
+			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
+			fileGCSPath:          "",
+		},
+	} {
+		t.Run(tt.caseName, func(t *testing.T) {
+			project := "a_project"
+			zone := ""
+			region := ""
+			scratchBucketGcsPath := tt.scratchBucketGCSPath
+			storageLocation := "US"
+			file := tt.fileGCSPath
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
 
-	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
-	mockScratchBucketCreator.EXPECT().IsBucketInProject(project, "scratchbucket").Return(false)
-	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+			mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+			mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
+			mockScratchBucketCreator.EXPECT().IsBucketInProject(project, "scratchbucket").Return(false)
+			mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
+			mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+			if tt.deleteExpected {
+				mockStorageClient.EXPECT().DeleteGcsPath(file).Return(tt.deleteResult)
+			}
 
-	err := NewPopulator(
-		mockMetadataGce,
-		mockStorageClient,
-		mockResourceLocationRetriever,
-		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
-		file, &storageLocation)
+			err := NewPopulator(
+				mockMetadataGce,
+				mockStorageClient,
+				mockResourceLocationRetriever,
+				mockScratchBucketCreator,
+			).PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
+				file, &storageLocation)
 
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "is not in project")
+			assert.EqualError(t, err, tt.expectedError)
+		})
+	}
 }
 
 func TestPopulator_PopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T) {
