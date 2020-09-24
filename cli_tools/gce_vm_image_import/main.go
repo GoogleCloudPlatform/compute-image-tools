@@ -36,6 +36,7 @@ func main() {
 	Main(os.Args[1:])
 }
 
+// Main starts an image import.
 func Main(args []string) {
 	log.SetFlags(0)
 	log.SetOutput(new(logWriter))

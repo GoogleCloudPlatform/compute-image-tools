@@ -269,31 +269,52 @@ func TestPopulator_PopulateMissingParametersDoesNotChangeProvidedScratchBucketAn
 
 func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.T) {
 	for _, tt := range []struct {
-		caseName      string
-		deleteResult  error
-		expectedError string
+		caseName             string
+		deleteResult         error
+		deleteExpected       bool
+		expectedError        string
+		scratchBucketGCSPath string
+		fileGCSPath          string
 	}{
 		{
-			caseName:     "Successful deletion",
-			deleteResult: nil,
+			caseName:       "In scratch - Successful deletion",
+			deleteResult:   nil,
+			deleteExpected: true,
 			expectedError: "Scratch bucket \"scratchbucket\" is not in project \"a_project\". " +
-				"The resources in \"gs://scratchbucket/scratchpath\" have been deleted.",
+				"Deleted \"gs://scratchbucket/sourcefile\"",
+			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
+			fileGCSPath:          "gs://scratchbucket/sourcefile",
 		},
 		{
-			caseName:     "Failed deletion",
-			deleteResult: errors.New("Failed to delete path"),
+			caseName:       "In scratch - Failed deletion",
+			deleteResult:   errors.New("Failed to delete path"),
+			deleteExpected: true,
 			expectedError: "Scratch bucket \"scratchbucket\" is not in project \"a_project\". " +
-				"Failed to delete resources in \"gs://scratchbucket/scratchpath\". " +
-				"Check with the owner of \"scratchbucket\" for more information",
+				"Failed to delete \"gs://scratchbucket/sourcefile\". Check with the owner of " +
+				"gs://\"scratchbucket\" for more information",
+			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
+			fileGCSPath:          "gs://scratchbucket/sourcefile",
+		},
+		{
+			caseName:             "Not in scratch - Don't delete",
+			expectedError:        "Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
+			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
+			fileGCSPath:          "gs://source-images/sourcefile",
+		},
+		{
+			caseName:             "GCS Image - Don't delete",
+			expectedError:        "Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
+			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
+			fileGCSPath:          "",
 		},
 	} {
 		t.Run(tt.caseName, func(t *testing.T) {
 			project := "a_project"
 			zone := ""
 			region := ""
-			scratchBucketGcsPath := "gs://scratchbucket/scratchpath"
+			scratchBucketGcsPath := tt.scratchBucketGCSPath
 			storageLocation := "US"
-			file := "gs://sourcebucket/sourcefile"
+			file := tt.fileGCSPath
 
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
@@ -303,7 +324,9 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 			mockScratchBucketCreator.EXPECT().IsBucketInProject(project, "scratchbucket").Return(false)
 			mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 			mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-			mockStorageClient.EXPECT().DeleteGcsPath(scratchBucketGcsPath).Return(tt.deleteResult)
+			if tt.deleteExpected {
+				mockStorageClient.EXPECT().DeleteGcsPath(file).Return(tt.deleteResult)
+			}
 
 			err := NewPopulator(
 				mockMetadataGce,
