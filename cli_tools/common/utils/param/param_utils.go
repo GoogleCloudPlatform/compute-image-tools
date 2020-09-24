@@ -71,8 +71,18 @@ func populateScratchBucketGcsPath(scratchBucketGcsPath *string, zone string, mgc
 		if err != nil {
 			return "", daisy.Errf("invalid scratch bucket GCS path %v", scratchBucketGcsPath)
 		}
+
 		if !scratchBucketCreator.IsBucketInProject(*project, scratchBucketName) {
-			return "", daisy.Errf("Scratch bucket `%v` is not in project `%v`", scratchBucketName, *project)
+			err := storageClient.DeleteGcsPath(*scratchBucketGcsPath)
+			var deletionResults string
+			if err == nil {
+				deletionResults = fmt.Sprintf("The resources in %q have been deleted.", *scratchBucketGcsPath)
+			} else {
+				deletionResults = fmt.Sprintf("Failed to delete resources in %q. Check with the owner of %q for more information",
+					*scratchBucketGcsPath, scratchBucketName)
+			}
+			return "", daisy.Errf("Scratch bucket %q is not in project %q. %s",
+				scratchBucketName, *project, deletionResults)
 		}
 
 		scratchBucketAttrs, err := storageClient.GetBucketAttrs(scratchBucketName)

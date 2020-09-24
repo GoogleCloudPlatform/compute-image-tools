@@ -22,16 +22,21 @@ import (
 	"os"
 	"time"
 
+	"google.golang.org/api/option"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/importer"
-	"google.golang.org/api/option"
 )
 
 func main() {
+	Main(os.Args[1:])
+}
+
+func Main(args []string) {
 	log.SetFlags(0)
 	log.SetOutput(new(logWriter))
 	ctx := context.Background()
@@ -39,7 +44,7 @@ func main() {
 	// 1. Parse the args without validating or populating. Splitting parsing and
 	// validation allows us to log the intermediate, non-validated values, if
 	// there's an error setting up dependencies.
-	importArgs, err := importer.NewImportArguments(os.Args[1:])
+	importArgs, err := importer.NewImportArguments(args)
 	if err != nil {
 		terminate(importArgs, err)
 	}
