@@ -1,4 +1,4 @@
-//  Copyright 2018 Google Inc. All Rights Reserved.
+//  Copyright 2020 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -12,17 +12,25 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package main
+package config
 
 import (
+	"log"
 	"os"
-
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/cli"
+	"os/exec"
+	"strings"
 )
 
-func main() {
-	if err := cli.Main(os.Args[1:]); err != nil {
-		// Main is responsible for logging the failure.
-		os.Exit(1)
+// GetConfig fetches a value, first looking up $envKey. If that's not found, it tries
+// `gcloud config get-value $gcloudConfig`.
+func GetConfig(envKey, gcloudConfig string) string {
+	if v := strings.TrimSpace(os.Getenv(envKey)); v != "" {
+		return v
 	}
+
+	out, err := exec.Command("gcloud", "config", "get-value", gcloudConfig).Output()
+	if err != nil {
+		log.Panicf("Environment variable $%s is required", envKey)
+	}
+	return strings.TrimSpace(string(out))
 }

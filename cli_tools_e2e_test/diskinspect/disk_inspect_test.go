@@ -17,9 +17,6 @@ package diskinspect
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
-	"os/exec"
 	"strings"
 	"testing"
 
@@ -27,14 +24,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/common/config"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 var (
-	project = getConfig("GOOGLE_CLOUD_PROJECT", "project")
-	zone    = getConfig("GOOGLE_CLOUD_ZONE", "compute/zone")
+	project = config.GetConfig("GOOGLE_CLOUD_PROJECT", "project")
+	zone    = config.GetConfig("GOOGLE_CLOUD_ZONE", "compute/zone")
 
 	wfAttrs = daisycommon.WorkflowAttributes{
 		Project:           project,
@@ -135,16 +134,4 @@ func deleteDisk(t *testing.T, client daisycompute.Client, diskURI string) {
 	} else {
 		t.Logf("Deleted disk")
 	}
-}
-
-func getConfig(envKey, gcloudConfig string) string {
-	if v := strings.TrimSpace(os.Getenv(envKey)); v != "" {
-		return v
-	}
-
-	out, err := exec.Command("gcloud", "config", "get-value", gcloudConfig).Output()
-	if err != nil {
-		log.Panicf("Environment variable $%s is required", envKey)
-	}
-	return strings.TrimSpace(string(out))
 }
