@@ -60,6 +60,7 @@ func TestDefaultProcessorProvider_InspectUEFI(t *testing.T) {
 		ImportArguments: ImportArguments{
 			WorkflowDir: "../../../daisy_workflows",
 			OS:          "ubuntu-1804",
+			Inspect:     true,
 		},
 	}
 
