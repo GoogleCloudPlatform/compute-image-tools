@@ -29,21 +29,24 @@ type ResizeDisks []*ResizeDisk
 // ResizeDisk is used to resize a GCE disk.
 type ResizeDisk struct {
 	compute.DisksResizeRequest
+	Disk
 	// Name of the disk to be resized
-	Name   string
-	SizeGb string "json:\"sizeGb,omitempty\""
+	Name string
 }
 
 func (r *ResizeDisks) populate(ctx context.Context, s *Step) DError {
 	var errs DError
+
 	for _, rd := range *r {
+		errs = addErrs(errs, rd.populate(ctx, s))
+
 		if diskURLRgx.MatchString(rd.Name) {
 			rd.Name = extendPartialURL(rd.Name, s.w.Project)
 		}
-		if rd.SizeGb != "" && rd.DisksResizeRequest.SizeGb == 0 {
-			size, err := strconv.ParseInt(rd.SizeGb, 10, 64)
+		if rd.Disk.SizeGb != "" && rd.DisksResizeRequest.SizeGb == 0 {
+			size, err := strconv.ParseInt(rd.Disk.SizeGb, 10, 64)
 			if err != nil {
-				return addErrs(errs, Errf("cannot convert %s to int64, error msg: (%v)", rd.SizeGb, err))
+				return addErrs(errs, Errf("cannot convert %s to int64, error msg: (%v)", rd.Disk.SizeGb, err))
 			}
 			rd.DisksResizeRequest.SizeGb = size
 		}
