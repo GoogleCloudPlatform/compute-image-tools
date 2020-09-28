@@ -66,10 +66,6 @@ func CLITestSuite(
 		imageImportWithSubnetWithoutNetworkSpecifiedTestCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import with subnet but without network"))
 
-		// Temporary test while ubuntu-2004 is being added to gcloud.
-		newOSUbuntu2004 := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "ubuntu-2004 should be an option for --os"))
-
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, utils.CLITestType){}
 		testsMap[testType][imageImportDataDiskTestCase] = runImageImportDataDiskTest
@@ -78,7 +74,30 @@ func CLITestSuite(
 		testsMap[testType][imageImportWithRichParamsTestCase] = runImageImportWithRichParamsTest
 		testsMap[testType][imageImportWithDifferentNetworkParamStylesTestCase] = runImageImportWithDifferentNetworkParamStyles
 		testsMap[testType][imageImportWithSubnetWithoutNetworkSpecifiedTestCase] = runImageImportWithSubnetWithoutNetworkSpecified
-		testsMap[testType][newOSUbuntu2004] = verifyNewOSIsAvailableInGcloud("projects/compute-image-tools-test/global/images/ubuntu-2004", "ubuntu-2004")
+
+		// Temporary tests to confirm new --os targets
+		for _, tt := range []struct {
+			osID string
+			img  string
+		}{
+			{"ubuntu-2004", "projects/compute-image-tools-test/global/images/ubuntu-2004"},
+
+			{"sles-12", "projects/compute-image-tools-test/global/images/sles-12-5-unregistered"},
+			{"sles-12-byol", "projects/compute-image-tools-test/global/images/sles-12-5-registered"},
+
+			{"sles-sap-12", "projects/compute-image-tools-test/global/images/sles-sap-12-5-unregistered"},
+			{"sles-sap-12-byol", "projects/compute-image-tools-test/global/images/sles-sap-12-5-registered"},
+
+			{"sles-15", "projects/compute-image-tools-test/global/images/sles-15-2-unregistered"},
+			{"sles-15-byol", "projects/compute-image-tools-test/global/images/sles-15-2-registered"},
+
+			{"sles-sap-15", "projects/compute-image-tools-test/global/images/sles-sap-15-2-unregistered"},
+			{"sles-sap-15-byol", "projects/compute-image-tools-test/global/images/sles-sap-15-2-registered"},
+		} {
+			testsMap[testType][junitxml.NewTestCase(
+				testSuiteName, fmt.Sprintf("[%v][CLI] --os=%v", testType, tt.osID))] =
+				verifyNewOSIsAvailableInGcloud(tt.img, tt.osID)
+		}
 	}
 	utils.CLITestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
 		testProjectConfig, testSuiteName, testsMap)
