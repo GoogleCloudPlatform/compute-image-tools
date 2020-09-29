@@ -14,15 +14,12 @@
 FROM golang
 
 # Build test runner
-WORKDIR /cli_tools_e2e_test
-COPY cli_tools_e2e_test/ .
-RUN cd gce_windows_upgrade && CGO_ENABLED=0 go build -o /gce_windows_upgrade_test_runner
+COPY / /build
+RUN cd /build/cli_tools_tests/e2e/gce_windows_upgrade && CGO_ENABLED=0 go build -o /gce_windows_upgrade_test_runner
 RUN chmod +x /gce_windows_upgrade_test_runner
 
 # Build binaries to test
-WORKDIR /cli_tools
-COPY cli_tools/ .
-RUN cd gce_windows_upgrade && CGO_ENABLED=0 go build -o /gce_windows_upgrade
+RUN cd /build/cli_tools/gce_windows_upgrade && CGO_ENABLED=0 go build -o /gce_windows_upgrade
 RUN chmod +x /gce_windows_upgrade
 
 # Build test container
