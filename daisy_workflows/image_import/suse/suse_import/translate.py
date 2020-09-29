@@ -337,7 +337,3 @@ def translate():
   _update_grub(g)
   utils.CommonRoutines(g)
   diskutils.UnmountDisk(g)
-
-
-if __name__ == '__main__':
-  utils.RunTranslate(translate)

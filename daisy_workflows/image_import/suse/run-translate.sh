@@ -16,9 +16,6 @@
 set -euf -o pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
-for pkg in py/linux_common py/suse_import; do
-  pushd $pkg
-  pip3 install .
-  popd
-done
+pip3 install py/linux_common py/suse_import
+
 translate-suse
