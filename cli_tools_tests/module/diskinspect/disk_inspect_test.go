@@ -59,6 +59,8 @@ func TestBootInspect(t *testing.T) {
 				Distro:       "opensuse",
 				Major:        "15",
 				Minor:        "2",
+				UEFIBootable: true,
+				BIOSBootable: true,
 			},
 		}, {
 			"projects/suse-sap-cloud/global/images/sles-15-sp1-sap-v20200803",
@@ -67,6 +69,8 @@ func TestBootInspect(t *testing.T) {
 				Distro:       "sles-sap",
 				Major:        "15",
 				Minor:        "1",
+				UEFIBootable: true,
+				BIOSBootable: true,
 			},
 		}, {
 			"projects/compute-image-tools-test/global/images/windows-7-ent-x86-nodrivers",
@@ -75,6 +79,38 @@ func TestBootInspect(t *testing.T) {
 				Distro:       "windows",
 				Major:        "6",
 				Minor:        "1",
+				UEFIBootable: false,
+				BIOSBootable: false,
+			},
+		}, {
+			"projects/gce-uefi-images/global/images/rhel-7-v20200403",
+			disk.InspectionResult{
+				Architecture: "x64",
+				Distro:       "rhel",
+				Major:        "7",
+				Minor:        "8",
+				UEFIBootable: true,
+				BIOSBootable: false,
+			},
+		}, {
+			"projects/debian-cloud/global/images/debian-9-stretch-v20200714",
+			disk.InspectionResult{
+				Architecture: "x64",
+				Distro:       "debian",
+				Major:        "9",
+				Minor:        "12",
+				UEFIBootable: false,
+				BIOSBootable: false,
+			},
+		}, {
+			"projects/gce-uefi-images/global/images/windows-server-2019-dc-core-v20200609",
+			disk.InspectionResult{
+				Architecture: "x64",
+				Distro:       "windows",
+				Major:        "10",
+				Minor:        "",
+				UEFIBootable: true,
+				BIOSBootable: false,
 			},
 		},
 	} {

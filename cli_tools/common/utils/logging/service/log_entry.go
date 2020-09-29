@@ -260,10 +260,12 @@ type OutputInfo struct {
 
 // InspectionResults contains metadata determined using automated inspection
 type InspectionResults struct {
-	// UEFIBootable indicates whether the disk has a UEFI boot loader.
+	// UEFIBootable indicates whether the disk is bootable with UEFI.
 	UEFIBootable bool
 
-	// BIOSBootable indicates whether the disk has a BIOS boot loader.
+	// BIOSBootable indicates whether the disk is bootable with BIOS.
+	// It's only useful for detecting hybrid (UEFI+BIOS) mode. A BIOS-only disk
+	// doesn't have a separate partition for BIOS boot.
 	BIOSBootable bool
 
 	// RootFS indicates the file system type of the partition containing

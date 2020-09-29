@@ -56,25 +56,25 @@ def _output_human(results: model.InspectionResults):
 
 
 def _inspect_boot_loader(device):
+  bios_bootable = False
+  uefi_bootable = False
+  root_fs = ""
+
   try:
-    stream = os.popen('fdisk -l {} -o type'.format(device))
-    output = stream.read()
-    print(output)
+    g = guestfs.GuestFS(python_return_dict=True)
+    g.add_drive_opts(device, readonly=1)
+    g.launch()
 
-    bios_bootable = False
-    uefi_bootable = False
-    root_fs = ""
+    part_list = g.part_list('/dev/sda')
+    for part in part_list:
+      guid = g.part_get_gpt_type('/dev/sda', part['part_num'])
 
-    if "BIOS boot" in output:
-      bios_bootable = True
-
-    # 1. For GPT, the ESP output should be "EFI System", which matches
-    # partition GUID "C12A7328-F81F-11D2-BA4B-00A0C93EC93B".
-    # 2. For MBR, the ESP output should be "EFI (FAT-12/16/32)", which matches
-    # partition type "0xef"
-    if "EFI" in output:
-      uefi_bootable = True
-      # TODO: detect root_fs (b/169245755)
+      # It covers both GPT "EFI System" and BIOS "EFI (FAT-12/16/32)"
+      if guid == 'C12A7328-F81F-11D2-BA4B-00A0C93EC93B':
+        uefi_bootable = True
+        # TODO: detect root_fs (b/169245755)
+      if guid == '21686148-6449-6E6F-744E-656564454649':
+        bios_bootable = True
 
   except Exception as e:
     print("Failed to inspect disk partition: ", e)
