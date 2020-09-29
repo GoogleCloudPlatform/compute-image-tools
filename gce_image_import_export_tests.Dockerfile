@@ -14,19 +14,16 @@
 FROM golang
 
 # Build test runner
-WORKDIR /cli_tools_e2e_test
-COPY cli_tools_e2e_test/ .
-RUN cd gce_image_import_export && CGO_ENABLED=0 go build -o /gce_image_import_export_test_runner
+COPY / /build
+RUN cd /build/cli_tools_tests/e2e/gce_image_import_export && CGO_ENABLED=0 go build -o /gce_image_import_export_test_runner
 RUN chmod +x /gce_image_import_export_test_runner
 
 # Build binaries to test
-WORKDIR /cli_tools
-COPY cli_tools/ .
-RUN cd gce_vm_image_import && CGO_ENABLED=0 go build -o /gce_vm_image_import
+RUN cd /build/cli_tools/gce_vm_image_import && CGO_ENABLED=0 go build -o /gce_vm_image_import
 RUN chmod +x /gce_vm_image_import
-RUN cd gce_vm_image_export && CGO_ENABLED=0 go build -o /gce_vm_image_export
+RUN cd /build/cli_tools/gce_vm_image_export && CGO_ENABLED=0 go build -o /gce_vm_image_export
 RUN chmod +x /gce_vm_image_export
-RUN cd gce_onestep_image_import && CGO_ENABLED=0 go build -o /gce_onestep_image_import
+RUN cd /build/cli_tools/gce_onestep_image_import && CGO_ENABLED=0 go build -o /gce_onestep_image_import
 RUN chmod +x /gce_onestep_image_import
 
 # Build test container
@@ -40,5 +37,5 @@ COPY --from=0 /gce_onestep_image_import gce_onestep_image_import
 COPY /daisy_workflows/ /daisy_workflows/
 COPY /daisy_integration_tests/scripts/post_translate_test.sh .
 COPY /daisy_integration_tests/scripts/post_translate_test.ps1 .
-COPY /cli_tools_e2e_test/gce_image_import_export/test_suites/scripts/post_translate_test.wf.json .
+COPY /cli_tools_tests/e2e/gce_image_import_export/test_suites/scripts/post_translate_test.wf.json .
 ENTRYPOINT ["./wrapper", "./gce_image_import_export_test_runner"]
