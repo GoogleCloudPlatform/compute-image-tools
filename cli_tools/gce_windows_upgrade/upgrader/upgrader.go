@@ -122,7 +122,7 @@ func (u *upgrader) run() (service.Loggable, error) {
 		return nil, err
 	}
 	w, err := u.runUpgradeWorkflow()
-	return service.NewLoggableFromWorkflow(w), err
+	return service.NewLoggableFromWorkflow(w, err), err
 }
 
 func (u *upgrader) init() error {

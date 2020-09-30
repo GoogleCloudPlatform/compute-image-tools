@@ -113,7 +113,7 @@ func runImport() (service.Loggable, error) {
 	}
 
 	wf, err := ovfImporter.Import()
-	return service.NewLoggableFromWorkflow(wf), err
+	return service.NewLoggableFromWorkflow(wf, err), err
 }
 
 func main() {

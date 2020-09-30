@@ -200,7 +200,7 @@ func (r *baseResourceRegistry) regURL(url string, checkExist bool) (*Resource, D
 			if err != nil {
 				return nil, err
 			}
-			return nil, typedErrf(r.typeName+resourceDNEError, "%s does not exist", url)
+			return nil, TypedErrf(r.typeName+resourceDNEError, "%s does not exist", url)
 		}
 	}
 

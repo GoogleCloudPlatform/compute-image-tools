@@ -22,7 +22,7 @@ import (
 )
 
 // NewLoggableFromWorkflow provides a Loggable from a daisy workflow.
-func NewLoggableFromWorkflow(wf *daisy.Workflow) Loggable {
+func NewLoggableFromWorkflow(wf *daisy.Workflow, err error) Loggable {
 	if wf == nil {
 		return nil
 	}

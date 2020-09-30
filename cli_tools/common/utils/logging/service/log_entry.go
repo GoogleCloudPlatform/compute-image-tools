@@ -254,6 +254,8 @@ type OutputInfo struct {
 	IsUEFICompatibleImage bool `json:"is_uefi_compatible_image,omitempty"`
 	// Indicates whether the image is auto-detected to be UEFI compatible
 	IsUEFIDetected bool `json:"is_uefi_detected,omitempty"`
+	// Scratch bucket not in project
+	ScratchBucketNotInProject bool `json:"scratch_bucket_not_in_project,omitempty"`
 }
 
 func (l *Logger) updateParams(projectPointer *string) {

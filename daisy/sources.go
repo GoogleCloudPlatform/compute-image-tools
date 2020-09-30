@@ -154,7 +154,7 @@ func (w *Workflow) uploadSources(ctx context.Context) DError {
 			dstPath := w.StorageClient.Bucket(w.bucket).Object(path.Join(w.sourcesPath, dst))
 			if _, err := dstPath.CopierFrom(src).Run(ctx); err != nil {
 				if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
-					return typedErrf(resourceDNEError, "error copying from file %s: %v", origPath, err)
+					return TypedErrf(resourceDNEError, "error copying from file %s: %v", origPath, err)
 				}
 				return Errf("error copying from file %s: %v", origPath, err)
 			}

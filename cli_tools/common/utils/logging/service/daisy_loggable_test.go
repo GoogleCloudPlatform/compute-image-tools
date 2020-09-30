@@ -23,13 +23,13 @@ import (
 )
 
 func TestNewLoggableFromWorkflow_ReturnsNilWhenWorkflowNil(t *testing.T) {
-	assert.Nil(t, NewLoggableFromWorkflow(nil))
+	assert.Nil(t, NewLoggableFromWorkflow(nil, nil))
 }
 
 func TestWorkflowToLoggable_GetValueAsInt64Slice(t *testing.T) {
 	wf := daisy.Workflow{}
 	wf.AddSerialConsoleOutputValue("gb", "1,2,3")
-	loggable := NewLoggableFromWorkflow(&wf)
+	loggable := NewLoggableFromWorkflow(&wf, nil)
 
 	assert.Equal(t, []int64{1, 2, 3}, loggable.GetValueAsInt64Slice("gb"))
 	assert.Empty(t, loggable.GetValueAsInt64Slice("not-there"))
@@ -38,7 +38,7 @@ func TestWorkflowToLoggable_GetValueAsInt64Slice(t *testing.T) {
 func TestWorkflowToLoggable_GetValue(t *testing.T) {
 	wf := daisy.Workflow{}
 	wf.AddSerialConsoleOutputValue("hello", "world")
-	loggable := NewLoggableFromWorkflow(&wf)
+	loggable := NewLoggableFromWorkflow(&wf, nil)
 
 	assert.Equal(t, "world", loggable.GetValue("hello"))
 	assert.Empty(t, loggable.GetValue("not-there"))
@@ -50,14 +50,14 @@ func TestWorkflowToLoggable_ReadSerialPortLogs(t *testing.T) {
 			"log-a", "log-b",
 		}},
 	}
-	loggable := NewLoggableFromWorkflow(&wf)
+	loggable := NewLoggableFromWorkflow(&wf, nil)
 
 	assert.Equal(t, []string{"log-a", "log-b"}, loggable.ReadSerialPortLogs())
 }
 
 func TestWorkflowToLoggable_ReadSerialPortLogs_SupportsMissingDaisyLogger(t *testing.T) {
 	wf := daisy.Workflow{}
-	loggable := NewLoggableFromWorkflow(&wf)
+	loggable := NewLoggableFromWorkflow(&wf, nil)
 
 	assert.Empty(t, loggable.ReadSerialPortLogs())
 }

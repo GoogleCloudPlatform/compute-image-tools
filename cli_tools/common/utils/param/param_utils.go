@@ -20,6 +20,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/errors"
 	"google.golang.org/api/option"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -90,7 +91,7 @@ func populateScratchBucketGcsPath(scratchBucketGcsPath *string, zone string, mgc
 				}
 			}
 
-			return "", daisy.Errf(strings.Join(errorParts, ". "))
+			return "", daisy.TypedErrf(errors.ScratchBucketNotInProjectError, strings.Join(errorParts, ". "))
 		}
 
 		scratchBucketAttrs, err := storageClient.GetBucketAttrs(scratchBucketName)

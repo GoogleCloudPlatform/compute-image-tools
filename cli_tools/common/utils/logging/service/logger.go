@@ -28,6 +28,7 @@ import (
 	"time"
 
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/errors"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/google/uuid"
 	"github.com/minio/highwayhash"
@@ -161,6 +162,13 @@ func (l *Logger) createComputeImageToolsLogExtension(status string, outputInfo *
 	}
 }
 
+func isScratchBucketNotInProjectError(err error) bool {
+	if dErr, ok := err.(daisy.DError); ok {
+		return dErr.CausedByErrType(errors.ScratchBucketNotInProjectError)
+	}
+	return false
+}
+
 func getFailureReason(err error) string {
 	return daisyutils.RemovePrivacyLogTag(err.Error())
 }
@@ -198,6 +206,7 @@ func (l *Logger) getOutputInfo(loggable Loggable, err error) *OutputInfo {
 		if loggable != nil {
 			o.SerialOutputs = loggable.ReadSerialPortLogs()
 		}
+		o.ScratchBucketNotInProject = isScratchBucketNotInProjectError(err)
 	}
 
 	return &o

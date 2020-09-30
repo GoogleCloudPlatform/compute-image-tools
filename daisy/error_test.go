@@ -77,7 +77,7 @@ func TestErrf(t *testing.T) {
 }
 
 func TestTypedErrf(t *testing.T) {
-	got := typedErrf("FOO", "%s %s", "hello", "world")
+	got := TypedErrf("FOO", "%s %s", "hello", "world")
 	want := &dErrImpl{errs: []error{errors.New("hello world")}, errsType: []string{"FOO"}}
 	if diffRes := diff(got, want, 0); diffRes != "" {
 		t.Errorf("Error not created as expected: (-got,+want)\n%s", diffRes)

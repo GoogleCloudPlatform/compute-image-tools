@@ -124,7 +124,8 @@ func typedErr(errType string, safeErrMsg string, e error) DError {
 	return dE
 }
 
-func typedErrf(errType, format string, a ...interface{}) DError {
+// TypedErrf returns a DError with error type.
+func TypedErrf(errType, format string, a ...interface{}) DError {
 	return typedErr(errType, format, fmt.Errorf(format, a...))
 }
 

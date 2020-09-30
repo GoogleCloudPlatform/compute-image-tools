@@ -58,7 +58,7 @@ func (w *Workflow) imageExists(project, family, image string) (bool, DError) {
 		}
 		if img.Deprecated != nil {
 			if img.Deprecated.State == "OBSOLETE" || img.Deprecated.State == "DELETED" {
-				return true, typedErrf(imageObsoleteDeletedError, "image %q in state %q", img.Name, img.Deprecated.State)
+				return true, TypedErrf(imageObsoleteDeletedError, "image %q in state %q", img.Name, img.Deprecated.State)
 			}
 		}
 		w.imageFamilyCache.exists[project][img.Name] = img
@@ -80,7 +80,7 @@ func (w *Workflow) imageExists(project, family, image string) (bool, DError) {
 	for _, i := range w.imageCache.exists[project] {
 		if ic, ok := i.(*compute.Image); ok && image == ic.Name {
 			if ic.Deprecated != nil && (ic.Deprecated.State == "OBSOLETE" || ic.Deprecated.State == "DELETED") {
-				return true, typedErrf(imageObsoleteDeletedError, "image %q in state %q", image, ic.Deprecated.State)
+				return true, TypedErrf(imageObsoleteDeletedError, "image %q in state %q", image, ic.Deprecated.State)
 			}
 			return true, nil
 		}

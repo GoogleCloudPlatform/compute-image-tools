@@ -48,7 +48,7 @@ func exportEntry() (service.Loggable, error) {
 	wf, err := exporter.Run(*clientID, *destinationURI, *sourceImage, *format, project,
 		*network, *subnet, *zone, *timeout, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled,
 		*cloudLogsDisabled, *stdoutLogsDisabled, *labels, currentExecutablePath)
-	return service.NewLoggableFromWorkflow(wf), err
+	return service.NewLoggableFromWorkflow(wf, err), err
 }
 
 func main() {

@@ -280,7 +280,7 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 			caseName:       "In scratch - Successful deletion",
 			deleteResult:   nil,
 			deleteExpected: true,
-			expectedError: "Scratch bucket \"scratchbucket\" is not in project \"a_project\". " +
+			expectedError: "ScratchBucketNotInProjectError: Scratch bucket \"scratchbucket\" is not in project \"a_project\". " +
 				"Deleted \"gs://scratchbucket/sourcefile\"",
 			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
 			fileGCSPath:          "gs://scratchbucket/sourcefile",
@@ -289,7 +289,7 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 			caseName:       "In scratch - Failed deletion",
 			deleteResult:   errors.New("Failed to delete path"),
 			deleteExpected: true,
-			expectedError: "Scratch bucket \"scratchbucket\" is not in project \"a_project\". " +
+			expectedError: "ScratchBucketNotInProjectError: Scratch bucket \"scratchbucket\" is not in project \"a_project\". " +
 				"Failed to delete \"gs://scratchbucket/sourcefile\". Check with the owner of " +
 				"gs://\"scratchbucket\" for more information",
 			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
@@ -297,13 +297,13 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 		},
 		{
 			caseName:             "Not in scratch - Don't delete",
-			expectedError:        "Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
+			expectedError:        "ScratchBucketNotInProjectError: Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
 			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
 			fileGCSPath:          "gs://source-images/sourcefile",
 		},
 		{
 			caseName:             "GCS Image - Don't delete",
-			expectedError:        "Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
+			expectedError:        "ScratchBucketNotInProjectError: Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
 			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
 			fileGCSPath:          "",
 		},
