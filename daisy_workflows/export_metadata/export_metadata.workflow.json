@@ -34,7 +34,9 @@
     }
   },
   "Sources": {
-    "export_metadata/export-metadata.py": "./export-metadata.py",
+    "export_metadata/utils/common.py": "../linux_common/utils/common.py",
+    "export_metadata/utils/__init__.py": "../linux_common/utils/__init__.py",
+    "export_metadata/export-metadata.py": "export-metadata.py",
     "export_startup_script": "../linux_common/bootstrap.sh"
   },
   "Steps": {
@@ -61,7 +63,7 @@
           "Metadata": {
             "files_gcs_dir": "${SOURCESPATH}/export_metadata",
             "script": "export-metadata.py",
-            "metadata_dest": "gs://gce-image-metadata/${image_family}/${image_name}/metadata-${image_id}.json",
+            "metadata_dest": "${metadata_dest}",
             "image_id": "${image_id}",
             "image_name": "${image_name}",
             "image_family": "${image_family}",

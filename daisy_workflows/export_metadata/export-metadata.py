@@ -4,10 +4,9 @@
 
 Parameters retrieved from instance metadata:
 
-google_cloud_repo: The repo to use to build image. Must be one of
-  ['stable' (default), 'unstable', 'staging'].
-image_tar_location: The Cloud Storage destination for the resultant image.
 metadata_dest: The Cloud Storage destination for the resultant image metadata.
+image_id: The resource id of the image.
+image_name: The name of the image in GCP.
 image_family: The family that image belongs.
 distribution: Use image distribution. Must be one of [enterprise_linux,
   debian, centos].
@@ -17,75 +16,26 @@ uefi: boolean Whether using UEFI to boot OS.
 import datetime
 import json
 import logging
-import re
 import subprocess
 import sys
 import tempfile
-import urllib.error
-import urllib.request
 
-from google.cloud import exceptions
-from google.cloud import storage
-
-METADATA_ENDPOINT = 'http://metadata.google.internal/computeMetadata/v1' \
-                    '/instance/attributes/?recursive=true '
-
-
-def GetMetadataAttribute():
-  """Get attribute from metadata server.
-
-  Returns:
-    dictionary, the instance attribute metadata.
-  """
-  try:
-    request = urllib.request.Request(METADATA_ENDPOINT)
-    headers = {'Metadata-Flavor': 'Google'}
-    for key, value in headers.items():
-      request.add_unredirected_header(key, value)
-    return json.loads(urllib.request.urlopen(request).read().decode())
-  except urllib.error.HTTPError:
-    raise ValueError('Metadata key not found')
-
-
-def UploadFile(source_file, gcs_dest_file):
-  """Uploads a file to GCS.
-
-  Expects a local source file and a destination bucket and GCS path.
-
-  Args:
-    source_file: string, the path of a source file to upload.
-    gcs_dest_file: string, the path to the resulting file in GCS.
-
-  Raises:
-    ValueError: The error occurred when gcs_dest_file is invalid bucket.
-  """
-
-  bucket = r'(?P<bucket>[a-z0-9][-_.a-z0-9]*[a-z0-9])'
-  obj = r'(?P<obj>[^\*\?]+)'
-  prefix = r'gs://'
-  gs_regex = re.compile(r'{prefix}{bucket}/{obj}'
-                        .format(prefix=prefix, bucket=bucket, obj=obj))
-  match = gs_regex.match(gcs_dest_file)
-  if not match:
-    raise ValueError('Destination path %s is invalid.' % gcs_dest_file)
-  client = storage.Client()
-  bucket = client.get_bucket(match.group('bucket'))
-  blob = bucket.blob(match.group('obj'))
-  try:
-    blob.upload_from_filename(source_file)
-  except exceptions.from_http_status:
-    raise ValueError('Upload to bucket %s failed.' % gcs_dest_file)
+import utils
 
 
 def main():
   # Get parameters from instance metadata.
-  metadata = GetMetadataAttribute()
-  metadata_dest = metadata.get('metadata_dest')
-  image_id = metadata.get('image_id')
-  image_name = metadata.get('image_name')
-  image_family = metadata.get('image_family')
-  distribution = metadata.get('distribution')
-  uefi = metadata.get('uefi', '').lower() == 'true'
+  metadata_dest = utils.GetMetadataAttribute('metadata_dest',
+                                             raise_on_not_found=True)
+  image_id = utils.GetMetadataAttribute('image_id',
+                                        raise_on_not_found=True)
+  image_name = utils.GetMetadataAttribute('image_name',
+                                          raise_on_not_found=True)
+  image_family = utils.GetMetadataAttribute('image_family',
+                                            raise_on_not_found=True)
+  distribution = utils.GetMetadataAttribute('distribution',
+                                            raise_on_not_found=True)
+  uefi = utils.GetMetadataAttribute('uefi', 'false').lower() == 'true'
 
   logging.info('Creating upload metadata of the image and packages.')
 
@@ -170,7 +120,7 @@ def main():
 
   logging.info('Uploading image metadata.')
   try:
-    UploadFile(f.name, metadata_dest)
+    utils.UploadFile(f.name, metadata_dest)
   except ValueError as e:
     logging.exception('ExportFailed: Failed uploading metadata file %s', e)
     sys.exit(1)
