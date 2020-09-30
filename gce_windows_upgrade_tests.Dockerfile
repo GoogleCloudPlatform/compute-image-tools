@@ -15,7 +15,7 @@ FROM golang
 
 # Build test runner
 COPY / /build
-RUN cd /build/cli_tools_tests/e2e/gce_windows_upgrade && CGO_ENABLED=0 go build -o /gce_windows_upgrade_test_runner
+RUN cd /build/cli_tools_tests/e2e_tests/gce_windows_upgrade && CGO_ENABLED=0 go build -o /gce_windows_upgrade_test_runner
 RUN chmod +x /gce_windows_upgrade_test_runner
 
 # Build binaries to test

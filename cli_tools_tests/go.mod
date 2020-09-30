@@ -11,7 +11,6 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/stretchr/testify v1.5.1
 	google.golang.org/api v0.31.0
-	honnef.co/go/tools v0.0.1-2020.1.5 // indirect
 )
 
 replace github.com/GoogleCloudPlatform/compute-image-tools/cli_tools => ../cli_tools

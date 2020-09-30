@@ -21,9 +21,9 @@ import (
 	"regexp"
 	"sync"
 
-	exporttestsuites "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e/gce_image_import_export/test_suites/export"
-	importtestsuites "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e/gce_image_import_export/test_suites/import"
-	onestepimporttestsuites "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e/gce_image_import_export/test_suites/onestep_import"
+	exporttestsuites "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e_tests/gce_image_import_export/test_suites/export"
+	importtestsuites "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e_tests/gce_image_import_export/test_suites/import"
+	onestepimporttestsuites "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e_tests/gce_image_import_export/test_suites/onestep_import"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"

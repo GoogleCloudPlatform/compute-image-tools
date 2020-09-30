@@ -25,8 +25,8 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 
-	ovfinstanceimporttestsuite "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e/gce_ovf_import/test_suites/ovf_instance_import"
-	ovfmachineimageimporttestsuite "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e/gce_ovf_import/test_suites/ovf_machine_image_import"
+	ovfinstanceimporttestsuite "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e_tests/gce_ovf_import/test_suites/ovf_instance_import"
+	ovfmachineimageimporttestsuite "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e_tests/gce_ovf_import/test_suites/ovf_machine_image_import"
 )
 
 func main() {

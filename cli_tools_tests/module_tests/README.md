@@ -1,4 +1,4 @@
-Module tests: Larger than unit tests, but smaller than e2e tests.
+Module tests: Similar to unit tests, but with live, non-mocked dependencies.
 
 ## Running
 
