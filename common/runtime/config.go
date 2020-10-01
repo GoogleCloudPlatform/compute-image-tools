@@ -21,8 +21,16 @@ import (
 	"strings"
 )
 
-// GetConfig fetches a value, first looking up $envKey. If that's not found, it tries
-// `gcloud config get-value $gcloudConfig`.
+// GetConfig reads environment-based configurations, using fallback.
+// First envKey is looked up as an nvironment variable. If that's
+// not found, gcloud is queried using `gcloud config get-value $gcloudConfig`.
+//
+// Examples:
+//  GetConfig("GOOGLE_CLOUD_PROJECT", "project")
+//  GetConfig("GOOGLE_CLOUD_ZONE", "compute/zone")
+//
+// For more info on using configurations with gcloud, see:
+//  https://cloud.google.com/sdk/docs/configurations
 func GetConfig(envKey, gcloudConfig string) string {
 	if v := strings.TrimSpace(os.Getenv(envKey)); v != "" {
 		return v
