@@ -22,7 +22,7 @@ import (
 	"regexp"
 	"sync"
 
-	logging2 "github.com/GoogleCloudPlatform/compute-image-tools/common/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/common/logging"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e"
@@ -244,7 +244,7 @@ func verifyImportedImageFile(ctx context.Context, testCase *junitxml.TestCase, p
 		},
 	}
 
-	wf.Logger = logging2.AsDaisyLogger(logger)
+	wf.Logger = logging.AsDaisyLogger(logger)
 	wf.Project = testProjectConfig.TestProjectID
 	wf.Zone = testProjectConfig.TestZone
 	err = wf.Run(ctx)

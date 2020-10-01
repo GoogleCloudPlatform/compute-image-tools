@@ -31,7 +31,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e"
 	"github.com/GoogleCloudPlatform/compute-image-tools/common/gcp"
-	logging2 "github.com/GoogleCloudPlatform/compute-image-tools/common/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/common/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
@@ -344,8 +344,8 @@ func (t testCase) runImport(junit *junitxml.TestCase, logger *log.Logger,
 	}
 	cmd := exec.Command("./gce_vm_image_import", args...)
 	cmdOutput := &bytes.Buffer{}
-	cmd.Stdout = io.MultiWriter(cmdOutput, logging2.AsWriter(logger))
-	cmd.Stderr = io.MultiWriter(cmdOutput, logging2.AsWriter(logger))
+	cmd.Stdout = io.MultiWriter(cmdOutput, logging.AsWriter(logger))
+	cmd.Stderr = io.MultiWriter(cmdOutput, logging.AsWriter(logger))
 	err := cmd.Start()
 	if err != nil {
 		return cmdOutput, err
@@ -390,7 +390,7 @@ func (t testCase) runPostTranslateTest(ctx context.Context, imagePath string,
 		wf.AddVar(k, v)
 	}
 
-	wf.Logger = logging2.AsDaisyLogger(logger)
+	wf.Logger = logging.AsDaisyLogger(logger)
 	wf.Project = testProjectConfig.TestProjectID
 	wf.Zone = testProjectConfig.TestZone
 	err = wf.Run(ctx)
