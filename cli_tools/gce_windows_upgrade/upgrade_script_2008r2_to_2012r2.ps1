@@ -18,7 +18,7 @@ try {
   Write-Host 'GCEMetadataScripts: Beginning upgrade startup script.'
 
   # Cleanup garbage files left by the previous failed upgrade to unblock a new upgrade.
-  Remove-Item 'C:\$WINDOWS.~BT' -Recurse -ErrorAction Ignore
+  Remove-Item 'C:\$WINDOWS.~BT' -Recurse -ErrorAction SilentlyContinue
 
   $ver=[System.Environment]::OSVersion.Version
   if ("$($ver.Major).$($ver.Minor)" -ne "6.1") {
