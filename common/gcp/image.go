@@ -12,7 +12,6 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-// Package compute contains wrappers around the GCE compute API.
 package gcp
 
 import (
