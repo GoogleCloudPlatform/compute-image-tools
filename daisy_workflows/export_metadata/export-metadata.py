@@ -27,12 +27,9 @@ def main():
   # Get parameters from instance metadata.
   metadata_dest = utils.GetMetadataAttribute('metadata_dest',
                                              raise_on_not_found=True)
-  image_id = utils.GetMetadataAttribute('image_id',
-                                        raise_on_not_found=True)
-  image_name = utils.GetMetadataAttribute('image_name',
-                                          raise_on_not_found=True)
-  image_family = utils.GetMetadataAttribute('image_family',
-                                            raise_on_not_found=True)
+  image_id = utils.GetMetadataAttribute('image_id')
+  image_name = utils.GetMetadataAttribute('image_name')
+  image_family = utils.GetMetadataAttribute('image_family')
   distribution = utils.GetMetadataAttribute('distribution',
                                             raise_on_not_found=True)
   uefi = utils.GetMetadataAttribute('uefi', 'false').lower() == 'true'

@@ -9,15 +9,15 @@
       "Description": "The GCS path for the destination image metadata json"
     },
     "image_id": {
-      "Required": true,
+      "Required": false,
       "Description": "The image id used in project"
     },
     "image_name": {
-      "Required": true,
+      "Required": false,
       "Description": "The image name used in project"
     },
     "image_family": {
-      "Required": true,
+      "Required": false,
       "Description": "Image Family"
     },
     "source_image": {
