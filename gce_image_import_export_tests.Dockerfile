@@ -15,7 +15,7 @@ FROM golang
 
 # Build test runner
 COPY / /build
-RUN cd /build/cli_tools_tests/e2e_tests/gce_image_import_export && CGO_ENABLED=0 go build -o /gce_image_import_export_test_runner
+RUN cd /build/cli_tools_tests/e2e/gce_image_import_export && CGO_ENABLED=0 go build -o /gce_image_import_export_test_runner
 RUN chmod +x /gce_image_import_export_test_runner
 
 # Build binaries to test
@@ -37,5 +37,5 @@ COPY --from=0 /gce_onestep_image_import gce_onestep_image_import
 COPY /daisy_workflows/ /daisy_workflows/
 COPY /daisy_integration_tests/scripts/post_translate_test.sh .
 COPY /daisy_integration_tests/scripts/post_translate_test.ps1 .
-COPY /cli_tools_tests/e2e_tests/gce_image_import_export/test_suites/scripts/post_translate_test.wf.json .
+COPY /cli_tools_tests/e2e/gce_image_import_export/test_suites/scripts/post_translate_test.wf.json .
 ENTRYPOINT ["./wrapper", "./gce_image_import_export_test_runner"]

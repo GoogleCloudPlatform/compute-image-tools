@@ -18,7 +18,7 @@ RUN apk add --no-cache git
 # Build test runner
 COPY / /build
 WORKDIR /build
-RUN cd /build/cli_tools_tests/e2e_tests/gce_ovf_import && CGO_ENABLED=0 go build -o /gce_ovf_import_test_runner
+RUN cd /build/cli_tools_tests/e2e/gce_ovf_import && CGO_ENABLED=0 go build -o /gce_ovf_import_test_runner
 RUN chmod +x /gce_ovf_import_test_runner
 
 # Build binaries to test
@@ -31,7 +31,7 @@ ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=0 /gce_ovf_import_test_runner gce_ovf_import_test_runner
 COPY --from=0 /gce_ovf_import gce_ovf_import
-COPY /cli_tools_tests/e2e_tests/gce_ovf_import/scripts/ /scripts/
+COPY /cli_tools_tests/e2e/gce_ovf_import/scripts/ /scripts/
 COPY /daisy_integration_tests/scripts/ /daisy_integration_tests/scripts/
 COPY /daisy_workflows/ /daisy_workflows/
 ENTRYPOINT ["./wrapper", "./gce_ovf_import_test_runner"]

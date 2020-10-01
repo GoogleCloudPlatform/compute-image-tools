@@ -61,13 +61,13 @@ Each matching workflow is run as a test case.
 
 gce-image-import-export-tests invokes our latest Image Importer/Exporter
  binary against the `compute-image-tools-test` GCP project. It runs the
- tests defined in `cli_tools_tests/e2e_tests/gce_image_import_export`.
+ tests defined in `cli_tools_tests/e2e/gce_image_import_export`.
 
 ## Prow job: gce-ovf-import-tests
 
 gce-ovf-import-tests invokes our latest OVF Importer binary against the
 `compute-image-tools-test` GCP project. It runs the tests defined in
-`cli_tools_tests/e2e_tests/gce_ovf_import`.
+`cli_tools_tests/e2e/gce_ovf_import`.
 
 ### Periodic runs and testgrid
 

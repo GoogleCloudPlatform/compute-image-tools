@@ -17,12 +17,13 @@ package importer
 import (
 	"flag"
 	"fmt"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
