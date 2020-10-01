@@ -38,7 +38,8 @@ import (
 )
 
 const (
-	suite = "ImageImport"
+	suite           = "ImageImport"
+	slesOnDemandTip = "For on-demand conversion failures, see daisy_workflows/image_import/suse/suse_import/README.md"
 )
 
 type testCase struct {
@@ -71,6 +72,9 @@ type testCase struct {
 
 	// Whether to add "inspect" arg
 	inspect bool
+
+	// Additional information to show on failure to assist with debugging.
+	tip string
 }
 
 var basicCases = []*testCase{
@@ -174,48 +178,56 @@ var basicCases = []*testCase{
 		os:                   "sles-12",
 		osConfigNotSupported: true,
 		inspect:              true,
+		tip:                  slesOnDemandTip,
 	}, {
 		caseName:             "sles-12-5-on-demand",
 		source:               "projects/compute-image-tools-test/global/images/sles-12-5-unregistered",
 		os:                   "sles-12",
 		osConfigNotSupported: true,
 		inspect:              true,
+		tip:                  slesOnDemandTip,
 	}, {
 		caseName:             "sles-sap-12-4-on-demand",
 		source:               "projects/compute-image-tools-test/global/images/sles-sap-12-4-unregistered",
 		os:                   "sles-sap-12",
 		osConfigNotSupported: true,
 		inspect:              true,
+		tip:                  slesOnDemandTip,
 	}, {
 		caseName:             "sles-sap-12-5-on-demand",
 		source:               "projects/compute-image-tools-test/global/images/sles-sap-12-5-unregistered",
 		os:                   "sles-sap-12",
 		osConfigNotSupported: true,
 		inspect:              true,
+		tip:                  slesOnDemandTip,
 	}, {
 		caseName:             "sles-15-1-on-demand",
 		source:               "projects/compute-image-tools-test/global/images/sles-15-1-unregistered",
 		os:                   "sles-15",
 		osConfigNotSupported: true,
 		inspect:              true,
+		tip:                  slesOnDemandTip,
 	}, {
 		caseName:             "sles-15-2-on-demand",
 		source:               "projects/compute-image-tools-test/global/images/sles-15-2-unregistered",
 		os:                   "sles-15",
 		osConfigNotSupported: true,
 		inspect:              true,
+		tip:                  slesOnDemandTip,
 	}, {
 		caseName:             "sles-sap-15-1-on-demand",
 		source:               "projects/compute-image-tools-test/global/images/sles-sap-15-1-unregistered",
 		os:                   "sles-sap-15",
 		osConfigNotSupported: true,
 		inspect:              true,
+		tip:                  slesOnDemandTip,
 	}, {
 		caseName:             "sles-sap-15-2-on-demand",
 		source:               "projects/compute-image-tools-test/global/images/sles-sap-15-2-unregistered",
 		os:                   "sles-sap-15",
 		osConfigNotSupported: true,
 		inspect:              true,
+		tip:                  slesOnDemandTip,
 	},
 
 	// EL
@@ -341,15 +353,20 @@ func (t *testCase) run(ctx context.Context, junit *junitxml.TestCase, logger *lo
 
 	importLogs, err := t.runImport(junit, logger, testProjectConfig, t.imageName)
 
+	if importLogs == nil {
+		panic("Expected importLogs to be non-nil")
+	}
+
 	if t.expectedError != "" {
 		t.verifyExpectedError(junit, err, importLogs)
 	} else if err != nil {
-		t.writeImportFailed(junit, importLogs)
+		junit.Logf(importLogs.String())
+		t.writeFailure(junit, "Import failed: %q", getLastLine(importLogs))
 	} else {
 		t.verifyImage(ctx, junit, logger, testProjectConfig)
 		err = t.runPostTranslateTest(ctx, imagePath, testProjectConfig, logger)
 		if err != nil {
-			junit.WriteFailure("Failed post translate test: %v", err)
+			t.writeFailure(junit, "Failed post translate test: %v", err)
 		}
 	}
 	junit.Time = time.Now().Sub(start).Seconds()
@@ -359,8 +376,8 @@ func (t *testCase) verifyImage(ctx context.Context, junit *junitxml.TestCase, lo
 	logger.Printf("Verifying imported image...")
 	image, err := gcp.CreateImageObject(ctx, testProjectConfig.TestProjectID, t.imageName)
 	if err != nil {
-		junit.WriteFailure("Image '%v' doesn't exist after import: %v", t.imageName, err)
-		logger.Printf("Image '%v' doesn't exist after import: %v", t.imageName, err)
+		junit.Logf("Image '%v' doesn't exist after import: %v", t.imageName, err)
+		t.writeFailure(junit, "Image '%v' doesn't exist after import: %v", t.imageName, err)
 		return
 	}
 	logger.Printf("Image '%v' exists! Import finished.", t.imageName)
@@ -405,21 +422,22 @@ func (t testCase) runImport(junit *junitxml.TestCase, logger *log.Logger,
 	return cmdOutput, cmd.Wait()
 }
 
-func (t testCase) writeImportFailed(junit *junitxml.TestCase, importLog *bytes.Buffer) {
-	// The Logf messages are shown in the test framework UI.
-	junit.Logf(importLog.String())
-	junit.WriteFailure("Import failed: %q", getLastLine(importLog))
+func (t testCase) writeFailure(junit *junitxml.TestCase, msg string, args ...interface{}) {
+	if t.tip != "" {
+		junit.Logf(t.tip)
+	}
+	junit.WriteFailure(msg, args)
 }
 
 func (t testCase) verifyExpectedError(junit *junitxml.TestCase, actualErr error, importLog *bytes.Buffer) {
 	if actualErr == nil {
-		junit.WriteFailure("Expected failed import: %q.", t.expectedError)
+		t.writeFailure(junit, "Expected failed import: %q.", t.expectedError)
 		return
 	}
 
 	lastLine := getLastLine(importLog)
 	if !strings.Contains(lastLine, t.expectedError) {
-		junit.WriteFailure("Message shown to user %q did not contain %q.",
+		t.writeFailure(junit, "Message shown to user %q did not contain %q.",
 			lastLine, t.expectedError)
 	}
 }
