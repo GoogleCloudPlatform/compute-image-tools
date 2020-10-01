@@ -1,8 +1,5 @@
 {
   "Name": "export-metadata",
-  "Project": "gce-image-builder",
-  "Zone": "us-central1-b",
-  "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
   "Vars": {
     "metadata_dest": {
       "Required": true,
@@ -36,8 +33,8 @@
   "Sources": {
     "export_metadata/utils/common.py": "../linux_common/utils/common.py",
     "export_metadata/utils/__init__.py": "../linux_common/utils/__init__.py",
-    "export_metadata/export-metadata.py": "export-metadata.py",
-    "export_startup_script": "../linux_common/bootstrap.sh"
+    "export_metadata/export-metadata.py": "./export-metadata.py",
+    "startup_script": "../linux_common/bootstrap.sh"
   },
   "Steps": {
     "setup-disks": {
@@ -48,7 +45,7 @@
           "Type": "pd-ssd"
         },
         {
-          "Name": "source_disk",
+          "Name": "source-disk",
           "SourceImage": "${source_image}",
           "Type": "pd-ssd"
         }
@@ -58,7 +55,7 @@
       "CreateInstances": [
         {
           "Name": "inst-exporter",
-          "Disks": [{"Source": "disk-exporterprep"},{"Source": "source_disk"}],
+          "Disks": [{"Source": "disk-exporterprep"},{"Source": "source-disk"}],
           "MachineType": "n1-highcpu-4",
           "Metadata": {
             "files_gcs_dir": "${SOURCESPATH}/export_metadata",
@@ -74,7 +71,7 @@
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_write"
           ],
-          "StartupScript": "export_startup_script"
+          "StartupScript": "startup_script"
         }
       ]
     },
@@ -93,7 +90,8 @@
     },
     "delete-inst": {
       "DeleteResources": {
-        "Instances": ["inst-exporter"]
+        "Instances": ["inst-exporter"],
+        "Disks":["disk-exporterprep", "source-disk"]
       }
     }
   },
