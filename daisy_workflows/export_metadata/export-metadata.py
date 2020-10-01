@@ -98,7 +98,7 @@ def main():
       stdout = stdout.decode()
       logging.info('Package metadata is %s', stdout)
     except subprocess.CalledProcessError as e:
-      logging.exception('Fail to execute cmd. %s', e)
+      logging.warning('Fail to execute cmd. %s', e)
       continue
     if has_commit_hash:
       package, version, commit_hash = stdout.split('\n', 2)
