@@ -55,33 +55,6 @@ def _output_human(results: model.InspectionResults):
   _output_json(results, indent=4)
 
 
-def _inspect_boot_loader(device):
-  bios_bootable = False
-  uefi_bootable = False
-  root_fs = ""
-
-  try:
-    g = guestfs.GuestFS(python_return_dict=True)
-    g.add_drive_opts(device, readonly=1)
-    g.launch()
-
-    part_list = g.part_list('/dev/sda')
-    for part in part_list:
-      guid = g.part_get_gpt_type('/dev/sda', part['part_num'])
-
-      # It covers both GPT "EFI System" and BIOS "EFI (FAT-12/16/32)"
-      if guid == 'C12A7328-F81F-11D2-BA4B-00A0C93EC93B':
-        uefi_bootable = True
-        # TODO: detect root_fs (b/169245755)
-      if guid == '21686148-6449-6E6F-744E-656564454649':
-        bios_bootable = True
-
-  except Exception as e:
-    print("Failed to inspect disk partition: ", e)
-
-  return bios_bootable, uefi_bootable, root_fs
-
-
 def main():
   format_options_and_help = {
     'json': 'JSON without newlines. Suitable for consumption by '
@@ -106,21 +79,22 @@ def main():
   )
   args = parser.parse_args()
 
+  g = guestfs.GuestFS(python_return_dict=True)
+  g.add_drive_opts(args.device, readonly=1)
+  g.launch()
+
   req = urllib.request.Request(
       "http://metadata.google.internal/computeMetadata/v1"
       "/instance/attributes/is-inspect-os",
       headers={'Metadata-Flavor': 'Google'})
   is_inspect_os = urllib.request.urlopen(req).read()
   if is_inspect_os == b'true':
-    g = guestfs.GuestFS(python_return_dict=True)
-    g.add_drive_opts(args.device, readonly=1)
-    g.launch()
     results = inspection.inspect_device(g, args.device)
   else:
     results = model.InspectionResults(device=None, os=None, architecture=None)
 
   results.bios_bootable, results.uefi_bootable, results.root_fs = (
-      _inspect_boot_loader(args.device))
+      inspection.inspect_boot_loader(g))
 
   globals()['_output_' + args.format](results)
 
