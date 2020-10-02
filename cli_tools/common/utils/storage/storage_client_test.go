@@ -15,15 +15,17 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
 	"cloud.google.com/go/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/iterator"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 )
 
 func TestDeleteGcsPath(t *testing.T) {
@@ -110,6 +112,105 @@ func TestDeleteGcsPathErrorWhenErrorDeletingAFile(t *testing.T) {
 		Logger: logging.NewStdoutLogger("[test]")}
 	err := sc.DeleteGcsPath("gs://sourcebucket/sourcepath/furtherpath")
 	assert.NotNil(t, err)
+}
+
+func TestDeleteObject(t *testing.T) {
+
+	deletionPath := "gs://bucket/path"
+	bucket := "bucket"
+	path := "path"
+	tests := []struct {
+		name            string
+		iteratorResults []string
+		iteratorErrors  []error
+		deleteExpected  bool
+		deleteError     error
+		errorExpected   string
+	}{
+		{
+			name:            "delete when one result with full match",
+			iteratorResults: []string{"path"},
+			iteratorErrors:  []error{nil, iterator.Done},
+			deleteExpected:  true,
+		}, {
+			name:            "error when one result without full match",
+			iteratorResults: []string{"path/file.vmdk"},
+			iteratorErrors:  []error{nil, iterator.Done},
+			errorExpected:   "Error deleting `gs://bucket/path`: Object not found",
+		}, {
+			name:            "error when delete fails",
+			iteratorResults: []string{"path"},
+			iteratorErrors:  []error{nil, iterator.Done},
+			deleteExpected:  true,
+			deleteError:     errors.New("HTTP 502"),
+			errorExpected:   "Error deleting `gs://bucket/path`: `HTTP 502`",
+		}, {
+			name:            "error when query fails",
+			iteratorResults: []string{},
+			iteratorErrors:  []error{errors.New("HTTP 404")},
+			errorExpected:   "Error deleting `gs://bucket/path`: Failed querying GCS: `HTTP 404`",
+		}, {
+			name:           "error when query has empty results",
+			iteratorErrors: []error{iterator.Done},
+			errorExpected:  "Error deleting `gs://bucket/path`: Object not found",
+		}, {
+			name:            "error when query has multiple results",
+			iteratorResults: []string{"path/file1.vmdk", "path/file2.vmdk"},
+			iteratorErrors:  []error{nil, nil},
+			errorExpected:   "Error deleting `gs://bucket/path`: Multiple objects with prefix",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockObjectIterator := mocks.NewMockObjectIteratorInterface(ctrl)
+			switch len(tt.iteratorResults) {
+			case 0:
+				mockObjectIterator.EXPECT().Next().Return(nil, tt.iteratorErrors[0])
+				break
+			case 1:
+				mockObjectIterator.EXPECT().Next().
+					Return(&storage.ObjectAttrs{Name: tt.iteratorResults[0]}, tt.iteratorErrors[0])
+				mockObjectIterator.EXPECT().Next().Return(nil, tt.iteratorErrors[1])
+				break
+			default:
+				mockObjectIterator.EXPECT().Next().
+					Return(&storage.ObjectAttrs{Name: tt.iteratorResults[0]}, tt.iteratorErrors[0])
+				mockObjectIterator.EXPECT().Next().
+					Return(&storage.ObjectAttrs{Name: tt.iteratorResults[1]}, tt.iteratorErrors[1])
+				break
+			}
+
+			mockObjectIteratorCreator := mocks.NewMockObjectIteratorCreatorInterface(ctrl)
+			mockObjectIteratorCreator.EXPECT().
+				CreateObjectIterator(bucket, path).
+				Return(mockObjectIterator)
+
+			mockStorageObjectCreator := mocks.NewMockStorageObjectCreatorInterface(ctrl)
+
+			if tt.deleteExpected {
+				mockStorageObject := mocks.NewMockStorageObject(ctrl)
+				mockStorageObjectCreator.EXPECT().
+					GetObject(bucket, tt.iteratorResults[0]).Return(mockStorageObject)
+				mockStorageObject.EXPECT().Delete().Return(tt.deleteError)
+			}
+
+			client := Client{
+				Oic:    mockObjectIteratorCreator,
+				Soc:    mockStorageObjectCreator,
+				Logger: logging.NewStdoutLogger("[test]"),
+			}
+			err := client.DeleteObject(deletionPath)
+			if tt.errorExpected == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errorExpected)
+			}
+		})
+	}
 }
 
 func TestFindGcsFileNoTrailingSlash(t *testing.T) {

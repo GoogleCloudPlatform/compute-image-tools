@@ -25,11 +25,12 @@ import (
 	"strings"
 
 	"cloud.google.com/go/storage"
+	"google.golang.org/api/iterator"
+	"google.golang.org/api/option"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	"google.golang.org/api/iterator"
-	"google.golang.org/api/option"
 )
 
 var (
@@ -126,6 +127,43 @@ func (sc *Client) DeleteGcsPath(gcsPath string) error {
 		}
 	}
 
+	return nil
+}
+
+// DeleteObject deletes the object with the path `gcsPath`. Deletion requires a single
+// exact match on the path. If the object isn't found, an error is returned.
+// If multiple objects are found with `gcsPath` as a prefix, no deletion occurs,
+// and an error is returned.
+func (sc *Client) DeleteObject(gcsPath string) error {
+	bucketName, objectPath, err := SplitGCSPath(gcsPath)
+	if err != nil {
+		return err
+	}
+	it := sc.GetObjects(bucketName, objectPath)
+
+	firstObject, err := it.Next()
+	if err == iterator.Done {
+		return daisy.Errf("Error deleting `%v`: Object not found", gcsPath)
+	}
+	if err != nil {
+		return daisy.Errf("Error deleting `%v`: Failed querying GCS: `%v`", gcsPath, err)
+	}
+	if firstObject == nil {
+		return daisy.Errf("Error deleting `%v`: Object not found", gcsPath)
+	}
+	_, err = it.Next()
+	if err == nil {
+		return daisy.Errf("Error deleting `%v`: Multiple objects with prefix", gcsPath)
+	}
+	if err != iterator.Done {
+		return daisy.Errf("Error deleting `%v`: Failed querying GCS: `%v`", gcsPath, err)
+	}
+	if firstObject.Name != objectPath {
+		return daisy.Errf("Error deleting `%v`: Object not found", gcsPath)
+	}
+	if err := sc.GetObject(bucketName, firstObject.Name).Delete(); err != nil {
+		return daisy.Errf("Error deleting `%v`: `%v`", gcsPath, err)
+	}
 	return nil
 }
 

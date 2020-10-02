@@ -80,13 +80,13 @@ func populateScratchBucketGcsPath(scratchBucketGcsPath *string, zone string, mgc
 			}
 
 			if strings.HasPrefix(file, fmt.Sprintf("gs://%s/", scratchBucketName)) {
-				err := storageClient.DeleteGcsPath(file)
+				err := storageClient.DeleteObject(file)
 				if err == nil {
 					errorParts = append(errorParts, fmt.Sprintf("Deleted %q", file))
 				} else {
 					errorParts = append(errorParts, fmt.Sprintf(
-						"Failed to delete %q. Check with the owner of gs://%q for more information",
-						file, scratchBucketName))
+						"Failed to delete %q. Check with the owner of gs://%q for more information: %v",
+						file, scratchBucketName, err))
 				}
 			}
 

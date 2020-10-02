@@ -325,7 +325,7 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 			mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 			mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 			if tt.deleteExpected {
-				mockStorageClient.EXPECT().DeleteGcsPath(file).Return(tt.deleteResult)
+				mockStorageClient.EXPECT().DeleteObject(file).Return(tt.deleteResult)
 			}
 
 			err := NewPopulator(

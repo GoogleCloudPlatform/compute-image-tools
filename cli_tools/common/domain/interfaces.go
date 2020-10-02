@@ -35,6 +35,7 @@ type StorageClientInterface interface {
 	GetGcsFileContent(gcsObject *storage.ObjectHandle) ([]byte, error)
 	WriteToGCS(destinationBucketName string, destinationObjectPath string, reader io.Reader) error
 	DeleteGcsPath(gcsPath string) error
+	DeleteObject(gcsPath string) error
 	Close() error
 }
 
