@@ -20,9 +20,10 @@ import (
 	"testing"
 
 	"cloud.google.com/go/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 )
@@ -289,9 +290,9 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 			caseName:       "In scratch - Failed deletion",
 			deleteResult:   errors.New("Failed to delete path"),
 			deleteExpected: true,
-			expectedError: "Scratch bucket \"scratchbucket\" is not in project \"a_project\". " +
-				"Failed to delete \"gs://scratchbucket/sourcefile\". Check with the owner of " +
-				"gs://\"scratchbucket\" for more information",
+			expectedError: "Scratch bucket \"scratchbucket\" is not in project \"a_project\". Failed to delete " +
+				"\"gs://scratchbucket/sourcefile\": Failed to delete path. " +
+				"Check with the owner of gs://\"scratchbucket\" for more information.",
 			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
 			fileGCSPath:          "gs://scratchbucket/sourcefile",
 		},

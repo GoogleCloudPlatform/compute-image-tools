@@ -85,8 +85,8 @@ func populateScratchBucketGcsPath(scratchBucketGcsPath *string, zone string, mgc
 					errorParts = append(errorParts, fmt.Sprintf("Deleted %q", file))
 				} else {
 					errorParts = append(errorParts, fmt.Sprintf(
-						"Failed to delete %q. Check with the owner of gs://%q for more information: %v",
-						file, scratchBucketName, err))
+						"Failed to delete %q: %v. Check with the owner of gs://%q for more information.",
+						file, err, scratchBucketName))
 				}
 			}
 
