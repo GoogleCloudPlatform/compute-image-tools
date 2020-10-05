@@ -116,48 +116,33 @@ func TestDeleteGcsPathErrorWhenErrorDeletingAFile(t *testing.T) {
 
 func TestDeleteObject(t *testing.T) {
 
-	deletionPath := "gs://bucket/path"
-	bucket := "bucket"
-	path := "path"
 	tests := []struct {
-		name            string
-		iteratorResults []string
-		iteratorErrors  []error
-		deleteExpected  bool
-		deleteError     error
-		errorExpected   string
+		name           string
+		objectURI      string
+		bucket         string
+		path           string
+		deleteExpected bool
+		deleteError    error
+		errorExpected  string
 	}{
 		{
-			name:            "delete when one result with full match",
-			iteratorResults: []string{"path"},
-			iteratorErrors:  []error{nil, iterator.Done},
-			deleteExpected:  true,
+			name:           "return nil when successful deletion",
+			objectURI:      "gs://bucket/path",
+			bucket:         "bucket",
+			path:           "path",
+			deleteExpected: true,
 		}, {
-			name:            "error when one result without full match",
-			iteratorResults: []string{"path/file.vmdk"},
-			iteratorErrors:  []error{nil, iterator.Done},
-			errorExpected:   "Error deleting `gs://bucket/path`: Object not found",
+			name:          "return error when malformed objectURI",
+			objectURI:     "bucket//path",
+			errorExpected: "Error deleting `bucket//path`: `\"bucket//path\" is not a valid Cloud Storage path`",
 		}, {
-			name:            "error when delete fails",
-			iteratorResults: []string{"path"},
-			iteratorErrors:  []error{nil, iterator.Done},
-			deleteExpected:  true,
-			deleteError:     errors.New("HTTP 502"),
-			errorExpected:   "Error deleting `gs://bucket/path`: `HTTP 502`",
-		}, {
-			name:            "error when query fails",
-			iteratorResults: []string{},
-			iteratorErrors:  []error{errors.New("HTTP 404")},
-			errorExpected:   "Error deleting `gs://bucket/path`: Failed querying GCS: `HTTP 404`",
-		}, {
-			name:           "error when query has empty results",
-			iteratorErrors: []error{iterator.Done},
-			errorExpected:  "Error deleting `gs://bucket/path`: Object not found",
-		}, {
-			name:            "error when query has multiple results",
-			iteratorResults: []string{"path/file1.vmdk", "path/file2.vmdk"},
-			iteratorErrors:  []error{nil, nil},
-			errorExpected:   "Error deleting `gs://bucket/path`: Multiple objects with prefix",
+			name:           "return error when delete RPC fails",
+			objectURI:      "gs://bucket/path",
+			bucket:         "bucket",
+			path:           "path",
+			deleteExpected: true,
+			deleteError:    errors.New("HTTP 404"),
+			errorExpected:  "Error deleting `gs://bucket/path`: `HTTP 404`",
 		},
 	}
 	for _, tt := range tests {
@@ -165,44 +150,21 @@ func TestDeleteObject(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockObjectIterator := mocks.NewMockObjectIteratorInterface(ctrl)
-			switch len(tt.iteratorResults) {
-			case 0:
-				mockObjectIterator.EXPECT().Next().Return(nil, tt.iteratorErrors[0])
-				break
-			case 1:
-				mockObjectIterator.EXPECT().Next().
-					Return(&storage.ObjectAttrs{Name: tt.iteratorResults[0]}, tt.iteratorErrors[0])
-				mockObjectIterator.EXPECT().Next().Return(nil, tt.iteratorErrors[1])
-				break
-			default:
-				mockObjectIterator.EXPECT().Next().
-					Return(&storage.ObjectAttrs{Name: tt.iteratorResults[0]}, tt.iteratorErrors[0])
-				mockObjectIterator.EXPECT().Next().
-					Return(&storage.ObjectAttrs{Name: tt.iteratorResults[1]}, tt.iteratorErrors[1])
-				break
-			}
-
-			mockObjectIteratorCreator := mocks.NewMockObjectIteratorCreatorInterface(ctrl)
-			mockObjectIteratorCreator.EXPECT().
-				CreateObjectIterator(bucket, path).
-				Return(mockObjectIterator)
-
 			mockStorageObjectCreator := mocks.NewMockStorageObjectCreatorInterface(ctrl)
 
 			if tt.deleteExpected {
 				mockStorageObject := mocks.NewMockStorageObject(ctrl)
 				mockStorageObjectCreator.EXPECT().
-					GetObject(bucket, tt.iteratorResults[0]).Return(mockStorageObject)
+					GetObject(tt.bucket, tt.path).Return(mockStorageObject)
 				mockStorageObject.EXPECT().Delete().Return(tt.deleteError)
 			}
 
 			client := Client{
-				Oic:    mockObjectIteratorCreator,
+				Oic:    nil,
 				Soc:    mockStorageObjectCreator,
 				Logger: logging.NewStdoutLogger("[test]"),
 			}
-			err := client.DeleteObject(deletionPath)
+			err := client.DeleteObject(tt.objectURI)
 			if tt.errorExpected == "" {
 				assert.NoError(t, err)
 			} else {
