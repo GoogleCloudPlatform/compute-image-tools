@@ -16,7 +16,6 @@
 
 import argparse
 import json
-import os
 import urllib.request
 
 from boot_inspect import inspection

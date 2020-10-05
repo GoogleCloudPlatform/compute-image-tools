@@ -118,7 +118,7 @@ def inspect_device(g, device: str) -> model.InspectionResults:
 
 
 def inspect_boot_loader(g) -> (bool, bool, str):
-  """Finds boot-loader-related properties for the device using offline inspection.
+  """Finds boot-loader properties for the device using offline inspection.
 
   Args:
     g (guestfs.GuestFS): A launched, but unmounted, GuestFS instance.
