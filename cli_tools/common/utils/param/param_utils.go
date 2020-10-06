@@ -47,7 +47,7 @@ func GetProjectID(mgce domain.MetadataGCEInterface, projectFlag string) (string,
 
 func populateScratchBucketGcsPath(scratchBucketGcsPath *string, zone string, mgce domain.MetadataGCEInterface,
 	scratchBucketCreator domain.ScratchBucketCreatorInterface, file string, project *string,
-	storageClient domain.StorageClientInterface) (string, error) {
+	storageClient domain.StorageClientInterface, cleanupSharedScratch bool) (string, error) {
 
 	scratchBucketRegion := ""
 	if *scratchBucketGcsPath == "" {
@@ -79,13 +79,13 @@ func populateScratchBucketGcsPath(scratchBucketGcsPath *string, zone string, mgc
 					scratchBucketName, *project),
 			}
 
-			if strings.HasPrefix(file, fmt.Sprintf("gs://%s/", scratchBucketName)) {
+			if cleanupSharedScratch && strings.HasPrefix(file, fmt.Sprintf("gs://%s/", scratchBucketName)) {
 				err := storageClient.DeleteObject(file)
 				if err == nil {
 					errorParts = append(errorParts, fmt.Sprintf("Deleted %q", file))
 				} else {
 					errorParts = append(errorParts, fmt.Sprintf(
-						"Failed to delete %q: %v. Check with the owner of gs://%q for more information.",
+						"Failed to delete %q: %v. Check with the owner of gs://%q for more information",
 						file, err, scratchBucketName))
 				}
 			}

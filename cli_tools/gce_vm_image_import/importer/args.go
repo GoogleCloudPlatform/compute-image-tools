@@ -103,7 +103,7 @@ func (args *ImportArguments) ValidateAndPopulate(populator param.Populator,
 		return err
 	}
 
-	if err := populator.PopulateMissingParameters(&args.Project, &args.Zone, &args.Region,
+	if err := populator.PopulateMissingParameters(&args.Project, args.ClientID, &args.Zone, &args.Region,
 		&args.ScratchBucketGcsPath, args.SourceFile, &args.StorageLocation); err != nil {
 		return err
 	}

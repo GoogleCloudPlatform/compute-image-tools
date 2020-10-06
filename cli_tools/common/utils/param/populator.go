@@ -20,7 +20,7 @@ import (
 
 // Populator standardizes user input, and determines omitted values.
 type Populator interface {
-	PopulateMissingParameters(project *string, zone *string, region *string,
+	PopulateMissingParameters(project *string, clientID string, zone *string, region *string,
 		scratchBucketGcsPath *string, file string, storageLocation *string) error
 }
 
@@ -45,15 +45,15 @@ type populator struct {
 	scratchBucketClient domain.ScratchBucketCreatorInterface
 }
 
-func (p populator) PopulateMissingParameters(project *string, zone *string, region *string,
-	scratchBucketGcsPath *string, file string, storageLocation *string) error {
+func (p populator) PopulateMissingParameters(project *string, clientID string, zone *string,
+	region *string, scratchBucketGcsPath *string, file string, storageLocation *string) error {
 
 	if err := PopulateProjectIfMissing(p.metadataClient, project); err != nil {
 		return err
 	}
 
 	scratchBucketRegion, err := populateScratchBucketGcsPath(scratchBucketGcsPath, *zone, p.metadataClient,
-		p.scratchBucketClient, file, project, p.storageClient)
+		p.scratchBucketClient, file, project, p.storageClient, clientID == "gcloud")
 	if err != nil {
 		return err
 	}

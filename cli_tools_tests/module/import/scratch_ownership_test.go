@@ -58,13 +58,15 @@ func Test_DeleteSourceFile_WhenScratchOwnedByDifferentProject(t *testing.T) {
 	namespace := uuid.New().String()
 	for _, tt := range []struct {
 		caseName       string
+		clientID       string
 		deleteExpected bool
 		fileToImport   gcsPath
 		scratch        gcsPath
 		expectedError  *regexp.Regexp
 	}{
 		{
-			caseName:       "In scratch",
+			caseName:       "Delete when gcloud and in scratch",
+			clientID:       "gcloud",
 			deleteExpected: true,
 			expectedError:  regexp.MustCompile("Scratch bucket.* is not in project.* Deleted"),
 			fileToImport: gcsPath{
@@ -78,7 +80,22 @@ func Test_DeleteSourceFile_WhenScratchOwnedByDifferentProject(t *testing.T) {
 			},
 		},
 		{
-			caseName:       "Not in scratch",
+			caseName:       "Retain when not gcloud and in scratch",
+			clientID:       "api",
+			deleteExpected: false,
+			expectedError:  regexp.MustCompile("Scratch bucket.* is not in project"),
+			fileToImport: gcsPath{
+				bucket: sharedBucket,
+				dir:    namespace + "-in-scratch",
+				file:   "file.vmdk",
+			},
+			scratch: gcsPath{
+				bucket: sharedBucket,
+				dir:    namespace + "-in-scratch",
+			},
+		},
+		{
+			caseName:       "Retain when gcloud and not in scratch",
 			deleteExpected: false,
 			expectedError:  regexp.MustCompile("Scratch bucket.* is not in project"),
 			fileToImport: gcsPath{
@@ -99,7 +116,7 @@ func Test_DeleteSourceFile_WhenScratchOwnedByDifferentProject(t *testing.T) {
 			err := cli.Main([]string{
 				"-image_name", imageName,
 				"-data_disk",
-				"-client_id", "e2e",
+				"-client_id", tt.clientID,
 				"-source_file", tt.fileToImport.toURI(),
 				"-scratch_bucket_gcs_path", tt.scratch.toURI(),
 				"-project", project,
@@ -123,7 +140,7 @@ func Test_DeleteSourceFile_WhenScratchOwnedByDifferentProject(t *testing.T) {
 	}
 }
 
-func Test_DontDeleteSourceFile_WhenDirectory(t *testing.T) {
+func Test_DontRecursivelyDelete(t *testing.T) {
 
 	for _, tt := range []struct {
 		// Whether the directory passed to -source_file includes a trailing slash
@@ -178,7 +195,7 @@ func Test_DontDeleteSourceFile_WhenDirectory(t *testing.T) {
 			err := cli.Main([]string{
 				"-image_name", "i" + uuid.New().String(),
 				"-data_disk",
-				"-client_id", "e2e",
+				"-client_id", "gcloud",
 				"-source_file", sourceFileArg,
 				"-scratch_bucket_gcs_path", "gs://" + sharedBucket,
 				"-project", project,
@@ -199,7 +216,7 @@ func Test_DontDeleteSourceFile_WhenDirectory(t *testing.T) {
 	}
 }
 
-func Test_DontDeleteSourceFile_WhenAnotherFileHasSamePrefix(t *testing.T) {
+func Test_DeleteSourceFile_WhenAnotherFileHasSamePrefix(t *testing.T) {
 	namespace := uuid.New().String()
 	scratch := gcsPath{
 		bucket: sharedBucket,
@@ -213,7 +230,7 @@ func Test_DontDeleteSourceFile_WhenAnotherFileHasSamePrefix(t *testing.T) {
 	err := cli.Main([]string{
 		"-image_name", "i" + uuid.New().String(),
 		"-data_disk",
-		"-client_id", "e2e",
+		"-client_id", "gcloud",
 		"-source_file", file1.toURI(),
 		"-scratch_bucket_gcs_path", scratch.toURI(),
 		"-project", project,
@@ -222,10 +239,12 @@ func Test_DontDeleteSourceFile_WhenAnotherFileHasSamePrefix(t *testing.T) {
 
 	assert.Error(t, err)
 
-	for _, path := range []gcsPath{file1, file2} {
-		if !path.exists(t) {
-			t.Errorf("Contents of %s should have been retained.", path.toURI())
-		}
+	if file1.exists(t) {
+		t.Errorf("%s should have been deleted.", file1.toURI())
+	}
+
+	if !file2.exists(t) {
+		t.Errorf("%s should have been retained.", file2.toURI())
 	}
 }
 
