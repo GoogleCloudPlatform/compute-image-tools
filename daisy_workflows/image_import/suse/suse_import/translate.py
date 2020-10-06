@@ -22,10 +22,25 @@ Parameters (retrieved from instance metadata):
 import json
 import logging
 import re
+import typing
 
+import guestfs
+from on_demand import migrate
 import utils
-import utils.configs as configs
-import utils.diskutils as diskutils
+from utils import configs, diskutils
+
+
+class _Tarball:
+  """ Metadata for downloading and verifying a tarball.
+
+  Attributes:
+      url: The HTTP or HTTPS URL for the tarball.
+      sha256: The sha256 checksum for the tarball.
+  """
+
+  def __init__(self, url: str, sha256: str):
+    self.url = url
+    self.sha256 = sha256
 
 
 class _Package:
@@ -47,26 +62,30 @@ class _SuseRelease:
   """Describes packages and products required for a particular SUSE release.
 
   Attributes:
-      flavor: The SUSE release variant. Either `opensuse` or `sles`.
+      product: The SUSE release variant. One of: `opensuse` or `sles`.
       major: The major release number. For example, for SLES 12 SP1,
           the major version is 12.
       minor: The minor release number. For example, for SLES 12 SP1,
           the major version is 1. SLES 12, it is 0.
       cloud_product: The SCC product required to access cloud-related packages.
+      on_demand_rpms: Tarball of RPMs to use when converting to
+          on-demand licensing.
   """
 
-  def __init__(self, flavor: str, major: str, minor: str = None,
-               cloud_product: str = ''):
-    self.flavor = flavor
+  def __init__(self, product: str, major: str, minor: str = None,
+               cloud_product: str = '',
+               on_demand_rpms: _Tarball = None):
+    self.name = product
     self.major = major
     self.minor = minor
     self.cloud_product = cloud_product
+    self.on_demand_rpms = on_demand_rpms
 
   def __repr__(self):
     if self.minor:
-      return '{}-{}.{}'.format(self.flavor, self.major, self.minor)
+      return '{}-{}.{}'.format(self.name, self.major, self.minor)
     else:
-      return '{}-{}'.format(self.flavor, self.major)
+      return '{}-{}'.format(self.name, self.major)
 
 
 _packages = [
@@ -78,30 +97,43 @@ _packages = [
     _Package('rsyslog', gce=True)
 ]
 
+_on_demand_rpm_pattern = (
+    'https://storage.googleapis.com/compute-image-tools/linux_import_tools/'
+    'sles/{timestamp}/late_instance_offline_update_gce_SLE{major}.tar.gz')
+
+# Release versions supported by this importer. The flavor, major, and minor
+# attributes are evaluated as regex patterns against the detected OS's name
+# and major and minor version.
 _releases = [
-    # Minor version omitted since libguestfs in Debian 9 doesn't recognize
-    # opensuse 15.
     _SuseRelease(
-        flavor='opensuse',
+        product='opensuse',
         major='15',
         minor='1|2',
     ),
     _SuseRelease(
-        flavor='sles',
+        product='sles',
         major='15',
         minor='1|2',
-        cloud_product='sle-module-public-cloud/{major}.{minor}/x86_64'
+        cloud_product='sle-module-public-cloud/{major}.{minor}/x86_64',
+        on_demand_rpms=_Tarball(
+            _on_demand_rpm_pattern.format(major=15, timestamp=1599058662),
+            '156e43507d4c74c532b2f03286f47a2b609d32521be3e96dbc8fbad0b2976231'
+        )
     ),
     _SuseRelease(
-        flavor='sles',
+        product='sles',
         major='12',
         minor='4|5',
-        cloud_product='sle-module-public-cloud/{major}/x86_64'
+        cloud_product='sle-module-public-cloud/{major}/x86_64',
+        on_demand_rpms=_Tarball(
+            _on_demand_rpm_pattern.format(major=12, timestamp=1599058662),
+            '9431afed6aaa7b79d68050c38cd8d2cbfebe9d03ea80b66c5f246cc99fb58491'
+        )
     ),
 ]
 
 
-def _get_release(g) -> _SuseRelease:
+def _get_release(g: guestfs.GuestFS) -> _SuseRelease:
   """Gets the _SuseRelease object for the OS installed on the disk.
 
   Raises:
@@ -109,13 +141,13 @@ def _get_release(g) -> _SuseRelease:
     defined in _releases.
   """
 
-  distro = g.gcp_image_distro
+  product = g.gcp_image_distro
   major = g.gcp_image_major
   minor = g.gcp_image_minor
 
   matched = None
   for r in _releases:
-    if re.match(r.flavor, distro) \
+    if re.match(r.name, product) \
         and re.match(r.major, major) \
         and re.match(r.minor, minor):
       matched = r
@@ -124,18 +156,18 @@ def _get_release(g) -> _SuseRelease:
     raise ValueError(
         'Import of {}-{}.{} is not supported. '
         'The following versions are supported: [{}]'.format(
-            distro, major, minor,
-            supported))
+            product, major, minor, supported))
   return _SuseRelease(
-      flavor=matched.flavor,
+      product=matched.name,
       major=major,
       minor=minor,
-      cloud_product=matched.cloud_product.format(major=major, minor=minor)
+      cloud_product=matched.cloud_product.format(major=major, minor=minor),
+      on_demand_rpms=matched.on_demand_rpms
   )
 
 
 def _disambiguate_suseconnect_product_error(
-    g, product: str, error: Exception) -> Exception:
+    g: guestfs.GuestFS, product: str, error: Exception) -> Exception:
   """Creates a user-debuggable error after failing to add a product
      using SUSEConnect.
 
@@ -199,7 +231,7 @@ def _disambiguate_suseconnect_product_error(
 
 
 @utils.RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
-def _install_product(g, release: _SuseRelease):
+def _install_product(g: guestfs.GuestFS, release: _SuseRelease):
   """Executes SuseConnect -p for each product on `release`.
 
   Raises:
@@ -213,43 +245,37 @@ def _install_product(g, release: _SuseRelease):
           g, release.cloud_product, e)
 
 
-def _install_packages(g, install_gce):
-  """Installs packages using zypper
-
-  Respects the user's request of whether to include GCE packages
-  via the `install_gce` argument.
-
-  Raises:
-    ValueError: If there's a failure to refresh zypper, or if there's
-                a failure to install a required package.
-  """
-  refresh_zypper(g)
+def _packages_to_install(include_gce_packages: bool) -> typing.List[str]:
+  """Returns the list of package names to install given the user's
+  preference of whether to include GCE-specific packages."""
   to_install = []
   for pkg in _packages:
-    if pkg.gce and not install_gce:
+    if pkg.gce and not include_gce_packages:
       continue
-    to_install.append(pkg)
-  install_packages(g, *to_install)
+    to_install.append(pkg.name)
+  return to_install
 
 
 @utils.RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
-def install_packages(g, *pkgs):
+def _install_packages(g: guestfs.GuestFS, pkgs: typing.List[str]):
+  if not pkgs:
+    return
   try:
-    g.sh('zypper --non-interactive install --no-recommends '
-         + ' '.join([p.name for p in pkgs]))
+    g.sh('zypper --debug --non-interactive install --no-recommends '
+         + ' '.join(pkgs))
   except Exception as e:
     raise ValueError('Failed to install {}: {}'.format(pkgs, e))
 
 
 @utils.RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
-def refresh_zypper(g):
+def _refresh_zypper(g: guestfs.GuestFS):
   try:
-    g.command(['zypper', 'refresh'])
+    g.command(['zypper', '--debug', 'refresh'])
   except Exception as e:
     raise ValueError('Failed to call zypper refresh', e)
 
 
-def _update_grub(g):
+def _update_grub(g: guestfs.GuestFS):
   """Update and rebuild grub to ensure the image is bootable on GCP.
   See https://cloud.google.com/compute/docs/import/import-existing-image
   """
@@ -261,7 +287,7 @@ def _update_grub(g):
   g.command(['grub2-mkconfig', '-o', '/boot/grub2/grub.cfg'])
 
 
-def _reset_network(g):
+def _reset_network(g: guestfs.GuestFS):
   """Update network to use DHCP."""
   logging.info('Updating network to use DHCP.')
   if g.exists('/etc/resolv.conf'):
@@ -273,7 +299,7 @@ def _reset_network(g):
   ))
 
 
-def _install_virtio_drivers(g):
+def _install_virtio_drivers(g: guestfs.GuestFS):
   """Rebuilds initramfs to ensure that virtio drivers are present."""
   logging.info('Installing virtio drivers.')
   for kernel in g.ls('/lib/modules'):
@@ -284,12 +310,24 @@ def translate():
   """Mounts the disk, runs translation steps, then unmounts the disk."""
   include_gce_packages = utils.GetMetadataAttribute(
       'install_gce_packages', 'true').lower() == 'true'
+  subscription_model = utils.GetMetadataAttribute(
+      'subscription_model', 'byol').lower()
 
   g = diskutils.MountDisk('/dev/sdb')
   release = _get_release(g)
 
-  _install_product(g, release)
-  _install_packages(g, include_gce_packages)
+  if subscription_model == 'gce':
+    logging.info('Converting to on-demand')
+    migrate.migrate(
+        g=g, tar_url=release.on_demand_rpms.url,
+        tar_sha256=release.on_demand_rpms.sha256,
+        cloud_product=release.cloud_product,
+        post_convert_packages=_packages_to_install(include_gce_packages)
+    )
+  else:
+    _install_product(g, release)
+    _refresh_zypper(g)
+    _install_packages(g, _packages_to_install(include_gce_packages))
   _install_virtio_drivers(g)
   if include_gce_packages:
     logging.info('Enabling google services.')
@@ -299,7 +337,3 @@ def translate():
   _update_grub(g)
   utils.CommonRoutines(g)
   diskutils.UnmountDisk(g)
-
-
-if __name__ == '__main__':
-  utils.RunTranslate(translate)
