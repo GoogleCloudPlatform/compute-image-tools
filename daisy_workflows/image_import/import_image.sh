@@ -68,7 +68,7 @@ function resizeDisk() {
 
   echo "Import: Resizing ${diskId} to ${requiredSizeInGb}GB in ${zone}."
   if ! out=$(gcloud -q compute disks resize "${diskId}" --size="${requiredSizeInGb}"GB --zone="${zone}" 2>&1 | tr "\n\r" " "); then
-    if echo "$out" | grep -qP "compute\.disks\.resize"; then
+    if echo "$out" | grep -qiP "compute\.disks\.resize.*permission"; then
       echo $out
       echo "ImportFailed: Failed to resize disk. The Compute Engine default service account needs the role: roles/compute.storageAdmin"
     else
