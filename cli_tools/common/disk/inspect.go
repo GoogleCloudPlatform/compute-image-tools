@@ -44,12 +44,16 @@ type InspectionResult struct {
 }
 
 // NewInspector creates an Inspector that can inspect GCP disks.
-func NewInspector(wfAttributes daisycommon.WorkflowAttributes) (Inspector, error) {
+// A GCE instance runs the inspection; network and subnet are used
+// for its network interface.
+func NewInspector(wfAttributes daisycommon.WorkflowAttributes, network string, subnet string) (Inspector, error) {
 	wf, err := daisy.NewFromFile(path.Join(wfAttributes.WorkflowDirectory, workflowFile))
 	if err != nil {
 		return nil, err
 	}
 	daisycommon.SetWorkflowAttributes(wf, wfAttributes)
+	wf.Vars["network"] = daisy.Var{Value: network}
+	wf.Vars["subnet"] = daisy.Var{Value: subnet}
 	return &defaultInspector{wf}, nil
 }
 
