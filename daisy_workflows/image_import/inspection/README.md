@@ -57,7 +57,7 @@ boot-inspect /images/ubuntu-16.04-server-cloudimg-amd64-disk1.vmdk
 The safe and quick option is to run the prow job's container locally:
 
 ```shell script
-rm -rf /tmp/artifacts && mkdir /tmp/artifacts
+sudo rm -rf /tmp/artifacts && mkdir /tmp/artifacts
 docker pull gcr.io/gcp-guest/pytest
 docker run --volume $(pwd):/project:ro \
   --workdir /project \

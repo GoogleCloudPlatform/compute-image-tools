@@ -117,7 +117,7 @@ def inspect_device(g, device: str) -> model.InspectionResults:
   )
 
 
-def inspect_boot_loader(g) -> (bool, bool, str):
+def inspect_boot_loader(g) -> model.BootInspectionResults:
   """Finds boot-loader properties for the device using offline inspection.
 
   Args:
@@ -150,7 +150,11 @@ def inspect_boot_loader(g) -> (bool, bool, str):
   except Exception as e:
     print("Failed to inspect disk partition: ", e)
 
-  return bios_bootable, uefi_bootable, root_fs
+  return model.BootInspectionResults(
+      bios_bootable=bios_bootable,
+      uefi_bootable=uefi_bootable,
+      root_fs=root_fs,
+  )
 
 
 def _linux_inspector(

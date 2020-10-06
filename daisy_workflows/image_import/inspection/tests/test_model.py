@@ -139,8 +139,29 @@ class TestJSONEncoder:
 
   def test_allow_all_fields_empty(self):
     inspection_results = model.InspectionResults(
-      os=None, device=None, architecture=None)
+        os=None, device=None, architecture=None)
 
     expected = {"architecture": None, "device": None, "os": None}
     actual = json.dumps(inspection_results, cls=model.ModelJSONEncoder)
     assert expected == json.loads(actual)
+
+  def test_inspection_results_with_boot(self):
+    boot_results = model.BootInspectionResults(
+        bios_bootable=True, uefi_bootable=True, root_fs="btrfs")
+    expected_boot_results = {"bios_bootable": True, "uefi_bootable": True,
+                             "root_fs": "btrfs"}
+    actual_boot_results = json.dumps(boot_results, cls=model.ModelJSONEncoder)
+    assert expected_boot_results == json.loads(actual_boot_results)
+
+    inspection_results = model.InspectionResults(
+        os=None, device=None, architecture=None)
+    inspection_results.bios_bootable = boot_results.bios_bootable
+    inspection_results.uefi_bootable = boot_results.uefi_bootable
+    inspection_results.root_fs = boot_results.root_fs
+    expected_inspection_results = {"architecture": None, "device": None,
+                                   "os": None, "bios_bootable": True,
+                                   "uefi_bootable": True,
+                                   "root_fs": "btrfs"}
+    actual_inspection_results = json.dumps(inspection_results,
+                                           cls=model.ModelJSONEncoder)
+    assert expected_inspection_results == json.loads(actual_inspection_results)

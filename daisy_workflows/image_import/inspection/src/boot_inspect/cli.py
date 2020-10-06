@@ -92,8 +92,10 @@ def main():
   else:
     results = model.InspectionResults(device=None, os=None, architecture=None)
 
-  results.bios_bootable, results.uefi_bootable, results.root_fs = (
-      inspection.inspect_boot_loader(g))
+  boot_results = inspection.inspect_boot_loader(g)
+  results.bios_bootable = boot_results.bios_bootable
+  results.uefi_bootable = boot_results.uefi_bootable
+  results.root_fs = boot_results.root_fs
 
   globals()['_output_' + args.format](results)
 
