@@ -105,6 +105,20 @@ func (mr *MockStorageClientInterfaceMockRecorder) DeleteGcsPath(arg0 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteGcsPath", reflect.TypeOf((*MockStorageClientInterface)(nil).DeleteGcsPath), arg0)
 }
 
+// DeleteObject mocks base method
+func (m *MockStorageClientInterface) DeleteObject(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteObject", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteObject indicates an expected call of DeleteObject
+func (mr *MockStorageClientInterfaceMockRecorder) DeleteObject(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteObject", reflect.TypeOf((*MockStorageClientInterface)(nil).DeleteObject), arg0)
+}
+
 // FindGcsFile mocks base method
 func (m *MockStorageClientInterface) FindGcsFile(arg0, arg1 string) (*storage.ObjectHandle, error) {
 	m.ctrl.T.Helper()

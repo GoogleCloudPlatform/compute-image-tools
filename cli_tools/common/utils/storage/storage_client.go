@@ -25,11 +25,12 @@ import (
 	"strings"
 
 	"cloud.google.com/go/storage"
+	"google.golang.org/api/iterator"
+	"google.golang.org/api/option"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	"google.golang.org/api/iterator"
-	"google.golang.org/api/option"
 )
 
 var (
@@ -126,6 +127,18 @@ func (sc *Client) DeleteGcsPath(gcsPath string) error {
 		}
 	}
 
+	return nil
+}
+
+// DeleteObject deletes the object with the path `gcsPath`.
+func (sc *Client) DeleteObject(gcsPath string) error {
+	bucketName, objectPath, err := SplitGCSPath(gcsPath)
+	if err != nil {
+		return daisy.Errf("Error deleting `%v`: `%v`", gcsPath, err)
+	}
+	if err := sc.GetObject(bucketName, objectPath).Delete(); err != nil {
+		return daisy.Errf("Error deleting `%v`: `%v`", gcsPath, err)
+	}
 	return nil
 }
 

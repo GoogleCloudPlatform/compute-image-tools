@@ -397,8 +397,7 @@ type mockPopulator struct {
 	err             error
 }
 
-func (m mockPopulator) PopulateMissingParameters(project *string, zone *string, region *string,
-	scratchBucketGcsPath *string, file string, storageLocation *string) error {
+func (m mockPopulator) PopulateMissingParameters(project *string, client string, zone *string, region *string, scratchBucketGcsPath *string, file string, storageLocation *string) error {
 	if m.err != nil {
 		return m.err
 	}

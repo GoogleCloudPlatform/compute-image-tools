@@ -17,13 +17,12 @@ package importer
 import (
 	"flag"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
-
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
@@ -104,7 +103,7 @@ func (args *ImportArguments) ValidateAndPopulate(populator param.Populator,
 		return err
 	}
 
-	if err := populator.PopulateMissingParameters(&args.Project, &args.Zone, &args.Region,
+	if err := populator.PopulateMissingParameters(&args.Project, args.ClientID, &args.Zone, &args.Region,
 		&args.ScratchBucketGcsPath, args.SourceFile, &args.StorageLocation); err != nil {
 		return err
 	}

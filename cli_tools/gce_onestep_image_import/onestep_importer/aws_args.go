@@ -30,6 +30,7 @@ type awsImportArguments struct {
 	// Passed in by user
 	accessKeyID        string
 	amiID              string
+	clientID           string
 	executablePath     string
 	exportLocation     string
 	sourceFilePath     string
@@ -71,6 +72,7 @@ func newAWSImportArguments(args *OneStepImportArguments) *awsImportArguments {
 	return &awsImportArguments{
 		accessKeyID:        args.AWSAccessKeyID,
 		amiID:              args.AWSAMIID,
+		clientID:           args.ClientID,
 		executablePath:     args.ExecutablePath,
 		exportLocation:     args.AWSAMIExportLocation,
 		sourceFilePath:     args.AWSSourceAMIFilePath,
@@ -94,8 +96,8 @@ func (args *awsImportArguments) validateAndPopulate(populator param.Populator) e
 		return err
 	}
 
-	err = populator.PopulateMissingParameters(args.gcsProjectPtr, &args.gcsZone, &args.gcsRegion,
-		&args.gcsScratchBucket, "", &args.gcsStorageLocation)
+	err = populator.PopulateMissingParameters(args.gcsProjectPtr, args.clientID, &args.gcsZone,
+		&args.gcsRegion, &args.gcsScratchBucket, "", &args.gcsStorageLocation)
 	if err != nil {
 		return err
 	}

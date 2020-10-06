@@ -15,15 +15,17 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
 	"cloud.google.com/go/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/iterator"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 )
 
 func TestDeleteGcsPath(t *testing.T) {
@@ -110,6 +112,67 @@ func TestDeleteGcsPathErrorWhenErrorDeletingAFile(t *testing.T) {
 		Logger: logging.NewStdoutLogger("[test]")}
 	err := sc.DeleteGcsPath("gs://sourcebucket/sourcepath/furtherpath")
 	assert.NotNil(t, err)
+}
+
+func TestDeleteObject(t *testing.T) {
+
+	tests := []struct {
+		name           string
+		objectURI      string
+		bucket         string
+		path           string
+		deleteExpected bool
+		deleteError    error
+		errorExpected  string
+	}{
+		{
+			name:           "return nil when successful deletion",
+			objectURI:      "gs://bucket/path",
+			bucket:         "bucket",
+			path:           "path",
+			deleteExpected: true,
+		}, {
+			name:          "return error when malformed objectURI",
+			objectURI:     "bucket//path",
+			errorExpected: "Error deleting `bucket//path`: `\"bucket//path\" is not a valid Cloud Storage path`",
+		}, {
+			name:           "return error when delete RPC fails",
+			objectURI:      "gs://bucket/path",
+			bucket:         "bucket",
+			path:           "path",
+			deleteExpected: true,
+			deleteError:    errors.New("HTTP 404"),
+			errorExpected:  "Error deleting `gs://bucket/path`: `HTTP 404`",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockStorageObjectCreator := mocks.NewMockStorageObjectCreatorInterface(ctrl)
+
+			if tt.deleteExpected {
+				mockStorageObject := mocks.NewMockStorageObject(ctrl)
+				mockStorageObjectCreator.EXPECT().
+					GetObject(tt.bucket, tt.path).Return(mockStorageObject)
+				mockStorageObject.EXPECT().Delete().Return(tt.deleteError)
+			}
+
+			client := Client{
+				Oic:    nil,
+				Soc:    mockStorageObjectCreator,
+				Logger: logging.NewStdoutLogger("[test]"),
+			}
+			err := client.DeleteObject(tt.objectURI)
+			if tt.errorExpected == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errorExpected)
+			}
+		})
+	}
 }
 
 func TestFindGcsFileNoTrailingSlash(t *testing.T) {

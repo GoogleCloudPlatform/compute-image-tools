@@ -45,9 +45,14 @@ func GetProjectID(mgce domain.MetadataGCEInterface, projectFlag string) (string,
 	return projectFlag, nil
 }
 
+// populateScratchBucketGcsPath validates the scratch bucket, creating a new one if not
+// provided, and returns the region of the scratch bucket. If the scratch bucket is
+// already populated, and the owning project doesn't match `project`, then an error is returned.
+// In that case, if `file` resides in the non-owned scratch bucket and `removeFileWhenScratchNotOwned`
+// is specified, then `file` is deleted from GCS.
 func populateScratchBucketGcsPath(scratchBucketGcsPath *string, zone string, mgce domain.MetadataGCEInterface,
 	scratchBucketCreator domain.ScratchBucketCreatorInterface, file string, project *string,
-	storageClient domain.StorageClientInterface) (string, error) {
+	storageClient domain.StorageClientInterface, removeFileWhenScratchNotOwned bool) (string, error) {
 
 	scratchBucketRegion := ""
 	if *scratchBucketGcsPath == "" {
@@ -79,14 +84,14 @@ func populateScratchBucketGcsPath(scratchBucketGcsPath *string, zone string, mgc
 					scratchBucketName, *project),
 			}
 
-			if strings.HasPrefix(file, fmt.Sprintf("gs://%s/", scratchBucketName)) {
-				err := storageClient.DeleteGcsPath(file)
+			if removeFileWhenScratchNotOwned && strings.HasPrefix(file, fmt.Sprintf("gs://%s/", scratchBucketName)) {
+				err := storageClient.DeleteObject(file)
 				if err == nil {
 					errorParts = append(errorParts, fmt.Sprintf("Deleted %q", file))
 				} else {
 					errorParts = append(errorParts, fmt.Sprintf(
-						"Failed to delete %q. Check with the owner of gs://%q for more information",
-						file, scratchBucketName))
+						"Failed to delete %q: %v. Check with the owner of gs://%q for more information",
+						file, err, scratchBucketName))
 				}
 			}
 

@@ -20,9 +20,10 @@ import (
 	"testing"
 
 	"cloud.google.com/go/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 )
@@ -52,8 +53,7 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
-		file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
 
 	assert.Contains(t, err.Error(), "zone not found")
 }
@@ -80,8 +80,7 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAn
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
-		file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
 
 	assert.Contains(t, err.Error(), "project cannot be determined because build is not running on GCE")
 }
@@ -109,8 +108,7 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAn
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
-		file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
 
 	assert.Contains(t, err.Error(), "project cannot be determined")
 }
@@ -138,8 +136,7 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAn
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
-		file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
 
 	assert.Contains(t, err.Error(), "project cannot be determined")
 }
@@ -167,8 +164,7 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenScratchBucketCreatio
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
-		file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
 
 	assert.Contains(t, err.Error(), "failed to create scratch bucket")
 }
@@ -194,8 +190,7 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenScratchBucketInvalid
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
-		file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
 
 	assert.Contains(t, err.Error(), "invalid scratch bucket")
 }
@@ -223,8 +218,7 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenPopulateRegionFails(
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
-		file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
 
 	assert.Contains(t, err.Error(), "NOT_ZONE is not a valid zone")
 }
@@ -257,8 +251,7 @@ func TestPopulator_PopulateMissingParametersDoesNotChangeProvidedScratchBucketAn
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
-		file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "a_project", project)
@@ -270,6 +263,7 @@ func TestPopulator_PopulateMissingParametersDoesNotChangeProvidedScratchBucketAn
 func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.T) {
 	for _, tt := range []struct {
 		caseName             string
+		client               string
 		deleteResult         error
 		deleteExpected       bool
 		expectedError        string
@@ -277,7 +271,8 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 		fileGCSPath          string
 	}{
 		{
-			caseName:       "In scratch - Successful deletion",
+			caseName:       "In scratch - gcloud - Successful deletion",
+			client:         "gcloud",
 			deleteResult:   nil,
 			deleteExpected: true,
 			expectedError: "Scratch bucket \"scratchbucket\" is not in project \"a_project\". " +
@@ -286,23 +281,33 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 			fileGCSPath:          "gs://scratchbucket/sourcefile",
 		},
 		{
-			caseName:       "In scratch - Failed deletion",
+			caseName:       "In scratch - gcloud - Failed deletion",
+			client:         "gcloud",
 			deleteResult:   errors.New("Failed to delete path"),
 			deleteExpected: true,
-			expectedError: "Scratch bucket \"scratchbucket\" is not in project \"a_project\". " +
-				"Failed to delete \"gs://scratchbucket/sourcefile\". Check with the owner of " +
-				"gs://\"scratchbucket\" for more information",
+			expectedError: "Scratch bucket \"scratchbucket\" is not in project \"a_project\". Failed to delete " +
+				"\"gs://scratchbucket/sourcefile\": Failed to delete path. " +
+				"Check with the owner of gs://\"scratchbucket\" for more information",
+			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
+			fileGCSPath:          "gs://scratchbucket/sourcefile",
+		},
+		{
+			caseName:             "In scratch - not gcloud - don't delete",
+			client:               "api",
+			expectedError:        "Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
 			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
 			fileGCSPath:          "gs://scratchbucket/sourcefile",
 		},
 		{
 			caseName:             "Not in scratch - Don't delete",
+			client:               "gcloud",
 			expectedError:        "Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
 			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
 			fileGCSPath:          "gs://source-images/sourcefile",
 		},
 		{
 			caseName:             "GCS Image - Don't delete",
+			client:               "gcloud",
 			expectedError:        "Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
 			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
 			fileGCSPath:          "",
@@ -325,7 +330,7 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 			mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 			mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 			if tt.deleteExpected {
-				mockStorageClient.EXPECT().DeleteGcsPath(file).Return(tt.deleteResult)
+				mockStorageClient.EXPECT().DeleteObject(file).Return(tt.deleteResult)
 			}
 
 			err := NewPopulator(
@@ -333,8 +338,7 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 				mockStorageClient,
 				mockResourceLocationRetriever,
 				mockScratchBucketCreator,
-			).PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
-				file, &storageLocation)
+			).PopulateMissingParameters(&project, tt.client, &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
 
 			assert.EqualError(t, err, tt.expectedError)
 		})
@@ -373,8 +377,7 @@ func TestPopulator_PopulateMissingParametersCreatesScratchBucketIfNotProvided(t 
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
-		file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "a_project", project)
@@ -416,8 +419,7 @@ func TestPopulator_PopulateMissingParametersCreatesScratchBucketIfNotProvidedOnG
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
-		file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "a_project", project)
@@ -450,8 +452,7 @@ func TestPopulator_PopulateMissingParametersPopulatesStorageLocationWithScratchB
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
-		file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "US", storageLocation)
