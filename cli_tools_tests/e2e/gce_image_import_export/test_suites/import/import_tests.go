@@ -251,15 +251,22 @@ var inspectUEFICases = []*testCase{
 		notAllowedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
 		inspect:                   true,
 	}, {
-		caseName: "inspect-uefi-linux-hybrid-ubuntu-1804",
+		caseName: "inspect-uefi-linux-dual-prottive-mbr-ubuntu-1804",
 		// source created from projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317
-		source:                    "gs://compute-image-tools-test-resources/uefi/linux-hybrid-ubuntu-1804.vmdk",
+		source:                    "gs://compute-image-tools-test-resources/uefi/linux-protective-mbr-ubuntu-1804.vmdk",
 		os:                        "ubuntu-1804",
 		osConfigNotSupported:      true,
 		notAllowedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
 		inspect:                   true,
 	}, {
-		caseName: "inspect-uefi-linux-mbr-uefi-rhel-7",
+		caseName: "inspect-uefi-linux-dual-hybrid-mbr-ubuntu-2004",
+		source:                    "gs://compute-image-tools-test-resources/uefi/linux-hybrid-mbr-ubuntu-2004.vmdk",
+		os:                        "ubuntu-2004",
+		osConfigNotSupported:      true,
+		notAllowedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
+		inspect:                   true,
+	}, {
+		caseName: "inspect-uefi-linux-uefi-mbr-rhel-7",
 		// source created from projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317 and converted from GPT to MBR
 		source:                  "gs://compute-image-tools-test-resources/uefi/linux-ubuntu-mbr-uefi.vmdk",
 		os:                      "ubuntu-1804",
@@ -267,14 +274,14 @@ var inspectUEFICases = []*testCase{
 		requiredGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
 		inspect:                 true,
 	}, {
-		caseName: "inspect-uefi-windows-uefi-windows",
+		caseName: "inspect-uefi-windows-uefi",
 		// source created from projects/gce-uefi-images/global/images/windows-server-2019-dc-core-v20200609
 		source:                  "gs://compute-image-tools-test-resources/uefi/windows-uefi-2019.vmdk",
 		os:                      "windows-2019",
 		requiredGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
 		inspect:                 true,
 	}, {
-		caseName: "inspect-uefi-windows-nonuefi-windows",
+		caseName: "inspect-uefi-windows-nonuefi",
 		// source created from projects/windows-cloud/global/images/windows-server-2019-dc-v20200114
 		source:                    "gs://compute-image-tools-test-resources/uefi/windows-nonuefi-2019.vmdk",
 		os:                        "windows-2019",

@@ -92,7 +92,7 @@ def main():
   else:
     results = model.InspectionResults(device=None, os=None, architecture=None)
 
-  boot_results = inspection.inspect_boot_loader(g)
+  boot_results = inspection.inspect_boot_loader(g, args.device)
   results.bios_bootable = boot_results.bios_bootable
   results.uefi_bootable = boot_results.uefi_bootable
   results.root_fs = boot_results.root_fs

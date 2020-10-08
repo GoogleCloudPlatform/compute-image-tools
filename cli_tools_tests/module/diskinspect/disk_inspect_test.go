@@ -83,6 +83,7 @@ func TestBootInspect(t *testing.T) {
 				BIOSBootable: false,
 			},
 		}, {
+			// UEFI inspection test for GPT UEFI
 			"projects/gce-uefi-images/global/images/rhel-7-v20200403",
 			disk.InspectionResult{
 				Architecture: "x64",
@@ -93,6 +94,7 @@ func TestBootInspect(t *testing.T) {
 				BIOSBootable: false,
 			},
 		}, {
+			// UEFI inspection test for MBR-only
 			"projects/debian-cloud/global/images/debian-9-stretch-v20200714",
 			disk.InspectionResult{
 				Architecture: "x64",
@@ -103,6 +105,7 @@ func TestBootInspect(t *testing.T) {
 				BIOSBootable: false,
 			},
 		}, {
+			// UEFI inspection test for GPT UEFI - windows
 			"projects/gce-uefi-images/global/images/windows-server-2019-dc-core-v20200609",
 			disk.InspectionResult{
 				Architecture: "x64",
@@ -111,6 +114,28 @@ func TestBootInspect(t *testing.T) {
 				Minor:        "",
 				UEFIBootable: true,
 				BIOSBootable: false,
+			},
+		}, {
+			// UEFI inspection test for GPT UEFI with BIOS boot
+			"projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317",
+			disk.InspectionResult{
+				Architecture: "x64",
+				Distro:       "ubuntu",
+				Major:        "18",
+				Minor:        "04",
+				UEFIBootable: true,
+				BIOSBootable: true,
+			},
+		}, {
+			// UEFI inspection test for GPT UEFI with hybrid MBR
+			"projects/compute-image-tools-test/global/images/image-ubuntu-2004-hybrid-mbr",
+			disk.InspectionResult{
+				Architecture: "x64",
+				Distro:       "ubuntu",
+				Major:        "20",
+				Minor:        "04",
+				UEFIBootable: true,
+				BIOSBootable: true,
 			},
 		},
 	} {

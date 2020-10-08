@@ -29,6 +29,7 @@ In other words, it doesn't seek to exhaustively detect all systems,
 and will remove support for defunct systems over time.
 """
 
+import os
 import re
 import sys
 
@@ -117,11 +118,13 @@ def inspect_device(g, device: str) -> model.InspectionResults:
   )
 
 
-def inspect_boot_loader(g) -> model.BootInspectionResults:
+def inspect_boot_loader(g, device) -> model.BootInspectionResults:
   """Finds boot-loader properties for the device using offline inspection.
 
   Args:
     g (guestfs.GuestFS): A launched, but unmounted, GuestFS instance.
+    device: a reference to a mounted block device (eg: /dev/sdb), or
+    to a virtual disk file (eg: /opt/images/disk.vmdk).
 
   Example:
 
@@ -136,14 +139,21 @@ def inspect_boot_loader(g) -> model.BootInspectionResults:
   root_fs = ""
 
   try:
+    stream = os.popen('gdisk -l {}'.format(device))
+    output = stream.read()
+    print(output)
+    if _inspect_for_hybrid_mbr(output):
+      bios_bootable = True
+
     part_list = g.part_list('/dev/sda')
     for part in part_list:
       guid = g.part_get_gpt_type('/dev/sda', part['part_num'])
 
-      # It covers both GPT "EFI Sstem" and BIOS "EFI (FAT-12/16/32)"
+      # It covers both GPT "EFI System" and BIOS "EFI (FAT-12/16/32)".
       if guid == 'C12A7328-F81F-11D2-BA4B-00A0C93EC93B':
         uefi_bootable = True
         # TODO: detect root_fs (b/169245755)
+      # It covers "BIOS boot", which make a protective-MBR bios-bootable.
       if guid == '21686148-6449-6E6F-744E-656564454649':
         bios_bootable = True
 
@@ -155,6 +165,20 @@ def inspect_boot_loader(g) -> model.BootInspectionResults:
       uefi_bootable=uefi_bootable,
       root_fs=root_fs,
   )
+
+
+def _inspect_for_hybrid_mbr(gdisk_output) -> bool:
+  """Finds hybrid MBR, which potentially is BIOS bootableeven without a BIOS
+   boot partition.
+
+   Args:
+     gdisk_output: output from gdisk that contains partition info.
+   """
+  is_hybrid_mbr = False
+  mbr_bios_bootable_re = re.compile(r'(.*)MBR:[\s]*hybrid(.*)', re.DOTALL)
+  if mbr_bios_bootable_re.match(gdisk_output):
+    is_hybrid_mbr = True
+  return is_hybrid_mbr
 
 
 def _linux_inspector(
