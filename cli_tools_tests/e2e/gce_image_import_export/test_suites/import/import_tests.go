@@ -251,7 +251,7 @@ var inspectUEFICases = []*testCase{
 		notAllowedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
 		inspect:                   true,
 	}, {
-		caseName: "inspect-uefi-linux-dual-prottive-mbr-ubuntu-1804",
+		caseName: "inspect-uefi-linux-dual-protective-mbr-ubuntu-1804",
 		// source created from projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317
 		source:                    "gs://compute-image-tools-test-resources/uefi/linux-protective-mbr-ubuntu-1804.vmdk",
 		os:                        "ubuntu-1804",
@@ -266,7 +266,7 @@ var inspectUEFICases = []*testCase{
 		notAllowedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
 		inspect:                   true,
 	}, {
-		caseName: "inspect-uefi-linux-uefi-mbr-rhel-7",
+		caseName: "inspect-uefi-linux-uefi-mbr-ubuntu-1804",
 		// source created from projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317 and converted from GPT to MBR
 		source:                  "gs://compute-image-tools-test-resources/uefi/linux-ubuntu-mbr-uefi.vmdk",
 		os:                      "ubuntu-1804",
