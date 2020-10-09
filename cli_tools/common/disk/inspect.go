@@ -41,7 +41,8 @@ type InspectionResult struct {
 	// UEFIBootable indicates whether the disk is bootable with UEFI.
 	UEFIBootable bool
 
-	// BIOSBootableWithHybridMBROrProtectiveMBR indicates whether the disk is bootable with BIOS.
+	// BIOSBootableWithHybridMBROrProtectiveMBR indicates whether the disk is BIOS-bootable
+	// or "hybrid MBR" mode or "protective MBR" mode.
 	BIOSBootableWithHybridMBROrProtectiveMBR bool
 
 	// RootFS indicates the file system type of the partition containing
