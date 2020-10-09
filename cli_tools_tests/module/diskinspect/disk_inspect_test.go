@@ -24,24 +24,28 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
+	"github.com/GoogleCloudPlatform/compute-image-tools/common/runtime"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
-	"github.com/GoogleCloudPlatform/compute-image-tools/common/runtime"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
-var (
-	project = runtime.GetConfig("GOOGLE_CLOUD_PROJECT", "project")
-	zone    = runtime.GetConfig("GOOGLE_CLOUD_ZONE", "compute/zone")
-
-	wfAttrs = daisycommon.WorkflowAttributes{
-		Project:           project,
-		Zone:              zone,
-		WorkflowDirectory: "../../../daisy_workflows",
-	}
+const (
+	defaultNetwork = ""
+	defaultSubnet  = ""
+	workflowDir    = "../../../daisy_workflows"
 )
 
-func TestBootInspect(t *testing.T) {
+var (
+	zone = runtime.GetConfig("GOOGLE_CLOUD_ZONE", "compute/zone")
+)
+
+func TestInspectDisk(t *testing.T) {
+	t.Parallel()
+
+	project := runtime.GetConfig("GOOGLE_CLOUD_PROJECT", "project")
 
 	client, err := daisycompute.NewClient(context.Background())
 	if err != nil {
@@ -83,12 +87,16 @@ func TestBootInspect(t *testing.T) {
 		currentTest := tt
 		t.Run(currentTest.imageURI, func(t *testing.T) {
 			t.Parallel()
-			inspector, err := disk.NewInspector(wfAttrs)
+			inspector, err := disk.NewInspector(daisycommon.WorkflowAttributes{
+				Project:           project,
+				Zone:              zone,
+				WorkflowDirectory: workflowDir,
+			}, defaultNetwork, defaultSubnet)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			diskURI := createDisk(t, client, currentTest.imageURI)
+			diskURI := createDisk(t, client, project, currentTest.imageURI)
 
 			actual, err := inspector.Inspect(diskURI, true)
 			assert.NoError(t, err)
@@ -100,18 +108,67 @@ func TestBootInspect(t *testing.T) {
 			//     inspection_test.go:72:
 			//        expected = ...
 			//          actual = ...
-			//
-			// Also, since this is consumed by go-junit-report,
 			if currentTest.expected != actual {
 				t.Errorf("\nexpected = %#v"+
 					"\n  actual = %#v", currentTest.expected, actual)
 			}
-			deleteDisk(t, client, diskURI)
+			deleteDisk(t, client, project, diskURI)
 		})
 	}
 }
 
-func createDisk(t *testing.T, client daisycompute.Client, srcImage string) string {
+func TestInspectionWorksWithNonDefaultNetwork(t *testing.T) {
+	t.Parallel()
+
+	project := "compute-image-test-custom-vpc"
+	client, err := daisycompute.NewClient(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	network := "projects/compute-image-test-custom-vpc/global/networks/unrestricted-egress"
+	region, err := paramhelper.GetRegion(zone)
+	if err != nil {
+		t.Fatal(err)
+	}
+	subnet := fmt.Sprintf("projects/compute-image-test-custom-vpc/regions/%s/subnetworks/unrestricted-egress", region)
+
+	for _, tt := range []struct {
+		caseName string
+		network  string
+		subnet   string
+	}{
+		{"network and subnet", network, subnet},
+		{"network only", network, ""},
+		{"subnet only", "", subnet},
+	} {
+		currentTest := tt
+		t.Run(currentTest.caseName, func(t *testing.T) {
+			t.Parallel()
+			t.Logf("Network=%s, Subnet=%s, project=%s", network, subnet, project)
+			inspector, err := disk.NewInspector(daisycommon.WorkflowAttributes{
+				Project:           "compute-image-test-custom-vpc",
+				Zone:              zone,
+				WorkflowDirectory: workflowDir,
+			}, currentTest.network, currentTest.subnet)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			diskURI := createDisk(t, client, project, "projects/opensuse-cloud/global/images/opensuse-leap-15-2-v20200702")
+			defer deleteDisk(t, client, project, diskURI)
+			actual, err := inspector.Inspect(diskURI, true)
+			if err != nil {
+				t.Fatalf("Inspect failed: %v", err)
+			}
+			if actual.Distro != "opensuse" {
+				t.Errorf("expected=opensuse, actual=%s", actual.Distro)
+			}
+		})
+	}
+}
+
+func createDisk(t *testing.T, client daisycompute.Client, project, srcImage string) string {
 	name := "d" + uuid.New().String()
 	err := client.CreateDisk(project, zone, &compute.Disk{
 		Name:        name,
@@ -125,7 +182,7 @@ func createDisk(t *testing.T, client daisycompute.Client, srcImage string) strin
 	return diskURI
 }
 
-func deleteDisk(t *testing.T, client daisycompute.Client, diskURI string) {
+func deleteDisk(t *testing.T, client daisycompute.Client, project, diskURI string) {
 	name := diskURI[strings.LastIndex(diskURI, "/")+1:]
 	err := client.DeleteDisk(project, zone, name)
 	if err != nil {

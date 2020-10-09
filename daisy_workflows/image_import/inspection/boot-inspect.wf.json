@@ -6,6 +6,14 @@
       "Required": true,
       "Description": "PD that will be inspected (URI)."
     },
+    "network": {
+      "Value": "global/networks/default",
+      "Description": "Network for worker instance"
+    },
+    "subnet": {
+      "Value": "",
+      "Description": "Subnet for worker instance"
+    },
     "is_inspect_os": {
       "Description": "Whether to inspect OS."
     }
@@ -36,7 +44,13 @@
           "StartupScript": "daisy-shim.sh",
           "Metadata": {
             "is-inspect-os": "${is_inspect_os}"
-          }
+          },
+          "networkInterfaces": [
+            {
+              "network": "${network}",
+              "subnetwork": "${subnet}"
+            }
+          ]
         }
       ]
     },
