@@ -41,12 +41,12 @@ func (p *diskInspectionProcessor) process(pd persistentDisk,
 		return pd, err
 	}
 
-	isHybrid := ir.UEFIBootable && ir.BIOSBootable
-	if !p.args.UefiCompatible && isHybrid {
+	isDualBoot := ir.UEFIBootable && ir.BIOSBootable
+	if !p.args.UefiCompatible && isDualBoot {
 		log.Printf("This disk can boot with either BIOS or a UEFI bootloader. The default setting for booting is BIOS. " +
 			"If you want to boot using UEFI, please see https://cloud.google.com/compute/docs/import/importing-virtual-disks#importing_a_virtual_disk_with_uefi_bootloader'.")
 	}
-	pd.isUEFICompatible = p.args.UefiCompatible || (ir.UEFIBootable && !isHybrid)
+	pd.isUEFICompatible = p.args.UefiCompatible || (ir.UEFIBootable && !isDualBoot)
 	loggableBuilder.SetUEFIMetrics(pd.isUEFICompatible, ir.UEFIBootable, ir.BIOSBootable, ir.RootFS)
 	return pd, nil
 }
