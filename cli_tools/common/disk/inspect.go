@@ -41,8 +41,8 @@ type InspectionResult struct {
 	// UEFIBootable indicates whether the disk is bootable with UEFI.
 	UEFIBootable bool
 
-	// BIOSBootable indicates whether the disk is bootable with BIOS.
-	BIOSBootable bool
+	// BIOSBootableWithHybridMBROrProtectiveMBR indicates whether the disk is bootable with BIOS.
+	BIOSBootableWithHybridMBROrProtectiveMBR bool
 
 	// RootFS indicates the file system type of the partition containing
 	// the root directory ("/").
@@ -84,7 +84,7 @@ func (inspector *defaultInspector) Inspect(reference string, inspectOS bool) (ir
 	ir.Minor = inspector.wf.GetSerialConsoleOutputValue("minor")
 
 	ir.UEFIBootable, _ = strconv.ParseBool(inspector.wf.GetSerialConsoleOutputValue("uefi_bootable"))
-	ir.BIOSBootable, _ = strconv.ParseBool(inspector.wf.GetSerialConsoleOutputValue("bios_bootable"))
+	ir.BIOSBootableWithHybridMBROrProtectiveMBR, _ = strconv.ParseBool(inspector.wf.GetSerialConsoleOutputValue("bios_bootable"))
 	ir.RootFS = inspector.wf.GetSerialConsoleOutputValue("root_fs")
 	return
 }
