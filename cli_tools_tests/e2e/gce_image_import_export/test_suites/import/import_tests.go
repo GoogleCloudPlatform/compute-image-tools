@@ -260,6 +260,7 @@ var inspectUEFICases = []*testCase{
 		inspect:                   true,
 	}, {
 		caseName: "inspect-uefi-linux-dual-hybrid-mbr-ubuntu-2004",
+		// source created from scratch
 		source:                    "gs://compute-image-tools-test-resources/uefi/linux-hybrid-mbr-ubuntu-2004.vmdk",
 		os:                        "ubuntu-2004",
 		osConfigNotSupported:      true,

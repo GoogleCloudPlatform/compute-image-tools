@@ -137,6 +137,17 @@ func TestBootInspect(t *testing.T) {
 				UEFIBootable: true,
 				BIOSBootable: true,
 			},
+		}, {
+			// UEFI inspection test for MBR-only UEFI
+			"projects/compute-image-tools-test/global/images/image-uefi-mbr-only",
+			disk.InspectionResult{
+				Architecture: "x64",
+				Distro:       "ubuntu",
+				Major:        "16",
+				Minor:        "04",
+				UEFIBootable: true,
+				BIOSBootable: false,
+			},
 		},
 	} {
 		// Without this, each parallel test will reference the last tt instance.

@@ -147,15 +147,18 @@ def inspect_boot_loader(g, device) -> model.BootInspectionResults:
 
     part_list = g.part_list('/dev/sda')
     for part in part_list:
-      guid = g.part_get_gpt_type('/dev/sda', part['part_num'])
+      try:
+        guid = g.part_get_gpt_type('/dev/sda', part['part_num'])
+        # It covers both GPT "EFI System" and BIOS "EFI (FAT-12/16/32)".
+        if guid == 'C12A7328-F81F-11D2-BA4B-00A0C93EC93B':
+          uefi_bootable = True
+          # TODO: detect root_fs (b/169245755)
+        # It covers "BIOS boot", which make a protective-MBR bios-bootable.
+        if guid == '21686148-6449-6E6F-744E-656564454649':
+          bios_bootable = True
+      except Exception:
+        continue
 
-      # It covers both GPT "EFI System" and BIOS "EFI (FAT-12/16/32)".
-      if guid == 'C12A7328-F81F-11D2-BA4B-00A0C93EC93B':
-        uefi_bootable = True
-        # TODO: detect root_fs (b/169245755)
-      # It covers "BIOS boot", which make a protective-MBR bios-bootable.
-      if guid == '21686148-6449-6E6F-744E-656564454649':
-        bios_bootable = True
 
   except Exception as e:
     print("Failed to inspect disk partition: ", e)
