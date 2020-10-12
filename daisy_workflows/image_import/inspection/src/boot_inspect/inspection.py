@@ -159,7 +159,6 @@ def inspect_boot_loader(g, device) -> model.BootInspectionResults:
       except Exception:
         continue
 
-
   except Exception as e:
     print("Failed to inspect disk partition: ", e)
 
