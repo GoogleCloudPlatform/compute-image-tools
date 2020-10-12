@@ -12,8 +12,33 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import re
 
 from boot_inspect import model
+
+# Matched against the output of guestfs.inspect_get_product_variant.
+# This is required since desktop and server use the same NT versions.
+# For example, NT 6.3 is either Windows 2012r2 or Windows 8.1.
+_server_pattern = re.compile('server', re.IGNORECASE)
+_client_pattern = re.compile('client', re.IGNORECASE)
+
+# Mappings of NT version to marketing versions.
+# Source: https://wikipedia.org/wiki/List_of_Microsoft_Windows_versions
+_server_versions = {
+    (6, 0): ('2008', ''),
+    (6, 1): ('2008', 'r2'),
+    (6, 2): ('2012', ''),
+    (6, 3): ('2012', 'r2'),
+    # (10,0) is resolved in code since, since it's used for
+    # both Windows 2016 and Windows 2019.
+}
+_client_versions = {
+    (6, 0): ('Vista', ''),
+    (6, 1): ('7', ''),
+    (6, 2): ('8', ''),
+    (6, 3): ('8', '1'),
+    (10, 0): ('10', ''),
+}
 
 
 class Inspector:
@@ -29,17 +54,36 @@ class Inspector:
     self._root = root
 
   def inspect(self) -> model.OperatingSystem:
-    if self._is_windows():
-      return model.OperatingSystem(
-        model.Distro.WINDOWS,
-        self._get_version(),
+    distro = self._g.inspect_get_distro(self._root)
+    if isinstance(distro, str) and 'windows' in distro.lower():
+      return _from_nt_version(
+          major_nt=self._g.inspect_get_major_version(self._root),
+          minor_nt=self._g.inspect_get_minor_version(self._root),
+          variant=self._g.inspect_get_product_variant(self._root),
+          product_name=self._g.inspect_get_product_name(self._root)
       )
 
-  def _get_version(self) -> model.Version:
-    major = self._g.inspect_get_major_version(self._root)
-    minor = self._g.inspect_get_minor_version(self._root)
-    return model.Version(major, minor)
 
-  def _is_windows(self) -> bool:
-    inspected = self._g.inspect_get_distro(self._root)
-    return model.distro_for(inspected) == model.Distro.WINDOWS
+def _from_nt_version(
+    variant: str,
+    major_nt: int,
+    minor_nt: int,
+    product_name: str) -> model.OperatingSystem:
+  major, minor = None, None
+  nt_version = major_nt, minor_nt
+  if _client_pattern.search(variant):
+    major, minor = _client_versions.get(nt_version, (None, None))
+  elif _server_pattern.search(variant):
+    if nt_version in _server_versions:
+      major, minor = _server_versions.get(nt_version, (None, None))
+    elif nt_version == (10, 0):
+      if '2016' in product_name:
+        major, minor = '2016', ''
+      elif '2019' in product_name:
+        major, minor = '2019', ''
+
+  if major is not None and minor is not None:
+    return model.OperatingSystem(
+        model.Distro.WINDOWS,
+        model.Version(major, minor)
+    )
