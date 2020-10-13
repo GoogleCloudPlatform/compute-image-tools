@@ -36,8 +36,6 @@ class Distro(enum.Enum):
   SLES = 'sles'
   UBUNTU = 'ubuntu'
   WINDOWS = 'windows'
-  WINDOWS_DESKTOP = 'windows-desktop'
-  WINDOWS_SERVER = 'windows-server'
 
 
 def distro_for(name: str):

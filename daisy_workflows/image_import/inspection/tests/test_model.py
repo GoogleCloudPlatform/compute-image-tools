@@ -69,8 +69,8 @@ class TestJSONEncoder:
     inspection_results = model.InspectionResults(
       device="/dev/sdb",
       os=model.OperatingSystem(
-        distro=model.Distro.WINDOWS_SERVER,
-        version=model.Version(major="6", minor="1"),
+        distro=model.Distro.WINDOWS,
+        version=model.Version(major="8", minor="1"),
       ),
       architecture=model.Architecture.x86,
     )
@@ -78,9 +78,9 @@ class TestJSONEncoder:
     expected = {
       "device": "/dev/sdb",
       "os": {
-        "distro": "windows-server",
+        "distro": "windows",
         "version": {
-          "major": "6",
+          "major": "8",
           "minor": "1",
         }
       },
