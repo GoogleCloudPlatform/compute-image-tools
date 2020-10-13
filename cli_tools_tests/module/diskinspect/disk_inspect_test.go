@@ -59,26 +59,98 @@ func TestInspectDisk(t *testing.T) {
 		{
 			"projects/opensuse-cloud/global/images/opensuse-leap-15-2-v20200702",
 			disk.InspectionResult{
-				Architecture: "x64",
-				Distro:       "opensuse",
-				Major:        "15",
-				Minor:        "2",
+				Architecture:                             "x64",
+				Distro:                                   "opensuse",
+				Major:                                    "15",
+				Minor:                                    "2",
+				UEFIBootable:                             true,
+				BIOSBootableWithHybridMBROrProtectiveMBR: true,
 			},
 		}, {
 			"projects/suse-sap-cloud/global/images/sles-15-sp1-sap-v20200803",
 			disk.InspectionResult{
-				Architecture: "x64",
-				Distro:       "sles-sap",
-				Major:        "15",
-				Minor:        "1",
+				Architecture:                             "x64",
+				Distro:                                   "sles-sap",
+				Major:                                    "15",
+				Minor:                                    "1",
+				UEFIBootable:                             true,
+				BIOSBootableWithHybridMBROrProtectiveMBR: true,
 			},
 		}, {
 			"projects/compute-image-tools-test/global/images/windows-7-ent-x86-nodrivers",
 			disk.InspectionResult{
-				Architecture: "x86",
-				Distro:       "windows",
-				Major:        "6",
-				Minor:        "1",
+				Architecture:                             "x86",
+				Distro:                                   "windows",
+				Major:                                    "6",
+				Minor:                                    "1",
+				UEFIBootable:                             false,
+				BIOSBootableWithHybridMBROrProtectiveMBR: false,
+			},
+		}, {
+			// UEFI inspection test for GPT UEFI
+			"projects/gce-uefi-images/global/images/rhel-7-v20200403",
+			disk.InspectionResult{
+				Architecture:                             "x64",
+				Distro:                                   "rhel",
+				Major:                                    "7",
+				Minor:                                    "8",
+				UEFIBootable:                             true,
+				BIOSBootableWithHybridMBROrProtectiveMBR: false,
+			},
+		}, {
+			// UEFI inspection test for MBR-only
+			"projects/debian-cloud/global/images/debian-9-stretch-v20200714",
+			disk.InspectionResult{
+				Architecture:                             "x64",
+				Distro:                                   "debian",
+				Major:                                    "9",
+				Minor:                                    "12",
+				UEFIBootable:                             false,
+				BIOSBootableWithHybridMBROrProtectiveMBR: false,
+			},
+		}, {
+			// UEFI inspection test for GPT UEFI - windows
+			"projects/gce-uefi-images/global/images/windows-server-2019-dc-core-v20200609",
+			disk.InspectionResult{
+				Architecture:                             "x64",
+				Distro:                                   "windows",
+				Major:                                    "10",
+				Minor:                                    "",
+				UEFIBootable:                             true,
+				BIOSBootableWithHybridMBROrProtectiveMBR: false,
+			},
+		}, {
+			// UEFI inspection test for GPT UEFI with BIOS boot
+			"projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317",
+			disk.InspectionResult{
+				Architecture:                             "x64",
+				Distro:                                   "ubuntu",
+				Major:                                    "18",
+				Minor:                                    "04",
+				UEFIBootable:                             true,
+				BIOSBootableWithHybridMBROrProtectiveMBR: true,
+			},
+		}, {
+			// UEFI inspection test for GPT UEFI with hybrid MBR
+			"projects/compute-image-tools-test/global/images/image-ubuntu-2004-hybrid-mbr",
+			disk.InspectionResult{
+				Architecture:                             "x64",
+				Distro:                                   "ubuntu",
+				Major:                                    "20",
+				Minor:                                    "04",
+				UEFIBootable:                             true,
+				BIOSBootableWithHybridMBROrProtectiveMBR: true,
+			},
+		}, {
+			// UEFI inspection test for MBR-only UEFI
+			"projects/compute-image-tools-test/global/images/image-uefi-mbr-only",
+			disk.InspectionResult{
+				Architecture:                             "x64",
+				Distro:                                   "ubuntu",
+				Major:                                    "16",
+				Minor:                                    "04",
+				UEFIBootable:                             true,
+				BIOSBootableWithHybridMBROrProtectiveMBR: false,
 			},
 		},
 	} {

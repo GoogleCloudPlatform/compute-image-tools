@@ -38,8 +38,17 @@ type Inspector interface {
 
 // InspectionResult contains the partition and boot-related properties of a disk.
 type InspectionResult struct {
-	// HasEFIPartition indicates whether the disk has a EFI partition.
-	HasEFIPartition                    bool
+	// UEFIBootable indicates whether the disk is bootable with UEFI.
+	UEFIBootable bool
+
+	// BIOSBootableWithHybridMBROrProtectiveMBR indicates whether the disk is BIOS-bootable
+	// or "hybrid MBR" mode or "protective MBR" mode.
+	BIOSBootableWithHybridMBROrProtectiveMBR bool
+
+	// RootFS indicates the file system type of the partition containing
+	// the root directory ("/").
+	RootFS string
+
 	Architecture, Distro, Major, Minor string
 }
 
@@ -74,13 +83,14 @@ func (inspector *defaultInspector) Inspect(reference string, inspectOS bool) (ir
 		return
 	}
 
-	// TODO: Mute the UEFI detection results for now. Restore it till we got the reason of b/168671324
-	// ir.HasEFIPartition, _ = strconv.ParseBool(inspector.wf.GetSerialConsoleOutputValue("has_efi_partition"))
-
 	ir.Architecture = inspector.wf.GetSerialConsoleOutputValue("architecture")
 	ir.Distro = inspector.wf.GetSerialConsoleOutputValue("distro")
 	ir.Major = inspector.wf.GetSerialConsoleOutputValue("major")
 	ir.Minor = inspector.wf.GetSerialConsoleOutputValue("minor")
+
+	ir.UEFIBootable, _ = strconv.ParseBool(inspector.wf.GetSerialConsoleOutputValue("uefi_bootable"))
+	ir.BIOSBootableWithHybridMBROrProtectiveMBR, _ = strconv.ParseBool(inspector.wf.GetSerialConsoleOutputValue("bios_bootable"))
+	ir.RootFS = inspector.wf.GetSerialConsoleOutputValue("root_fs")
 	return
 }
 

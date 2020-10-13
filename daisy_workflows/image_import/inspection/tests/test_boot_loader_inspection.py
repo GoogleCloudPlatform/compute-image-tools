@@ -15,27 +15,22 @@
 
 import os
 
-from boot_inspect import inspection, model
-from boot_inspect.system import filesystems
+from boot_inspect import inspection
 import pytest
 import yaml
 
 
 @pytest.mark.parametrize("fpath", [
-    os.path.join('tests/test-data/images', f) for f in
-    os.listdir('tests/test-data/images')
+    os.path.join('tests/test-data/gdisk', f) for f in
+    os.listdir('tests/test-data/gdisk')
 ])
 def test_yaml_encoded_cases(fpath):
   with open(fpath) as stream:
     loaded_yaml = yaml.safe_load(stream)
-    assert 'files' in loaded_yaml
+    assert 'output' in loaded_yaml
     assert 'expected' in loaded_yaml
-    fs = filesystems.DictBackedFilesystem(loaded_yaml['files'])
-    expected = model.OperatingSystem(
-      model.distro_for(loaded_yaml['expected']['distro']),
-      model.Version(loaded_yaml['expected']['major'],
-                    loaded_yaml['expected']['minor']))
+    output = loaded_yaml['output']
+    expected = loaded_yaml['expected']
 
-  inspector = inspection._linux_inspector(fs)
-  actual = inspector.inspect()
-  assert expected == actual
+  bios_bootable = inspection._inspect_for_hybrid_mbr(output)
+  assert expected == bios_bootable

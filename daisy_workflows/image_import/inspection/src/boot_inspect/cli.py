@@ -16,7 +16,6 @@
 
 import argparse
 import json
-import os
 import urllib.request
 
 from boot_inspect import inspection
@@ -37,8 +36,12 @@ def _output_daisy(results: model.InspectionResults):
       print(_daisy_kv('distro', results.os.distro.value))
       print(_daisy_kv('major', results.os.version.major))
       print(_daisy_kv('minor', results.os.version.minor))
-    if results.has_efi_partition:
-      print(_daisy_kv('has_efi_partition', 'true'))
+    if results.bios_bootable:
+      print(_daisy_kv('bios_bootable', 'true'))
+    if results.uefi_bootable:
+      print(_daisy_kv('uefi_bootable', 'true'))
+    if results.root_fs:
+      print(_daisy_kv('root_fs', results.root_fs))
   print('Success: Done!')
 
 
@@ -49,24 +52,6 @@ def _output_json(results: model.InspectionResults, indent=None):
 
 def _output_human(results: model.InspectionResults):
   _output_json(results, indent=4)
-
-
-def _inspect_uefi(device):
-  try:
-    stream = os.popen('fdisk -l {} -o type'.format(device))
-    output = stream.read()
-    print(output)
-
-    # 1. For GPT, the ESP output should be "EFI System", which matches
-    # partition GUID "C12A7328-F81F-11D2-BA4B-00A0C93EC93B".
-    # 2. For MBR, the ESP output should be "EFI (FAT-12/16/32)", which matches
-    # partition type "0xef"
-    if "EFI" in output:
-      return True
-  except Exception as e:
-    print("Failed to inspect disk partition: ", e)
-
-  return False
 
 
 def main():
@@ -93,20 +78,24 @@ def main():
   )
   args = parser.parse_args()
 
+  g = guestfs.GuestFS(python_return_dict=True)
+  g.add_drive_opts(args.device, readonly=1)
+  g.launch()
+
   req = urllib.request.Request(
       "http://metadata.google.internal/computeMetadata/v1"
       "/instance/attributes/is-inspect-os",
       headers={'Metadata-Flavor': 'Google'})
   is_inspect_os = urllib.request.urlopen(req).read()
   if is_inspect_os == b'true':
-    g = guestfs.GuestFS(python_return_dict=True)
-    g.add_drive_opts(args.device, readonly=1)
-    g.launch()
     results = inspection.inspect_device(g, args.device)
   else:
     results = model.InspectionResults(device=None, os=None, architecture=None)
 
-  results.has_efi_partition = _inspect_uefi(args.device)
+  boot_results = inspection.inspect_boot_loader(g, args.device)
+  results.bios_bootable = boot_results.bios_bootable
+  results.uefi_bootable = boot_results.uefi_bootable
+  results.root_fs = boot_results.root_fs
 
   globals()['_output_' + args.format](results)
 

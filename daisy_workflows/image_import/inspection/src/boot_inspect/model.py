@@ -127,6 +127,16 @@ class InspectionResults:
     self.architecture = architecture
 
 
+class BootInspectionResults:
+  """Collection of boot inspection results."""
+
+  def __init__(self, bios_bootable: bool, uefi_bootable: bool,
+      root_fs: str):
+    self.bios_bootable = bios_bootable
+    self.uefi_bootable = uefi_bootable
+    self.root_fs = root_fs
+
+
 class ModelJSONEncoder(json.JSONEncoder):
   """Supports JSON encoding of the classes defined in this module."""
 
@@ -138,5 +148,7 @@ class ModelJSONEncoder(json.JSONEncoder):
     if isinstance(o, OperatingSystem):
       return o.__dict__
     if isinstance(o, InspectionResults):
+      return o.__dict__
+    if isinstance(o, BootInspectionResults):
       return o.__dict__
     return super().default(o)

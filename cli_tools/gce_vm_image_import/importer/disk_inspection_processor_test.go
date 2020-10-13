@@ -50,12 +50,12 @@ func TestDiskInspectionProcessor_ProcessUEFI(t *testing.T) {
 }
 
 type mockDiskInspector struct {
-	hasEFIPartition bool
-	wf              *daisy.Workflow
+	uefiBootable bool
+	wf           *daisy.Workflow
 }
 
 func (m mockDiskInspector) Inspect(reference string, inspectOS bool) (ir disk.InspectionResult, err error) {
-	ir.HasEFIPartition = m.hasEFIPartition
+	ir.UEFIBootable = m.uefiBootable
 	return
 }
 
