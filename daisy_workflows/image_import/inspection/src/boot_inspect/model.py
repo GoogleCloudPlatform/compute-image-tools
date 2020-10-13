@@ -34,6 +34,7 @@ class Distro(enum.Enum):
   ORACLE = 'oracle'
   RHEL = 'rhel'
   SLES = 'sles'
+  SLES_SAP = 'sles-sap'
   UBUNTU = 'ubuntu'
   WINDOWS = 'windows'
 
