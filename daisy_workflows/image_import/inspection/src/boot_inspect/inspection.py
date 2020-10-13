@@ -37,43 +37,42 @@ from boot_inspect import model
 from boot_inspect.inspectors.os import architecture, linux, windows
 import boot_inspect.system.filesystems
 
-
 _LINUX = [
-  linux.Fingerprint(model.Distro.AMAZON, aliases=['amzn', 'amazonlinux']),
-  linux.Fingerprint(
-    model.Distro.CENTOS,
-    legacy=linux.LegacyFingerprint(
-      metadata_file='/etc/centos-release',
-      version_pattern=re.compile(r'\d+\.\d+'),
-      derivative_metadata_files=[
-        '/etc/fedora-release',
-        '/etc/oracle-release',
-      ]),
-  ),
-  linux.Fingerprint(
-    model.Distro.DEBIAN,
-    legacy=linux.LegacyFingerprint(
-      metadata_file='/etc/debian_version',
-      version_pattern=re.compile(r'\d+\.\d+'),
+    linux.Fingerprint(model.Distro.AMAZON, aliases=['amzn', 'amazonlinux']),
+    linux.Fingerprint(
+        model.Distro.CENTOS,
+        fs_predicate=linux.SentinelFileMatcher(
+            require={'/etc/centos-release'},
+            disallow={'/etc/fedora-release',
+                      '/etc/oracle-release'}),
+        version_reader=linux.VersionReader(
+            metadata_file='/etc/centos-release',
+            version_pattern=re.compile(r'\d+\.\d+')),
     ),
-  ),
-  linux.Fingerprint(model.Distro.FEDORA),
-  linux.Fingerprint(model.Distro.KALI),
-  linux.Fingerprint(
-    model.Distro.RHEL,
-    legacy=linux.LegacyFingerprint(
-      metadata_file='/etc/redhat-release',
-      version_pattern=re.compile(r'\d+\.\d+'),
-      derivative_metadata_files=[
-        '/etc/centos-release',
-        '/etc/fedora-release',
-        '/etc/oracle-release',
-      ]),
-  ),
-  linux.Fingerprint(model.Distro.SLES, aliases=['sles_sap']),
-  linux.Fingerprint(model.Distro.OPENSUSE, aliases=['opensuse-leap']),
-  linux.Fingerprint(model.Distro.ORACLE, aliases=['ol', 'oraclelinux']),
-  linux.Fingerprint(model.Distro.UBUNTU),
+    linux.Fingerprint(
+        model.Distro.DEBIAN,
+        version_reader=linux.VersionReader(
+            metadata_file='/etc/debian_version',
+            version_pattern=re.compile(r'\d+\.\d+'),
+        ),
+    ),
+    linux.Fingerprint(model.Distro.FEDORA),
+    linux.Fingerprint(model.Distro.KALI),
+    linux.Fingerprint(
+        model.Distro.RHEL,
+        fs_predicate=linux.SentinelFileMatcher(
+            require={'/etc/redhat-release'},
+            disallow={'/etc/fedora-release',
+                      '/etc/oracle-release',
+                      '/etc/centos-release'}),
+        version_reader=linux.VersionReader(
+            metadata_file='/etc/redhat-release',
+            version_pattern=re.compile(r'\d+\.\d+')),
+    ),
+    linux.Fingerprint(model.Distro.SLES, aliases=['sles_sap']),
+    linux.Fingerprint(model.Distro.OPENSUSE, aliases=['opensuse-leap']),
+    linux.Fingerprint(model.Distro.ORACLE, aliases=['ol', 'oraclelinux']),
+    linux.Fingerprint(model.Distro.UBUNTU),
 ]
 
 
@@ -112,9 +111,9 @@ def inspect_device(g, device: str) -> model.InspectionResults:
   g.umount_all()
 
   return model.InspectionResults(
-    device=device,
-    os=operating_system,
-    architecture=arch,
+      device=device,
+      os=operating_system,
+      architecture=arch,
   )
 
 

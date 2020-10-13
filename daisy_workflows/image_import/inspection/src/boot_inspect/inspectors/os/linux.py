@@ -21,17 +21,8 @@ from boot_inspect import model
 import boot_inspect.system.filesystems
 
 
-class LegacyFingerprint:
-  """Identifies systems using pre-systemd metadata files.
-
-  Prior to systemd's specification of /etc/os-release,
-  https://www.freedesktop.org/software/systemd/man/os-release.html,
-  there was no universal standard for specifying system metadata. This
-  class encodes which files were used during that period.
-
-  A positive match is based on:
-    1. The existence of a standard metadata file
-    2. The non-existance of derivative metadata files.
+class SentinelFileMatcher:
+  """Supports matching based on whether files exist on the filesystem.
 
   To illustrate this, these are the metadata files included by RHEL and its
   derivatives:
@@ -40,19 +31,39 @@ class LegacyFingerprint:
     CentOS:
       /etc/redhat-release
       /etc/centos-release
-    CentOS:
+    Fedora:
       /etc/redhat-release
       /etc/fedora-release
 
   In this example, for RHEL, the encoding would be:
-    metadata_file = /etc/redhat-release
-    derivative_metadata_files = /etc/centos-release, /etc/fedora-release
+    require = {/etc/redhat-release}
+    disallow = {/etc/centos-release, /etc/fedora-release}
   """
+
+  def __init__(self, require: typing.Iterable[str] = None,
+               disallow: typing.Iterable[str] = None):
+    """
+    Args:
+      require: Iterable of absolute paths. All must be present to be
+      eligible for matching.
+      disallow: Iterable of absolute paths. None may be present to be
+      eligible for matching.
+    """
+    self._require = require if require else []
+    self._disallow = disallow if disallow else []
+
+  def matches(self, fs: boot_inspect.system.filesystems.Filesystem) -> bool:
+    positive_indicators = (fs.is_file(f) for f in self._require)
+    negative_indicators = (fs.is_file(f) for f in self._disallow)
+    return all(positive_indicators) and not any(negative_indicators)
+
+
+class VersionReader:
+  """Identifies versions using pre-systemd metadata files. """
 
   def __init__(self,
                metadata_file: str,
-               version_pattern: typing.Pattern,
-               derivative_metadata_files: typing.Iterable[str] = ()):
+               version_pattern: typing.Pattern):
     """
     Args:
       metadata_file: The file that *must* be present to allow a match.
@@ -63,19 +74,12 @@ class LegacyFingerprint:
     """
     self._metadata_file = metadata_file
     self._version_pattern = version_pattern
-    self._derivatives = derivative_metadata_files
 
   def get_version(self, fs: boot_inspect.system.filesystems.Filesystem) -> str:
     if fs.is_file(self._metadata_file):
       m = self._version_pattern.search(fs.read_utf8(self._metadata_file))
       if m:
         return m.group(0)
-
-  def matches(self, fs: boot_inspect.system.filesystems.Filesystem) -> bool:
-    for anti in self._derivatives:
-      if fs.is_file(anti):
-        return False
-    return fs.is_file(self._metadata_file)
 
 
 class Fingerprint:
@@ -88,20 +92,24 @@ class Fingerprint:
   def __init__(self,
                distro: model.Distro,
                aliases: typing.Iterable[str] = (),
-               legacy: LegacyFingerprint = None):
+               fs_predicate: SentinelFileMatcher = None,
+               version_reader: VersionReader = None):
     """
     Args:
       distro: The Distro corresponding to this fingerprint. The 'value' is
       used for matching within the /etc/os-release file.
       aliases: Additional names that indicate a match.
-      legacy: Configuration for systems that require inspection beyond
-      /etc/os-release.
+      fs_predicate: Additional predicate that looks at which files are
+      present on the system.
+      version_reader: Allow version extraction for systems that use
+      metadata files other than /etc/os-release.
     """
     self.distro = distro
     self._name_matcher = re.compile(
-      '|'.join([re.escape(w) for w in list(aliases) + [distro.value]]),
-      re.IGNORECASE)
-    self._legacy = legacy
+        '|'.join([re.escape(w) for w in list(aliases) + [distro.value]]),
+        re.IGNORECASE)
+    self._fs_predicate = fs_predicate
+    self._legacy_version_reader = version_reader
 
   def _get_version(
       self, etc_os_release: typing.Mapping[str, str],
@@ -112,8 +120,8 @@ class Fingerprint:
     if 'VERSION_ID' in etc_os_release:
       systemd_version = model.Version.split(etc_os_release['VERSION_ID'])
 
-    if self._legacy:
-      legacy_version = self._legacy.get_version(fs)
+    if self._legacy_version_reader:
+      legacy_version = self._legacy_version_reader.get_version(fs)
       if legacy_version:
         legacy_version = model.Version.split(legacy_version)
 
@@ -132,14 +140,20 @@ class Fingerprint:
     etc_os_rel = {}
     if fs.is_file('/etc/os-release'):
       etc_os_rel = _parse_config_file(fs.read_utf8('/etc/os-release'))
+
     if 'ID' in etc_os_rel:
       matches = self._name_matcher.fullmatch(etc_os_rel['ID']) is not None
+      if self._fs_predicate:
+        matches &= self._fs_predicate.matches(fs)
+    elif self._fs_predicate:
+      matches = self._fs_predicate.matches(fs)
     else:
-      matches = self._legacy and self._legacy.matches(fs)
+      matches = False
+
     if matches:
       return model.OperatingSystem(
-        distro=self.distro,
-        version=self._get_version(etc_os_rel, fs),
+          distro=self.distro,
+          version=self._get_version(etc_os_rel, fs),
       )
 
 
