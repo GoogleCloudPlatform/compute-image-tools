@@ -226,6 +226,7 @@ def yum_install(g, *packages):
   Raises:
       RuntimeError: If there is a failure during installation.
   """
+  last_exception = None
   for i in range(6):
     try:
       # There's no sleep on the first iteration since `i` is zero.
@@ -239,11 +240,10 @@ def yum_install(g, *packages):
           '"{0}"'.format(p) for p in packages))
       return
     except Exception as e:
+      last_exception = e
       logging.debug('Failed to install {}. Details: {}.'.format(packages, e))
-  raise RuntimeError(
-      'Verify that you have specified the correct operating system '
-      'in the `--os` flag.  If you are bringing your own license (BYOL), '
-      'also verify that your subscription is eligible to be run on GCP.')
+  raise RuntimeError('Failed to install {}. Details: {}.'.format(
+      packages, last_exception))
 
 
 def main():
