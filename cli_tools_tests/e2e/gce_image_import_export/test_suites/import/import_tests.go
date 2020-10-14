@@ -86,6 +86,12 @@ var basicCases = []*testCase{
 		expectedError: "\"debian-9\" was detected on your disk, but \"opensuse-15\" was specified",
 		inspect:       true,
 	},
+	{
+		caseName:      "SLES import with no OS on disk",
+		source:        "gs://compute-image-tools-test-resources/empty-10gb.qcow2",
+		os:            "opensuse-15",
+		expectedError: "no operating systems found",
+	},
 
 	// Debian
 	{
