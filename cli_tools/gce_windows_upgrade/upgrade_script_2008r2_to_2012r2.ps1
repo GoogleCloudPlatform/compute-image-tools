@@ -43,10 +43,10 @@ online disk noerr
   }
 
   # Find the drive which contains install media.
-  $Drive_Letters = Get-WmiObject Win32_LogicalDisk
-  ForEach ($DriveLetter in $Drive_Letters.DeviceID) {
-    if (Test-Path "$($DriveLetter)\Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English") {
-      $script:install_media_drive = "$($DriveLetter)"
+  $Drives = Get-WmiObject Win32_LogicalDisk
+  ForEach ($Drive in $Drives) {
+    if (Test-Path "$($Drive.DeviceID)\Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English") {
+      $script:install_media_drive = "$($Drive.DeviceID)"
     }
   }
   if (!$script:install_media_drive) {
