@@ -19,6 +19,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // diskInspectionProcessor executes inspection towards the disk, including OS info,
@@ -37,7 +38,8 @@ func (p *diskInspectionProcessor) process(pd persistentDisk,
 
 	ir, err := p.inspectDisk(pd.uri)
 	if err != nil {
-		return pd, err
+		// Don't directly return err to avoid terminating the import.
+		return pd, nil
 	}
 
 	isDualBoot := ir.UEFIBootable && ir.BIOSBootableWithHybridMBROrProtectiveMBR
@@ -55,6 +57,7 @@ func (p *diskInspectionProcessor) inspectDisk(uri string) (disk.InspectionResult
 	ir, err := p.diskInspector.Inspect(uri, p.args.Inspect)
 	if err != nil {
 		log.Printf("Disk inspection error=%v", err)
+		return ir, daisy.Errf("Disk inspection error: %v", err)
 	}
 
 	log.Printf("Disk inspection result=%v", ir)
