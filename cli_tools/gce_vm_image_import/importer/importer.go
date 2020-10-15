@@ -44,7 +44,7 @@ type Importer interface {
 // NewImporter constructs an Importer instance.
 func NewImporter(args ImportArguments, computeClient compute.Client, storageClient storage.Client) (Importer, error) {
 	loggableBuilder := service.NewSingleImageImportLoggableBuilder()
-	inflater, err := createInflater(args, computeClient, storageClient, imagefile.NewGCSInspector(), loggableBuilder)
+	inflater, err := newInflater(args, computeClient, storageClient, imagefile.NewGCSInspector(), loggableBuilder)
 	if err != nil {
 		return nil, err
 	}

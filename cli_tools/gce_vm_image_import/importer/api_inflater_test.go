@@ -27,7 +27,7 @@ import (
 const daisyWorkflows = "../../../daisy_workflows"
 
 func TestCreateInflater_File(t *testing.T) {
-	inflater, err := createInflater(ImportArguments{
+	inflater, err := newInflater(ImportArguments{
 		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:       "projects/subnet/subnet",
 		Network:      "projects/network/network",
@@ -57,7 +57,7 @@ func TestCreateInflater_File(t *testing.T) {
 }
 
 func TestCreateInflater_Image(t *testing.T) {
-	inflater, err := createInflater(ImportArguments{
+	inflater, err := newInflater(ImportArguments{
 		Source:      imageSource{uri: "projects/test/uri/image"},
 		Zone:        "us-west1-b",
 		ExecutionID: "1234",

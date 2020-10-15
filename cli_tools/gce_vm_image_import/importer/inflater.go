@@ -202,13 +202,13 @@ type shadowTestFields struct {
 	inflationType string
 }
 
-func createInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client,
+func newInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client,
 	inspector imagefile.Inspector, loggableBuilder *service.SingleImageImportLoggableBuilder) (Inflater, error) {
-	return CreateDaisyInflater(args, inspector)
+	return NewDaisyInflater(args, inspector)
 }
 
-// CreateDaisyInflater returns an Inflater implementation that uses a Daisy workflow.
-func CreateDaisyInflater(args ImportArguments, fileInspector imagefile.Inspector) (Inflater, error) {
+// NewDaisyInflater returns an Inflater that uses a Daisy workflow.
+func NewDaisyInflater(args ImportArguments, fileInspector imagefile.Inspector) (Inflater, error) {
 	diskName := "disk-" + args.ExecutionID
 	var wfPath string
 	var vars map[string]string
