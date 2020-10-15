@@ -35,7 +35,6 @@ import (
 	"google.golang.org/api/googleapi"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/cli"
-	"github.com/GoogleCloudPlatform/compute-image-tools/common/runtime"
 )
 
 const (
@@ -43,8 +42,6 @@ const (
 )
 
 var (
-	project       = runtime.GetConfig("GOOGLE_CLOUD_PROJECT", "project")
-	zone          = runtime.GetConfig("GOOGLE_CLOUD_ZONE", "compute/zone")
 	privateBucket = setupPrivateBucket(project)
 )
 
@@ -295,10 +292,10 @@ func setupPrivateBucket(project string) string {
 		panic(err)
 	}
 	if err := client.Bucket(bucketName).Create(ctx, project, nil); err != nil {
-		realError := err.(*googleapi.Error)
+		realError, ok := err.(*googleapi.Error)
 		// Code 409 indicates the bucket already exists:
 		// https://cloud.google.com/storage/docs/troubleshooting#bucket-name-conflict
-		if realError.Code != 409 {
+		if !ok || realError.Code != 409 {
 			panic(err)
 		}
 	}

@@ -404,14 +404,14 @@ func (m *mockProcessor) cancel(reason string) bool {
 type mockInflater struct {
 	serialLogs    []string
 	pd            persistentDisk
-	ii            inflationInfo
+	ii            shadowTestFields
 	err           error
 	interactions  int
 	inflationTime time.Duration
 	cancelChan    chan bool
 }
 
-func (m *mockInflater) inflate(_ *service.SingleImageImportLoggableBuilder) (persistentDisk, inflationInfo, error) {
+func (m *mockInflater) Inflate() (persistentDisk, shadowTestFields, error) {
 	m.interactions++
 	m.cancelChan = make(chan bool)
 
@@ -427,11 +427,11 @@ func (m *mockInflater) inflate(_ *service.SingleImageImportLoggableBuilder) (per
 	return m.pd, m.ii, m.err
 }
 
-func (m *mockInflater) traceLogs() []string {
+func (m *mockInflater) TraceLogs() []string {
 	return m.serialLogs
 }
 
-func (m *mockInflater) cancel(reason string) bool {
+func (m *mockInflater) Cancel(reason string) bool {
 	m.cancelChan <- true
 	return true
 }
