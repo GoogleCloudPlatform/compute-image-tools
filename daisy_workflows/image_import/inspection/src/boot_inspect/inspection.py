@@ -41,7 +41,7 @@ _LINUX = [
     linux.Fingerprint(model.Distro.AMAZON, aliases=['amzn', 'amazonlinux']),
     linux.Fingerprint(
         model.Distro.CENTOS,
-        fs_predicate=linux.SentinelFileMatcher(
+        fs_predicate=linux.FileExistenceMatcher(
             require={'/etc/centos-release'},
             disallow={'/etc/fedora-release',
                       '/etc/oracle-release'}),
@@ -60,7 +60,7 @@ _LINUX = [
     linux.Fingerprint(model.Distro.KALI),
     linux.Fingerprint(
         model.Distro.RHEL,
-        fs_predicate=linux.SentinelFileMatcher(
+        fs_predicate=linux.FileExistenceMatcher(
             require={'/etc/redhat-release'},
             disallow={'/etc/fedora-release',
                       '/etc/oracle-release',

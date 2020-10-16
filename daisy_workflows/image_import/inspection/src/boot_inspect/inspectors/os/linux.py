@@ -21,7 +21,7 @@ from boot_inspect import model
 import boot_inspect.system.filesystems
 
 
-class SentinelFileMatcher:
+class FileExistenceMatcher:
   """Supports matching based on whether files exist on the filesystem.
 
   To illustrate this, these are the metadata files included by RHEL and its
@@ -92,7 +92,7 @@ class Fingerprint:
   def __init__(self,
                distro: model.Distro,
                aliases: typing.Iterable[str] = (),
-               fs_predicate: SentinelFileMatcher = None,
+               fs_predicate: FileExistenceMatcher = None,
                version_reader: VersionReader = None):
     """
     Args:
