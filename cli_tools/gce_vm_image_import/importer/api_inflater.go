@@ -96,7 +96,7 @@ func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error)
 		return persistentDisk{}, shadowTestFields{}, daisy.Errf("Failed to create shadow disk: %v", err)
 	}
 
-	// Cleanup the shadow disk ignoring error
+	// Cleanup thshadow disk ignoring error
 	defer inflater.computeClient.DeleteDisk(inflater.args.Project, inflater.args.Zone, cd.Name)
 
 	// If received a cancel signal from cancel(), then return early. Otherwise, it will waste

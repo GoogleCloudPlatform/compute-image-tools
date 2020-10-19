@@ -83,7 +83,7 @@ func getWorkflowPath(format string, currentExecutablePath string) string {
 }
 
 func buildDaisyVars(destinationURI string, sourceImage string, format string, network string,
-	subnet string, region string) map[string]string {
+	subnet string, region string, computeServiceAccount string) map[string]string {
 
 	varMap := map[string]string{}
 
@@ -107,6 +107,9 @@ func buildDaisyVars(destinationURI string, sourceImage string, format string, ne
 	if strings.TrimSpace(network) != "" {
 		varMap["export_network"] = param.GetGlobalResourcePath(
 			"networks", strings.TrimSpace(network))
+	}
+	if strings.TrimSpace(computeServiceAccount) != "" {
+		varMap["compute_service_account"] = strings.TrimSpace(computeServiceAccount)
 	}
 	return varMap
 }
@@ -150,7 +153,7 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 // Run runs export workflow.
 func Run(clientID string, destinationURI string, sourceImage string, format string,
 	project *string, network string, subnet string, zone string, timeout string,
-	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool,
+	scratchBucketGcsPath string, oauth string, ce string, computeServiceAccount string, gcsLogsDisabled bool,
 	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, currentExecutablePath string) (*daisy.Workflow, error) {
 
 	log.SetPrefix(logPrefix + " ")
@@ -183,7 +186,7 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 		return nil, err
 	}
 
-	varMap := buildDaisyVars(destinationURI, sourceImage, format, network, subnet, *region)
+	varMap := buildDaisyVars(destinationURI, sourceImage, format, network, subnet, *region, computeServiceAccount)
 
 	var w *daisy.Workflow
 	if w, err = runExportWorkflow(ctx, getWorkflowPath(format, currentExecutablePath), varMap, *project,

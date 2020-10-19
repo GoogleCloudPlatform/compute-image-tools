@@ -32,6 +32,10 @@
     "export_subnet": {
       "Value": "",
       "Description": "SubNetwork to use for the export instance"
+    },
+    "compute_service_account": {
+      "Value": "",
+      "Description": "Compute service account to run as"
     }
   },
   "Steps": {
@@ -56,7 +60,8 @@
           "export_instance_disk_type": "${export_instance_disk_type}",
           "licenses": "${licenses}",
           "export_network": "${export_network}",
-          "export_subnet": "${export_subnet}"
+          "export_subnet": "${export_subnet}",
+          "compute_service_account": "${compute_service_account}"
         }
       }
     }

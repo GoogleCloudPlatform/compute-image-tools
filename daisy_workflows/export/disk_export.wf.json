@@ -32,6 +32,10 @@
     "export_subnet": {
       "Value": "",
       "Description": "SubNetwork to use for the export instance"
+    },
+    "compute_service_account": {
+      "Value": "",
+      "Description": "Compute service account to run as"
     }
   },
   "Sources": {
@@ -68,7 +72,12 @@
             }
           ],
           "RetryWhenExternalIPDenied": true,
-          "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"]
+          "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
+          "ServiceAccounts": [
+            {
+              "Email": "${compute_service_account}"
+            }
+          ]
         }
       ]
     },
