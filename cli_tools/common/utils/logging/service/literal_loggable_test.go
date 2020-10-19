@@ -80,13 +80,14 @@ func TestSingleImageImportLoggableBuilder(t *testing.T) {
 						uefiBootable:          isUEFIDetectedValue,
 						biosBootable:          biosBootableValue,
 					},
-					traceLogs: traceLogs,
+					traceLogs: append(traceLogs, traceLogs...),
 				}
 				assert.Equal(t, expected, NewSingleImageImportLoggableBuilder().
 					SetDiskAttributes(format, sourceGb, targetGb).
 					SetUEFIMetrics(isUEFICompatibleImageValue, isUEFIDetectedValue, biosBootableValue, bootFSValue).
 					SetInflationAttributes(matchResultValue, inflationTypeValue, inflationTimeValue, shadowInflationTimeValue).
-					SetTraceLogs(traceLogs).
+					AppendTraceLogs(traceLogs).
+					AppendTraceLogs(traceLogs).
 					Build())
 			}
 		}

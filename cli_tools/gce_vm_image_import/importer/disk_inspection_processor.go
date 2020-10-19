@@ -39,6 +39,7 @@ func (p *diskInspectionProcessor) process(pd persistentDisk,
 	ir, err := p.inspectDisk(pd.uri)
 	if err != nil {
 		// Don't directly return err to avoid terminating the import.
+		loggableBuilder.AppendTraceLogs([]string{err.Error()})
 		return pd, nil
 	}
 
