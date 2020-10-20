@@ -30,20 +30,20 @@ func TestRequireImageName(t *testing.T) {
 }
 
 func TestTrimAndLowerImageName(t *testing.T) {
-	assert.Equal(t, "gcp-is-great", expectSuccessfulParse(t, "-image_name", "  GCP-is-GREAT  ").ImageName)
+	assert.Equal(t, "gcp-is-great", parseAndValidate(t, "-image_name", "  GCP-is-GREAT  ").ImageName)
 }
 
 func TestTrimFamily(t *testing.T) {
-	assert.Equal(t, "Ubuntu", expectSuccessfulParse(t, "-family", "  Ubuntu  ").Family)
+	assert.Equal(t, "Ubuntu", parseAndValidate(t, "-family", "  Ubuntu  ").Family)
 }
 
 func TestTrimDescription(t *testing.T) {
-	assert.Equal(t, "Ubuntu", expectSuccessfulParse(t, "-description", "  Ubuntu  ").Description)
+	assert.Equal(t, "Ubuntu", parseAndValidate(t, "-description", "  Ubuntu  ").Description)
 }
 
 func TestParseLabelsToMap(t *testing.T) {
 	expected := map[string]string{"internal": "true", "private": "false"}
-	assert.Equal(t, expected, expectSuccessfulParse(t, "-labels=internal=true,private=false").Labels)
+	assert.Equal(t, expected, parseAndValidate(t, "-labels=internal=true,private=false").Labels)
 }
 
 func TestFailOnLabelSyntaxError(t *testing.T) {
@@ -65,11 +65,11 @@ func TestPopulateStorageLocationIfMissing(t *testing.T) {
 }
 
 func TestTrimAndLowerStorageLocation(t *testing.T) {
-	assert.Equal(t, "eu", expectSuccessfulParse(t, "-storage_location", "  EU  ").StorageLocation)
+	assert.Equal(t, "eu", parseAndValidate(t, "-storage_location", "  EU  ").StorageLocation)
 }
 
 func TestPopulateWorkflowDir(t *testing.T) {
-	assert.Regexp(t, ".*/daisy_workflows", expectSuccessfulParse(t).WorkflowDir)
+	assert.Regexp(t, ".*/daisy_workflows", parseAndValidate(t).WorkflowDir)
 }
 
 func TestFailWhenClientIdMissing(t *testing.T) {
@@ -77,15 +77,15 @@ func TestFailWhenClientIdMissing(t *testing.T) {
 }
 
 func TestTrimAndLowerClientId(t *testing.T) {
-	assert.Equal(t, "pantheon", expectSuccessfulParse(t, "-client_id", " Pantheon ").ClientID)
+	assert.Equal(t, "pantheon", parseAndValidate(t, "-client_id", " Pantheon ").ClientID)
 }
 
 func TestTrimClientVersion(t *testing.T) {
-	assert.Equal(t, "301.0.0B", expectSuccessfulParse(t, "-client_version", " 301.0.0B ").ClientVersion)
+	assert.Equal(t, "301.0.0B", parseAndValidate(t, "-client_version", " 301.0.0B ").ClientVersion)
 }
 
 func TestTrimProject(t *testing.T) {
-	assert.Equal(t, "TestProject", expectSuccessfulParse(t, "-project", " TestProject ").Project)
+	assert.Equal(t, "TestProject", parseAndValidate(t, "-project", " TestProject ").Project)
 }
 
 func TestPopulateProjectIfMissing(t *testing.T) {
@@ -102,15 +102,15 @@ func TestPopulateProjectIfMissing(t *testing.T) {
 }
 
 func TestTrimNetwork(t *testing.T) {
-	assert.Equal(t, "global/networks/id", expectSuccessfulParse(t, "-network", "  id  ").Network)
+	assert.Equal(t, "global/networks/id", parseAndValidate(t, "-network", "  id  ").Network)
 }
 
 func TestTrimSubnet(t *testing.T) {
-	assert.Equal(t, "regions/us-west2/subnetworks/sub-id", expectSuccessfulParse(t, "-subnet", "  sub-id  ").Subnet)
+	assert.Equal(t, "regions/us-west2/subnetworks/sub-id", parseAndValidate(t, "-subnet", "  sub-id  ").Subnet)
 }
 
 func TestTrimAndLowerZone(t *testing.T) {
-	assert.Equal(t, "us-central4-a", expectSuccessfulParse(t, "-zone", "  us-central4-a  ").Zone)
+	assert.Equal(t, "us-central4-a", parseAndValidate(t, "-zone", "  us-central4-a  ").Zone)
 }
 
 func TestPopulateZoneIfMissing(t *testing.T) {
@@ -137,72 +137,71 @@ func TestPopulateRegion(t *testing.T) {
 	assert.Equal(t, "us-west2", actual.Region)
 }
 
-func TestTrimAndIncludeExecutionIDInScratchPath(t *testing.T) {
+func TestScratchBucketPath(t *testing.T) {
+	started := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+	id := "abc"
+	scratchDir := "gce-image-import-2009-11-10T23:00:00Z-abc"
 	var flagtests = []struct {
-		name                  string
-		bucketArg             string
-		expectedBucketPattern string
+		name      string
+		bucketArg string
+		expected  string
 	}{
-		{"no path", "gs://bucket", "gs://bucket/.*<executionID>"},
-		{"empty path", "gs://bucket", "gs://bucket/.*<executionID>"},
-		{"with path", "gs://bucket/path", "gs://bucket/path/.*<executionID>"},
-		{"trim, no path", "  gs://bucket  ", "gs://bucket/.*<executionID>"},
-		{"trim, empty path", "  gs://bucket  ", "gs://bucket/.*<executionID>"},
-		{"trim, with path", "  gs://bucket/path  ", "gs://bucket/path/.*<executionID>"},
+		{"no path", "gs://bucket", "gs://bucket/" + scratchDir},
+		{"empty path", "gs://bucket/", "gs://bucket/" + scratchDir},
+		{"with path", "gs://bucket/path", "gs://bucket/path/" + scratchDir},
+		{"trim, no path", "  gs://bucket  ", "gs://bucket/" + scratchDir},
+		{"trim, empty path", "  gs://bucket/  ", "gs://bucket/" + scratchDir},
+		{"trim, with path", "  gs://bucket/path  ", "gs://bucket/path/" + scratchDir},
+		{"populate when missing", "", "gs://fallback-bucket/" + scratchDir},
 	}
 	for _, tt := range flagtests {
 		t.Run(tt.name, func(t *testing.T) {
-			args := expectSuccessfulParse(t, "-scratch_bucket_gcs_path", tt.bucketArg)
-			expected := strings.ReplaceAll(tt.expectedBucketPattern, "<executionID>", args.ExecutionID)
-			assert.Regexp(t, expected, args.ScratchBucketGcsPath)
+			args := parse(t, "-scratch_bucket_gcs_path", tt.bucketArg)
+			args.Started = started
+			args.ExecutionID = id
+			err := args.ValidateAndPopulate(mockPopulator{
+				zone:          "us-west2-a",
+				region:        "us-west2",
+				scratchBucket: "gs://fallback-bucket/",
+			}, mockSourceFactory{})
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expected, args.ScratchBucketGcsPath)
 		})
 	}
 }
 
-func TestPopulateScratchBucketIfMissing(t *testing.T) {
-	args := []string{"-image_name=i", "-client_id=c", "-data_disk"}
-	actual, err := NewImportArguments(args)
-	assert.NoError(t, err)
-	err = actual.ValidateAndPopulate(mockPopulator{
-		zone:          "us-west2-a",
-		region:        "us-west2",
-		scratchBucket: "gs://custom-bucket/",
-	}, mockSourceFactory{})
-	assert.NoError(t, err)
-	assert.Regexp(t, "gs://custom-bucket/.*"+actual.ExecutionID, actual.ScratchBucketGcsPath)
-}
-
 func TestTrimOauth(t *testing.T) {
-	assert.Equal(t, "file.json", expectSuccessfulParse(t, "-oauth", "  file.json ").Oauth)
+	assert.Equal(t, "file.json", parseAndValidate(t, "-oauth", "  file.json ").Oauth)
 }
 
 func TestTrimComputeEndpoint(t *testing.T) {
 	assert.Equal(t, "http://endpoint",
-		expectSuccessfulParse(t, "-compute_endpoint_override", "  http://endpoint ").ComputeEndpoint)
+		parseAndValidate(t, "-compute_endpoint_override", "  http://endpoint ").ComputeEndpoint)
 }
 
 func TestGcsLogsDisabled(t *testing.T) {
-	assert.False(t, expectSuccessfulParse(t, "-disable_gcs_logging=false").GcsLogsDisabled)
-	assert.True(t, expectSuccessfulParse(t, "-disable_gcs_logging=true").GcsLogsDisabled)
-	assert.True(t, expectSuccessfulParse(t, "-disable_gcs_logging").GcsLogsDisabled)
+	assert.False(t, parseAndValidate(t, "-disable_gcs_logging=false").GcsLogsDisabled)
+	assert.True(t, parseAndValidate(t, "-disable_gcs_logging=true").GcsLogsDisabled)
+	assert.True(t, parseAndValidate(t, "-disable_gcs_logging").GcsLogsDisabled)
 }
 
 func TestCloudLogsDisabled(t *testing.T) {
-	assert.False(t, expectSuccessfulParse(t, "-disable_cloud_logging=false").CloudLogsDisabled)
-	assert.True(t, expectSuccessfulParse(t, "-disable_cloud_logging=true").CloudLogsDisabled)
-	assert.True(t, expectSuccessfulParse(t, "-disable_cloud_logging").CloudLogsDisabled)
+	assert.False(t, parseAndValidate(t, "-disable_cloud_logging=false").CloudLogsDisabled)
+	assert.True(t, parseAndValidate(t, "-disable_cloud_logging=true").CloudLogsDisabled)
+	assert.True(t, parseAndValidate(t, "-disable_cloud_logging").CloudLogsDisabled)
 }
 
 func TestStdoutLogsDisabled(t *testing.T) {
-	assert.False(t, expectSuccessfulParse(t, "-disable_stdout_logging=false").StdoutLogsDisabled)
-	assert.True(t, expectSuccessfulParse(t, "-disable_stdout_logging=true").StdoutLogsDisabled)
-	assert.True(t, expectSuccessfulParse(t, "-disable_stdout_logging").StdoutLogsDisabled)
+	assert.False(t, parseAndValidate(t, "-disable_stdout_logging=false").StdoutLogsDisabled)
+	assert.True(t, parseAndValidate(t, "-disable_stdout_logging=true").StdoutLogsDisabled)
+	assert.True(t, parseAndValidate(t, "-disable_stdout_logging").StdoutLogsDisabled)
 }
 
 func TestNoExternalIp(t *testing.T) {
-	assert.False(t, expectSuccessfulParse(t, "-no_external_ip=false").NoExternalIP)
-	assert.True(t, expectSuccessfulParse(t, "-no_external_ip=true").NoExternalIP)
-	assert.True(t, expectSuccessfulParse(t, "-no_external_ip").NoExternalIP)
+	assert.False(t, parseAndValidate(t, "-no_external_ip=false").NoExternalIP)
+	assert.True(t, parseAndValidate(t, "-no_external_ip=true").NoExternalIP)
+	assert.True(t, parseAndValidate(t, "-no_external_ip").NoExternalIP)
 }
 
 func TestPopulateNetworkAndSubnet(t *testing.T) {
@@ -243,7 +242,7 @@ func TestPopulateNetworkAndSubnet(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual := expectSuccessfulParse(t, tt.args...)
+			actual := parseAndValidate(t, tt.args...)
 			assert.Equal(t, tt.expectedNetwork, actual.Network)
 			assert.Equal(t, tt.expectedSubnet, actual.Subnet)
 		})
@@ -251,12 +250,12 @@ func TestPopulateNetworkAndSubnet(t *testing.T) {
 }
 
 func TestTrimSourceFile(t *testing.T) {
-	assert.Equal(t, "gs://bucket/image.vmdk", expectSuccessfulParse(
+	assert.Equal(t, "gs://bucket/image.vmdk", parseAndValidate(
 		t, "-source_file", " gs://bucket/image.vmdk ").SourceFile)
 }
 
 func TestTrimSourceImage(t *testing.T) {
-	assert.Equal(t, "path/source-image", expectSuccessfulParse(
+	assert.Equal(t, "path/source-image", parseAndValidate(
 		t, "-source_image", "  path/source-image  ").SourceImage)
 }
 
@@ -311,14 +310,14 @@ func TestErrorWhenSourceValidationFails(t *testing.T) {
 }
 
 func TestDataDiskSettable(t *testing.T) {
-	assert.False(t, expectSuccessfulParse(t, "-data_disk=false", "-os=ubuntu-1804").DataDisk)
-	assert.False(t, expectSuccessfulParse(t, "-os=ubuntu-1804").DataDisk)
-	assert.True(t, expectSuccessfulParse(t, "-data_disk=true").DataDisk)
-	assert.True(t, expectSuccessfulParse(t, "-data_disk").DataDisk)
+	assert.False(t, parseAndValidate(t, "-data_disk=false", "-os=ubuntu-1804").DataDisk)
+	assert.False(t, parseAndValidate(t, "-os=ubuntu-1804").DataDisk)
+	assert.True(t, parseAndValidate(t, "-data_disk=true").DataDisk)
+	assert.True(t, parseAndValidate(t, "-data_disk").DataDisk)
 }
 
 func TestTrimAndLowerOS(t *testing.T) {
-	assert.Equal(t, "ubuntu-1804", expectSuccessfulParse(t, "-os", "  UBUNTU-1804 ").OS)
+	assert.Equal(t, "ubuntu-1804", parseAndValidate(t, "-os", "  UBUNTU-1804 ").OS)
 }
 
 func TestFailWhenOSNotRegistered(t *testing.T) {
@@ -328,10 +327,10 @@ func TestFailWhenOSNotRegistered(t *testing.T) {
 }
 
 func TestNoGuestEnvironmentSettable(t *testing.T) {
-	assert.False(t, expectSuccessfulParse(t, "-data_disk=false", "-os=ubuntu-1804").DataDisk)
-	assert.False(t, expectSuccessfulParse(t, "-os=ubuntu-1804").DataDisk)
-	assert.True(t, expectSuccessfulParse(t, "-data_disk=true").DataDisk)
-	assert.True(t, expectSuccessfulParse(t, "-data_disk").DataDisk)
+	assert.False(t, parseAndValidate(t, "-data_disk=false", "-os=ubuntu-1804").DataDisk)
+	assert.False(t, parseAndValidate(t, "-os=ubuntu-1804").DataDisk)
+	assert.True(t, parseAndValidate(t, "-data_disk=true").DataDisk)
+	assert.True(t, parseAndValidate(t, "-data_disk").DataDisk)
 }
 
 func TestRequireDataOSOrWorkflow(t *testing.T) {
@@ -340,15 +339,15 @@ func TestRequireDataOSOrWorkflow(t *testing.T) {
 }
 
 func TestDurationHasDefaultValue(t *testing.T) {
-	assert.Equal(t, time.Hour*2, expectSuccessfulParse(t).Timeout)
+	assert.Equal(t, time.Hour*2, parseAndValidate(t).Timeout)
 }
 
 func TestDurationIsSettable(t *testing.T) {
-	assert.Equal(t, time.Hour*5, expectSuccessfulParse(t, "-timeout=5h").Timeout)
+	assert.Equal(t, time.Hour*5, parseAndValidate(t, "-timeout=5h").Timeout)
 }
 
 func TestTrimCustomWorkflow(t *testing.T) {
-	assert.Equal(t, "workflow.json", expectSuccessfulParse(t,
+	assert.Equal(t, "workflow.json", parseAndValidate(t,
 		"-custom_translate_workflow", "  workflow.json  ").CustomWorkflow)
 }
 
@@ -367,15 +366,15 @@ func TestValidateForConflictingArguments(t *testing.T) {
 }
 
 func TestUEFISettable(t *testing.T) {
-	assert.False(t, expectSuccessfulParse(t, "-uefi_compatible=false").UefiCompatible)
-	assert.True(t, expectSuccessfulParse(t, "-uefi_compatible=true").UefiCompatible)
-	assert.True(t, expectSuccessfulParse(t, "-uefi_compatible").UefiCompatible)
+	assert.False(t, parseAndValidate(t, "-uefi_compatible=false").UefiCompatible)
+	assert.True(t, parseAndValidate(t, "-uefi_compatible=true").UefiCompatible)
+	assert.True(t, parseAndValidate(t, "-uefi_compatible").UefiCompatible)
 }
 
 func TestSysprepSettable(t *testing.T) {
-	assert.False(t, expectSuccessfulParse(t, "-sysprep_windows=false").SysprepWindows)
-	assert.True(t, expectSuccessfulParse(t, "-sysprep_windows=true").SysprepWindows)
-	assert.True(t, expectSuccessfulParse(t, "-sysprep_windows").SysprepWindows)
+	assert.False(t, parseAndValidate(t, "-sysprep_windows=false").SysprepWindows)
+	assert.True(t, parseAndValidate(t, "-sysprep_windows=true").SysprepWindows)
+	assert.True(t, parseAndValidate(t, "-sysprep_windows").SysprepWindows)
 }
 
 func TestImportArguments_DaisyAttrs(t *testing.T) {
@@ -467,7 +466,18 @@ func (m mockSourceFactory) Init(sourceFile, sourceImage string) (Source, error) 
 	return mockSource{}, m.err
 }
 
-func expectSuccessfulParse(t *testing.T, args ...string) ImportArguments {
+func parseAndValidate(t *testing.T, args ...string) ImportArguments {
+	actual := parse(t, args...)
+	err := actual.ValidateAndPopulate(mockPopulator{
+		zone:   "us-west2-a",
+		region: "us-west2",
+	}, mockSourceFactory{})
+
+	assert.NoError(t, err)
+	return actual
+}
+
+func parse(t *testing.T, args ...string) ImportArguments {
 	var hasClientID, hasImageName, hasTranslationType bool
 	for _, arg := range args {
 		if strings.HasPrefix(arg, "-client_id") {
@@ -494,12 +504,6 @@ func expectSuccessfulParse(t *testing.T, args ...string) ImportArguments {
 	}
 
 	actual, err := NewImportArguments(args)
-	assert.NoError(t, err)
-	err = actual.ValidateAndPopulate(mockPopulator{
-		zone:   "us-west2-a",
-		region: "us-west2",
-	}, mockSourceFactory{})
-
 	assert.NoError(t, err)
 	return actual
 }

@@ -111,9 +111,7 @@ func (args *ImportArguments) ValidateAndPopulate(populator param.Populator,
 		return err
 	}
 
-	// Appending a namespace to the scratch bucket ensures that all logs and artifacts
-	// are contained in the same directory.
-	args.addNamespaceToScratchBucket()
+	args.populateNamespacedScratchDirectory()
 	if err := args.populateNetwork(); err != nil {
 		return err
 	}
@@ -121,7 +119,10 @@ func (args *ImportArguments) ValidateAndPopulate(populator param.Populator,
 	return args.validate()
 }
 
-func (args *ImportArguments) addNamespaceToScratchBucket() {
+// populateNamespacedScratchDirectory updates ScratchBucketGcsPath to include a directory
+// that is specific to this import, formulated using the start timestamp and the execution ID.
+// This ensures all logs and artifacts are contained in a single directory.
+func (args *ImportArguments) populateNamespacedScratchDirectory() {
 	if !strings.HasSuffix(args.ScratchBucketGcsPath, "/") {
 		args.ScratchBucketGcsPath += "/"
 	}
