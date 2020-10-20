@@ -17,12 +17,13 @@ package importer
 import (
 	"flag"
 	"fmt"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
@@ -72,6 +73,7 @@ type ImportArguments struct {
 	StorageLocation      string
 	Subnet               string
 	SysprepWindows       bool
+	Started              time.Time
 	Timeout              time.Duration
 	UefiCompatible       bool
 	Zone                 string
@@ -88,6 +90,7 @@ func NewImportArguments(args []string) (ImportArguments, error) {
 	parsed := ImportArguments{
 		ExecutionID: path.RandString(5),
 		WorkflowDir: filepath.Join(filepath.Dir(os.Args[0]), workflowDir),
+		Started:     time.Now(),
 	}
 
 	parsed.registerFlags(flagSet)
@@ -108,11 +111,23 @@ func (args *ImportArguments) ValidateAndPopulate(populator param.Populator,
 		return err
 	}
 
+	// Appending a namespace to the scratch bucket ensures that all logs and artifacts
+	// are contained in the same directory.
+	args.addNamespaceToScratchBucket()
 	if err := args.populateNetwork(); err != nil {
 		return err
 	}
 
 	return args.validate()
+}
+
+func (args *ImportArguments) addNamespaceToScratchBucket() {
+	if !strings.HasSuffix(args.ScratchBucketGcsPath, "/") {
+		args.ScratchBucketGcsPath += "/"
+	}
+
+	args.ScratchBucketGcsPath += fmt.Sprintf(
+		"gce-image-import-%s-%s", args.Started.Format(time.RFC3339), args.ExecutionID)
 }
 
 func (args ImportArguments) validate() error {
@@ -133,6 +148,9 @@ func (args ImportArguments) validate() error {
 	if args.OS != "" && args.CustomWorkflow != "" {
 		return fmt.Errorf("-%s and -%s can't be both specified",
 			osFlag, customWorkflowFlag)
+	}
+	if !strings.HasSuffix(args.ScratchBucketGcsPath, args.ExecutionID) {
+		panic("Scratch bucket should have been namespaced with execution ID.")
 	}
 	if args.OS != "" {
 		if err := daisy_utils.ValidateOS(args.OS); err != nil {

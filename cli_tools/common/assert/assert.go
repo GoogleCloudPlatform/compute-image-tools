@@ -32,3 +32,10 @@ func Contains(element string, arr []string) {
 	}
 	panic(fmt.Sprintf("%s is not a member of %v", element, arr))
 }
+
+// NotEmptyString asserts that s is not empty.
+func NotEmptyString(s string) {
+	if s == "" {
+		panic("Unexpected empty string.")
+	}
+}

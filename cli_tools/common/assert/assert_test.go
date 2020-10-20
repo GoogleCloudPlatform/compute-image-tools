@@ -99,3 +99,13 @@ func TestContains(t *testing.T) {
 		})
 	}
 }
+
+func TestNonEmptyString(t *testing.T) {
+	// Assert when empty.
+	assert.PanicsWithValue(t, "Unexpected empty string.", func() {
+		NotEmptyString("")
+	})
+
+	// No-op when not empty.
+	NotEmptyString("not-empty")
+}

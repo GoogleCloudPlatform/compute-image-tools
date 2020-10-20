@@ -16,10 +16,11 @@ package importer
 
 import (
 	"errors"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -136,9 +137,26 @@ func TestPopulateRegion(t *testing.T) {
 	assert.Equal(t, "us-west2", actual.Region)
 }
 
-func TestTrimScratchBucket(t *testing.T) {
-	assert.Equal(t, "gcs://bucket",
-		expectSuccessfulParse(t, "-scratch_bucket_gcs_path", "  gcs://bucket  ").ScratchBucketGcsPath)
+func TestTrimAndIncludeExecutionIDInScratchPath(t *testing.T) {
+	var flagtests = []struct {
+		name                  string
+		bucketArg             string
+		expectedBucketPattern string
+	}{
+		{"no path", "gs://bucket", "gs://bucket/.*<executionID>"},
+		{"empty path", "gs://bucket", "gs://bucket/.*<executionID>"},
+		{"with path", "gs://bucket/path", "gs://bucket/path/.*<executionID>"},
+		{"trim, no path", "  gs://bucket  ", "gs://bucket/.*<executionID>"},
+		{"trim, empty path", "  gs://bucket  ", "gs://bucket/.*<executionID>"},
+		{"trim, with path", "  gs://bucket/path  ", "gs://bucket/path/.*<executionID>"},
+	}
+	for _, tt := range flagtests {
+		t.Run(tt.name, func(t *testing.T) {
+			args := expectSuccessfulParse(t, "-scratch_bucket_gcs_path", tt.bucketArg)
+			expected := strings.ReplaceAll(tt.expectedBucketPattern, "<executionID>", args.ExecutionID)
+			assert.Regexp(t, expected, args.ScratchBucketGcsPath)
+		})
+	}
 }
 
 func TestPopulateScratchBucketIfMissing(t *testing.T) {
@@ -148,10 +166,10 @@ func TestPopulateScratchBucketIfMissing(t *testing.T) {
 	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:          "us-west2-a",
 		region:        "us-west2",
-		scratchBucket: "gcs://custom-bucket/",
+		scratchBucket: "gs://custom-bucket/",
 	}, mockSourceFactory{})
 	assert.NoError(t, err)
-	assert.Equal(t, "gcs://custom-bucket/", actual.ScratchBucketGcsPath)
+	assert.Regexp(t, "gs://custom-bucket/.*"+actual.ExecutionID, actual.ScratchBucketGcsPath)
 }
 
 func TestTrimOauth(t *testing.T) {
@@ -233,8 +251,8 @@ func TestPopulateNetworkAndSubnet(t *testing.T) {
 }
 
 func TestTrimSourceFile(t *testing.T) {
-	assert.Equal(t, "gcs://bucket/image.vmdk", expectSuccessfulParse(
-		t, "-source_file", " gcs://bucket/image.vmdk ").SourceFile)
+	assert.Equal(t, "gs://bucket/image.vmdk", expectSuccessfulParse(
+		t, "-source_file", " gs://bucket/image.vmdk ").SourceFile)
 }
 
 func TestTrimSourceImage(t *testing.T) {
@@ -249,7 +267,7 @@ func TestSourceObjectFromSourceImage(t *testing.T) {
 	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:          "us-west2-a",
 		region:        "us-west2",
-		scratchBucket: "gcs://custom-bucket/",
+		scratchBucket: "gs://custom-bucket/",
 	}, mockSourceFactory{
 		expectedImage: "path/source-image",
 		t:             t,
@@ -260,20 +278,20 @@ func TestSourceObjectFromSourceImage(t *testing.T) {
 }
 
 func TestSourceObjectFromSourceFile(t *testing.T) {
-	args := []string{"-source_file", "gcs://path/file", "-image_name=i", "-client_id=c", "-data_disk"}
+	args := []string{"-source_file", "gs://path/file", "-image_name=i", "-client_id=c", "-data_disk"}
 	actual, err := NewImportArguments(args)
 	assert.NoError(t, err)
 	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:          "us-west2-a",
 		region:        "us-west2",
-		scratchBucket: "gcs://custom-bucket/",
+		scratchBucket: "gs://custom-bucket/",
 	}, mockSourceFactory{
-		expectedFile: "gcs://path/file",
+		expectedFile: "gs://path/file",
 		t:            t,
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "gcs://path/file", actual.SourceFile)
-	assert.Equal(t, "gcs://path/file", actual.Source.Path())
+	assert.Equal(t, "gs://path/file", actual.SourceFile)
+	assert.Equal(t, "gs://path/file", actual.Source.Path())
 }
 
 func TestErrorWhenSourceValidationFails(t *testing.T) {
@@ -283,7 +301,7 @@ func TestErrorWhenSourceValidationFails(t *testing.T) {
 	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:          "us-west2-a",
 		region:        "us-west2",
-		scratchBucket: "gcs://custom-bucket/",
+		scratchBucket: "gs://custom-bucket/",
 	}, mockSourceFactory{
 		t:   t,
 		err: errors.New("bad source"),
@@ -364,7 +382,7 @@ func TestImportArguments_DaisyAttrs(t *testing.T) {
 	args := ImportArguments{
 		Project:              "panda",
 		Zone:                 "us-west",
-		ScratchBucketGcsPath: "gcs://bucket/path",
+		ScratchBucketGcsPath: "gs://bucket/path",
 		Oauth:                "oauth-info",
 		Timeout:              time.Hour * 3,
 		ComputeEndpoint:      "endpoint-uri",
@@ -376,7 +394,7 @@ func TestImportArguments_DaisyAttrs(t *testing.T) {
 	expected := daisycommon.WorkflowAttributes{
 		Project:           "panda",
 		Zone:              "us-west",
-		GCSPath:           "gcs://bucket/path",
+		GCSPath:           "gs://bucket/path",
 		OAuth:             "oauth-info",
 		Timeout:           "3h0m0s",
 		ComputeEndpoint:   "endpoint-uri",
