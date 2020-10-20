@@ -44,14 +44,17 @@ function Get-MetadataValue {
   try {
     $client = New-Object Net.WebClient
     $client.Headers.Add('Metadata-Flavor', 'Google')
-    return ($client.DownloadString($url)).Trim()
+    $value = ($client.DownloadString($url)).Trim()
+    Write-Output "Retrieved metadata key $key with value $value."
+    return $value
   }
   catch [System.Net.WebException] {
     if ($default) {
+      Write-Output "Failed to retrieve metadata for $key, returning default $default."
       return $default
     }
     else {
-      Write-Output "Failed to retrieve value for $key."
+      Write-Output "Translate: Failed to retrieve value from metadata for $key, returning null."
       return $null
     }
   }
@@ -265,11 +268,6 @@ function Install-32bitPackages {
 
 try {
   Write-Output 'Translate: Beginning translate PowerShell script.'
-  $script:outs_dir = Get-MetadataValue -key 'daisy-outs-path'
-  $script:install_packages = Get-MetadataValue -key 'install-gce-packages'
-  $script:sysprep = Get-MetadataValue -key 'sysprep'
-  $script:is_byol = Get-MetadataValue -key 'is_byol'
-  $script:is_x86 = Get-MetadataValue -key 'is_x86'
 
   Remove-VMWareTools
   Change-InstanceProperties
@@ -277,13 +275,21 @@ try {
   Setup-NTP
   Configure-RDPSecurity
 
-  if ($script:is_x86.ToLower() -ne 'true') {
+  $script:install_packages = Get-MetadataValue -key 'install-gce-packages'
+  $script:sysprep = Get-MetadataValue -key 'sysprep'
+  $script:is_byol = Get-MetadataValue -key 'is_byol'
+  if ($script:install_packages -eq $null -or $script:sysprep -eq $null -or $script:is_byol -eq $null) {
+    Write-Output "Translate: failed to obtain at least one of the required value from metadata, rebooting in an attempt to resolve issue. install_packages=$script:install_packages, sysprep=$script:sysprep, is_byol=$script:is_byol"
+    Restart-Computer -Force
+  }
+
+  if ([Environment]::Is64BitOperatingSystem) {
     Configure-Power
     Install-Packages
   }
   else {
     # Since 32-bit GooGet packages are not provided via repository, the only option is to install them from a local source.
-    Install-32bitPackages 
+    Install-32bitPackages
     # The following function will halt a 32-bit Windows 10 version 1909 import, so skip it.
     $pn_path = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
     $pn = (Get-ItemProperty -Path $pn_path -Name ProductName).ProductName
