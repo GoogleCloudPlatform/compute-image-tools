@@ -52,7 +52,8 @@ func TestSingleImageImportLoggableBuilder(t *testing.T) {
 	format := "vmdk"
 	sourceGb := int64(12)
 	targetGb := int64(100)
-	traceLogs := []string{"log-a", "log-b"}
+	traceLogs1 := []string{"log-a", "log-b"}
+	traceLogs2 := []string{"log-c", "log-d"}
 	inflationTypeValue := "qemu"
 	inflationTimeValue := int64(10000)
 	shadowInflationTimeValue := int64(5000)
@@ -80,13 +81,14 @@ func TestSingleImageImportLoggableBuilder(t *testing.T) {
 						uefiBootable:          isUEFIDetectedValue,
 						biosBootable:          biosBootableValue,
 					},
-					traceLogs: traceLogs,
+					traceLogs: append(traceLogs1, traceLogs2...),
 				}
 				assert.Equal(t, expected, NewSingleImageImportLoggableBuilder().
 					SetDiskAttributes(format, sourceGb, targetGb).
 					SetUEFIMetrics(isUEFICompatibleImageValue, isUEFIDetectedValue, biosBootableValue, bootFSValue).
 					SetInflationAttributes(matchResultValue, inflationTypeValue, inflationTimeValue, shadowInflationTimeValue).
-					SetTraceLogs(traceLogs).
+					AppendTraceLogs(traceLogs1).
+					AppendTraceLogs(traceLogs2).
 					Build())
 			}
 		}

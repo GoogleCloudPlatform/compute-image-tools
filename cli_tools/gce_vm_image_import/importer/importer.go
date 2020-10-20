@@ -195,7 +195,7 @@ func deleteDisk(diskClient diskClient, project string, zone string, pd persisten
 
 func (i *importer) buildLoggable() service.Loggable {
 	return i.loggableBuilder.SetDiskAttributes(i.pd.sourceType, i.pd.sourceGb, i.pd.sizeGb).
-		SetTraceLogs(i.traceLogs).
+		AppendTraceLogs(i.traceLogs).
 		Build()
 }
 

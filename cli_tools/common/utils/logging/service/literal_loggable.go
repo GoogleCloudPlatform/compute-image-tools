@@ -77,9 +77,13 @@ func (b *SingleImageImportLoggableBuilder) SetInflationAttributes(matchResult st
 	return b
 }
 
-// SetTraceLogs sets trace logs during the import.
-func (b *SingleImageImportLoggableBuilder) SetTraceLogs(traceLogs []string) *SingleImageImportLoggableBuilder {
-	b.traceLogs = traceLogs
+// AppendTraceLogs sets trace logs during the import.
+func (b *SingleImageImportLoggableBuilder) AppendTraceLogs(traceLogs []string) *SingleImageImportLoggableBuilder {
+	if b.traceLogs != nil {
+		b.traceLogs = append(b.traceLogs, traceLogs...)
+	} else {
+		b.traceLogs = traceLogs
+	}
 	return b
 }
 

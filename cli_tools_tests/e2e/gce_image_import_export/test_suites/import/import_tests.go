@@ -299,21 +299,18 @@ var inspectUEFICases = []*testCase{
 		source:                  "gs://compute-image-tools-test-resources/uefi/linux-uefi-rhel-7.vmdk",
 		os:                      "rhel-7",
 		requiredGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
-		inspect:                 true,
 	}, {
 		caseName: "inspect-uefi-linux-uefi-rhel-7-from-image",
 		// image created from projects/gce-uefi-images/global/images/rhel-7-v20200403 and removed UEFI_COMPATIBLE
 		source:                  "projects/compute-image-tools-test/global/images/linux-uefi-no-guestosfeature-rhel7",
 		os:                      "rhel-7",
 		requiredGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
-		inspect:                 true,
 	}, {
 		caseName: "inspect-uefi-linux-nonuefi-debian-9",
 		// source created from projects/debian-cloud/global/images/debian-9-stretch-v20200714
 		source:                    "gs://compute-image-tools-test-resources/uefi/linux-nonuefi-debian-9.vmdk",
 		os:                        "debian-9",
 		notAllowedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
-		inspect:                   true,
 	}, {
 		caseName: "inspect-uefi-linux-dual-protective-mbr-ubuntu-1804",
 		// source created from projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317
@@ -321,7 +318,6 @@ var inspectUEFICases = []*testCase{
 		os:                        "ubuntu-1804",
 		osConfigNotSupported:      true,
 		notAllowedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
-		inspect:                   true,
 	}, {
 		caseName: "inspect-uefi-linux-dual-hybrid-mbr-ubuntu-2004",
 		// source created from scratch
@@ -329,7 +325,6 @@ var inspectUEFICases = []*testCase{
 		os:                        "ubuntu-2004",
 		osConfigNotSupported:      true,
 		notAllowedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
-		inspect:                   true,
 	}, {
 		caseName: "inspect-uefi-linux-uefi-mbr-ubuntu-1804",
 		// source created from projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317 and converted from GPT to MBR
@@ -337,21 +332,18 @@ var inspectUEFICases = []*testCase{
 		os:                      "ubuntu-1804",
 		osConfigNotSupported:    true,
 		requiredGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
-		inspect:                 true,
 	}, {
 		caseName: "inspect-uefi-windows-uefi",
 		// source created from projects/gce-uefi-images/global/images/windows-server-2019-dc-core-v20200609
 		source:                  "gs://compute-image-tools-test-resources/uefi/windows-uefi-2019.vmdk",
 		os:                      "windows-2019",
 		requiredGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
-		inspect:                 true,
 	}, {
 		caseName: "inspect-uefi-windows-nonuefi",
 		// source created from projects/windows-cloud/global/images/windows-server-2019-dc-v20200114
 		source:                    "gs://compute-image-tools-test-resources/uefi/windows-nonuefi-2019.vmdk",
 		os:                        "windows-2019",
 		notAllowedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
-		inspect:                   true,
 	},
 }
 
