@@ -554,20 +554,8 @@ func (i *Instance) populateScopes() DError {
 		i.Scopes = append(i.Scopes, "https://www.googleapis.com/auth/devstorage.read_only")
 	}
 
-	// Create an empty entry if missing service account.
 	if i.ServiceAccounts == nil {
-		i.ServiceAccounts = []*compute.ServiceAccount{{}}
-	}
-
-	for _, sa := range i.ServiceAccounts {
-		// Populate empty service account to default
-		if sa.Email == "" {
-			sa.Email = "default"
-		}
-		// Populate scopes if not provided
-		if sa.Scopes == nil {
-			sa.Scopes = i.Scopes
-		}
+		i.ServiceAccounts = []*compute.ServiceAccount{{Email: "default", Scopes: i.Scopes}}
 	}
 	return nil
 }
@@ -577,20 +565,8 @@ func (i *InstanceBeta) populateScopes() DError {
 		i.Scopes = append(i.Scopes, "https://www.googleapis.com/auth/devstorage.read_only")
 	}
 
-	// Create an empty entry if missing service account.
 	if i.ServiceAccounts == nil {
-		i.ServiceAccounts = []*computeBeta.ServiceAccount{{}}
-	}
-
-	for _, sa := range i.ServiceAccounts {
-		// Populate empty service account to default
-		if sa.Email == "" {
-			sa.Email = "default"
-		}
-		// Populate scopes if not provided
-		if sa.Scopes == nil {
-			sa.Scopes = i.Scopes
-		}
+		i.ServiceAccounts = []*computeBeta.ServiceAccount{{Email: "default", Scopes: i.Scopes}}
 	}
 	return nil
 }

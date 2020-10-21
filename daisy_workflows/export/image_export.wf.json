@@ -34,7 +34,7 @@
       "Description": "SubNetwork to use for the export instance"
     },
     "compute_service_account": {
-      "Value": "",
+      "Value": "default",
       "Description": "Compute service account to run as"
     }
   },
