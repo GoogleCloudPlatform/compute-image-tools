@@ -553,23 +553,20 @@ func (i *Instance) populateScopes() DError {
 	if i.Scopes == nil {
 		i.Scopes = append(i.Scopes, "https://www.googleapis.com/auth/devstorage.read_only")
 	}
-	if i.ServiceAccounts == nil {
-		i.ServiceAccounts = []*compute.ServiceAccount{{Email: "default", Scopes: i.Scopes}}
-	} else {
-		for _, sa := range i.ServiceAccounts {
-			if sa.Email == "" {
-				sa.Email = "default"
-				fmt.Println(">>>>2")
-			}
-			if sa.Scopes == nil {
-				sa.Scopes = i.Scopes
-				fmt.Println(">>>>3")
-			}
-		}
 
-		for _, sa := range i.ServiceAccounts {
-			fmt.Println(">>>email:", sa.Email)
-			fmt.Println(">>>scopes:", sa.Scopes)
+	// Create an empty entry if missing service account.
+	if i.ServiceAccounts == nil {
+		i.ServiceAccounts = []*compute.ServiceAccount{{}}
+	}
+
+	for _, sa := range i.ServiceAccounts {
+		// Populate empty service account to default
+		if sa.Email == "" {
+			sa.Email = "default"
+		}
+		// Populate scopes if not provided
+		if sa.Scopes == nil {
+			sa.Scopes = i.Scopes
 		}
 	}
 	return nil
@@ -579,24 +576,20 @@ func (i *InstanceBeta) populateScopes() DError {
 	if i.Scopes == nil {
 		i.Scopes = append(i.Scopes, "https://www.googleapis.com/auth/devstorage.read_only")
 	}
-	if i.ServiceAccounts == nil {
-		i.ServiceAccounts = []*computeBeta.ServiceAccount{{Email: "default", Scopes: i.Scopes}}
-		fmt.Println(">>>>1")
-	} else {
-		for _, sa := range i.ServiceAccounts {
-			if sa.Email == "" {
-				sa.Email = "default"
-				fmt.Println(">>>>2")
-			}
-			if sa.Scopes == nil {
-				sa.Scopes = i.Scopes
-				fmt.Println(">>>>3")
-			}
-		}
 
-		for _, sa := range i.ServiceAccounts {
-			fmt.Println(">>>email:", sa.Email)
-			fmt.Println(">>>scopes:", sa.Scopes)
+	// Create an empty entry if missing service account.
+	if i.ServiceAccounts == nil {
+		i.ServiceAccounts = []*computeBeta.ServiceAccount{{}}
+	}
+
+	for _, sa := range i.ServiceAccounts {
+		// Populate empty service account to default
+		if sa.Email == "" {
+			sa.Email = "default"
+		}
+		// Populate scopes if not provided
+		if sa.Scopes == nil {
+			sa.Scopes = i.Scopes
 		}
 	}
 	return nil
