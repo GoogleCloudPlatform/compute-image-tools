@@ -23,12 +23,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
-
-	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
 
 // Flags that are validated.
@@ -154,7 +153,7 @@ func (args ImportArguments) validate() error {
 		panic("Scratch bucket should have been namespaced with execution ID.")
 	}
 	if args.OS != "" {
-		if err := daisy_utils.ValidateOS(args.OS); err != nil {
+		if err := daisy.ValidateOS(args.OS); err != nil {
 			return err
 		}
 	}
@@ -266,7 +265,7 @@ func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
 
 	flagSet.Var((*flags.LowerTrimmedString)(&args.OS), osFlag,
 		"Specifies the OS of the image being imported. OS must be one of: "+
-			"OS must be one of: "+strings.Join(daisy_utils.GetSortedOSIDs(), ", ")+".")
+			"OS must be one of: "+strings.Join(daisy.GetSortedOSIDs(), ", ")+".")
 
 	flagSet.BoolVar(&args.NoGuestEnvironment, "no_guest_environment", false,
 		"When enabled, the Google Guest Environment will not be installed.")

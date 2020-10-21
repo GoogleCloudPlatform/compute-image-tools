@@ -20,9 +20,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
 
 func TestRequireImageName(t *testing.T) {
