@@ -260,11 +260,11 @@ type OutputInfo struct {
 
 // InspectionResults contains metadata determined using automated inspection
 type InspectionResults struct {
-	// UEFIBootable indicates whether the disk is bootable with UEFI.
-	UEFIBootable bool `json:"uefi_bootable,omitempty"`
-
 	// BIOSBootable indicates whether the disk is bootable with BIOS.
 	BIOSBootable bool `json:"bios_bootable,omitempty"`
+
+	// UEFIBootable indicates whether the disk is bootable with UEFI.
+	UEFIBootable bool `json:"uefi_bootable,omitempty"`
 
 	// RootFS indicates the file system type of the partition containing
 	// the root directory ("/").
