@@ -3,6 +3,7 @@ module github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests
 go 1.13
 
 require (
+	cloud.google.com/go/storage v1.11.0
 	github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0
 	github.com/GoogleCloudPlatform/compute-image-tools/common v0.0.0
 	github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0

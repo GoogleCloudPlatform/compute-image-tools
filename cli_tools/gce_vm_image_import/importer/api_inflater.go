@@ -19,7 +19,6 @@ import (
 	"time"
 
 	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -51,7 +50,7 @@ type apiInflater struct {
 	guestOsFeatures []*computeBeta.GuestOsFeature
 }
 
-func createAPIInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client) inflater {
+func createAPIInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client) Inflater {
 	inflater := apiInflater{
 		serialLogs:    []string{},
 		args:          args,
@@ -64,7 +63,7 @@ func createAPIInflater(args ImportArguments, computeClient daisyCompute.Client, 
 	return &inflater
 }
 
-func (inflater *apiInflater) traceLogs() []string {
+func (inflater *apiInflater) TraceLogs() []string {
 	return inflater.serialLogs
 }
 
@@ -72,7 +71,7 @@ func (inflater *apiInflater) addTraceLog(l string) {
 	inflater.serialLogs = append(inflater.serialLogs, l)
 }
 
-func (inflater *apiInflater) inflate(loggableBuilder *service.SingleImageImportLoggableBuilder) (persistentDisk, inflationInfo, error) {
+func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error) {
 	ctx := context.Background()
 	startTime := time.Now()
 	diskName := fmt.Sprintf("shadow-disk-%v", inflater.args.ExecutionID)
@@ -84,7 +83,7 @@ func (inflater *apiInflater) inflate(loggableBuilder *service.SingleImageImportL
 
 	err := inflater.computeClient.CreateDiskBeta(inflater.args.Project, inflater.args.Zone, &cd)
 	if err != nil {
-		return persistentDisk{}, inflationInfo{}, err
+		return persistentDisk{}, shadowTestFields{}, err
 	}
 
 	// Cleanup the shadow disk ignoring error
@@ -92,12 +91,12 @@ func (inflater *apiInflater) inflate(loggableBuilder *service.SingleImageImportL
 
 	bkt, objPath, err := storage.GetGCSObjectPathElements(inflater.args.SourceFile)
 	if err != nil {
-		return persistentDisk{}, inflationInfo{}, err
+		return persistentDisk{}, shadowTestFields{}, err
 	}
 	sourceFile := inflater.storageClient.GetObject(bkt, objPath).GetObjectHandle()
 	attrs, err := sourceFile.Attrs(ctx)
 	if err != nil {
-		return persistentDisk{}, inflationInfo{}, daisy.Errf("Failed to get source file attributes: %v", err)
+		return persistentDisk{}, shadowTestFields{}, daisy.Errf("Failed to get source file attributes: %v", err)
 	}
 	sourceFileSizeGb := (attrs.Size-1)/1073741824 + 1
 
@@ -108,7 +107,7 @@ func (inflater *apiInflater) inflate(loggableBuilder *service.SingleImageImportL
 		sourceGb:   sourceFileSizeGb,
 		sourceType: "vmdk", // only vmdk is supported right now
 	}
-	ii := inflationInfo{
+	ii := shadowTestFields{
 		inflationType: "api",
 		inflationTime: time.Since(startTime),
 	}
@@ -119,7 +118,7 @@ func (inflater *apiInflater) inflate(loggableBuilder *service.SingleImageImportL
 }
 
 // Can't cancel the single disk.insert API call
-func (inflater *apiInflater) cancel(reason string) bool {
+func (inflater *apiInflater) Cancel(reason string) bool {
 	return false
 }
 

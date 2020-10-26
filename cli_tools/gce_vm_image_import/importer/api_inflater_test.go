@@ -27,7 +27,7 @@ import (
 const daisyWorkflows = "../../../daisy_workflows"
 
 func TestCreateInflater_File(t *testing.T) {
-	inflater, err := createInflater(ImportArguments{
+	inflater, err := newInflater(ImportArguments{
 		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:       "projects/subnet/subnet",
 		Network:      "projects/network/network",
@@ -35,15 +35,12 @@ func TestCreateInflater_File(t *testing.T) {
 		ExecutionID:  "1234",
 		NoExternalIP: false,
 		WorkflowDir:  daisyWorkflows,
-	},
-		nil,
-		storage.Client{},
-		mockInspector{
-			t:                 t,
-			expectedReference: "gs://bucket/vmdk",
-			errorToReturn:     nil,
-			metaToReturn:      imagefile.Metadata{},
-		})
+	}, nil, storage.Client{}, mockInspector{
+		t:                 t,
+		expectedReference: "gs://bucket/vmdk",
+		errorToReturn:     nil,
+		metaToReturn:      imagefile.Metadata{},
+	}, nil)
 	assert.NoError(t, err)
 	mainInflater, ok := inflater.(*daisyInflater)
 	assert.True(t, ok)
@@ -60,12 +57,12 @@ func TestCreateInflater_File(t *testing.T) {
 }
 
 func TestCreateInflater_Image(t *testing.T) {
-	inflater, err := createInflater(ImportArguments{
+	inflater, err := newInflater(ImportArguments{
 		Source:      imageSource{uri: "projects/test/uri/image"},
 		Zone:        "us-west1-b",
 		ExecutionID: "1234",
 		WorkflowDir: daisyWorkflows,
-	}, nil, storage.Client{}, nil)
+	}, nil, storage.Client{}, nil, nil)
 	assert.NoError(t, err)
 	realInflater, ok := inflater.(*daisyInflater)
 	assert.True(t, ok)
