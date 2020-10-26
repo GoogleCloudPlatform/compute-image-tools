@@ -21,8 +21,10 @@ import (
 	"strconv"
 	"strings"
 
+	commondisk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	ovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/vmware/govmomi/ovf"
 	"google.golang.org/api/compute/v1"
@@ -42,15 +44,49 @@ const (
 
 // OvfDescriptorGenerator is responsible for generating OVF descriptor based on
 //GCE instance being exported.
-type OvfDescriptorGenerator struct {
-	ComputeClient daisycompute.Client
-	StorageClient domain.StorageClientInterface
+type OvfDescriptorGenerator interface {
+	GenerateAndWriteOVFDescriptor(instance *compute.Instance, exportedDisks []*ExportedDisk, bucketName, gcsDirectoryPath string, diskInspectionResult *commondisk.InspectionResult) error
+	Cancel(reason string) bool
+}
+
+type ovfDescriptorGeneratorImpl struct {
+	computeClient daisycompute.Client
+	storageClient domain.StorageClientInterface
 	Project       string
 	Zone          string
 }
 
+// NewOvfDescriptorGenerator creates a new OvfDescriptorGenerator
+func NewOvfDescriptorGenerator(computeClient daisycompute.Client, storageClient domain.StorageClientInterface,
+	project string, zone string) OvfDescriptorGenerator {
+	return &ovfDescriptorGeneratorImpl{
+		computeClient: computeClient,
+		storageClient: storageClient,
+		Project:       project,
+		Zone:          zone,
+	}
+}
+
+// GenerateAndWriteOVFDescriptor generates an OVF descriptor based on the
+// instance exported and disk file paths. and stores it as a file in GCS.
+func (g *ovfDescriptorGeneratorImpl) GenerateAndWriteOVFDescriptor(instance *compute.Instance, exportedDisks []*ExportedDisk, bucketName, gcsDirectoryPath string, diskInspectionResult *commondisk.InspectionResult) error {
+	var err error
+	var descriptor *ovf.Envelope
+	if descriptor, err = g.generate(instance, exportedDisks, diskInspectionResult); err != nil {
+		return err
+	}
+	var descriptorStr string
+	if descriptorStr, err = marshal(descriptor); err != nil {
+		return err
+	}
+	if err := g.storageClient.WriteToGCS(bucketName, storageutils.ConcatGCSPath(gcsDirectoryPath, instance.Name+".ovf"), strings.NewReader(descriptorStr)); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Generate generates an OVF descriptor based on the instance exported and disk file paths.
-func (g *OvfDescriptorGenerator) Generate(instance *compute.Instance, exportedDisks []*ExportedDisk) (*ovf.Envelope, error) {
+func (g *ovfDescriptorGeneratorImpl) generate(instance *compute.Instance, exportedDisks []*ExportedDisk, diskInspectionResult *commondisk.InspectionResult) (*ovf.Envelope, error) {
 	descriptor := &ovf.Envelope{}
 	descriptor.VirtualHardware = &ovf.VirtualHardwareSection{}
 	descriptor.References = make([]ovf.File, len(exportedDisks))
@@ -74,9 +110,14 @@ func (g *OvfDescriptorGenerator) Generate(instance *compute.Instance, exportedDi
 	descriptor.VirtualSystem.VirtualHardware[0].Item = append(
 		descriptor.VirtualSystem.VirtualHardware[0].Item, disController)
 
-	// disks
-	for diskIndex, exportedDisk := range exportedDisks {
+	// machine type (CPU, memory)
+	if err := g.populateMachineType(instance, descriptor); err != nil {
+		return descriptor, err
+	}
 
+	// disks
+	//TODO: look for AttachedDisk.Boot and export that one first
+	for diskIndex, exportedDisk := range exportedDisks {
 		diskGCSFileName := exportedDisk.gcsPath
 		if slash := strings.LastIndex(diskGCSFileName, "/"); slash > -1 {
 			diskGCSFileName = diskGCSFileName[slash+1:]
@@ -100,20 +141,19 @@ func (g *OvfDescriptorGenerator) Generate(instance *compute.Instance, exportedDi
 			*createDiskItem(generateVirtualHardwareItemID(descriptor), disController.InstanceID, diskIndex, descriptor.Disk.Disks[diskIndex].DiskID))
 	}
 
-	//TODO: operating system
-	descriptor.VirtualSystem.OperatingSystem = make([]ovf.OperatingSystemSection, 1)
-	descriptor.VirtualSystem.OperatingSystem[0].ID = 0
-	descriptor.VirtualSystem.OperatingSystem[0].OSType = strPtr("Unknown")
-	descriptor.VirtualSystem.OperatingSystem[0].Info = "The kind of installed guest operating system"
+	g.populateOS(descriptor, diskInspectionResult)
 
 	//TODO items: network, video card
 
-	// machine type (CPU, memory)
+	return descriptor, nil
+}
+
+func (g *ovfDescriptorGeneratorImpl) populateMachineType(instance *compute.Instance, descriptor *ovf.Envelope) error {
 	machineTypeURLSplits := strings.Split(instance.MachineType, "/")
 	machineTypeID := machineTypeURLSplits[len(machineTypeURLSplits)-1]
-	machineType, err := g.ComputeClient.GetMachineType(g.Project, g.Zone, machineTypeID)
+	machineType, err := g.computeClient.GetMachineType(g.Project, g.Zone, machineTypeID)
 	if err != nil {
-		return descriptor, err
+		return err
 	}
 	descriptor.VirtualSystem.VirtualHardware[0].Item = append(
 		descriptor.VirtualSystem.VirtualHardware[0].Item,
@@ -121,8 +161,46 @@ func (g *OvfDescriptorGenerator) Generate(instance *compute.Instance, exportedDi
 	descriptor.VirtualSystem.VirtualHardware[0].Item = append(
 		descriptor.VirtualSystem.VirtualHardware[0].Item,
 		*g.createMemoryItem(machineType, strconv.Itoa(len(descriptor.VirtualSystem.VirtualHardware[0].Item)+1)))
+	return nil
+}
 
-	return descriptor, nil
+func (g *ovfDescriptorGeneratorImpl) populateOS(descriptor *ovf.Envelope, ir *commondisk.InspectionResult) error {
+	descriptor.VirtualSystem.OperatingSystem = make([]ovf.OperatingSystemSection, 1)
+	descriptor.VirtualSystem.OperatingSystem[0].Info = "The kind of installed guest operating system"
+
+	//default values if no OS deteced
+	descriptor.VirtualSystem.OperatingSystem[0].ID = 0
+	descriptor.VirtualSystem.OperatingSystem[0].OSType = strPtr("Unknown")
+	if ir != nil {
+		osInfo, osID := ovfutils.GetOSInfoForInspectionResults(*ir)
+		if osInfo != nil {
+			descriptor.VirtualSystem.OperatingSystem[0].ID = osID
+			//TODO: include minor version as well
+			descriptor.VirtualSystem.OperatingSystem[0].Version = strPtr(ir.Major)
+			descriptor.VirtualSystem.OperatingSystem[0].OSType = strPtr(osInfo.OsType) //TODO this field is not currently populated in ovf_utils
+			descriptor.VirtualSystem.OperatingSystem[0].Description = strPtr(formatOSDescription(ir))
+		}
+	}
+	return nil
+}
+
+func formatOSDescription(ir *commondisk.InspectionResult) string {
+	//TODO: this can be extracted from virt-inspector output, e.g. <product_name>Windows Server 2012 R2 Standard</product_name>
+	desc := strings.Title(fmt.Sprintf("%v %v", ir.Distro, ir.Major))
+	if ir.Major != "" {
+		desc = fmt.Sprintf("%v.%v", desc, ir.Minor)
+	}
+	architectureDesc := ""
+	switch ir.Architecture {
+	case "x86":
+		architectureDesc = "32-bit"
+	case "x64":
+		architectureDesc = "64-bit"
+	}
+	if architectureDesc != "" {
+		desc = fmt.Sprintf("%v (%v)", desc, architectureDesc)
+	}
+	return desc
 }
 
 func generateVirtualHardwareItemID(descriptor *ovf.Envelope) string {
@@ -146,7 +224,7 @@ func createDiskItem(instanceID string, parentID string, addressOnParent int, dis
 	}
 }
 
-func (g *OvfDescriptorGenerator) createCPUItem(machineType *compute.MachineType, instanceID string) *ovf.ResourceAllocationSettingData {
+func (g *ovfDescriptorGeneratorImpl) createCPUItem(machineType *compute.MachineType, instanceID string) *ovf.ResourceAllocationSettingData {
 	return &ovf.ResourceAllocationSettingData{
 		CIMResourceAllocationSettingData: ovf.CIMResourceAllocationSettingData{
 			AllocationUnits: strPtr("hertz * 10^6"),
@@ -160,7 +238,7 @@ func (g *OvfDescriptorGenerator) createCPUItem(machineType *compute.MachineType,
 	}
 }
 
-func (g *OvfDescriptorGenerator) createMemoryItem(machineType *compute.MachineType, instanceID string) *ovf.ResourceAllocationSettingData {
+func (g *ovfDescriptorGeneratorImpl) createMemoryItem(machineType *compute.MachineType, instanceID string) *ovf.ResourceAllocationSettingData {
 	return &ovf.ResourceAllocationSettingData{
 		CIMResourceAllocationSettingData: ovf.CIMResourceAllocationSettingData{
 			AllocationUnits: strPtr("byte * 2^20"),
@@ -189,20 +267,7 @@ func strPtr(s string) *string {
 	return &s
 }
 
-// GenerateAndWriteOVFDescriptor generates an OVF descriptor based on the
-// instance exported and disk file paths. and stores it as a file in GCS.
-func (g *OvfDescriptorGenerator) GenerateAndWriteOVFDescriptor(instance *compute.Instance, exportedDisks []*ExportedDisk, bucketName, gcsDirectoryPath string) error {
-	var err error
-	var descriptor *ovf.Envelope
-	if descriptor, err = g.Generate(instance, exportedDisks); err != nil {
-		return err
-	}
-	var descriptorStr string
-	if descriptorStr, err = marshal(descriptor); err != nil {
-		return err
-	}
-	if err := g.StorageClient.WriteToGCS(bucketName, storageutils.ConcatGCSPath(gcsDirectoryPath, instance.Name+".ovf"), strings.NewReader(descriptorStr)); err != nil {
-		return err
-	}
-	return nil
+func (g *ovfDescriptorGeneratorImpl) Cancel(reason string) bool {
+	// Descriptor generation is very fast, implementing cancellation is not worth it
+	return false
 }

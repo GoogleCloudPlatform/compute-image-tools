@@ -14,19 +14,8 @@
 
 package ovfexporter
 
-import "github.com/vmware/govmomi/ovf"
+import "testing"
 
-// PopulateOS populates OS info in OVF descriptor.
-func PopulateOS(descriptor *ovf.Envelope) error {
-	var id int16
-	var osType, version string
+func TestExporter_Export(t *testing.T) {
 
-	//TODO
-	id = 94
-	osType = "ubuntu64Guest"
-	version = "14.04"
-
-	descriptor.OperatingSystem = &ovf.OperatingSystemSection{ID: id, OSType: &osType, Version: &version}
-	descriptor.OperatingSystem.Info = "The kind of installed guest operating system"
-	return nil
 }

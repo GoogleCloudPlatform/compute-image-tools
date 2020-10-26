@@ -17,6 +17,7 @@ package ovfexporter
 import (
 	"strings"
 
+	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -43,8 +44,9 @@ func ValidateAndParseParams(params *OVFExportParams, validReleaseTracks []string
 	}
 
 	if _, err := storage.GetBucketNameFromGCSPath(params.DestinationURI); err != nil {
-		return daisy.Errf("%v should be a path to OVF or OVA package in Cloud Storage", DestinationURIFlagKey)
+		return daisy.Errf("%v should be a path a Cloud Storage directory", DestinationURIFlagKey)
 	}
+	params.DestinationURI = pathutils.ToDirectoryURL(params.DestinationURI)
 
 	if params.ReleaseTrack != "" {
 		isValidReleaseTrack := false

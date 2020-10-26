@@ -16,6 +16,11 @@ package ovfexporter
 
 import (
 	"fmt"
+	"os"
+	"path"
+	"path/filepath"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
 
 const (
@@ -36,6 +41,8 @@ const (
 
 	// OvfFormatFlagKey is key for OVF format flag
 	OvfFormatFlagKey = "ovf-format"
+
+	mainWorkflowDir = "daisy_workflows/"
 )
 
 // OVFExportParams holds flags for OVF export
@@ -73,7 +80,7 @@ type OVFExportParams struct {
 	BuildID              string
 
 	// Non-flags
-	CurrentExecutablePath string
+	WorkflowDir string
 }
 
 func (oep *OVFExportParams) String() string {
@@ -90,4 +97,39 @@ func (oep *OVFExportParams) IsInstanceExport() bool {
 // a machine image export. False otherwise.
 func (oep *OVFExportParams) IsMachineImageExport() bool {
 	return !oep.IsInstanceExport()
+}
+
+//TODO: consolidate with ovf_importer.toWorkingDir
+func toWorkingDir(currentDir, workflowDir string) string {
+	wd, err := filepath.Abs(filepath.Dir(currentDir))
+	if err == nil {
+		return path.Join(wd, workflowDir)
+	}
+	return workflowDir
+}
+
+// InitWorkflowPath initializes workflow path field
+func (oep *OVFExportParams) InitWorkflowPath() {
+	currentExecutablePath := filepath.Dir(os.Args[0])
+	//TODO: remove in prod
+	currentExecutablePath = "/usr/local/google/home/zoranl/go/src/github.com/GoogleCloudPlatform/compute-image-tools/"
+	oep.WorkflowDir = toWorkingDir(currentExecutablePath, mainWorkflowDir)
+}
+
+// DaisyAttrs returns the subset of DaisyAttrs that are required to instantiate
+// a daisy workflow.
+func (oep *OVFExportParams) DaisyAttrs() daisycommon.WorkflowAttributes {
+	return daisycommon.WorkflowAttributes{
+		Project:           *oep.Project,
+		Zone:              oep.Zone,
+		GCSPath:           oep.ScratchBucketGcsPath,
+		OAuth:             oep.Oauth,
+		Timeout:           oep.Timeout,
+		ComputeEndpoint:   oep.Ce,
+		DisableGCSLogs:    oep.GcsLogsDisabled,
+		DisableCloudLogs:  oep.CloudLogsDisabled,
+		DisableStdoutLogs: oep.StdoutLogsDisabled,
+		NoExternalIP:      oep.NoExternalIP,
+		WorkflowDirectory: oep.WorkflowDir,
+	}
 }

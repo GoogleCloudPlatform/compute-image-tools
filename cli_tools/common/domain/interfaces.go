@@ -112,3 +112,8 @@ type ResourceLocationRetrieverInterface interface {
 type HTTPClientInterface interface {
 	Get(url string) (resp *http.Response, err error)
 }
+
+type ManifestFileGeneratorInterface interface {
+	GenerateAndWriteToGCS(gcsPath, manifestFileName string) error
+	Generate(bucketName, directoryPath string) (string, error)
+}

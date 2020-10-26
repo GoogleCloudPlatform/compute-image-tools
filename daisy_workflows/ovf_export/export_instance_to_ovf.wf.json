@@ -2,18 +2,6 @@
   "Name": "export-ovf",
   "DefaultTimeout": "240m",
   "Vars": {
-    "instance_name": {
-      "Required": true,
-      "Description": "The name of the exported instance."
-    },
-    "network": {
-      "Value": "global/networks/default",
-      "Description": "Network to use for export"
-    },
-    "subnet": {
-      "Value": "",
-      "Description": "SubNetwork to use for export"
-    }
   },
   "Steps": {
   },

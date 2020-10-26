@@ -15,153 +15,117 @@
 package ovfexporter
 
 import (
-	"strings"
+	"context"
+	"fmt"
+	"sync"
 
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/compute/v1"
 )
 
 type populateStepsFunc func(*daisy.Workflow) error
 
-func (oe *OVFExporter) prepare() (*daisy.Workflow, error) {
-	if oe.prepareFn != nil {
-		return oe.prepareFn()
-	}
-	return oe.runWorkflowWithSteps("ovf-export-prepare", oe.params.Timeout, oe.populatePrepareSteps)
+func (oe *OVFExporter) prepare(ctx context.Context, instance *compute.Instance) error {
+	return oe.runStep(ctx, func() error {
+		return oe.instanceExportPreparer.Prepare(instance)
+	}, oe.instanceExportPreparer.Cancel, oe.instanceExportPreparer.TraceLogs)
 }
 
-func (oe *OVFExporter) exportDisks() (*daisy.Workflow, error) {
-	if oe.exportDisksFn != nil {
-		return oe.exportDisksFn()
-	}
-	return oe.runWorkflowWithSteps("ovf-export-disk-export", oe.params.Timeout, oe.populateExportDisksSteps)
-}
-
-func (oe *OVFExporter) generateDescriptor() error {
-	if oe.generateDescriptorFn != nil {
-		return oe.generateDescriptorFn()
-	}
-
-	// populate exported disks with compute.Disk and storage object attributes
-	// that are needed for descriptor generation
-	for _, exportedDisk := range oe.exportedDisks {
-
-		// populate compute.Disk for each exported disk
-		if disk, err := oe.computeClient.GetDisk(*oe.params.Project, oe.params.Zone, daisyutils.GetResourceID(exportedDisk.attachedDisk.Source)); err == nil {
-			exportedDisk.disk = disk
-		} else {
-			return err
-		}
-
-		// populate storage object attributes for each exported disk file
-		bucketName, objectPath, err := storageutils.SplitGCSPath(exportedDisk.gcsPath)
-		if err != nil {
-			return err
-		}
-		exportedDisk.gcsFileAttrs, err = oe.storageClient.GetObjectAttrs(bucketName, objectPath)
-		if err != nil {
-			return err
-		}
-	}
-	if err := oe.ovfDescriptorGenerator.GenerateAndWriteOVFDescriptor(oe.instance, oe.exportedDisks, oe.bucketName, oe.gcsDirectoryPath); err != nil {
+func (oe *OVFExporter) exportDisks(ctx context.Context, instance *compute.Instance) error {
+	return oe.runStep(ctx, func() error {
+		var err error
+		oe.exportedDisks, err = oe.instanceDisksExporter.Export(instance)
 		return err
-	}
-	return nil
+	}, oe.instanceDisksExporter.Cancel, oe.instanceDisksExporter.TraceLogs)
 }
 
-func (oe *OVFExporter) cleanup() (*daisy.Workflow, error) {
-	if oe.cleanupFn != nil {
-		return oe.cleanupFn()
+func (oe *OVFExporter) inspectBootDisk(ctx context.Context) error {
+	bootDisk := getBootDisk(oe.exportedDisks)
+	if bootDisk == nil {
+		return nil
 	}
-	wf, err := oe.runWorkflowWithSteps("ovf-export-cleanup", oe.params.Timeout, oe.populateCleanupSteps)
+	return oe.runStep(ctx, func() error {
+		var err error
+		oe.bootDiskInspectionResults, err = oe.inspector.Inspect(
+			daisyutils.GetDiskURI(*oe.params.Project, oe.params.Zone, bootDisk.disk.Name), true)
+		if err != nil {
+			oe.Logger.Log(fmt.Sprintf("WARNING: Could not detect operating system on the boot disk: %v", err))
+		}
+		oe.Logger.Log(fmt.Sprintf("Disk inspection results: %v", oe.bootDiskInspectionResults))
+		// don't return error if inspection fails, just log it, since it's not a show-stopper.
+		return nil
+	}, oe.inspector.Cancel, oe.inspector.TraceLogs)
+}
+
+func (oe *OVFExporter) generateDescriptor(ctx context.Context, instance *compute.Instance) error {
+	return oe.runStep(ctx, func() error {
+		if bucketName, gcsDirectoryPath, err := storageutils.GetGCSObjectPathElements(oe.params.DestinationURI); err != nil {
+			return err
+		} else {
+			return oe.ovfDescriptorGenerator.GenerateAndWriteOVFDescriptor(instance, oe.exportedDisks, bucketName, gcsDirectoryPath, &oe.bootDiskInspectionResults)
+		}
+	}, oe.ovfDescriptorGenerator.Cancel, func() []string { return nil })
+}
+
+func (oe *OVFExporter) generateManifest(ctx context.Context) error {
+	return oe.runStep(ctx, func() error {
+		return oe.manifestFileGenerator.GenerateAndWriteToGCS(oe.params.DestinationURI, oe.params.InstanceName)
+	}, oe.manifestFileGenerator.Cancel, func() []string { return nil })
+}
+
+func (oe *OVFExporter) cleanup(ctx context.Context, instance *compute.Instance) error {
+	_, err := runWorkflowWithSteps(context.Background(), "ovf-export-cleanup",
+		oe.workflowPath, oe.params.Timeout,
+		func(w *daisy.Workflow) error { return populateCleanupSteps(w, oe.workflowGenerator, instance) },
+		map[string]string{}, oe.params)
 	if err != nil {
-		return wf, err
+		return err
 	}
 	if oe.storageClient != nil {
 		err := oe.storageClient.Close()
 		if err != nil {
-			return wf, err
+			return err
 		}
 	}
-	return wf, nil
-}
-
-func (oe *OVFExporter) populatePrepareSteps(w *daisy.Workflow) error {
-	var previousStepName string
-	if isInstanceRunning(oe.instance) {
-		previousStepName = "stop-instance"
-		oe.workflowGenerator.AddStopInstanceStep(w, previousStepName)
-	}
-
-	_, err := oe.workflowGenerator.AddDetachDisksSteps(w, previousStepName, "")
-
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
-func (oe *OVFExporter) populateExportDisksSteps(w *daisy.Workflow) error {
-	var err error
-	oe.exportedDisks, err = oe.workflowGenerator.AddExportDisksSteps(w, []string{}, "")
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (oe *OVFExporter) populateCleanupSteps(w *daisy.Workflow) error {
+func populateCleanupSteps(w *daisy.Workflow, workflowGenerator *OVFExportWorkflowGenerator, instance *compute.Instance) error {
 	var nextStepName string
 	var err error
-	if isInstanceRunning(oe.instance) {
+	if isInstanceRunning(instance) {
 		nextStepName = "start-instance"
 	}
-	_, err = oe.workflowGenerator.AddAttachDisksSteps(w, nextStepName)
+	_, err = workflowGenerator.addAttachDisksSteps(w, instance, nextStepName)
 	if err != nil {
 		return err
 	}
-	if isInstanceRunning(oe.instance) {
-		oe.workflowGenerator.AddStartInstanceStep(w, nextStepName)
+	if isInstanceRunning(instance) {
+		workflowGenerator.addStartInstanceStep(w, instance, nextStepName)
 	}
 	return nil
 }
 
-func (oe *OVFExporter) runWorkflowWithSteps(workflowName string, timeout string, populateStepsFunc populateStepsFunc) (*daisy.Workflow, error) {
-	w, err := oe.generateWorkflowWithSteps(workflowName, timeout, populateStepsFunc)
+func runWorkflowWithSteps(ctx context.Context, workflowName, workflowPath, timeout string,
+	populateStepsFunc populateStepsFunc, varMap map[string]string, params *OVFExportParams) (*daisy.Workflow, error) {
+
+	w, err := generateWorkflowWithSteps(workflowName, workflowPath, timeout, populateStepsFunc, varMap, params)
 	if err != nil {
 		return w, err
 	}
 
-	setWorkflowAttributes(w, oe)
-	err = daisyutils.RunWorkflowWithCancelSignal(oe.ctx, w)
+	daisycommon.SetWorkflowAttributes(w, params.DaisyAttrs())
+	err = daisyutils.RunWorkflowWithCancelSignal(ctx, w)
 	return w, err
 }
 
-func setWorkflowAttributes(w *daisy.Workflow, oe *OVFExporter) {
-	daisycommon.SetWorkflowAttributes(w, daisycommon.WorkflowAttributes{
-		Project:           *oe.params.Project,
-		Zone:              oe.params.Zone,
-		GCSPath:           oe.params.ScratchBucketGcsPath,
-		OAuth:             oe.params.Oauth,
-		Timeout:           oe.params.Timeout,
-		ComputeEndpoint:   oe.params.Ce,
-		DisableGCSLogs:    oe.params.GcsLogsDisabled,
-		DisableCloudLogs:  oe.params.CloudLogsDisabled,
-		DisableStdoutLogs: oe.params.StdoutLogsDisabled,
-	})
-}
-
-func (oe *OVFExporter) generateWorkflowWithSteps(workflowName string, timeout string, populateStepsFunc populateStepsFunc) (*daisy.Workflow, error) {
-	varMap := oe.buildDaisyVars()
-
-	w, err := daisycommon.ParseWorkflow(oe.workflowPath, varMap, *oe.params.Project,
-		oe.params.Zone, oe.params.ScratchBucketGcsPath, oe.params.Oauth, oe.params.Timeout, oe.params.Ce,
-		oe.params.GcsLogsDisabled, oe.params.CloudLogsDisabled, oe.params.StdoutLogsDisabled)
+func generateWorkflowWithSteps(workflowName, workflowPath, timeout string, populateStepsFunc populateStepsFunc, varMap map[string]string, params *OVFExportParams) (*daisy.Workflow, error) {
+	w, err := daisycommon.ParseWorkflow(workflowPath, varMap, *params.Project,
+		params.Zone, params.ScratchBucketGcsPath, params.Oauth, params.Timeout, params.Ce,
+		params.GcsLogsDisabled, params.CloudLogsDisabled, params.StdoutLogsDisabled)
 	if err != nil {
 		return w, err
 	}
@@ -181,26 +145,77 @@ func (oe *OVFExporter) generateWorkflowWithSteps(workflowName string, timeout st
 	return w, err
 }
 
-func (oe *OVFExporter) buildDaisyVars() map[string]string {
-	varMap := map[string]string{}
-	if oe.params.IsInstanceExport() {
-		// instance import specific vars
-		varMap["instance_name"] = oe.instancePath
-	} else {
-		// machine image import specific vars
-		varMap["machine_image_name"] = strings.ToLower(oe.params.MachineImageName)
-	}
+//TODO: consolidate with gce_vm_image_import.runStep()
+func (oe *OVFExporter) runStep(ctx context.Context, step func() error, cancel func(string) bool, getTraceLogs func() []string) (err error) {
+	e := make(chan error)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		//this select checks if context expired prior to runStep being called
+		//if not, step is run
+		select {
+		case <-ctx.Done():
+			e <- oe.getCtxError(ctx)
+		default:
+			stepErr := step()
+			wg.Done()
+			e <- stepErr
+		}
+	}()
 
-	if oe.params.Subnet != "" {
-		varMap["subnet"] = param.GetRegionalResourcePath(oe.region, "subnetworks", oe.params.Subnet)
-		// When subnet is set, we need to grant a value to network to avoid fallback to default
-		if oe.params.Network == "" {
-			varMap["network"] = ""
+	// this select waits for either context expiration or step to finish (with either an error or success)
+	select {
+	case <-ctx.Done():
+		if cancel("timed-out") {
+			//Only return timeout error if step was able to cancel on time-out.
+			//Otherwise, step has finished and import succeeded even though it timed out
+			err = oe.getCtxError(ctx)
+		}
+		wg.Wait()
+	case stepErr := <-e:
+		err = stepErr
+	}
+	if getTraceLogs != nil {
+		stepTraceLogs := getTraceLogs()
+		if stepTraceLogs != nil && len(stepTraceLogs) > 0 {
+			oe.traceLogs = append(oe.traceLogs, stepTraceLogs...)
 		}
 	}
-	if oe.params.Network != "" {
-		varMap["network"] = param.GetGlobalResourcePath("networks", oe.params.Network)
+	return err
+}
+
+//TODO: consolidate with gce_vm_image_import.getCtxError()
+func (oe *OVFExporter) getCtxError(ctx context.Context) (err error) {
+	if ctxErr := ctx.Err(); ctxErr == context.DeadlineExceeded {
+		err = daisy.Errf("Import did not complete within the specified timeout of %s", oe.timeout)
+	} else {
+		err = ctxErr
 	}
+	return err
+}
+
+func (oe *OVFExporter) buildDaisyVars() map[string]string {
+	varMap := map[string]string{}
+	//TODO: nework/subnet are needed for export workflow. Can it be set in a different way instead having it as a param?
+
+	//if oe.params.IsInstanceExport() {
+	//	// instance import specific vars
+	//	varMap["instance_name"] = oe.instancePath
+	//} else {
+	//	// machine image import specific vars
+	//	varMap["machine_image_name"] = strings.ToLower(oe.params.MachineImageName)
+	//}
+	//
+	//if oe.params.Subnet != "" {
+	//	varMap["subnet"] = param.GetRegionalResourcePath(oe.region, "subnetworks", oe.params.Subnet)
+	//	// When subnet is set, we need to grant a value to network to avoid fallback to default
+	//	if oe.params.Network == "" {
+	//		varMap["network"] = ""
+	//	}
+	//}
+	//if oe.params.Network != "" {
+	//	varMap["network"] = param.GetGlobalResourcePath("networks", oe.params.Network)
+	//}
 	return varMap
 }
 
@@ -223,4 +238,13 @@ func (oe *OVFExporter) labelResources(w *daisy.Workflow) {
 func isInstanceRunning(instance *compute.Instance) bool {
 	return !(instance == nil || instance.Status == "STOPPED" || instance.Status == "STOPPING" ||
 		instance.Status == "SUSPENDED" || instance.Status == "SUSPENDING")
+}
+
+func getBootDisk(exportedDisks []*ExportedDisk) *ExportedDisk {
+	for _, exportedDisk := range exportedDisks {
+		if exportedDisk.attachedDisk.Boot {
+			return exportedDisk
+		}
+	}
+	return nil
 }

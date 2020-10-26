@@ -56,14 +56,11 @@ var (
 )
 
 func init() {
-	//TODO uncomment
-	currentExecutablePath = string(os.Args[0])
-	currentExecutablePath = "/usr/local/google/home/zoranl/go/src/github.com/GoogleCloudPlatform/compute-image-tools/"
 }
 
 func buildExportParams() *ovfexporter.OVFExportParams {
 	flag.Parse()
-	return &ovfexporter.OVFExportParams{InstanceName: *instanceName,
+	params := &ovfexporter.OVFExportParams{InstanceName: *instanceName,
 		MachineImageName: *machineImageName, ClientID: *clientID,
 		DestinationURI: *destinationURI, OvfFormat: *ovfFormat,
 		DiskExportFormat: *diskExportFormat, Network: *network,
@@ -74,17 +71,17 @@ func buildExportParams() *ovfexporter.OVFExportParams {
 		BootDiskKmsProject:  *bootDiskKmsProject, Timeout: *timeout,
 		Project: project, ScratchBucketGcsPath: *scratchBucketGcsPath,
 		Oauth: *oauth, Ce: *ce, GcsLogsDisabled: *gcsLogsDisabled,
-		CloudLogsDisabled:     *cloudLogsDisabled,
-		StdoutLogsDisabled:    *stdoutLogsDisabled,
-		CurrentExecutablePath: currentExecutablePath, ReleaseTrack: *releaseTrack,
+		CloudLogsDisabled:  *cloudLogsDisabled,
+		StdoutLogsDisabled: *stdoutLogsDisabled, ReleaseTrack: *releaseTrack,
 		BuildID: *buildID,
 	}
+	params.InitWorkflowPath()
+	return params
 }
 
 func runExport() (service.Loggable, error) {
 	//TODO: service loggable
 	return ovfexporter.Run(buildExportParams())
-
 }
 
 func main() {

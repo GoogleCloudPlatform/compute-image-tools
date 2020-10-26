@@ -534,7 +534,7 @@ func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[str
 		var err error
 		pubImgs, err = w.ComputeClient.ListImages(p.PublishProject, daisyCompute.OrderBy("creationTimestamp desc"))
 		if err != nil {
-			return nil, fmt.Errorf("ComputeClient.ListImages failed: %s", err)
+			return nil, fmt.Errorf("computeClient.ListImages failed: %s", err)
 		}
 		if imagesCache == nil {
 			imagesCache = map[string][]*compute.Image{}
