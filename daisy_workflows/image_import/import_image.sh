@@ -32,8 +32,6 @@ DAISY_SOURCE_URL="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/daisy-so
 SOURCE_URL="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/source_disk_file)"
 DISKNAME="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/disk_name)"
 SCRATCH_DISK_NAME="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/scratch_disk_name)"
-SCRATCH_DISK_SIZE_GB="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/scratch_disk_size_gb)"
-INFLATED_DISK_SIZE_GB="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/inflated_disk_size_gb)"
 ME="$(curl -f -H Metadata-Flavor:Google ${URL}/name)"
 ZONE=$(curl -f -H Metadata-Flavor:Google ${URL}/zone)
 
@@ -41,10 +39,6 @@ SOURCE_SIZE_BYTES="$(gsutil du "${SOURCE_URL}" | grep -o '^[0-9]\+')"
 SOURCE_SIZE_GB=$(awk "BEGIN {print int(((${SOURCE_SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
 IMAGE_PATH="/daisy-scratch/$(basename "${SOURCE_URL}")"
 
-# Validate input
-
-[[ -z "$SCRATCH_DISK_SIZE_GB" ]] && echo "ImportFailed: metadata scratch_disk_size_gb is not set" && exit 1
-[[ -z "$INFLATED_DISK_SIZE_GB" ]] && echo "ImportFailed: metadata inflated_disk_size_gb is not set" && exit 1
 
 # Print info.
 echo "#################" 2> /dev/null
@@ -53,47 +47,85 @@ echo "#################" 2> /dev/null
 echo "IMAGE_PATH: ${IMAGE_PATH}" 2> /dev/null
 echo "SOURCE_URL: ${SOURCE_URL}" 2> /dev/null
 echo "SOURCE_SIZE_BYTES: ${SOURCE_SIZE_BYTES}" 2> /dev/null
-echo "SCRATCH_DISK_SIZE_GB: ${SCRATCH_DISK_SIZE_GB}" 2> /dev/null
-echo "INFLATED_DISK_SIZE_GB: ${INFLATED_DISK_SIZE_GB}" 2> /dev/null
 echo "DISKNAME: ${DISKNAME}" 2> /dev/null
 echo "ME: ${ME}" 2> /dev/null
 echo "ZONE: ${ZONE}" 2> /dev/null
 
+# Verifies that device at $devicePath is attached, and has capacity of at least $requiredGb gigabytes.
+#
+# Positional Args:
+#   $devicePath of device to check, eg: /dev/sdb
+#   $requiredGb, eg: 12
+#
+# Returns:
+#   0 when device is attached and has sufficient capacity
+#  >0 otherwise
+function deviceHasCapacity() {
+  local devicePath="${1}"
+  local requiredGb="${2}"
 
-function resizeDisk() {
+  printf "ensuring %s has capacity of at least %s GB\n" "$devicePath" "$requiredGb"
+  if [[ -e ${devicePath} ]]; then
+    lsblk_out=$(lsblk "${devicePath}" --output=size -b)
+    printf "lsblk output:\n%s\n" "$lsblk_out"
+    local actualBytes=$(echo "$lsblk_out" | sed -n 2p)
+    local actualGb=$(awk "BEGIN {print int(${actualBytes}/${BYTES_1GB})}")
+    if [[ $actualGb -ge $requiredGb ]]; then
+      return
+    fi
+    printf "actualGb=%s requiredGb=%s\n" "$actualGb" "$requiredGb"
+    return 1
+  fi
+
+  printf "device %s not found\n" "$devicePath"
+  return 1
+}
+
+# Verifies that a GCE disk is attached, and that the capacity is at least $requiredGb.
+# If insufficient size, gcloud is used to resize the disk.
+#
+# Positional Args:
+#   $diskId to verify, eg: disk-12
+#   $requiredGb, eg: 12
+#   $zone, eg: us-west1-a
+#   $devicePath, eg: /dev/sdb
+#
+# Returns:
+#   0 when device is attached and has sufficient capacity
+#   exits program otherwise
+function ensureCapacityOfDisk() {
   local diskId="${1}"
-  local requiredSizeInGb="${2}"
+  local requiredGb="${2}"
   local zone="${3}"
-  local deviceId="${4}"
+  local devicePath="${4}"
 
-  echo "Import: Resizing ${diskId} to ${requiredSizeInGb}GB in ${zone}."
-  if ! out=$(gcloud -q compute disks resize "${diskId}" --size="${requiredSizeInGb}"GB --zone="${zone}" 2>&1 | tr "\n\r" " "); then
+  echo "Import: Ensuring ${diskId} has capacity of ${requiredGb} GB in ${zone}."
+  if deviceHasCapacity "$devicePath" "$requiredGb"; then
+    echo "Import: ${devicePath} is attached and ready."
+    return
+  fi
+
+  if ! out=$(gcloud -q compute disks resize "${diskId}" --size="${requiredGb}"GB --zone="${zone}" 2>&1 | tr "\n\r" " "); then
     if echo "$out" | grep -qiP "compute\.disks\.resize.*permission"; then
       echo $out
       echo "ImportFailed: Failed to resize disk. The Compute Engine default service account needs the role: roles/compute.storageAdmin"
     else
-      echo "ImportFailed: Failed to resize disk. [Privacy-> resize disk ${diskId} to ${requiredSizeInGb}GB in ${zone}, error: ${out} <-Privacy]"
+      echo "ImportFailed: Failed to resize disk. [Privacy-> resize disk ${diskId} to ${requiredGb}GB in ${zone}, error: ${out} <-Privacy]"
     fi
     exit
   fi
   echo "Resizing result: $out"
 
-  echo "Import: Checking for ${deviceId} ${requiredSizeInGb}G"
+  echo "Import: Checking for ${devicePath} ${requiredGb}G"
   for t in {1..60}; do
-    if [[ -e ${deviceId} ]]; then
-      lsblk_out=$(lsblk "${deviceId}" --output=size -b)
-      printf "lsblk output:\n%s" "$lsblk_out"
-      local actualSizeBytes=$(echo "$lsblk_out" | sed -n 2p)
-      local actualSizeGb=$(awk "BEGIN {print int(${actualSizeBytes}/${BYTES_1GB})}")
-      if [[ "${actualSizeGb}" == "${requiredSizeInGb}" ]]; then
-        echo "Import: ${deviceId} is attached and ready."
-        return
-      fi
+    if deviceHasCapacity "$devicePath" "$requiredGb"; then
+      echo "Import: ${devicePath} is attached and ready."
+      return
     fi
     sleep 5
   done
 
-  echo "ImportFailed: Failed to attach disk ${deviceId}"
+  echo "ImportFailed: Failed to attach disk ${devicePath}"
   exit
 }
 
@@ -110,11 +142,7 @@ function copyImageToScratchDisk() {
      scratchDiskSizeGigabytes=$((scratchDiskSizeGigabytes * 2))
   fi
 
-  if [[ ${scratchDiskSizeGigabytes} -gt ${SCRATCH_DISK_SIZE_GB} ]]; then
-    resizeDisk "${SCRATCH_DISK_NAME}" "${scratchDiskSizeGigabytes}" "${ZONE}" /dev/sdb
-  fi
-
-
+  ensureCapacityOfDisk "${SCRATCH_DISK_NAME}" "${scratchDiskSizeGigabytes}" "${ZONE}" /dev/sdb
 
   mkdir -p /daisy-scratch
   # /dev/sdb is used since the scratch disk is the second
@@ -154,7 +182,6 @@ function serialOutputKeyValuePair() {
 
 # Dup logic in api_inflater.go. If change anything here, please change in both places.
 function diskChecksum() {
-  set +x
   CHECK_DEVICE=sdc
   BLOCK_COUNT=$(cat /sys/class/block/$CHECK_DEVICE/size)
 
@@ -165,7 +192,6 @@ function diskChecksum() {
   CHECKSUM3=$(sudo dd if=/dev/$CHECK_DEVICE ibs=512 skip=$(( 20000000 - $CHECK_COUNT )) count=$CHECK_COUNT | md5sum)
   CHECKSUM4=$(sudo dd if=/dev/$CHECK_DEVICE ibs=512 skip=$(( $BLOCK_COUNT - $CHECK_COUNT )) count=$CHECK_COUNT | md5sum)
   echo "Import: $(serialOutputKeyValuePair "disk-checksum" "$CHECKSUM1-$CHECKSUM2-$CHECKSUM3-$CHECKSUM4")"
-  set -x
 }
 
 copyImageToScratchDisk
@@ -201,17 +227,11 @@ IMPORT_FILE_FORMAT=$(qemu-img info "${IMAGE_PATH}" | grep -m1 "file format" | gr
 SIZE_GB=$(awk "BEGIN {print int(((${SIZE_BYTES} - 1)/${BYTES_1GB}) + 1)}")
 echo "Import: Importing ${IMAGE_PATH} of size ${SIZE_GB}GB to ${DISKNAME} in ${ZONE}." 2> /dev/null
 
-set +x
 echo "Import: $(serialOutputKeyValuePair "target-size-gb" "${SIZE_GB}")"
 echo "Import: $(serialOutputKeyValuePair "source-size-gb" "${SOURCE_SIZE_GB}")"
 echo "Import: $(serialOutputKeyValuePair "import-file-format" "${IMPORT_FILE_FORMAT}")"
-set -x
 
-# Ensure the disk referenced by $DISKNAME is large enough to
-# hold the inflated disk.
-if [[ ${SIZE_GB} -gt ${INFLATED_DISK_SIZE_GB} ]]; then
-  resizeDisk "${DISKNAME}" "${SIZE_GB}" "${ZONE}" /dev/sdc
-fi
+ensureCapacityOfDisk "${DISKNAME}" "${SIZE_GB}" "${ZONE}" /dev/sdc
 
 # Convert the image and write it to the disk referenced by $DISKNAME.
 # /dev/sdc is used since it's the third disk that's attached in inflate_file.wf.json.

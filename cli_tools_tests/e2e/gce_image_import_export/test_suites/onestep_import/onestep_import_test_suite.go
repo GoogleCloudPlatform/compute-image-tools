@@ -43,8 +43,6 @@ func OnestepImageImportSuite(
 
 	testTypes := []e2e.CLITestType{
 		e2e.Wrapper,
-		e2e.GcloudBetaProdWrapperLatest,
-		e2e.GcloudBetaLatestWrapperLatest,
 	}
 
 	testsMap := map[e2e.CLITestType]map[*junitxml.TestCase]func(

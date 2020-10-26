@@ -17,17 +17,17 @@ package importer
 import (
 	"flag"
 	"fmt"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
 
 // Flags that are validated.
@@ -72,6 +72,7 @@ type ImportArguments struct {
 	StorageLocation      string
 	Subnet               string
 	SysprepWindows       bool
+	Started              time.Time
 	Timeout              time.Duration
 	UefiCompatible       bool
 	Zone                 string
@@ -88,6 +89,7 @@ func NewImportArguments(args []string) (ImportArguments, error) {
 	parsed := ImportArguments{
 		ExecutionID: path.RandString(5),
 		WorkflowDir: filepath.Join(filepath.Dir(os.Args[0]), workflowDir),
+		Started:     time.Now(),
 	}
 
 	parsed.registerFlags(flagSet)
@@ -108,11 +110,24 @@ func (args *ImportArguments) ValidateAndPopulate(populator param.Populator,
 		return err
 	}
 
+	args.populateNamespacedScratchDirectory()
 	if err := args.populateNetwork(); err != nil {
 		return err
 	}
 
 	return args.validate()
+}
+
+// populateNamespacedScratchDirectory updates ScratchBucketGcsPath to include a directory
+// that is specific to this import, formulated using the start timestamp and the execution ID.
+// This ensures all logs and artifacts are contained in a single directory.
+func (args *ImportArguments) populateNamespacedScratchDirectory() {
+	if !strings.HasSuffix(args.ScratchBucketGcsPath, "/") {
+		args.ScratchBucketGcsPath += "/"
+	}
+
+	args.ScratchBucketGcsPath += fmt.Sprintf(
+		"gce-image-import-%s-%s", args.Started.Format(time.RFC3339), args.ExecutionID)
 }
 
 func (args ImportArguments) validate() error {
@@ -134,8 +149,11 @@ func (args ImportArguments) validate() error {
 		return fmt.Errorf("-%s and -%s can't be both specified",
 			osFlag, customWorkflowFlag)
 	}
+	if !strings.HasSuffix(args.ScratchBucketGcsPath, args.ExecutionID) {
+		panic("Scratch bucket should have been namespaced with execution ID.")
+	}
 	if args.OS != "" {
-		if err := daisy_utils.ValidateOS(args.OS); err != nil {
+		if err := daisy.ValidateOS(args.OS); err != nil {
 			return err
 		}
 	}
@@ -247,7 +265,7 @@ func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
 
 	flagSet.Var((*flags.LowerTrimmedString)(&args.OS), osFlag,
 		"Specifies the OS of the image being imported. OS must be one of: "+
-			"OS must be one of: "+strings.Join(daisy_utils.GetSortedOSIDs(), ", ")+".")
+			"OS must be one of: "+strings.Join(daisy.GetSortedOSIDs(), ", ")+".")
 
 	flagSet.BoolVar(&args.NoGuestEnvironment, "no_guest_environment", false,
 		"When enabled, the Google Guest Environment will not be installed.")

@@ -43,7 +43,8 @@ type Importer interface {
 
 // NewImporter constructs an Importer instance.
 func NewImporter(args ImportArguments, computeClient compute.Client, storageClient storage.Client) (Importer, error) {
-	inflater, err := createInflater(args, computeClient, storageClient, imagefile.NewGCSInspector())
+	loggableBuilder := service.NewSingleImageImportLoggableBuilder()
+	inflater, err := newInflater(args, computeClient, storageClient, imagefile.NewGCSInspector(), loggableBuilder)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +63,7 @@ func NewImporter(args ImportArguments, computeClient compute.Client, storageClie
 		processorProvider: defaultProcessorProvider{args, computeClient, inspector},
 		traceLogs:         []string{},
 		diskClient:        computeClient,
-		loggableBuilder:   service.NewSingleImageImportLoggableBuilder(),
+		loggableBuilder:   loggableBuilder,
 	}, nil
 }
 
@@ -72,7 +73,7 @@ type importer struct {
 	project, zone     string
 	pd                persistentDisk
 	preValidator      validator
-	inflater          inflater
+	inflater          Inflater
 	processorProvider processorProvider
 	traceLogs         []string
 	diskClient        diskClient
@@ -107,9 +108,9 @@ func (i *importer) Run(ctx context.Context) (loggable service.Loggable, err erro
 func (i *importer) runInflate(ctx context.Context) (err error) {
 	return i.runStep(ctx, func() error {
 		var err error
-		i.pd, _, err = i.inflater.inflate(i.loggableBuilder)
+		i.pd, _, err = i.inflater.Inflate()
 		return err
-	}, i.inflater.cancel, i.inflater.traceLogs)
+	}, i.inflater.Cancel, i.inflater.TraceLogs)
 }
 
 func (i *importer) runProcess(ctx context.Context) error {

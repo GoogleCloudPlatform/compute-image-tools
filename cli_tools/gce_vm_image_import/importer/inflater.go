@@ -45,8 +45,9 @@ const (
 
 // inflaterFacade implements an inflater using other concrete implementations.
 type inflaterFacade struct {
-	mainInflater   inflater
-	shadowInflater inflater
+	mainInflater    Inflater
+	shadowInflater  Inflater
+	loggableBuilder *service.SingleImageImportLoggableBuilder
 }
 
 // signals to control the verification towards shadow inflater
@@ -57,15 +58,15 @@ const (
 	sigShadowInflaterErr  = "shadow err"
 )
 
-func (facade *inflaterFacade) inflate(loggableBuilder *service.SingleImageImportLoggableBuilder) (persistentDisk, inflationInfo, error) {
+func (facade *inflaterFacade) Inflate() (persistentDisk, shadowTestFields, error) {
 	inflaterChan := make(chan string)
 
 	// Launch main inflater.
 	var pd persistentDisk
-	var ii inflationInfo
+	var ii shadowTestFields
 	var err error
 	go func() {
-		pd, ii, err = facade.mainInflater.inflate(loggableBuilder)
+		pd, ii, err = facade.mainInflater.Inflate()
 		if err != nil {
 			inflaterChan <- sigMainInflaterErr
 		} else {
@@ -75,10 +76,10 @@ func (facade *inflaterFacade) inflate(loggableBuilder *service.SingleImageImport
 
 	// Launch shadow inflater.
 	var shadowPd persistentDisk
-	var shadowIi inflationInfo
+	var shadowIi shadowTestFields
 	var shadowErr error
 	go func() {
-		shadowPd, shadowIi, shadowErr = facade.shadowInflater.inflate(loggableBuilder)
+		shadowPd, shadowIi, shadowErr = facade.shadowInflater.Inflate()
 		if shadowErr != nil {
 			inflaterChan <- sigShadowInflaterErr
 		} else {
@@ -115,21 +116,21 @@ func (facade *inflaterFacade) inflate(loggableBuilder *service.SingleImageImport
 		}
 	}
 
-	loggableBuilder.SetInflationAttributes(matchResult, ii.inflationType, ii.inflationTime.Milliseconds(), shadowIi.inflationTime.Milliseconds())
+	facade.loggableBuilder.SetInflationAttributes(matchResult, ii.inflationType, ii.inflationTime.Milliseconds(), shadowIi.inflationTime.Milliseconds())
 
 	return pd, ii, err
 }
 
-func (facade *inflaterFacade) cancel(reason string) bool {
-	facade.shadowInflater.cancel(reason)
-	return facade.mainInflater.cancel(reason)
+func (facade *inflaterFacade) Cancel(reason string) bool {
+	facade.shadowInflater.Cancel(reason)
+	return facade.mainInflater.Cancel(reason)
 }
 
-func (facade *inflaterFacade) traceLogs() []string {
-	return facade.mainInflater.traceLogs()
+func (facade *inflaterFacade) TraceLogs() []string {
+	return facade.mainInflater.TraceLogs()
 }
 
-func (facade *inflaterFacade) compareWithShadowInflater(mainPd, shadowPd *persistentDisk, mainIi, shadowIi *inflationInfo) string {
+func (facade *inflaterFacade) compareWithShadowInflater(mainPd, shadowPd *persistentDisk, mainIi, shadowIi *shadowTestFields) string {
 	matchFormat := "sizeGb-%v,sourceGb-%v,content-%v"
 	sizeGbMatch := shadowPd.sizeGb == mainPd.sizeGb
 	sourceGbMatch := shadowPd.sourceGb == mainPd.sourceGb
@@ -145,14 +146,14 @@ func (facade *inflaterFacade) compareWithShadowInflater(mainPd, shadowPd *persis
 	return result
 }
 
-// inflater constructs a new persistentDisk, typically starting from a
+// Inflater constructs a new persistentDisk, typically starting from a
 // frozen representation of a disk, such as a VMDK file or a GCP disk image.
 //
 // Implementers can expose detailed logs using the traceLogs() method.
-type inflater interface {
-	inflate(*service.SingleImageImportLoggableBuilder) (persistentDisk, inflationInfo, error)
-	traceLogs() []string
-	cancel(reason string) bool
+type Inflater interface {
+	Inflate() (persistentDisk, shadowTestFields, error)
+	TraceLogs() []string
+	Cancel(reason string) bool
 }
 
 // daisyInflater implements an inflater using daisy workflows, and is capable
@@ -163,7 +164,7 @@ type daisyInflater struct {
 	serialLogs      []string
 }
 
-func (inflater *daisyInflater) inflate(_ *service.SingleImageImportLoggableBuilder) (persistentDisk, inflationInfo, error) {
+func (inflater *daisyInflater) Inflate() (persistentDisk, shadowTestFields, error) {
 	startTime := time.Now()
 	err := inflater.wf.Run(context.Background())
 	if inflater.wf.Logger != nil {
@@ -179,7 +180,7 @@ func (inflater *daisyInflater) inflate(_ *service.SingleImageImportLoggableBuild
 			sizeGb:     string_utils.SafeStringToInt(targetSizeGB),
 			sourceGb:   string_utils.SafeStringToInt(sourceSizeGB),
 			sourceType: importFileFormat,
-		}, inflationInfo{
+		}, shadowTestFields{
 			checksum:      checksum,
 			inflationTime: time.Since(startTime),
 			inflationType: "qemu",
@@ -194,23 +195,20 @@ type persistentDisk struct {
 	isUEFICompatible bool
 }
 
-type inflationInfo struct {
+type shadowTestFields struct {
 	// Below fields are for shadow API inflation metrics
 	checksum      string
 	inflationTime time.Duration
 	inflationType string
 }
 
-func createInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client, inspector imagefile.Inspector) (inflater, error) {
-	di, err := createDaisyInflater(args, inspector)
-	if err != nil {
-		return nil, err
-	}
-
-	return di, nil
+func newInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client,
+	inspector imagefile.Inspector, loggableBuilder *service.SingleImageImportLoggableBuilder) (Inflater, error) {
+	return NewDaisyInflater(args, inspector)
 }
 
-func createDaisyInflater(args ImportArguments, fileInspector imagefile.Inspector) (inflater, error) {
+// NewDaisyInflater returns an Inflater that uses a Daisy workflow.
+func NewDaisyInflater(args ImportArguments, fileInspector imagefile.Inspector) (Inflater, error) {
 	diskName := "disk-" + args.ExecutionID
 	var wfPath string
 	var vars map[string]string
@@ -256,7 +254,7 @@ func createDaisyInflater(args ImportArguments, fileInspector imagefile.Inspector
 	}, nil
 }
 
-func (inflater *daisyInflater) traceLogs() []string {
+func (inflater *daisyInflater) TraceLogs() []string {
 	return inflater.serialLogs
 }
 
@@ -283,7 +281,7 @@ func getDisk(workflow *daisy.Workflow, diskIndex int) *daisy.Disk {
 	panic("Did not find CreateDisks step.")
 }
 
-func (inflater *daisyInflater) cancel(reason string) bool {
+func (inflater *daisyInflater) Cancel(reason string) bool {
 	inflater.wf.CancelWithReason(reason)
 	return true
 }
