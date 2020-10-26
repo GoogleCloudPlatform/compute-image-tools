@@ -1,7 +1,7 @@
 import unittest
 
-from boot_inspect import model
 from boot_inspect.inspectors.os.windows import _from_nt_version
+from compute_image_tools_proto import inspect_pb2
 
 
 class TestNTMapping_Desktop(unittest.TestCase):
@@ -83,8 +83,9 @@ class TestNTMapping_Unmatched(unittest.TestCase):
               product_name='Windows ' + variant) is None
 
 
-def windows(major, minor=''):
-  return model.OperatingSystem(
-      distro=model.Distro.WINDOWS,
-      version=model.Version(major, minor)
+def windows(major, minor='') -> inspect_pb2.OsRelease:
+  return inspect_pb2.OsRelease(
+      major_version=major,
+      minor_version=minor,
+      distro_id=inspect_pb2.Distro.WINDOWS,
   )

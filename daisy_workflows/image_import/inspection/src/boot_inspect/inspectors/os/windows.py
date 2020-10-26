@@ -14,7 +14,7 @@
 # limitations under the License.
 import re
 
-from boot_inspect import model
+from compute_image_tools_proto import inspect_pb2
 
 # Matched against the output of guestfs.inspect_get_product_variant.
 # This is required since desktop and server use the same NT versions.
@@ -53,7 +53,7 @@ class Inspector:
     self._g = g
     self._root = root
 
-  def inspect(self) -> model.OperatingSystem:
+  def inspect(self) -> inspect_pb2.OsRelease:
     distro = self._g.inspect_get_distro(self._root)
     if isinstance(distro, str) and 'windows' in distro.lower():
       return _from_nt_version(
@@ -68,7 +68,7 @@ def _from_nt_version(
     variant: str,
     major_nt: int,
     minor_nt: int,
-    product_name: str) -> model.OperatingSystem:
+    product_name: str) -> inspect_pb2.OsRelease:
   major, minor = None, None
   nt_version = major_nt, minor_nt
   if _client_pattern.search(variant):
@@ -83,7 +83,8 @@ def _from_nt_version(
         major, minor = '2019', ''
 
   if major is not None and minor is not None:
-    return model.OperatingSystem(
-        model.Distro.WINDOWS,
-        model.Version(major, minor)
+    return inspect_pb2.OsRelease(
+        major_version=major,
+        minor_version=minor,
+        distro_id=inspect_pb2.Distro.WINDOWS,
     )

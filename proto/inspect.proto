@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+option go_package = ".;pb";
+
+// Distro denotes a product line of operating systems, using the following
+// test:
+//   If two operating systems at the same version and CPU architecture can be
+//   imported using the same logic, then they have the same Distro. For example,
+//   if Ubuntu 20.04 and xubuntu 20.04 are importable using
+//   the same logic, then they'd both be categorized as Distro.UBUNTU.
+//
+// When adding new members, keep in mind:
+//  - Group distros by family, using buckets of size 1000.
+//  - The following properties are orthogonal and should not be encoded here:
+//      - CPU architecture
+//      - Major or minor versions
+//      - GCE licensing (such as BYOL)
+enum Distro {
+  DISTRO_UNKNOWN = 0;
+
+  WINDOWS = 1000;
+
+  DEBIAN = 2000;
+  UBUNTU = 2001;
+  KALI = 2002;
+
+  OPENSUSE = 3000;
+  SLES = 3001;
+  SLES_SAP = 3002;
+
+  FEDORA = 4000;
+  RHEL = 4001;
+  CENTOS = 4002;
+  AMAZON = 4003;
+  ORACLE = 4004;
+}
+
+enum Architecture {
+  ARCHITECTURE_UNKNOWN = 0;
+  X86 = 1;
+  X64 = 2;
+}
+
+// OsRelease records the name and version of an operating system.
+message OsRelease {
+  // cli_formatted is a concatenation of distro, major_version, and
+  // minor_version using the format expected by the `--os` flag.
+  // For examples, see:
+  //  https://cloud.google.com/sdk/gcloud/reference/compute/images/import#--os
+  string cli_formatted = 1;
+
+  // distro is the lowercase name of the distribution. Examples:
+  // [centos, debian, opensuse, rhel, sles, sles-sap, ubuntu, windows]
+  string distro = 2;
+
+  // major_version of the OS, as represented by the vendor.
+  // Examples:
+  //   - Windows 2008r2: 2008
+  //   - Ubuntu 18.04:  18
+  //   - OpenSUSE Tumbleweed: tumbleweed
+  string major_version = 3;
+
+  // minor_version of the OS, as formatted by the vendor.
+  // Examples:
+  //   - Windows 2008r2: r2
+  //   - Ubuntu 18.04:  04
+  //   - OpenSUSE Tumbleweed: <empty>
+  string minor_version = 4;
+
+  Architecture architecture = 5;
+
+  // Enumerated representation of the distro. Prefer this for
+  // programmatic usage.
+  Distro distro_id = 6;
+}
+
+// InspectionResults contains metadata determined using automated inspection
+// of the guest image.
+message InspectionResults {
+  // The OS and version detected. Populated when a single OS is
+  // detected. Empty when none or multiple are found.
+  OsRelease os_release = 1;
+
+  // bios_bootable indicates whether `os_release` is bootable using bios.
+  bool bios_bootable = 2;
+
+  // uefi_bootable indicates whether `os_release` is bootable with UEFI.
+  bool uefi_bootable = 3;
+
+  // root_fs indicates the file system type of the partition containing
+  // the root directory ("/") of `os_release`.
+  string root_fs = 4;
+
+  enum ErrorWhen {
+    NO_ERROR = 0;
+
+    STARTING_WORKER = 100;
+    RUNNING_WORKER = 101;
+
+    MOUNTING_GUEST = 200;
+    INSPECTING_OS = 201;
+    INSPECTING_BOOTLOADER = 202;
+
+    DECODING_WORKER_RESPONSE = 300;
+    INTERPRETING_INSPECTION_RESULTS = 301;
+  }
+  // If inspection is not successful, when the error occurred.
+  //
+  // Success is independent of whether results were found. For example,
+  // inspection of an empty disk will have empty results,
+  // and error_when will be 'NO_ERROR'.
+  ErrorWhen error_when = 5;
+
+  // Total time spent inspecting. This includes prep, running the worker,
+  // and tearing down the worker.
+  int64 elapsed_time_ms = 6;
+
+  // Number of operating systems detected on the disk.
+  int32 os_count = 7;
+}

@@ -13,13 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Perform inspection, and print results to stdout."""
-
 import argparse
-import json
-import urllib.request
+import base64
 
 from boot_inspect import inspection
-from boot_inspect import model
+from compute_image_tools_proto import inspect_pb2
+from google.protobuf import text_format
+from google.protobuf.json_format import MessageToJson
 import guestfs
 
 
@@ -28,30 +28,19 @@ def _daisy_kv(key: str, value: str):
   return template.format(key=key, value=value)
 
 
-def _output_daisy(results: model.InspectionResults):
+def _output_daisy(results: inspect_pb2.InspectionResults):
   if results:
-    if results.architecture:
-      print(_daisy_kv('architecture', results.architecture.value))
-    if results.os:
-      print(_daisy_kv('distro', results.os.distro.value))
-      print(_daisy_kv('major', results.os.version.major))
-      print(_daisy_kv('minor', results.os.version.minor))
-    if results.bios_bootable:
-      print(_daisy_kv('bios_bootable', 'true'))
-    if results.uefi_bootable:
-      print(_daisy_kv('uefi_bootable', 'true'))
-    if results.root_fs:
-      print(_daisy_kv('root_fs', results.root_fs))
+    print('Results: ')
+    print(text_format.MessageToString(results))
+    print(
+        _daisy_kv(
+            'inspect_pb',
+            base64.standard_b64encode(results.SerializeToString()).decode()))
   print('Success: Done!')
 
 
-def _output_json(results: model.InspectionResults, indent=None):
-  print(json.dumps(results, indent=indent,
-                   cls=model.ModelJSONEncoder))
-
-
-def _output_human(results: model.InspectionResults):
-  _output_json(results, indent=4)
+def _output_human(results: inspect_pb2.InspectionResults):
+  print(MessageToJson(results, indent=4))
 
 
 def main():
@@ -76,27 +65,42 @@ def main():
     'device',
     help='a block device or disk file.'
   )
+  parser.add_argument(
+    '--inspect-os',
+    help='whether to detect the operating system.',
+    action='store_true'
+  )
   args = parser.parse_args()
+  results = inspect_pb2.InspectionResults()
+  try:
+    g = guestfs.GuestFS(python_return_dict=True)
+    g.add_drive_opts(args.device, readonly=1)
+    g.launch()
+  except BaseException as e:
+    print('Failed to mount guest: ', e)
+    results.ErrorWhen = inspect_pb2.InspectionResults.ErrorWhen.MOUNTING_GUEST
+    return results
 
-  g = guestfs.GuestFS(python_return_dict=True)
-  g.add_drive_opts(args.device, readonly=1)
-  g.launch()
+  if args.inspect_os:
+    try:
+      print('Inspecting OS')
+      results = inspection.inspect_device(g)
+    except BaseException as e:
+      print('Failed to inspect OS: ', e)
+      results.ErrorWhen = inspect_pb2.InspectionResults.ErrorWhen.INSPECTING_OS
+      return results
 
-  req = urllib.request.Request(
-      "http://metadata.google.internal/computeMetadata/v1"
-      "/instance/attributes/is-inspect-os",
-      headers={'Metadata-Flavor': 'Google'})
-  is_inspect_os = urllib.request.urlopen(req).read()
-  if is_inspect_os == b'true':
-    results = inspection.inspect_device(g, args.device)
-  else:
-    results = model.InspectionResults(device=None, os=None, architecture=None)
+  try:
+    boot_results = inspection.inspect_boot_loader(g, args.device)
+  except BaseException as e:
+    print('Failed to inspect boot loader: ', e)
+    results.ErrorWhen = \
+        inspect_pb2.InspectionResults.ErrorWhen.INSPECTING_BOOTLOADER
+    return results
 
-  boot_results = inspection.inspect_boot_loader(g, args.device)
   results.bios_bootable = boot_results.bios_bootable
   results.uefi_bootable = boot_results.uefi_bootable
   results.root_fs = boot_results.root_fs
-
   globals()['_output_' + args.format](results)
 
 

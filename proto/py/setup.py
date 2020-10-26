@@ -12,19 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-[tool.pytest.ini_options]
-addopts = "--import-mode=importlib"
+from setuptools import setup
 
-[tool.gcp-guest-pytest]
-
-envlist = [
-    "3.5",
-    "3.6",
-    "3.7",
-    "3.8"
-]
-
-test-deps = [
-    "pyyaml == 5.3.1",
-    "//proto/py",
-]
+setup(
+  name="compute_image_tools_proto",
+  packages=["compute_image_tools_proto"],
+  install_requires=["protobuf ~= 3.1"],
+  version="0.1",
+)

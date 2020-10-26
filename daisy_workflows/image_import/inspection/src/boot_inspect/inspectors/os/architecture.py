@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from boot_inspect import model
+from compute_image_tools_proto import inspect_pb2
 
 
 class Inspector:
@@ -28,10 +28,10 @@ class Inspector:
     self._g = g
     self._root = root
 
-  def inspect(self) -> model.Architecture:
+  def inspect(self) -> inspect_pb2.Architecture:
     inspected = self._g.inspect_get_arch(self._root)
     if inspected == 'i386':
-      return model.Architecture.x86
+      return inspect_pb2.Architecture.X86
     elif inspected == 'x86_64':
-      return model.Architecture.x64
-    return model.Architecture.unknown
+      return inspect_pb2.Architecture.X64
+    return inspect_pb2.Architecture.UNKNOWN
