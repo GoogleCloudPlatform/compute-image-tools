@@ -53,12 +53,13 @@ func TestInspectDisk(t *testing.T) {
 	}
 
 	for _, tt := range []struct {
+		caseName string
 		imageURI string
 		expected disk.InspectionResult
 	}{
 		{
-			"projects/opensuse-cloud/global/images/opensuse-leap-15-2-v20200702",
-			disk.InspectionResult{
+			imageURI: "projects/opensuse-cloud/global/images/opensuse-leap-15-2-v20200702",
+			expected: disk.InspectionResult{
 				Architecture:                             "x64",
 				Distro:                                   "opensuse",
 				Major:                                    "15",
@@ -67,8 +68,8 @@ func TestInspectDisk(t *testing.T) {
 				BIOSBootableWithHybridMBROrProtectiveMBR: true,
 			},
 		}, {
-			"projects/suse-sap-cloud/global/images/sles-15-sp1-sap-v20200803",
-			disk.InspectionResult{
+			imageURI: "projects/suse-sap-cloud/global/images/sles-15-sp1-sap-v20200803",
+			expected: disk.InspectionResult{
 				Architecture:                             "x64",
 				Distro:                                   "sles-sap",
 				Major:                                    "15",
@@ -76,20 +77,13 @@ func TestInspectDisk(t *testing.T) {
 				UEFIBootable:                             true,
 				BIOSBootableWithHybridMBROrProtectiveMBR: true,
 			},
-		}, {
-			"projects/compute-image-tools-test/global/images/windows-7-ent-x86-nodrivers",
-			disk.InspectionResult{
-				Architecture:                             "x86",
-				Distro:                                   "windows",
-				Major:                                    "6",
-				Minor:                                    "1",
-				UEFIBootable:                             false,
-				BIOSBootableWithHybridMBROrProtectiveMBR: false,
-			},
-		}, {
-			// UEFI inspection test for GPT UEFI
-			"projects/gce-uefi-images/global/images/rhel-7-v20200403",
-			disk.InspectionResult{
+		},
+
+		// UEFI
+		{
+			caseName: "UEFI inspection test for GPT UEFI",
+			imageURI: "projects/gce-uefi-images/global/images/rhel-7-v20200403",
+			expected: disk.InspectionResult{
 				Architecture:                             "x64",
 				Distro:                                   "rhel",
 				Major:                                    "7",
@@ -98,9 +92,9 @@ func TestInspectDisk(t *testing.T) {
 				BIOSBootableWithHybridMBROrProtectiveMBR: false,
 			},
 		}, {
-			// UEFI inspection test for MBR-only
-			"projects/debian-cloud/global/images/debian-9-stretch-v20200714",
-			disk.InspectionResult{
+			caseName: "UEFI inspection test for MBR-only",
+			imageURI: "projects/debian-cloud/global/images/debian-9-stretch-v20200714",
+			expected: disk.InspectionResult{
 				Architecture:                             "x64",
 				Distro:                                   "debian",
 				Major:                                    "9",
@@ -109,20 +103,20 @@ func TestInspectDisk(t *testing.T) {
 				BIOSBootableWithHybridMBROrProtectiveMBR: false,
 			},
 		}, {
-			// UEFI inspection test for GPT UEFI - windows
-			"projects/gce-uefi-images/global/images/windows-server-2019-dc-core-v20200609",
-			disk.InspectionResult{
+			caseName: "UEFI inspection test for GPT UEFI - windows",
+			imageURI: "projects/gce-uefi-images/global/images/windows-server-2019-dc-core-v20200609",
+			expected: disk.InspectionResult{
 				Architecture:                             "x64",
 				Distro:                                   "windows",
-				Major:                                    "10",
+				Major:                                    "2019",
 				Minor:                                    "",
 				UEFIBootable:                             true,
 				BIOSBootableWithHybridMBROrProtectiveMBR: false,
 			},
 		}, {
-			// UEFI inspection test for GPT UEFI with BIOS boot
-			"projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317",
-			disk.InspectionResult{
+			caseName: "UEFI inspection test for GPT UEFI with BIOS boot",
+			imageURI: "projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317",
+			expected: disk.InspectionResult{
 				Architecture:                             "x64",
 				Distro:                                   "ubuntu",
 				Major:                                    "18",
@@ -131,9 +125,9 @@ func TestInspectDisk(t *testing.T) {
 				BIOSBootableWithHybridMBROrProtectiveMBR: true,
 			},
 		}, {
-			// UEFI inspection test for GPT UEFI with hybrid MBR
-			"projects/compute-image-tools-test/global/images/image-ubuntu-2004-hybrid-mbr",
-			disk.InspectionResult{
+			caseName: "UEFI inspection test for GPT UEFI with hybrid MBR",
+			imageURI: "projects/compute-image-tools-test/global/images/image-ubuntu-2004-hybrid-mbr",
+			expected: disk.InspectionResult{
 				Architecture:                             "x64",
 				Distro:                                   "ubuntu",
 				Major:                                    "20",
@@ -142,9 +136,9 @@ func TestInspectDisk(t *testing.T) {
 				BIOSBootableWithHybridMBROrProtectiveMBR: true,
 			},
 		}, {
-			// UEFI inspection test for MBR-only UEFI
-			"projects/compute-image-tools-test/global/images/image-uefi-mbr-only",
-			disk.InspectionResult{
+			caseName: "UEFI inspection test for MBR-only UEFI",
+			imageURI: "projects/compute-image-tools-test/global/images/image-uefi-mbr-only",
+			expected: disk.InspectionResult{
 				Architecture:                             "x64",
 				Distro:                                   "ubuntu",
 				Major:                                    "16",
@@ -153,11 +147,101 @@ func TestInspectDisk(t *testing.T) {
 				BIOSBootableWithHybridMBROrProtectiveMBR: false,
 			},
 		},
+
+		// Windows Server
+		{
+			imageURI: "projects/windows-cloud/global/images/windows-server-2008-r2-dc-v20200114",
+			expected: disk.InspectionResult{
+				Architecture: "x64",
+				Distro:       "windows",
+				Major:        "2008",
+				Minor:        "r2",
+			},
+		}, {
+			imageURI: "projects/compute-image-tools-test/global/images/windows-2012-r2-vmware-import",
+			expected: disk.InspectionResult{
+				Architecture: "x64",
+				Distro:       "windows",
+				Major:        "2012",
+				Minor:        "r2",
+			},
+		}, {
+			imageURI: "projects/compute-image-tools-test/global/images/windows-2016-import",
+			expected: disk.InspectionResult{
+				Architecture: "x64",
+				Distro:       "windows",
+				Major:        "2016",
+				Minor:        "",
+			},
+		}, {
+			imageURI: "projects/compute-image-tools-test/global/images/windows-2019",
+			expected: disk.InspectionResult{
+				Architecture: "x64",
+				Distro:       "windows",
+				Major:        "2019",
+				Minor:        "",
+			},
+		},
+
+		// Windows Desktop
+		{
+			imageURI: "projects/compute-image-tools-test/global/images/windows-7-ent-x86-nodrivers",
+			expected: disk.InspectionResult{
+				Architecture: "x86",
+				Distro:       "windows",
+				Major:        "7",
+				Minor:        "",
+			},
+		}, {
+			imageURI: "projects/compute-image-tools-test/global/images/windows-7-import",
+			expected: disk.InspectionResult{
+				Architecture: "x64",
+				Distro:       "windows",
+				Major:        "7",
+				Minor:        "",
+			},
+		}, {
+			imageURI: "projects/compute-image-tools-test/global/images/windows-8-1-ent-x86-nodrivers",
+			expected: disk.InspectionResult{
+				Architecture: "x86",
+				Distro:       "windows",
+				Major:        "8",
+				Minor:        "1",
+			},
+		}, {
+			imageURI: "projects/compute-image-tools-test/global/images/windows-8-1-x64",
+			expected: disk.InspectionResult{
+				Architecture: "x64",
+				Distro:       "windows",
+				Major:        "8",
+				Minor:        "1",
+			},
+		}, {
+			imageURI: "projects/compute-image-tools-test/global/images/windows-10-1909-ent-x86-nodrivers",
+			expected: disk.InspectionResult{
+				Architecture: "x86",
+				Distro:       "windows",
+				Major:        "10",
+				Minor:        "",
+			},
+		}, {
+			imageURI: "projects/compute-image-tools-test/global/images/windows-10-1709-import",
+			expected: disk.InspectionResult{
+				Architecture: "x64",
+				Distro:       "windows",
+				Major:        "10",
+				Minor:        "",
+			},
+		},
 	} {
 		// Without this, each parallel test will reference the last tt instance.
 		// https://github.com/golang/go/wiki/CommonMistakes#using-goroutines-on-loop-iterator-variables
 		currentTest := tt
-		t.Run(currentTest.imageURI, func(t *testing.T) {
+		name := currentTest.caseName
+		if name == "" {
+			name = currentTest.imageURI
+		}
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			inspector, err := disk.NewInspector(daisycommon.WorkflowAttributes{
 				Project:           project,

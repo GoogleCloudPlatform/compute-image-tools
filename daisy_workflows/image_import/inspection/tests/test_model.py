@@ -70,7 +70,7 @@ class TestJSONEncoder:
       device="/dev/sdb",
       os=model.OperatingSystem(
         distro=model.Distro.WINDOWS,
-        version=model.Version(major="6", minor="1"),
+        version=model.Version(major="8", minor="1"),
       ),
       architecture=model.Architecture.x86,
     )
@@ -80,7 +80,7 @@ class TestJSONEncoder:
       "os": {
         "distro": "windows",
         "version": {
-          "major": "6",
+          "major": "8",
           "minor": "1",
         }
       },
