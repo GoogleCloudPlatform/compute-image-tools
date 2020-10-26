@@ -45,16 +45,16 @@ function Get-MetadataValue {
     $client = New-Object Net.WebClient
     $client.Headers.Add('Metadata-Flavor', 'Google')
     $value = ($client.DownloadString($url)).Trim()
-    Write-Output "Retrieved metadata key $key with value $value."
+    Write-Host "Retrieved metadata key $key with value $value."
     return $value
   }
   catch [System.Net.WebException] {
     if ($default) {
-      Write-Output "Failed to retrieve metadata for $key, returning default $default."
+      Write-Host "Failed to retrieve metadata for $key, returning default $default."
       return $default
     }
     else {
-      Write-Output "Translate: Failed to retrieve value from metadata for $key, returning null."
+      Write-Host "Failed to retrieve value from metadata for $key, returning null."
       return $null
     }
   }
