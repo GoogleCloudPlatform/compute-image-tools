@@ -193,12 +193,6 @@ func (l *Logger) getOutputInfo(loggable Loggable, err error) *OutputInfo {
 		o.ShadowDiskMatchResult = loggable.GetValue(shadowDiskMatchResult)
 		o.IsUEFICompatibleImage = loggable.GetValueAsBool(isUEFICompatibleImage)
 		o.IsUEFIDetected = loggable.GetValueAsBool(isUEFIDetected)
-
-		o.InspectionResults = InspectionResults{
-			UEFIBootable: loggable.GetValueAsBool(uefiBootable),
-			BIOSBootable: loggable.GetValueAsBool(biosBootable),
-			RootFS:       loggable.GetValue(rootFS),
-		}
 	}
 
 	if err != nil {
@@ -208,6 +202,14 @@ func (l *Logger) getOutputInfo(loggable Loggable, err error) *OutputInfo {
 			o.SerialOutputs = loggable.ReadSerialPortLogs()
 		}
 	}
+
+	// TODO: ideally we suppose to set o.InspectionResults. Will modify after proto is adjusted.
+	l.Params.ImageImportParams.InspectionResults = InspectionResults{
+		UEFIBootable: loggable.GetValueAsBool(uefiBootable),
+		BIOSBootable: loggable.GetValueAsBool(biosBootable),
+		RootFS:       loggable.GetValue(rootFS),
+	}
+
 
 	return &o
 }
