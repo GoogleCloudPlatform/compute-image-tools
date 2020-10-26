@@ -261,14 +261,14 @@ type OutputInfo struct {
 // InspectionResults contains metadata determined using automated inspection
 type InspectionResults struct {
 	// UEFIBootable indicates whether the disk is bootable with UEFI.
-	UEFIBootable bool
+	UEFIBootable bool `json:"uefi_bootable,omitempty"`
 
 	// BIOSBootable indicates whether the disk is bootable with BIOS.
-	BIOSBootable bool
+	BIOSBootable bool `json:"bios_bootable,omitempty"`
 
 	// RootFS indicates the file system type of the partition containing
 	// the root directory ("/").
-	RootFS string
+	RootFS string `json:"root_fs,omitempty"`
 }
 
 func (l *Logger) updateParams(projectPointer *string) {
