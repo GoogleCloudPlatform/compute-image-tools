@@ -279,7 +279,7 @@ try {
   $script:sysprep = Get-MetadataValue -key 'sysprep'
   $script:is_byol = Get-MetadataValue -key 'is_byol'
   if ($script:install_packages -eq $null -or $script:sysprep -eq $null -or $script:is_byol -eq $null) {
-    Write-Output "Translate: failed to obtain at least one of the required value from metadata, rebooting in an attempt to resolve issue. install_packages=$script:install_packages, sysprep=$script:sysprep, is_byol=$script:is_byol"
+    Write-Output "Translate: failed to obtain at least one of the required values from metadata, rebooting in an attempt to resolve issue. install_packages=$script:install_packages, sysprep=$script:sysprep, is_byol=$script:is_byol"
     Restart-Computer -Force
   }
 
