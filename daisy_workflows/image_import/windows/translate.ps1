@@ -41,23 +41,26 @@ function Get-MetadataValue {
 
   # Returns the provided metadata value for a given key.
   $url = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/$key"
-  try {
-    $client = New-Object Net.WebClient
-    $client.Headers.Add('Metadata-Flavor', 'Google')
-    $value = ($client.DownloadString($url)).Trim()
-    Write-Host "Retrieved metadata for key $key with value $value."
-    return $value
-  }
-  catch [System.Net.WebException] {
-    if ($default) {
-      Write-Host "Failed to retrieve metadata for $key, returning default $default."
-      return $default
+  $max_attemps = 3
+  for ($i=0; $i -le $max_attemps; $i++) {
+    try {
+      $client = New-Object Net.WebClient
+      $client.Headers.Add('Metadata-Flavor', 'Google')
+      $value = ($client.DownloadString($url)).Trim()
+      Write-Host "Retrieved metadata for key $key with value $value."
+      return $value
     }
-    else {
-      Write-Host "Failed to retrieve value from metadata for $key, returning null."
-      return $null
+    catch [System.Net.WebException] {
+      if ($default) {
+        Write-Host "Failed to retrieve metadata for $key, returning default $default."
+        return $default
+      }
+      # Sleep after each failure with no default value to give the network adapters time to become functional.
+      Start-Sleep -s 10
     }
   }
+  Write-Host "Failed $max_attemps times to retrieve value from metadata for $key, returning null."
+  return $null
 }
 
 function Remove-VMWareTools {
