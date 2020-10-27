@@ -60,9 +60,9 @@
           "Name": "worker",
           "SerialOutput": {
             "Port": 4,
-            "SuccessMatch": "  \"status\": \"success\"",
+            "SuccessMatch": "  \"status\": \"SUCCESS\",",
             "StatusMatch": " ",
-            "FailureMatch": ["  \"status\": \"error\""]
+            "FailureMatch": ["  \"status\": \"ERROR\""]
           }
         }
       ],
