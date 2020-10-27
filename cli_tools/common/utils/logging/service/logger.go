@@ -194,10 +194,13 @@ func (l *Logger) getOutputInfo(loggable Loggable, err error) *OutputInfo {
 		o.IsUEFICompatibleImage = loggable.GetValueAsBool(isUEFICompatibleImage)
 		o.IsUEFIDetected = loggable.GetValueAsBool(isUEFIDetected)
 
-		o.InspectionResults = InspectionResults{
-			UEFIBootable: loggable.GetValueAsBool(uefiBootable),
-			BIOSBootable: loggable.GetValueAsBool(biosBootable),
-			RootFS:       loggable.GetValue(rootFS),
+		// TODO: ideally we suppose to set o.InspectionResults. Will modify after proto is adjusted.
+		if l.Params.ImageImportParams != nil {
+			l.Params.ImageImportParams.InspectionResults = InspectionResults{
+				UEFIBootable: loggable.GetValueAsBool(uefiBootable),
+				BIOSBootable: loggable.GetValueAsBool(biosBootable),
+				RootFS:       loggable.GetValue(rootFS),
+			}
 		}
 	}
 
