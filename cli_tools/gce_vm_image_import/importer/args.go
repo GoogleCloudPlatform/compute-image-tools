@@ -87,7 +87,6 @@ func NewImportArguments(args []string) (ImportArguments, error) {
 	flagSet.SetOutput(ioutil.Discard)
 
 	parsed := ImportArguments{
-		ExecutionID: path.RandString(5),
 		WorkflowDir: filepath.Join(filepath.Dir(os.Args[0]), workflowDir),
 		Started:     time.Now(),
 	}
@@ -110,12 +109,20 @@ func (args *ImportArguments) ValidateAndPopulate(populator param.Populator,
 		return err
 	}
 
+	args.populateExecutionID()
+
 	args.populateNamespacedScratchDirectory()
 	if err := args.populateNetwork(); err != nil {
 		return err
 	}
 
 	return args.validate()
+}
+
+func (args *ImportArguments) populateExecutionID() {
+	if args.ExecutionID == "" {
+		args.ExecutionID = path.RandString(5)
+	}
 }
 
 // populateNamespacedScratchDirectory updates ScratchBucketGcsPath to include a directory
@@ -229,6 +236,9 @@ func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
 		"VPC doesn't allow external IPs.")
 
 	flagSet.BoolVar(&args.Inspect, "inspect", false, "Run disk inspections.")
+
+	flagSet.Var((*flags.TrimmedString)(&args.ExecutionID), "execution_id",
+		"The execution ID to differentiate GCE resources of each imports.")
 
 	flagSet.Bool("kms_key", false, "Reserved for future use.")
 	flagSet.Bool("kms_keyring", false, "Reserved for future use.")
