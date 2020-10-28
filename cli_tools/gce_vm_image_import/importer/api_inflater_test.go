@@ -43,7 +43,7 @@ func TestCreateInflater_File(t *testing.T) {
 		expectedReference: "gs://bucket/vmdk",
 		errorToReturn:     nil,
 		metaToReturn:      imagefile.Metadata{},
-	})
+	}, nil)
 	assert.NoError(t, err)
 	facade, ok := inflater.(*inflaterFacade)
 	assert.True(t, ok)
@@ -69,7 +69,7 @@ func TestCreateInflater_Image(t *testing.T) {
 		Zone:        "us-west1-b",
 		ExecutionID: "1234",
 		WorkflowDir: daisyWorkflows,
-	}, nil, storage.Client{}, nil)
+	}, nil, storage.Client{}, nil, nil)
 	assert.NoError(t, err)
 	realInflater, ok := inflater.(*daisyInflater)
 	assert.True(t, ok)
