@@ -94,6 +94,15 @@ func (facade *inflaterFacade) Inflate() (persistentDisk, shadowTestFields, error
 	if result == sigMainInflaterDone || result == sigMainInflaterErr {
 		if result == sigMainInflaterDone {
 			matchResult = "Main inflater finished earlier"
+		} else {
+			matchResult = "Main inflater failed earlier"
+		}
+
+		// Wait for shadowInflater.inflate() to be canceled. Otherwise, shadowInflater.inflate() may
+		// be interrupted with temporary resources left: b/169073057
+		cancelResult := facade.shadowInflater.Cancel("cleanup shadow PD")
+		if cancelResult == false {
+			matchResult += " cleanup failed"
 		}
 		return pd, ii, err
 	}
@@ -204,7 +213,21 @@ type shadowTestFields struct {
 
 func newInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client,
 	inspector imagefile.Inspector, loggableBuilder *service.SingleImageImportLoggableBuilder) (Inflater, error) {
-	return NewDaisyInflater(args, inspector)
+
+	di, err := NewDaisyInflater(args, inspector)
+	if err != nil {
+		return nil, err
+	}
+
+	if isImage(args.Source) {
+		return di, nil
+	}
+
+	ai := createAPIInflater(args, computeClient, storageClient)
+	return &inflaterFacade{
+		mainInflater:   di,
+		shadowInflater: ai,
+	}, nil
 }
 
 // NewDaisyInflater returns an Inflater that uses a Daisy workflow.

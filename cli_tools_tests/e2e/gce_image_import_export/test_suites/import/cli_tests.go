@@ -28,13 +28,23 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/common/assert"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/common/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/common/utils"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e"
+	computeApi "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
+	"google.golang.org/api/googleapi"
 )
 
 const (
 	testSuiteName = "ImageImportCLI"
 )
+
+var cmds = map[e2e.CLITestType]string{
+	e2e.Wrapper:                       "./gce_vm_image_import",
+	e2e.GcloudBetaProdWrapperLatest:   "gcloud",
+	e2e.GcloudBetaLatestWrapperLatest: "gcloud",
+	e2e.GcloudGaLatestWrapperRelease:  "gcloud",
+}
 
 // CLITestSuite ensures that gcloud and the wrapper have consistent behavior for image imports.
 func CLITestSuite(
@@ -65,6 +75,8 @@ func CLITestSuite(
 			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import with different network param styles"))
 		imageImportWithSubnetWithoutNetworkSpecifiedTestCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import with subnet but without network"))
+		imageImportShadowDiskCleanedUpWhenMainInflaterFails := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import shadow disk is cleaned up when main inflater fails"))
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, utils.CLITestType){}
@@ -74,6 +86,7 @@ func CLITestSuite(
 		testsMap[testType][imageImportWithRichParamsTestCase] = runImageImportWithRichParamsTest
 		testsMap[testType][imageImportWithDifferentNetworkParamStylesTestCase] = runImageImportWithDifferentNetworkParamStyles
 		testsMap[testType][imageImportWithSubnetWithoutNetworkSpecifiedTestCase] = runImageImportWithSubnetWithoutNetworkSpecified
+		testsMap[testType][imageImportShadowDiskCleanedUpWhenMainInflaterFails] = runImageImportShadowDiskCleanedUpWhenMainInflaterFails
 	}
 	utils.CLITestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
 		testProjectConfig, testSuiteName, testsMap)
@@ -312,6 +325,47 @@ func runImageImportWithSubnetWithoutNetworkSpecified(ctx context.Context, testCa
 	runImportTest(ctx, argsMap[testType], testType, testProjectConfig, imageName, logger, testCase)
 }
 
+func runImageImportShadowDiskCleanedUpWhenMainInflaterFails(ctx context.Context, testCase *junitxml.TestCase,
+		logger *log.Logger, testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+
+	suffix := path.RandString(5)
+	imageName := "e2e-test-image-import-bad-network-" + suffix
+
+	argsMap := map[e2e.CLITestType][]string{
+		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-image_name=%s", imageName), "-data_disk",
+			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			// main inflater will fail because vpc-1 network is a custom network and requires a subnet flag that is not provided
+			fmt.Sprintf("-network=global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("-execution_id=%v", suffix),
+		},
+	}
+
+	args := argsMap[testType]
+	if args == nil {
+		return
+	}
+
+	e2e.RunTestCommandAssertErrorMessage(cmds[testType], args, "googleapi: Error 400: Invalid value for field 'resource.networkInterfaces[0]'", logger, testCase)
+
+	// Try get shadow disk.
+	shadowDiskName := "shadow-disk-" + suffix
+	logger.Printf("Verifying shadow disk cleanup...")
+	client, err := computeApi.NewClient(ctx)
+	if err != nil {
+		e2e.Failure(testCase, logger, fmt.Sprintf("Failed to create compute API client: %v", err))
+		return
+	}
+	_, err = client.GetDisk(testProjectConfig.TestProjectID, testProjectConfig.TestZone, shadowDiskName)
+
+	// Expect 404 error to ensure shadow disk has been cleaned up.
+	if apiErr, ok := err.(*googleapi.Error); !ok || apiErr.Code != 404 {
+		e2e.Failure(testCase, logger, fmt.Sprintf("Shadow disk '%v' not cleaned up.", shadowDiskName))
+		return
+	}
+}
+
 func runImportTest(ctx context.Context, args []string, testType utils.CLITestType,
 	testProjectConfig *testconfig.Project, imageName string, logger *log.Logger, testCase *junitxml.TestCase) {
 
@@ -321,13 +375,6 @@ func runImportTest(ctx context.Context, args []string, testType utils.CLITestTyp
 func runImportTestWithExtraParams(ctx context.Context, args []string, testType utils.CLITestType,
 	testProjectConfig *testconfig.Project, imageName string, logger *log.Logger, testCase *junitxml.TestCase,
 	expectedFamily string, expectedDescription string, expectedLabels []string) {
-
-	cmds := map[utils.CLITestType]string{
-		utils.Wrapper:                       "./gce_vm_image_import",
-		utils.GcloudBetaProdWrapperLatest:   "gcloud",
-		utils.GcloudBetaLatestWrapperLatest: "gcloud",
-		utils.GcloudGaLatestWrapperRelease:  "gcloud",
-	}
 
 	// "family", "description" and "labels" hasn't been supported by gcloud
 	if testType != utils.Wrapper {

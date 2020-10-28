@@ -131,10 +131,32 @@ func RunCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmdString strin
 	return cmd.Run()
 }
 
+func runCliToolReturningErrorMessage(logger *log.Logger, testCase *junitxml.TestCase, cmdString string, args []string) (string, error) {
+	prefix := "Test Env"
+	if testCase != nil {
+		prefix = testCase.Name
+	}
+	logger.Printf("[%v] Running command: '%s %s'", prefix, cmdString, strings.Join(args, " "))
+	cmd := exec.Command(cmdString, args...)
+	out, err := cmd.CombinedOutput()
+	os.Stdout.Write(out)
+	return string(out), err
+}
+
 // RunTestCommand runs given test command
 func RunTestCommand(cmd string, args []string, logger *log.Logger, testCase *junitxml.TestCase) bool {
 	if err := RunCliTool(logger, testCase, cmd, args); err != nil {
 		Failure(testCase, logger, fmt.Sprintf("Error running cmd: %v\n", err))
+		return false
+	}
+	return true
+}
+
+// RunTestCommandAssertErrorMessage runs given test command and assert given error message appears.
+func RunTestCommandAssertErrorMessage(cmd string, args []string, expectedErrorMessage string, logger *log.Logger, testCase *junitxml.TestCase) bool {
+	msg, _ := runCliToolReturningErrorMessage(logger, testCase, cmd, args)
+	if !strings.Contains(msg, expectedErrorMessage) {
+		Failure(testCase, logger, fmt.Sprintf("Expected error message '%v' not found, '%v'.\n", expectedErrorMessage, msg))
 		return false
 	}
 	return true
