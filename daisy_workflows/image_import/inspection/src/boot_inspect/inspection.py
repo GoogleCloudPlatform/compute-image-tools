@@ -69,7 +69,19 @@ _LINUX = [
             metadata_file='/etc/redhat-release',
             version_pattern=re.compile(r'\d+\.\d+')),
     ),
-    linux.Fingerprint(model.Distro.SLES, aliases=['sles_sap']),
+    # Depending on the version, SLES for SAP has a variety of identifiers in
+    # /etc/os-release.  To match, one of those identifiers must be seen
+    # *and* the file /etc/products.d/SLES_SAP.prod must exist.
+    #
+    # This is documented here:
+    #   https://www.suse.com/support/kb/doc/?id=000019341
+    linux.Fingerprint(
+        model.Distro.SLES_SAP,
+        aliases=['sles', 'sles_sap'],
+        fs_predicate=linux.FileExistenceMatcher(
+            require={'/etc/products.d/SLES_SAP.prod'})
+    ),
+    linux.Fingerprint(model.Distro.SLES),
     linux.Fingerprint(model.Distro.OPENSUSE, aliases=['opensuse-leap']),
     linux.Fingerprint(model.Distro.ORACLE, aliases=['ol', 'oraclelinux']),
     linux.Fingerprint(model.Distro.UBUNTU),
