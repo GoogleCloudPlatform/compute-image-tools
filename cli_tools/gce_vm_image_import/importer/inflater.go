@@ -212,7 +212,7 @@ type shadowTestFields struct {
 }
 
 func newInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client,
-	inspector imagefile.Inspector, loggableBuilder *service.SingleImageImportLoggableBuilder) (Inflater, error) {
+	inspector imagefile.Inspector) (Inflater, error) {
 
 	di, err := NewDaisyInflater(args, inspector)
 	if err != nil {

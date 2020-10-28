@@ -43,7 +43,7 @@ func TestCreateInflater_File(t *testing.T) {
 		expectedReference: "gs://bucket/vmdk",
 		errorToReturn:     nil,
 		metaToReturn:      imagefile.Metadata{},
-	}, nil)
+	})
 	assert.NoError(t, err)
 	facade, ok := inflater.(*inflaterFacade)
 	assert.True(t, ok)
@@ -69,7 +69,7 @@ func TestCreateInflater_Image(t *testing.T) {
 		Zone:        "us-west1-b",
 		ExecutionID: "1234",
 		WorkflowDir: daisyWorkflows,
-	}, nil, storage.Client{}, nil, nil)
+	}, nil, storage.Client{}, nil)
 	assert.NoError(t, err)
 	realInflater, ok := inflater.(*daisyInflater)
 	assert.True(t, ok)
@@ -115,7 +115,7 @@ func TestAPIInflater_Inflate_CreateDiskFailed_CancelWithoutDeleteDisk(t *testing
 	cancelResult := apiInflater.Cancel("cancel")
 	assert.True(t, cancelResult)
 
-	_, _, err := apiInflater.Inflate(nil)
+	_, _, err := apiInflater.Inflate()
 	assert.Equal(t, "apiInflater.inflate is canceled: cancel", apiInflater.serialLogs[0])
 	assert.Error(t, err)
 }
@@ -147,7 +147,7 @@ func TestAPIInflater_Inflate_CreateDiskSuccess_CancelWithDeleteDisk(t *testing.T
 	cancelResult := apiInflater.Cancel("cancel")
 	assert.True(t, cancelResult)
 
-	_, _, err := apiInflater.Inflate(nil)
+	_, _, err := apiInflater.Inflate()
 	assert.Equal(t, "apiInflater.inflate is canceled: cancel", apiInflater.serialLogs[0])
 	assert.NoError(t, err)
 }

@@ -109,12 +109,12 @@ func (args *ImportArguments) ValidateAndPopulate(populator param.Populator,
 		return err
 	}
 
+	args.populateExecutionID()
+
 	args.populateNamespacedScratchDirectory()
 	if err := args.populateNetwork(); err != nil {
 		return err
 	}
-
-	args.populateExecutionID()
 
 	return args.validate()
 }

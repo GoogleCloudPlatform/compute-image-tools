@@ -326,7 +326,7 @@ func runImageImportWithSubnetWithoutNetworkSpecified(ctx context.Context, testCa
 }
 
 func runImageImportShadowDiskCleanedUpWhenMainInflaterFails(ctx context.Context, testCase *junitxml.TestCase,
-		logger *log.Logger, testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+	logger *log.Logger, testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	suffix := path.RandString(5)
 	imageName := "e2e-test-image-import-bad-network-" + suffix
