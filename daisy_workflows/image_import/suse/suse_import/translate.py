@@ -145,6 +145,9 @@ def _get_release(g: guestfs.GuestFS) -> _SuseRelease:
   major = g.gcp_image_major
   minor = g.gcp_image_minor
 
+  if 'unknown' == product:
+    raise ValueError('No SUSE operating systems found.')
+
   matched = None
   for r in _releases:
     if re.match(r.name, product) \
@@ -337,3 +340,7 @@ def translate():
   _update_grub(g)
   utils.CommonRoutines(g)
   diskutils.UnmountDisk(g)
+
+
+def main():
+  utils.RunTranslate(translate, run_with_tracing=False)

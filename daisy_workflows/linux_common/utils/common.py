@@ -26,6 +26,7 @@ import sys
 import time
 import trace
 import traceback
+import typing
 import urllib.error
 import urllib.request
 import uuid
@@ -227,11 +228,22 @@ def CommonRoutines(g):
   g.sh("rm -f /etc/ssh/ssh_host_*")
 
 
-def RunTranslate(translate_func):
+def RunTranslate(translate_func: typing.Callable,
+                 run_with_tracing: bool = True):
+  """Run `translate_func`, and communicate success or failure back to Daisy.
+
+  Args:
+    translate_func: Closure to execute
+    run_with_tracing: When enabled, the closure will be executed with
+    trace.Trace, resulting in executed lines being printed to stdout.
+  """
   try:
-    tracer = trace.Trace(
-        ignoredirs=[sys.prefix, sys.exec_prefix], trace=1, count=0)
-    tracer.runfunc(translate_func)
+    if run_with_tracing:
+      tracer = trace.Trace(
+          ignoredirs=[sys.prefix, sys.exec_prefix], trace=1, count=0)
+      tracer.runfunc(translate_func)
+    else:
+      translate_func()
     logging.success('Translation finished.')
   except Exception as e:
     logging.error('error: %s', str(e))
