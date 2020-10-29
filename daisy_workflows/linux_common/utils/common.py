@@ -220,7 +220,7 @@ def CommonRoutines(g):
   # Remove udev file to force it to be re-generated
   logging.info('Removing udev 70-persistent-net.rules.')
   _ClearImmutableAttr(g, '/etc/udev/rules.d/70-persistent-net.rules')
-  g.rm_f('/etc/udev/rules.d/70-persistent-net.rules')
+  g.rm_rf('/etc/udev/rules.d/70-persistent-net.rules')
 
   # Remove SSH host keys.
   logging.info('Removing SSH host keys.')
