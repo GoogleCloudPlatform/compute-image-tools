@@ -16,63 +16,81 @@ package ovfexporter
 
 import (
 	"context"
+	"fmt"
 
+	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
 )
 
-// InstanceExportPreparer prepares a Compute Engine instance for export into OVF
-// by shutting it down and detaching disks
-type InstanceExportPreparer interface {
-	Prepare(instance *compute.Instance) error
-	TraceLogs() []string
-	Cancel(reason string) bool
-}
-
 type instanceExportPreparerImpl struct {
-	wf                *daisy.Workflow
-	params            *OVFExportParams
-	workflowGenerator *OVFExportWorkflowGenerator
-	instance          *compute.Instance
-	workflowPath      string
-	serialLogs        []string
+	wf           *daisy.Workflow
+	instance     *compute.Instance
+	workflowPath string
+	serialLogs   []string
 }
 
 // NewInstanceExportPreparer creates a new instance export preparer
-func NewInstanceExportPreparer(params *OVFExportParams, workflowGenerator *OVFExportWorkflowGenerator,
-	workflowPath string) InstanceExportPreparer {
+func NewInstanceExportPreparer(workflowPath string) ovfexportdomain.InstanceExportPreparer {
 	return &instanceExportPreparerImpl{
-		params:            params,
-		workflowGenerator: workflowGenerator,
-		workflowPath:      workflowPath,
+		workflowPath: workflowPath,
 	}
 }
 
-func (iep *instanceExportPreparerImpl) Prepare(instance *compute.Instance) error {
+func (iep *instanceExportPreparerImpl) Prepare(instance *compute.Instance, params *ovfexportdomain.OVFExportParams) error {
 	iep.instance = instance
 	var err error
 	iep.wf, err = runWorkflowWithSteps(context.Background(), "ovf-export-prepare",
-		iep.workflowPath, iep.params.Timeout, func(w *daisy.Workflow) error { return iep.populatePrepareSteps(w, instance) },
-		map[string]string{}, iep.params)
+		iep.workflowPath, params.Timeout, func(w *daisy.Workflow) error { return iep.populatePrepareSteps(w, instance, params) },
+		map[string]string{}, params)
 	if iep.wf.Logger != nil {
 		iep.serialLogs = iep.wf.Logger.ReadSerialPortLogs()
 	}
 	return err
 }
 
-func (iep *instanceExportPreparerImpl) populatePrepareSteps(w *daisy.Workflow, instance *compute.Instance) error {
+func (iep *instanceExportPreparerImpl) populatePrepareSteps(w *daisy.Workflow, instance *compute.Instance, params *ovfexportdomain.OVFExportParams) error {
 	var previousStepName string
 	if isInstanceRunning(iep.instance) {
 		previousStepName = "stop-instance"
-		iep.workflowGenerator.addStopInstanceStep(w, instance, previousStepName)
+		iep.addStopInstanceStep(w, instance, previousStepName, params)
 	}
 
-	_, err := iep.workflowGenerator.AddDetachDisksSteps(w, instance, previousStepName, "")
+	_, err := iep.AddDetachDisksSteps(w, instance, previousStepName, params)
 
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+// AddDetachDisksSteps adds Daisy steps to OVF export workflow to detach instance disks.
+func (iep *instanceExportPreparerImpl) AddDetachDisksSteps(w *daisy.Workflow, instance *compute.Instance, previousStepName string, params *ovfexportdomain.OVFExportParams) ([]string, error) {
+	if instance == nil || len(instance.Disks) == 0 {
+		return nil, daisy.Errf("No attachedDisks found in the Instance to export")
+	}
+	attachedDisks := instance.Disks
+
+	var stepNames []string
+
+	for i, attachedDisk := range attachedDisks {
+		detachDiskStepName := fmt.Sprintf("detach-disk-%v-%v", i, attachedDisk.DeviceName)
+		stepNames = append(stepNames, detachDiskStepName)
+		detachDiskStep := daisy.NewStepDefaultTimeout(detachDiskStepName, w)
+		detachDiskStep.DetachDisks = &daisy.DetachDisks{
+			&daisy.DetachDisk{
+				Instance:   getInstancePath(instance, *params.Project),
+				DeviceName: daisyutils.GetDeviceURI(*params.Project, params.Zone, attachedDisk.DeviceName),
+			},
+		}
+
+		w.Steps[detachDiskStepName] = detachDiskStep
+		if previousStepName != "" {
+			w.Dependencies[detachDiskStepName] = append(w.Dependencies[detachDiskStepName], previousStepName)
+		}
+	}
+	return stepNames, nil
 }
 
 func (iep *instanceExportPreparerImpl) TraceLogs() []string {
@@ -85,4 +103,14 @@ func (iep *instanceExportPreparerImpl) Cancel(reason string) bool {
 	}
 	iep.wf.CancelWithReason(reason)
 	return true
+}
+
+// addStopInstanceStep adds a StopInstance step to a workflow
+func (iep *instanceExportPreparerImpl) addStopInstanceStep(w *daisy.Workflow,
+	instance *compute.Instance, stopInstanceStepName string, params *ovfexportdomain.OVFExportParams) {
+	stopInstanceStep := daisy.NewStepDefaultTimeout(stopInstanceStepName, w)
+	stopInstanceStep.StopInstances = &daisy.StopInstances{
+		Instances: []string{getInstancePath(instance, *params.Project)},
+	}
+	w.Steps[stopInstanceStepName] = stopInstanceStep
 }

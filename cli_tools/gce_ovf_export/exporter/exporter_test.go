@@ -14,8 +14,49 @@
 
 package ovfexporter
 
-import "testing"
+import (
+	"context"
+	"testing"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+)
 
 func TestExporter_Export(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
 
+	params := ovfexportdomain.GetAllInstanceExportParams()
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockComputeClient := mocks.NewMockClient(mockCtrl)
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
+	mockLogger := mocks.NewMockLoggerInterface(mockCtrl)
+	mockInspector := mocks.NewMockInspector(mockCtrl)
+	mockOvfDescriptorGenerator := mocks.NewMockOvfDescriptorGenerator(mockCtrl)
+	mockOvfManifestGenerator := mocks.NewMockOvfManifestGenerator(mockCtrl)
+	mockInstanceDisksExporter := mocks.NewMockInstanceDisksExporter(mockCtrl)
+	mockInstanceExportPreparer := mocks.NewMockInstanceExportPreparer(mockCtrl)
+	mockInstanceExportCleaner := mocks.NewMockInstanceExportCleaner(mockCtrl)
+
+	exporter := &OVFExporter{
+		storageClient:          mockStorageClient,
+		computeClient:          mockComputeClient,
+		mgce:                   mockMetadataGce,
+		bucketIteratorCreator:  mockBucketIteratorCreator,
+		Logger:                 mockLogger,
+		params:                 params,
+		loggableBuilder:        service.NewOVFExportLoggableBuilder(),
+		ovfDescriptorGenerator: mockOvfDescriptorGenerator,
+		manifestFileGenerator:  mockOvfManifestGenerator,
+		inspector:              mockInspector,
+		instanceDisksExporter:  mockInstanceDisksExporter,
+		instanceExportPreparer: mockInstanceExportPreparer,
+		instanceExportCleaner:  mockInstanceExportCleaner,
+	}
+	err := exporter.run(context.Background())
+	assert.Nil(t, err)
 }

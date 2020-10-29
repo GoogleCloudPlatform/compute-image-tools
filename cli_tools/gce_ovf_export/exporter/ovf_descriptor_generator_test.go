@@ -21,6 +21,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	commondisk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
+	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -51,19 +52,19 @@ func TestOvfDescriptorGenerator_GenerateAndWriteOVFDescriptor(t *testing.T) {
 		Name:        instanceName,
 		MachineType: machineTypeURI,
 	}
-	disk1 := &ExportedDisk{
-		attachedDisk: &compute.AttachedDisk{Boot: true},
-		disk:         &compute.Disk{SizeGb: 10},
-		gcsPath:      gcsFolder + "disk1.vmdk",
-		gcsFileAttrs: &storage.ObjectAttrs{},
+	disk1 := &ovfexportdomain.ExportedDisk{
+		AttachedDisk: &compute.AttachedDisk{Boot: true},
+		Disk:         &compute.Disk{SizeGb: 10},
+		GcsPath:      gcsFolder + "disk1.vmdk",
+		GcsFileAttrs: &storage.ObjectAttrs{},
 	}
-	disk2 := &ExportedDisk{
-		attachedDisk: &compute.AttachedDisk{},
-		disk:         &compute.Disk{SizeGb: 20},
-		gcsPath:      gcsFolder + "disk2.vmdk",
-		gcsFileAttrs: &storage.ObjectAttrs{},
+	disk2 := &ovfexportdomain.ExportedDisk{
+		AttachedDisk: &compute.AttachedDisk{},
+		Disk:         &compute.Disk{SizeGb: 20},
+		GcsPath:      gcsFolder + "disk2.vmdk",
+		GcsFileAttrs: &storage.ObjectAttrs{},
 	}
-	exportedDisks := []*ExportedDisk{disk1, disk2}
+	exportedDisks := []*ovfexportdomain.ExportedDisk{disk1, disk2}
 	diskInspectionResults := &commondisk.InspectionResult{Distro: "ubuntu", Major: "18", Minor: "04", Architecture: "x64"}
 
 	g := ovfDescriptorGeneratorImpl{storageClient: mockStorageClient, computeClient: mockComputeClient, Project: project, Zone: zone}
@@ -90,6 +91,6 @@ func TestOvfDescriptorGenerator_GenerateAndWriteOVFDescriptor_ErrorOnGetMachineT
 		MachineType: machineTypeURI,
 	}
 	g := ovfDescriptorGeneratorImpl{storageClient: mockStorageClient, computeClient: mockComputeClient, Project: project, Zone: zone}
-	err := g.GenerateAndWriteOVFDescriptor(instance, []*ExportedDisk{}, "a-bucket", "folder1/subfolder/", nil)
+	err := g.GenerateAndWriteOVFDescriptor(instance, []*ovfexportdomain.ExportedDisk{}, "a-bucket", "folder1/subfolder/", nil)
 	assert.Equal(t, machineTypeErr, err)
 }

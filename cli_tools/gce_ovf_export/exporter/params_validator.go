@@ -17,55 +17,64 @@ package ovfexporter
 import (
 	"strings"
 
-	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
+
+type ovfExportParamValidatorImpl struct {
+	validReleaseTracks []string
+	zoneValidator      domain.ZoneValidatorInterface
+}
 
 // ValidateAndParseParams validates and parses OVFExportParams. It returns an
 // error if params are invalid. If params are valid, additional fields in
 // OVFExportParams will be populated with parsed values
-func ValidateAndParseParams(params *OVFExportParams, validReleaseTracks []string) error {
+func (validator *ovfExportParamValidatorImpl) ValidateAndParseParams(params *ovfexportdomain.OVFExportParams) error {
 	if params.InstanceName == "" && params.MachineImageName == "" {
-		return daisy.Errf("Either the flag -%v or -%v must be provided", InstanceNameFlagKey, MachineImageNameFlagKey)
+		return daisy.Errf("Either the flag -%v or -%v must be provided", ovfexportdomain.InstanceNameFlagKey, ovfexportdomain.MachineImageNameFlagKey)
 	}
 
 	if params.InstanceName != "" && params.MachineImageName != "" {
-		return daisy.Errf("-%v and -%v can't be provided at the same time", InstanceNameFlagKey, MachineImageNameFlagKey)
+		return daisy.Errf("-%v and -%v can't be provided at the same time", ovfexportdomain.InstanceNameFlagKey, ovfexportdomain.MachineImageNameFlagKey)
 	}
 
-	if err := validation.ValidateStringFlagNotEmpty(params.DestinationURI, DestinationURIFlagKey); err != nil {
+	if err := validation.ValidateStringFlagNotEmpty(params.DestinationURI, ovfexportdomain.DestinationURIFlagKey); err != nil {
 		return err
 	}
 
-	if err := validation.ValidateStringFlagNotEmpty(params.ClientID, ClientIDFlagKey); err != nil {
+	if err := validation.ValidateStringFlagNotEmpty(params.ClientID, ovfexportdomain.ClientIDFlagKey); err != nil {
 		return err
 	}
 
 	if _, err := storage.GetBucketNameFromGCSPath(params.DestinationURI); err != nil {
-		return daisy.Errf("%v should be a path a Cloud Storage directory", DestinationURIFlagKey)
+		return daisy.Errf("%v should be a path a Cloud Storage directory", ovfexportdomain.DestinationURIFlagKey)
 	}
-	params.DestinationURI = pathutils.ToDirectoryURL(params.DestinationURI)
 
 	if params.ReleaseTrack != "" {
 		isValidReleaseTrack := false
-		for _, vrt := range validReleaseTracks {
+		for _, vrt := range validator.validReleaseTracks {
 			if params.ReleaseTrack == vrt {
 				isValidReleaseTrack = true
 			}
 		}
 
 		if !isValidReleaseTrack {
-			return daisy.Errf("%v should have one of the following values: %v", ReleaseTrackFlagKey, validReleaseTracks)
+			return daisy.Errf("%v should have one of the following values: %v", ovfexportdomain.ReleaseTrackFlagKey, validator.validReleaseTracks)
 		}
 	}
 
 	if params.OvfFormat != "" {
 		params.OvfFormat = strings.ToLower(params.OvfFormat)
 		if params.OvfFormat != "ovf" && params.OvfFormat != "ova" {
-			return daisy.Errf("%v should have one of the following values: %v", OvfFormatFlagKey, []string{"ovf", "ova"})
+			return daisy.Errf("%v should have one of the following values: %v", ovfexportdomain.OvfFormatFlagKey, []string{"ovf", "ova"})
 		}
+	}
+
+	if err := validator.zoneValidator.ZoneValid(*params.Project, params.Zone); err != nil {
+		return err
 	}
 
 	return nil

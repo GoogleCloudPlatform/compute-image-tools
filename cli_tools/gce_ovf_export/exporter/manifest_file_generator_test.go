@@ -164,8 +164,8 @@ func TestManifestGenerator_GenerateAndWriteToGCS_ErrorOnWriteToGCS(t *testing.T)
 	assert.Equal(t, gcsWriteError, err)
 }
 
-func createManifestFileGenerator(storageClient domain.StorageClientInterface) *manifestFileGeneratorImpl {
-	return &manifestFileGeneratorImpl{
+func createManifestFileGenerator(storageClient domain.StorageClientInterface) *ovfManifestGeneratorImpl {
+	return &ovfManifestGeneratorImpl{
 		storageClient: storageClient,
 		cancelChan:    make(chan string),
 	}

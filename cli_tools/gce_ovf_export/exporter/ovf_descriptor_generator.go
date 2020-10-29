@@ -24,6 +24,7 @@ import (
 	commondisk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	ovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/vmware/govmomi/ovf"
@@ -42,13 +43,6 @@ const (
 	usbController          uint16 = 23
 )
 
-// OvfDescriptorGenerator is responsible for generating OVF descriptor based on
-//GCE instance being exported.
-type OvfDescriptorGenerator interface {
-	GenerateAndWriteOVFDescriptor(instance *compute.Instance, exportedDisks []*ExportedDisk, bucketName, gcsDirectoryPath string, diskInspectionResult *commondisk.InspectionResult) error
-	Cancel(reason string) bool
-}
-
 type ovfDescriptorGeneratorImpl struct {
 	computeClient daisycompute.Client
 	storageClient domain.StorageClientInterface
@@ -58,7 +52,7 @@ type ovfDescriptorGeneratorImpl struct {
 
 // NewOvfDescriptorGenerator creates a new OvfDescriptorGenerator
 func NewOvfDescriptorGenerator(computeClient daisycompute.Client, storageClient domain.StorageClientInterface,
-	project string, zone string) OvfDescriptorGenerator {
+	project string, zone string) ovfexportdomain.OvfDescriptorGenerator {
 	return &ovfDescriptorGeneratorImpl{
 		computeClient: computeClient,
 		storageClient: storageClient,
@@ -69,7 +63,7 @@ func NewOvfDescriptorGenerator(computeClient daisycompute.Client, storageClient 
 
 // GenerateAndWriteOVFDescriptor generates an OVF descriptor based on the
 // instance exported and disk file paths. and stores it as a file in GCS.
-func (g *ovfDescriptorGeneratorImpl) GenerateAndWriteOVFDescriptor(instance *compute.Instance, exportedDisks []*ExportedDisk, bucketName, gcsDirectoryPath string, diskInspectionResult *commondisk.InspectionResult) error {
+func (g *ovfDescriptorGeneratorImpl) GenerateAndWriteOVFDescriptor(instance *compute.Instance, exportedDisks []*ovfexportdomain.ExportedDisk, bucketName, gcsDirectoryPath string, diskInspectionResult *commondisk.InspectionResult) error {
 	var err error
 	var descriptor *ovf.Envelope
 	if descriptor, err = g.generate(instance, exportedDisks, diskInspectionResult); err != nil {
@@ -86,7 +80,7 @@ func (g *ovfDescriptorGeneratorImpl) GenerateAndWriteOVFDescriptor(instance *com
 }
 
 // Generate generates an OVF descriptor based on the instance exported and disk file paths.
-func (g *ovfDescriptorGeneratorImpl) generate(instance *compute.Instance, exportedDisks []*ExportedDisk, diskInspectionResult *commondisk.InspectionResult) (*ovf.Envelope, error) {
+func (g *ovfDescriptorGeneratorImpl) generate(instance *compute.Instance, exportedDisks []*ovfexportdomain.ExportedDisk, diskInspectionResult *commondisk.InspectionResult) (*ovf.Envelope, error) {
 	descriptor := &ovf.Envelope{}
 	descriptor.VirtualHardware = &ovf.VirtualHardwareSection{}
 	descriptor.References = make([]ovf.File, len(exportedDisks))
@@ -118,20 +112,20 @@ func (g *ovfDescriptorGeneratorImpl) generate(instance *compute.Instance, export
 	// disks
 	//TODO: look for AttachedDisk.Boot and export that one first
 	for diskIndex, exportedDisk := range exportedDisks {
-		diskGCSFileName := exportedDisk.gcsPath
+		diskGCSFileName := exportedDisk.GcsPath
 		if slash := strings.LastIndex(diskGCSFileName, "/"); slash > -1 {
 			diskGCSFileName = diskGCSFileName[slash+1:]
 		}
 		descriptor.References[diskIndex] = ovf.File{
 			Href: diskGCSFileName,
 			ID:   "file" + strconv.Itoa(diskIndex),
-			Size: uint(exportedDisk.gcsFileAttrs.Size),
+			Size: uint(exportedDisk.GcsFileAttrs.Size),
 		}
 
 		descriptor.Disk.Disks[diskIndex] = ovf.VirtualDiskDesc{
 			DiskID:                  fmt.Sprintf("vmdisk%v", diskIndex),
 			FileRef:                 &descriptor.References[diskIndex].ID,
-			Capacity:                strconv.FormatInt(exportedDisk.disk.SizeGb, 10),
+			Capacity:                strconv.FormatInt(exportedDisk.Disk.SizeGb, 10),
 			CapacityAllocationUnits: strPtr("byte * 2^30"),
 		}
 
@@ -205,10 +199,6 @@ func formatOSDescription(ir *commondisk.InspectionResult) string {
 
 func generateVirtualHardwareItemID(descriptor *ovf.Envelope) string {
 	return strconv.Itoa(len(descriptor.VirtualSystem.VirtualHardware[0].Item) + 1)
-}
-
-func appendItem(item *ovf.ResourceAllocationSettingData, items *[]ovf.ResourceAllocationSettingData) {
-	*items = append(*items, *item)
 }
 
 func createDiskItem(instanceID string, parentID string, addressOnParent int, diskID string) *ovf.ResourceAllocationSettingData {

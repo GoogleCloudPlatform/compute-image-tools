@@ -22,6 +22,7 @@ import (
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
 )
@@ -30,14 +31,14 @@ type populateStepsFunc func(*daisy.Workflow) error
 
 func (oe *OVFExporter) prepare(ctx context.Context, instance *compute.Instance) error {
 	return oe.runStep(ctx, func() error {
-		return oe.instanceExportPreparer.Prepare(instance)
+		return oe.instanceExportPreparer.Prepare(instance, oe.params)
 	}, oe.instanceExportPreparer.Cancel, oe.instanceExportPreparer.TraceLogs)
 }
 
 func (oe *OVFExporter) exportDisks(ctx context.Context, instance *compute.Instance) error {
 	return oe.runStep(ctx, func() error {
 		var err error
-		oe.exportedDisks, err = oe.instanceDisksExporter.Export(instance)
+		oe.exportedDisks, err = oe.instanceDisksExporter.Export(instance, oe.params)
 		return err
 	}, oe.instanceDisksExporter.Cancel, oe.instanceDisksExporter.TraceLogs)
 }
@@ -50,7 +51,7 @@ func (oe *OVFExporter) inspectBootDisk(ctx context.Context) error {
 	return oe.runStep(ctx, func() error {
 		var err error
 		oe.bootDiskInspectionResults, err = oe.inspector.Inspect(
-			daisyutils.GetDiskURI(*oe.params.Project, oe.params.Zone, bootDisk.disk.Name), true)
+			daisyutils.GetDiskURI(*oe.params.Project, oe.params.Zone, bootDisk.Disk.Name), true)
 		if err != nil {
 			oe.Logger.Log(fmt.Sprintf("WARNING: Could not detect operating system on the boot disk: %v", err))
 		}
@@ -62,11 +63,11 @@ func (oe *OVFExporter) inspectBootDisk(ctx context.Context) error {
 
 func (oe *OVFExporter) generateDescriptor(ctx context.Context, instance *compute.Instance) error {
 	return oe.runStep(ctx, func() error {
-		if bucketName, gcsDirectoryPath, err := storageutils.GetGCSObjectPathElements(oe.params.DestinationURI); err != nil {
+		bucketName, gcsDirectoryPath, err := storageutils.GetGCSObjectPathElements(oe.params.DestinationURI)
+		if err != nil {
 			return err
-		} else {
-			return oe.ovfDescriptorGenerator.GenerateAndWriteOVFDescriptor(instance, oe.exportedDisks, bucketName, gcsDirectoryPath, &oe.bootDiskInspectionResults)
 		}
+		return oe.ovfDescriptorGenerator.GenerateAndWriteOVFDescriptor(instance, oe.exportedDisks, bucketName, gcsDirectoryPath, &oe.bootDiskInspectionResults)
 	}, oe.ovfDescriptorGenerator.Cancel, func() []string { return nil })
 }
 
@@ -77,40 +78,23 @@ func (oe *OVFExporter) generateManifest(ctx context.Context) error {
 }
 
 func (oe *OVFExporter) cleanup(ctx context.Context, instance *compute.Instance) error {
-	_, err := runWorkflowWithSteps(context.Background(), "ovf-export-cleanup",
-		oe.workflowPath, oe.params.Timeout,
-		func(w *daisy.Workflow) error { return populateCleanupSteps(w, oe.workflowGenerator, instance) },
-		map[string]string{}, oe.params)
-	if err != nil {
-		return err
-	}
-	if oe.storageClient != nil {
-		err := oe.storageClient.Close()
+	return oe.runStep(ctx, func() error {
+		err := oe.instanceExportCleaner.Clean(instance, oe.params)
 		if err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-func populateCleanupSteps(w *daisy.Workflow, workflowGenerator *OVFExportWorkflowGenerator, instance *compute.Instance) error {
-	var nextStepName string
-	var err error
-	if isInstanceRunning(instance) {
-		nextStepName = "start-instance"
-	}
-	_, err = workflowGenerator.addAttachDisksSteps(w, instance, nextStepName)
-	if err != nil {
-		return err
-	}
-	if isInstanceRunning(instance) {
-		workflowGenerator.addStartInstanceStep(w, instance, nextStepName)
-	}
-	return nil
+		if oe.storageClient != nil {
+			err := oe.storageClient.Close()
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}, oe.instanceExportPreparer.Cancel, oe.instanceExportPreparer.TraceLogs)
 }
 
 func runWorkflowWithSteps(ctx context.Context, workflowName, workflowPath, timeout string,
-	populateStepsFunc populateStepsFunc, varMap map[string]string, params *OVFExportParams) (*daisy.Workflow, error) {
+	populateStepsFunc populateStepsFunc, varMap map[string]string, params *ovfexportdomain.OVFExportParams) (*daisy.Workflow, error) {
 
 	w, err := generateWorkflowWithSteps(workflowName, workflowPath, timeout, populateStepsFunc, varMap, params)
 	if err != nil {
@@ -122,7 +106,7 @@ func runWorkflowWithSteps(ctx context.Context, workflowName, workflowPath, timeo
 	return w, err
 }
 
-func generateWorkflowWithSteps(workflowName, workflowPath, timeout string, populateStepsFunc populateStepsFunc, varMap map[string]string, params *OVFExportParams) (*daisy.Workflow, error) {
+func generateWorkflowWithSteps(workflowName, workflowPath, timeout string, populateStepsFunc populateStepsFunc, varMap map[string]string, params *ovfexportdomain.OVFExportParams) (*daisy.Workflow, error) {
 	w, err := daisycommon.ParseWorkflow(workflowPath, varMap, *params.Project,
 		params.Zone, params.ScratchBucketGcsPath, params.Oauth, params.Timeout, params.Ce,
 		params.GcsLogsDisabled, params.CloudLogsDisabled, params.StdoutLogsDisabled)
@@ -194,31 +178,6 @@ func (oe *OVFExporter) getCtxError(ctx context.Context) (err error) {
 	return err
 }
 
-func (oe *OVFExporter) buildDaisyVars() map[string]string {
-	varMap := map[string]string{}
-	//TODO: nework/subnet are needed for export workflow. Can it be set in a different way instead having it as a param?
-
-	//if oe.params.IsInstanceExport() {
-	//	// instance import specific vars
-	//	varMap["instance_name"] = oe.instancePath
-	//} else {
-	//	// machine image import specific vars
-	//	varMap["machine_image_name"] = strings.ToLower(oe.params.MachineImageName)
-	//}
-	//
-	//if oe.params.Subnet != "" {
-	//	varMap["subnet"] = param.GetRegionalResourcePath(oe.region, "subnetworks", oe.params.Subnet)
-	//	// When subnet is set, we need to grant a value to network to avoid fallback to default
-	//	if oe.params.Network == "" {
-	//		varMap["network"] = ""
-	//	}
-	//}
-	//if oe.params.Network != "" {
-	//	varMap["network"] = param.GetGlobalResourcePath("networks", oe.params.Network)
-	//}
-	return varMap
-}
-
 func (oe *OVFExporter) labelResources(w *daisy.Workflow) {
 	rl := &daisyutils.ResourceLabeler{
 		BuildID:         oe.BuildID,
@@ -240,9 +199,9 @@ func isInstanceRunning(instance *compute.Instance) bool {
 		instance.Status == "SUSPENDED" || instance.Status == "SUSPENDING")
 }
 
-func getBootDisk(exportedDisks []*ExportedDisk) *ExportedDisk {
+func getBootDisk(exportedDisks []*ovfexportdomain.ExportedDisk) *ovfexportdomain.ExportedDisk {
 	for _, exportedDisk := range exportedDisks {
-		if exportedDisk.attachedDisk.Boot {
+		if exportedDisk.AttachedDisk.Boot {
 			return exportedDisk
 		}
 	}

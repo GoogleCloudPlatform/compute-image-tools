@@ -23,25 +23,19 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/iterator"
 )
 
-// ManifestFileGenerator generates a manifest file for all files under a Cloud
-// Storage path and writes it to a file under the same path
-type ManifestFileGenerator interface {
-	GenerateAndWriteToGCS(gcsPath, manifestFileName string) error
-	Cancel(reason string) bool
-}
-
-type manifestFileGeneratorImpl struct {
+type ovfManifestGeneratorImpl struct {
 	storageClient domain.StorageClientInterface
 	cancelChan    chan string
 }
 
 // NewManifestFileGenerator creates a new manifest file generator
-func NewManifestFileGenerator(storageClient domain.StorageClientInterface) ManifestFileGenerator {
-	return &manifestFileGeneratorImpl{
+func NewManifestFileGenerator(storageClient domain.StorageClientInterface) ovfexportdomain.OvfManifestGenerator {
+	return &ovfManifestGeneratorImpl{
 		storageClient: storageClient,
 		cancelChan:    make(chan string),
 	}
@@ -49,7 +43,7 @@ func NewManifestFileGenerator(storageClient domain.StorageClientInterface) Manif
 
 // GenerateAndWriteManifestFile generates a manifest file for all files in a GCS
 // directory
-func (g *manifestFileGeneratorImpl) GenerateAndWriteToGCS(gcsPath, manifestFileName string) error {
+func (g *ovfManifestGeneratorImpl) GenerateAndWriteToGCS(gcsPath, manifestFileName string) error {
 	e := make(chan error)
 	go func() {
 		e <- g.generateAndWriteToGCS(gcsPath, manifestFileName)
@@ -63,7 +57,7 @@ func (g *manifestFileGeneratorImpl) GenerateAndWriteToGCS(gcsPath, manifestFileN
 	}
 }
 
-func (g *manifestFileGeneratorImpl) generateAndWriteToGCS(gcsPath, manifestFileName string) error {
+func (g *ovfManifestGeneratorImpl) generateAndWriteToGCS(gcsPath, manifestFileName string) error {
 	bucketName, directoryPath, err := storageutils.SplitGCSPath(gcsPath)
 	if err != nil {
 		return err
@@ -83,7 +77,7 @@ func (g *manifestFileGeneratorImpl) generateAndWriteToGCS(gcsPath, manifestFileN
 
 }
 
-func (g *manifestFileGeneratorImpl) generate(bucketName, directoryPath string) (string, error) {
+func (g *ovfManifestGeneratorImpl) generate(bucketName, directoryPath string) (string, error) {
 	var manifest strings.Builder
 	it := g.storageClient.GetObjects(bucketName, directoryPath)
 	for {
@@ -103,7 +97,7 @@ func (g *manifestFileGeneratorImpl) generate(bucketName, directoryPath string) (
 	return manifest.String(), nil
 }
 
-func (g *manifestFileGeneratorImpl) generateFileSHA1Signature(bucketName, objectPath string) (string, error) {
+func (g *ovfManifestGeneratorImpl) generateFileSHA1Signature(bucketName, objectPath string) (string, error) {
 	fileReader, err := g.storageClient.GetObject(bucketName, objectPath).NewReader()
 	if err != nil {
 		return "", err
@@ -117,7 +111,7 @@ func (g *manifestFileGeneratorImpl) generateFileSHA1Signature(bucketName, object
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
-func (g *manifestFileGeneratorImpl) Cancel(reason string) bool {
+func (g *ovfManifestGeneratorImpl) Cancel(reason string) bool {
 	g.cancelChan <- reason
 	return true
 }

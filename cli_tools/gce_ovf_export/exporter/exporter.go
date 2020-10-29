@@ -16,20 +16,20 @@ package ovfexporter
 
 import (
 	"context"
+	"fmt"
 	"log"
-	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
-	"cloud.google.com/go/storage"
 	commondisk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	computeutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
-	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
@@ -55,45 +55,32 @@ const (
 
 // OVFExporter is responsible for exporting GCE VMs/GMIs to OVF/OVA
 type OVFExporter struct {
-	ctx                    context.Context
 	storageClient          domain.StorageClientInterface
 	computeClient          daisycompute.Client
 	mgce                   domain.MetadataGCEInterface
 	bucketIteratorCreator  domain.BucketIteratorCreatorInterface
 	Logger                 logging.LoggerInterface
-	zoneValidator          domain.ZoneValidatorInterface
-	instanceDisksExporter  InstanceDisksExporter
-	instanceExportPreparer InstanceExportPreparer
-	paramPopulator         param.Populator
-	workflowPath           string
-	params                 *OVFExportParams
+	instanceDisksExporter  ovfexportdomain.InstanceDisksExporter
+	instanceExportPreparer ovfexportdomain.InstanceExportPreparer
+	instanceExportCleaner  ovfexportdomain.InstanceExportCleaner
+	params                 *ovfexportdomain.OVFExportParams
 
 	// BuildID is ID of Cloud Build in which this OVF export runs in
 	BuildID string
 
-	region                    string
 	inspector                 commondisk.Inspector
-	ovfDescriptorGenerator    OvfDescriptorGenerator
-	workflowGenerator         *OVFExportWorkflowGenerator
-	manifestFileGenerator     ManifestFileGenerator
-	exportedDisks             []*ExportedDisk
+	ovfDescriptorGenerator    ovfexportdomain.OvfDescriptorGenerator
+	manifestFileGenerator     ovfexportdomain.OvfManifestGenerator
+	exportedDisks             []*ovfexportdomain.ExportedDisk
 	bootDiskInspectionResults commondisk.InspectionResult
 	traceLogs                 []string
 	timeout                   time.Duration
 	loggableBuilder           *service.OVFExportLoggableBuilder
 }
 
-// ExportedDisk represents GCE disks exported to GCS disk files.
-type ExportedDisk struct {
-	attachedDisk *compute.AttachedDisk
-	disk         *compute.Disk
-	gcsPath      string
-	gcsFileAttrs *storage.ObjectAttrs
-}
-
 // NewOVFExporter creates an OVF exporter, including automatically populating dependencies,
 // such as compute/storage clients.
-func NewOVFExporter(params *OVFExportParams) (*OVFExporter, error) {
+func NewOVFExporter(params *ovfexportdomain.OVFExportParams) (*OVFExporter, error) {
 	ctx := context.Background()
 	log.SetPrefix(logPrefix + " ")
 	logger := logging.NewStdoutLogger(logPrefix)
@@ -112,54 +99,38 @@ func NewOVFExporter(params *OVFExportParams) (*OVFExporter, error) {
 		storageutils.NewResourceLocationRetriever(metadataGCE, computeClient),
 		storageutils.NewScratchBucketCreator(ctx, storageClient),
 	)
-	ovfExportWorkflowPath := filepath.Join(params.WorkflowDir, getExportWorkflowPath(params))
-	bic := &storageutils.BucketIteratorCreator{}
-
-	oe := &OVFExporter{
-		ctx:                   ctx,
-		storageClient:         storageClient,
-		computeClient:         computeClient,
-		workflowPath:          ovfExportWorkflowPath,
-		BuildID:               getBuildID(params),
-		mgce:                  metadataGCE,
-		bucketIteratorCreator: bic,
-		Logger:                logger,
-		zoneValidator:         &computeutils.ZoneValidator{ComputeClient: computeClient},
-		params:                params,
-		paramPopulator:        paramPopulator,
-		loggableBuilder:       service.NewOVFExportLoggableBuilder(),
+	paramValidator := &ovfExportParamValidatorImpl{
+		validReleaseTracks: []string{GA, Beta, Alpha},
+		zoneValidator:      &computeutils.ZoneValidator{ComputeClient: computeClient},
 	}
-
-	if err := ValidateAndParseParams(oe.params, []string{GA, Beta, Alpha}); err != nil {
-		return oe, err
+	if err := params.ValidateAndPopulateParams(paramValidator, paramPopulator); err != nil {
+		return nil, err
 	}
-	if err := oe.paramPopulator.PopulateMissingParameters(oe.params.Project, oe.params.ClientID, &oe.params.Zone,
-		&oe.region, &oe.params.ScratchBucketGcsPath, oe.params.DestinationURI, nil); err != nil {
-		return oe, err
-	}
-
-	oe.ovfDescriptorGenerator = NewOvfDescriptorGenerator(oe.computeClient, oe.storageClient, *oe.params.Project, oe.params.Zone)
-	oe.manifestFileGenerator = NewManifestFileGenerator(oe.storageClient)
-	oe.inspector, err = commondisk.NewInspector(oe.params.DaisyAttrs())
+	inspector, err := commondisk.NewInspector(params.DaisyAttrs(), params.Network, params.Subnet)
 	if err != nil {
-		return oe, daisy.Errf("Error creating disk inspector: %v", err)
+		return nil, daisy.Errf("Error creating disk inspector: %v", err)
 	}
-	oe.workflowGenerator = &OVFExportWorkflowGenerator{
-		Project:                *oe.params.Project,
-		Zone:                   oe.params.Zone,
-		OvfGcsDirectoryPath:    oe.params.DestinationURI,
-		ExportedDiskFileFormat: oe.params.DiskExportFormat,
-		Network:                oe.params.Network,
-		Subnet:                 oe.params.Subnet,
-	}
-	oe.instanceDisksExporter = NewInstanceDisksExporter(oe.params, oe.workflowGenerator, oe.workflowPath, oe.computeClient, oe.storageClient)
-	oe.instanceExportPreparer = NewInstanceExportPreparer(oe.params, oe.workflowGenerator, oe.workflowPath)
-	return oe, nil
+	ovfExportWorkflowPath := filepath.Join(params.WorkflowDir, getExportWorkflowPath(params))
+	return &OVFExporter{
+		storageClient:          storageClient,
+		computeClient:          computeClient,
+		mgce:                   metadataGCE,
+		bucketIteratorCreator:  &storageutils.BucketIteratorCreator{},
+		Logger:                 logger,
+		params:                 params,
+		loggableBuilder:        service.NewOVFExportLoggableBuilder(),
+		ovfDescriptorGenerator: NewOvfDescriptorGenerator(computeClient, storageClient, *params.Project, params.Zone),
+		manifestFileGenerator:  NewManifestFileGenerator(storageClient),
+		inspector:              inspector,
+		instanceDisksExporter:  NewInstanceDisksExporter(ovfExportWorkflowPath, computeClient, storageClient),
+		instanceExportPreparer: NewInstanceExportPreparer(ovfExportWorkflowPath),
+		instanceExportCleaner:  NewInstanceExportCleaner(ovfExportWorkflowPath),
+	}, nil
 }
 
 // creates a new Daisy Compute client
 //TODO: consolidate with ovf_importer.createComputeClient
-func createComputeClient(ctx *context.Context, params *OVFExportParams) (daisycompute.Client, error) {
+func createComputeClient(ctx *context.Context, params *ovfexportdomain.OVFExportParams) (daisycompute.Client, error) {
 	computeOptions := []option.ClientOption{option.WithCredentialsFile(params.Oauth)}
 	if params.Ce != "" {
 		computeOptions = append(computeOptions, option.WithEndpoint(params.Ce))
@@ -172,22 +143,11 @@ func createComputeClient(ctx *context.Context, params *OVFExportParams) (daisyco
 	return computeClient, nil
 }
 
-func getExportWorkflowPath(params *OVFExportParams) string {
+func getExportWorkflowPath(params *ovfexportdomain.OVFExportParams) string {
 	if params.IsInstanceExport() {
 		return instanceExportWorkflow
 	}
 	return machineImageExportWorkflow
-}
-
-func getBuildID(params *OVFExportParams) string {
-	if params != nil && params.BuildID != "" {
-		return params.BuildID
-	}
-	buildID := os.Getenv("BUILD_ID")
-	if buildID == "" {
-		buildID = pathutils.RandString(5)
-	}
-	return buildID
 }
 
 func (oe *OVFExporter) buildLoggable() service.Loggable {
@@ -199,6 +159,10 @@ func (oe *OVFExporter) buildLoggable() service.Loggable {
 		Build()
 }
 
+func getInstancePath(instance *compute.Instance, project string) string {
+	return fmt.Sprintf("projects/%s/zones/%s/instances/%s", project, instance.Zone[strings.LastIndex(instance.Zone, "/")+1:], strings.ToLower(instance.Name))
+}
+
 // Export runs OVF export
 func (oe *OVFExporter) run(ctx context.Context) error {
 	oe.Logger.Log("Starting OVF export workflow.")
@@ -207,6 +171,9 @@ func (oe *OVFExporter) run(ctx context.Context) error {
 		ctx, cancel = context.WithTimeout(ctx, oe.timeout)
 		defer cancel()
 	}
+
+	//TODO: if machine image export, create instance from machine image and add it to cleanup
+
 	instance, err := oe.computeClient.GetInstance(*oe.params.Project, oe.params.Zone, oe.params.InstanceName)
 	if err != nil {
 		return daisy.Errf("Error retrieving instance `%v`: %v", oe.params.InstanceName, err)
@@ -216,8 +183,7 @@ func (oe *OVFExporter) run(ctx context.Context) error {
 		oe.cleanup(ctx, instance)
 	}()
 
-	oe.Logger.Log("Stopping the instance and detaching the disks.")
-
+	oe.Logger.Log(fmt.Sprintf("Stopping '%v' instance and detaching the disks.", instance.Name))
 	if err = oe.prepare(ctx, instance); err != nil {
 		return err
 	}
@@ -247,7 +213,7 @@ func (oe *OVFExporter) run(ctx context.Context) error {
 }
 
 // Run runs OVF export.
-func Run(params *OVFExportParams) (service.Loggable, error) {
+func Run(params *ovfexportdomain.OVFExportParams) (service.Loggable, error) {
 	var oe *OVFExporter
 	var err error
 	if oe, err = NewOVFExporter(params); err != nil {
