@@ -28,6 +28,6 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "translate-suse = translate:translate",
+            "translate-suse = translate:main",
         ],
     })

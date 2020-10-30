@@ -1,6 +1,6 @@
 source: GCP image 'sles-12-sp5-sap-v20200610'
 expected:
-  distro: sles
+  distro: sles-sap
   major: 12
   minor: 5
 files:
@@ -18,3 +18,4 @@ files:
     ID="sles"
     ANSI_COLOR="0;32"
     CPE_NAME="cpe:/o:suse:sles_sap:12:sp5"
+  /etc/products.d/SLES_SAP.prod: <?xml version="1.0" encoding="UTF-8"?>

@@ -1,6 +1,6 @@
 source: GCP image 'sles-15-sp1-sap-v20200701'
 expected:
-  distro: sles
+  distro: sles-sap
   major: 15
   minor: 1
 files:
@@ -13,3 +13,4 @@ files:
     ID_LIKE="suse"
     ANSI_COLOR="0;32"
     CPE_NAME="cpe:/o:suse:sles:15:sp1"
+  /etc/products.d/SLES_SAP.prod: <?xml version="1.0" encoding="UTF-8"?>

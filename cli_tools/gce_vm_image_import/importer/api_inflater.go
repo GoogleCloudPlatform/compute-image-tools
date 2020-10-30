@@ -16,6 +16,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
@@ -25,6 +26,7 @@ import (
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func isCausedByUnsupportedFormat(err error) bool {
@@ -48,6 +50,8 @@ type apiInflater struct {
 	computeClient   daisyCompute.Client
 	storageClient   storage.Client
 	guestOsFeatures []*computeBeta.GuestOsFeature
+	wg              sync.WaitGroup
+	cancelChan      chan string
 }
 
 func createAPIInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client) Inflater {
@@ -56,6 +60,7 @@ func createAPIInflater(args ImportArguments, computeClient daisyCompute.Client, 
 		args:          args,
 		computeClient: computeClient,
 		storageClient: storageClient,
+		cancelChan:    make(chan string, 1),
 	}
 	if args.UefiCompatible {
 		inflater.guestOsFeatures = []*computeBeta.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}}
@@ -72,9 +77,14 @@ func (inflater *apiInflater) addTraceLog(l string) {
 }
 
 func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error) {
+	inflater.wg.Add(1)
+	defer inflater.wg.Done()
+
 	ctx := context.Background()
 	startTime := time.Now()
-	diskName := fmt.Sprintf("shadow-disk-%v", inflater.args.ExecutionID)
+	diskName := inflater.getShadowDiskName()
+
+	// Create shadow disk
 	cd := computeBeta.Disk{
 		Name:                diskName,
 		SourceStorageObject: inflater.args.SourceFile,
@@ -89,6 +99,15 @@ func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error)
 	// Cleanup the shadow disk ignoring error
 	defer inflater.computeClient.DeleteDisk(inflater.args.Project, inflater.args.Zone, cd.Name)
 
+	// If received a cancel signal from cancel(), then return early. Otherwise, it will waste
+	// 2 min+ on calculateChecksum().
+	select {
+	case <-inflater.cancelChan:
+		return persistentDisk{}, shadowTestFields{}, nil
+	default:
+	}
+
+	// Prepare return value
 	bkt, objPath, err := storage.GetGCSObjectPathElements(inflater.args.SourceFile)
 	if err != nil {
 		return persistentDisk{}, shadowTestFields{}, err
@@ -112,14 +131,36 @@ func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error)
 		inflationTime: time.Since(startTime),
 	}
 
+	// Calculate checksum by daisy workflow
 	inflater.addTraceLog("Started checksum calculation.")
 	ii.checksum, err = inflater.calculateChecksum(ctx, diskURI)
 	return pd, ii, err
 }
 
-// Can't cancel the single disk.insert API call
+func (inflater *apiInflater) getShadowDiskName() string {
+	return fmt.Sprintf("shadow-disk-%v", inflater.args.ExecutionID)
+}
+
 func (inflater *apiInflater) Cancel(reason string) bool {
-	return false
+	// Send cancel signal
+	inflater.cancelChan <- reason
+
+	// Wait for inflate() to finish. Otherwise, the whole program might exit
+	// before DeleteDisk() was executed.
+	inflater.wg.Wait()
+
+	// Expect 404 error to ensure shadow disk has been cleaned up.
+	_, err := inflater.computeClient.GetDisk(inflater.args.Project, inflater.args.Zone, inflater.getShadowDiskName())
+	if apiErr, ok := err.(*googleapi.Error); !ok || apiErr.Code != 404 {
+		if err == nil {
+			inflater.addTraceLog(fmt.Sprintf("apiInflater.inflate is canceled, cleanup is failed: %v", reason))
+		} else {
+			inflater.addTraceLog(fmt.Sprintf("apiInflater.inflate is canceled, cleanup failed to verify: %v", reason))
+		}
+		return false
+	}
+	inflater.addTraceLog(fmt.Sprintf("apiInflater.inflate is canceled: %v", reason))
+	return true
 }
 
 // run a workflow to calculate checksum

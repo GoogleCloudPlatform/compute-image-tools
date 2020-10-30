@@ -92,20 +92,21 @@ type InputParams struct {
 type ImageImportParams struct {
 	*CommonParams
 
-	ImageName          string `json:"image_name,omitempty"`
-	DataDisk           bool   `json:"data_disk"`
-	OS                 string `json:"os,omitempty"`
-	SourceFile         string `json:"source_file,omitempty"`
-	SourceImage        string `json:"source_image,omitempty"`
-	NoGuestEnvironment bool   `json:"no_guest_environment"`
-	Family             string `json:"family,omitempty"`
-	Description        string `json:"description,omitempty"`
-	NoExternalIP       bool   `json:"no_external_ip"`
-	HasKmsKey          bool   `json:"has_kms_key"`
-	HasKmsKeyring      bool   `json:"has_kms_keyring"`
-	HasKmsLocation     bool   `json:"has_kms_location"`
-	HasKmsProject      bool   `json:"has_kms_project"`
-	StorageLocation    string `json:"storage_location,omitempty"`
+	ImageName          string            `json:"image_name,omitempty"`
+	DataDisk           bool              `json:"data_disk"`
+	OS                 string            `json:"os,omitempty"`
+	SourceFile         string            `json:"source_file,omitempty"`
+	SourceImage        string            `json:"source_image,omitempty"`
+	NoGuestEnvironment bool              `json:"no_guest_environment"`
+	Family             string            `json:"family,omitempty"`
+	Description        string            `json:"description,omitempty"`
+	NoExternalIP       bool              `json:"no_external_ip"`
+	HasKmsKey          bool              `json:"has_kms_key"`
+	HasKmsKeyring      bool              `json:"has_kms_keyring"`
+	HasKmsLocation     bool              `json:"has_kms_location"`
+	HasKmsProject      bool              `json:"has_kms_project"`
+	StorageLocation    string            `json:"storage_location,omitempty"`
+	InspectionResults  InspectionResults `json:"inspection_results,omitempty"`
 }
 
 // ImageExportParams contains all input params for image export
@@ -254,17 +255,15 @@ type OutputInfo struct {
 	IsUEFICompatibleImage bool `json:"is_uefi_compatible_image,omitempty"`
 	// Indicates whether the image is auto-detected to be UEFI compatible
 	IsUEFIDetected bool `json:"is_uefi_detected,omitempty"`
-	// InspectionResults contains metadata determined using automated inspection
-	InspectionResults InspectionResults `json:"inspection_results,omitempty"`
 }
 
 // InspectionResults contains metadata determined using automated inspection
 type InspectionResults struct {
-	// UEFIBootable indicates whether the disk is bootable with UEFI.
-	UEFIBootable bool `json:"uefi_bootable,omitempty"`
-
 	// BIOSBootable indicates whether the disk is bootable with BIOS.
 	BIOSBootable bool `json:"bios_bootable,omitempty"`
+
+	// UEFIBootable indicates whether the disk is bootable with UEFI.
+	UEFIBootable bool `json:"uefi_bootable,omitempty"`
 
 	// RootFS indicates the file system type of the partition containing
 	// the root directory ("/").
