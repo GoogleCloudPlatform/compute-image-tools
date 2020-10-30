@@ -18,15 +18,25 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	computeutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 type ovfExportParamValidatorImpl struct {
 	validReleaseTracks []string
 	zoneValidator      domain.ZoneValidatorInterface
+}
+
+// NewOvfExportParamValidator creates a new OVF export params validator
+func NewOvfExportParamValidator(computeClient daisycompute.Client) ovfexportdomain.OvfExportParamValidator {
+	return &ovfExportParamValidatorImpl{
+		validReleaseTracks: []string{GA, Beta, Alpha},
+		zoneValidator:      &computeutils.ZoneValidator{ComputeClient: computeClient},
+	}
 }
 
 // ValidateAndParseParams validates and parses OVFExportParams. It returns an

@@ -60,3 +60,8 @@ type OvfDescriptorGenerator interface {
 type OvfExportParamValidator interface {
 	ValidateAndParseParams(params *OVFExportParams) error
 }
+
+// OvfExportParamPopulator populates params for OVF export
+type OvfExportParamPopulator interface {
+	Populate(*OVFExportParams) error
+}

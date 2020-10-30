@@ -14,6 +14,8 @@
 
 package ovfexportdomain
 
+import "time"
+
 const TestProject = "aProject"
 const TestZone = "us-central1-c"
 const TestRegion = "us-central1"
@@ -29,11 +31,7 @@ func GetAllInstanceExportParams() *OVFExportParams {
 		Subnet:               TestSubnet,
 		Zone:                 TestZone,
 		OsID:                 "ubuntu-1404",
-		BootDiskKmskey:       "aKey",
-		BootDiskKmsKeyring:   "aKeyring",
-		BootDiskKmsLocation:  "aKmsLocation",
-		BootDiskKmsProject:   "aKmsProject",
-		Timeout:              "3h",
+		Timeout:              3 * time.Hour,
 		Project:              &project,
 		ScratchBucketGcsPath: "gs://bucket/folder",
 		Oauth:                "oAuthFilePath",
@@ -58,11 +56,7 @@ func GetAllMachineImageExportParams() *OVFExportParams {
 		Subnet:               "aSubnet",
 		Zone:                 TestZone,
 		OsID:                 "ubuntu-1404",
-		BootDiskKmskey:       "aKey",
-		BootDiskKmsKeyring:   "aKeyring",
-		BootDiskKmsLocation:  "aKmsLocation",
-		BootDiskKmsProject:   "aKmsProject",
-		Timeout:              "3h",
+		Timeout:              3 * time.Hour,
 		Project:              &project,
 		ScratchBucketGcsPath: "gs://bucket/folder",
 		Oauth:                "oAuthFilePath",

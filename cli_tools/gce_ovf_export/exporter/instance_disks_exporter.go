@@ -51,7 +51,7 @@ func NewInstanceDisksExporter(workflowPath string, computeClient daisycompute.Cl
 func (ide *instanceDisksExporterImpl) Export(instance *compute.Instance, params *ovfexportdomain.OVFExportParams) ([]*ovfexportdomain.ExportedDisk, error) {
 	var err error
 	ide.wf, err = runWorkflowWithSteps(context.Background(),
-		"ovf-export-disk-export", ide.workflowPath, params.Timeout,
+		"ovf-export-disk-export", ide.workflowPath, params.Timeout.String(),
 		func(w *daisy.Workflow) error { return ide.populateExportDisksSteps(w, instance, params) }, map[string]string{}, params)
 	if ide.wf.Logger != nil {
 		ide.serialLogs = ide.wf.Logger.ReadSerialPortLogs()

@@ -42,7 +42,7 @@ func (iep *instanceExportPreparerImpl) Prepare(instance *compute.Instance, param
 	iep.instance = instance
 	var err error
 	iep.wf, err = runWorkflowWithSteps(context.Background(), "ovf-export-prepare",
-		iep.workflowPath, params.Timeout, func(w *daisy.Workflow) error { return iep.populatePrepareSteps(w, instance, params) },
+		iep.workflowPath, params.Timeout.String(), func(w *daisy.Workflow) error { return iep.populatePrepareSteps(w, instance, params) },
 		map[string]string{}, params)
 	if iep.wf.Logger != nil {
 		iep.serialLogs = iep.wf.Logger.ReadSerialPortLogs()
@@ -57,7 +57,7 @@ func (iep *instanceExportPreparerImpl) populatePrepareSteps(w *daisy.Workflow, i
 		iep.addStopInstanceStep(w, instance, previousStepName, params)
 	}
 
-	_, err := iep.AddDetachDisksSteps(w, instance, previousStepName, params)
+	_, err := iep.addDetachDisksSteps(w, instance, previousStepName, params)
 
 	if err != nil {
 		return err
@@ -65,8 +65,8 @@ func (iep *instanceExportPreparerImpl) populatePrepareSteps(w *daisy.Workflow, i
 	return nil
 }
 
-// AddDetachDisksSteps adds Daisy steps to OVF export workflow to detach instance disks.
-func (iep *instanceExportPreparerImpl) AddDetachDisksSteps(w *daisy.Workflow, instance *compute.Instance, previousStepName string, params *ovfexportdomain.OVFExportParams) ([]string, error) {
+// addDetachDisksSteps adds Daisy steps to OVF export workflow to detach instance disks.
+func (iep *instanceExportPreparerImpl) addDetachDisksSteps(w *daisy.Workflow, instance *compute.Instance, previousStepName string, params *ovfexportdomain.OVFExportParams) ([]string, error) {
 	if instance == nil || len(instance.Disks) == 0 {
 		return nil, daisy.Errf("No attachedDisks found in the Instance to export")
 	}

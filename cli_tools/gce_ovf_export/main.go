@@ -16,6 +16,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -39,11 +40,7 @@ var (
 	noExternalIP         = flag.Bool("no-external-ip", false, "Specifies that VPC used for OVF export doesn't allow external IPs.")
 	osID                 = flag.String("os", "", "Specifies the OS of the image being exported. OS must be one of: centos-6, centos-7, debian-8, debian-9, rhel-6, rhel-6-byol, rhel-7, rhel-7-byol, ubuntu-1404, ubuntu-1604, ubuntu-1804, windows-10-byol, windows-2008r2, windows-2008r2-byol, windows-2012, windows-2012-byol, windows-2012r2, windows-2012r2-byol, windows-2016, windows-2016-byol, windows-7-byol, windows-2019, windows-2019-byol, windows-8-1-x64-byol.")
 	zoneFlag             = flag.String("zone", "", "zone of the image to export. The zone in which to do the work of exporting the image. Overrides the default compute/zone property value for this command invocation")
-	bootDiskKmskey       = flag.String("boot-disk-kms-key", "", "The Cloud KMS (Key Management Service) cryptokey that will be used to protect the disk. The arguments in this group can be used to specify the attributes of this resource. ID of the key or fully qualified identifier for the key. This flag must be specified if any of the other arguments in this group are specified.")
-	bootDiskKmsKeyring   = flag.String("boot-disk-kms-keyring", "", "The KMS keyring of the key.")
-	bootDiskKmsLocation  = flag.String("boot-disk-kms-location", "", "The Cloud location for the key.")
-	bootDiskKmsProject   = flag.String("boot-disk-kms-project", "", "The Cloud project for the key.")
-	timeout              = flag.String("timeout", "2h", "Maximum time a build can last before it is failed as TIMEOUT. For example, specifying 2h will fail the process after 2 hours. See `gcloud topic datetimes` for information on duration formats")
+	timeout              = flag.Duration("timeout", time.Hour*2, "Maximum time a build can last before it is failed as TIMEOUT. For example, specifying 2h will fail the process after 2 hours. See `gcloud topic datetimes` for information on duration formats")
 	project              = flag.String("project", "", "project to run in, overrides what is set in workflow")
 	scratchBucketGcsPath = flag.String("scratch-bucket-gcs-path", "", "GCS scratch bucket to use, overrides what is set in workflow")
 	oauth                = flag.String("oauth", "", "path to oauth json file, overrides what is set in workflow")
@@ -67,10 +64,7 @@ func buildExportParams() *ovfexportdomain.OVFExportParams {
 		DestinationURI: *destinationURI, OvfFormat: *ovfFormat,
 		DiskExportFormat: *diskExportFormat, Network: *network,
 		Subnet: *subnet, NoExternalIP: *noExternalIP,
-		OsID: *osID, Zone: *zoneFlag, BootDiskKmskey: *bootDiskKmskey,
-		BootDiskKmsKeyring:  *bootDiskKmsKeyring,
-		BootDiskKmsLocation: *bootDiskKmsLocation,
-		BootDiskKmsProject:  *bootDiskKmsProject, Timeout: *timeout,
+		OsID: *osID, Zone: *zoneFlag, Timeout: *timeout,
 		Project: project, ScratchBucketGcsPath: *scratchBucketGcsPath,
 		Oauth: *oauth, Ce: *ce, GcsLogsDisabled: *gcsLogsDisabled,
 		CloudLogsDisabled:  *cloudLogsDisabled,
@@ -82,14 +76,20 @@ func buildExportParams() *ovfexportdomain.OVFExportParams {
 }
 
 func runExport() (service.Loggable, error) {
-	//TODO: service loggable
-	return ovfexporter.Run(buildExportParams())
+	params := buildExportParams()
+	var oe *ovfexporter.OVFExporter
+	var err error
+	if oe, err = ovfexporter.NewOVFExporter(params); err != nil {
+		return nil, err
+	}
+	ctx := context.Background()
+	return oe.Run(ctx)
 }
 
 func main() {
 	flag.Parse()
 
-	//TODO: logging
+	//TODO: store loggable
 
 	_, err := runExport()
 	if err != nil {

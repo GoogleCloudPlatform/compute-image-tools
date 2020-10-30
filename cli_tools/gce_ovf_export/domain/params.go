@@ -19,11 +19,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
-	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
 
@@ -68,11 +65,7 @@ type OVFExportParams struct {
 	Subnet               string
 	NoExternalIP         bool
 	Zone                 string
-	BootDiskKmskey       string
-	BootDiskKmsKeyring   string
-	BootDiskKmsLocation  string
-	BootDiskKmsProject   string
-	Timeout              string
+	Timeout              time.Duration
 	Project              *string
 	ScratchBucketGcsPath string
 	Oauth                string
@@ -87,63 +80,6 @@ type OVFExportParams struct {
 	WorkflowDir string
 	Region      string
 	Started     time.Time
-}
-
-// ValidateAndPopulateParams validaegs and populate OVF export params
-func (params *OVFExportParams) ValidateAndPopulateParams(paramValidator OvfExportParamValidator, paramPopulator param.Populator) error {
-	if err := paramValidator.ValidateAndParseParams(params); err != nil {
-		return err
-	}
-	if err := paramPopulator.PopulateMissingParameters(params.Project, params.ClientID, &params.Zone,
-		&params.Region, &params.ScratchBucketGcsPath, params.DestinationURI, nil); err != nil {
-		return err
-	}
-	params.populateNetwork()
-	params.populateBuildID()
-	params.populateNamespacedScratchDirectory()
-	params.populateDestinationURI()
-	return nil
-}
-
-func (params *OVFExportParams) populateNetwork() {
-	if params.Network == "" && params.Subnet == "" {
-		params.Network = "default"
-	}
-	if params.Subnet != "" {
-		params.Subnet = param.GetRegionalResourcePath(params.Region, "subnetworks", params.Subnet)
-	}
-	if params.Network != "" {
-		params.Network = param.GetGlobalResourcePath("networks", params.Network)
-	}
-}
-
-func (params *OVFExportParams) populateBuildID() {
-	if params != nil && params.BuildID != "" {
-		return
-	}
-	params.BuildID = os.Getenv("BUILD_ID")
-	if params.BuildID == "" {
-		params.BuildID = pathutils.RandString(5)
-	}
-}
-
-func (params *OVFExportParams) populateDestinationURI() {
-	params.DestinationURI = strings.ToLower(params.DestinationURI)
-	if !strings.HasSuffix(params.DestinationURI, ".ova") {
-		params.DestinationURI = pathutils.ToDirectoryURL(params.DestinationURI)
-	}
-}
-
-// populateNamespacedScratchDirectory updates ScratchBucketGcsPath to include a directory
-// that is specific to this export, formulated using the start timestamp and the execution ID.
-// This ensures all logs and artifacts are contained in a single directory.
-func (params *OVFExportParams) populateNamespacedScratchDirectory() {
-	if !strings.HasSuffix(params.ScratchBucketGcsPath, "/") {
-		params.ScratchBucketGcsPath += "/"
-	}
-
-	params.ScratchBucketGcsPath += fmt.Sprintf(
-		"gce-ovf-export-%s-%s", params.Started.Format(time.RFC3339), params.BuildID)
 }
 
 func (params *OVFExportParams) String() string {
@@ -187,7 +123,7 @@ func (params *OVFExportParams) DaisyAttrs() daisycommon.WorkflowAttributes {
 		Zone:              params.Zone,
 		GCSPath:           params.ScratchBucketGcsPath,
 		OAuth:             params.Oauth,
-		Timeout:           params.Timeout,
+		Timeout:           params.Timeout.String(),
 		ComputeEndpoint:   params.Ce,
 		DisableGCSLogs:    params.GcsLogsDisabled,
 		DisableCloudLogs:  params.CloudLogsDisabled,

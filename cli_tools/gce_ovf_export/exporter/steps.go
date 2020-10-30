@@ -78,19 +78,20 @@ func (oe *OVFExporter) generateManifest(ctx context.Context) error {
 }
 
 func (oe *OVFExporter) cleanup(ctx context.Context, instance *compute.Instance) error {
-	return oe.runStep(ctx, func() error {
-		err := oe.instanceExportCleaner.Clean(instance, oe.params)
+	// cleanup shouldn't react to time out as it's necessary to perform this step.
+	// Otherwise, instance being exported would be left shut down and disks detached.
+	err := oe.instanceExportCleaner.Clean(instance, oe.params)
+	if err != nil {
+		return err
+	}
+	if oe.storageClient != nil {
+		err := oe.storageClient.Close()
 		if err != nil {
 			return err
 		}
-		if oe.storageClient != nil {
-			err := oe.storageClient.Close()
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	}, oe.instanceExportPreparer.Cancel, oe.instanceExportPreparer.TraceLogs)
+	}
+	oe.appendTraceLogs(oe.instanceExportCleaner.TraceLogs())
+	return nil
 }
 
 func runWorkflowWithSteps(ctx context.Context, workflowName, workflowPath, timeout string,
@@ -108,7 +109,7 @@ func runWorkflowWithSteps(ctx context.Context, workflowName, workflowPath, timeo
 
 func generateWorkflowWithSteps(workflowName, workflowPath, timeout string, populateStepsFunc populateStepsFunc, varMap map[string]string, params *ovfexportdomain.OVFExportParams) (*daisy.Workflow, error) {
 	w, err := daisycommon.ParseWorkflow(workflowPath, varMap, *params.Project,
-		params.Zone, params.ScratchBucketGcsPath, params.Oauth, params.Timeout, params.Ce,
+		params.Zone, params.ScratchBucketGcsPath, params.Oauth, params.Timeout.String(), params.Ce,
 		params.GcsLogsDisabled, params.CloudLogsDisabled, params.StdoutLogsDisabled)
 	if err != nil {
 		return w, err
@@ -160,18 +161,21 @@ func (oe *OVFExporter) runStep(ctx context.Context, step func() error, cancel fu
 		err = stepErr
 	}
 	if getTraceLogs != nil {
-		stepTraceLogs := getTraceLogs()
-		if stepTraceLogs != nil && len(stepTraceLogs) > 0 {
-			oe.traceLogs = append(oe.traceLogs, stepTraceLogs...)
-		}
+		oe.appendTraceLogs(getTraceLogs())
 	}
 	return err
+}
+
+func (oe *OVFExporter) appendTraceLogs(traceLogs []string) {
+	if traceLogs != nil && len(traceLogs) > 0 {
+		oe.traceLogs = append(oe.traceLogs, traceLogs...)
+	}
 }
 
 //TODO: consolidate with gce_vm_image_import.getCtxError()
 func (oe *OVFExporter) getCtxError(ctx context.Context) (err error) {
 	if ctxErr := ctx.Err(); ctxErr == context.DeadlineExceeded {
-		err = daisy.Errf("Import did not complete within the specified timeout of %s", oe.timeout)
+		err = daisy.Errf("Import did not complete within the specified timeout of %s", oe.params.Timeout.String())
 	} else {
 		err = ctxErr
 	}

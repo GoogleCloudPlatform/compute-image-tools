@@ -20,14 +20,12 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
-	"time"
 
 	commondisk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	computeutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -74,7 +72,6 @@ type OVFExporter struct {
 	exportedDisks             []*ovfexportdomain.ExportedDisk
 	bootDiskInspectionResults commondisk.InspectionResult
 	traceLogs                 []string
-	timeout                   time.Duration
 	loggableBuilder           *service.OVFExportLoggableBuilder
 }
 
@@ -93,17 +90,13 @@ func NewOVFExporter(params *ovfexportdomain.OVFExportParams) (*OVFExporter, erro
 		return nil, err
 	}
 	metadataGCE := &computeutils.MetadataGCE{}
-	paramPopulator := param.NewPopulator(
-		metadataGCE,
-		storageClient,
+
+	paramValidator := NewOvfExportParamValidator(computeClient)
+	paramPopulator := NewPopulator(metadataGCE, storageClient,
 		storageutils.NewResourceLocationRetriever(metadataGCE, computeClient),
 		storageutils.NewScratchBucketCreator(ctx, storageClient),
 	)
-	paramValidator := &ovfExportParamValidatorImpl{
-		validReleaseTracks: []string{GA, Beta, Alpha},
-		zoneValidator:      &computeutils.ZoneValidator{ComputeClient: computeClient},
-	}
-	if err := params.ValidateAndPopulateParams(paramValidator, paramPopulator); err != nil {
+	if err := ValidateAndPopulateParams(params, paramValidator, paramPopulator); err != nil {
 		return nil, err
 	}
 	inspector, err := commondisk.NewInspector(params.DaisyAttrs(), params.Network, params.Subnet)
@@ -126,6 +119,19 @@ func NewOVFExporter(params *ovfexportdomain.OVFExportParams) (*OVFExporter, erro
 		instanceExportPreparer: NewInstanceExportPreparer(ovfExportWorkflowPath),
 		instanceExportCleaner:  NewInstanceExportCleaner(ovfExportWorkflowPath),
 	}, nil
+}
+
+// ValidateAndPopulateParams validate and populate OVF export params
+func ValidateAndPopulateParams(params *ovfexportdomain.OVFExportParams,
+	paramValidator ovfexportdomain.OvfExportParamValidator,
+	paramPopulator ovfexportdomain.OvfExportParamPopulator) error {
+	if err := paramValidator.ValidateAndParseParams(params); err != nil {
+		return err
+	}
+	if err := paramPopulator.Populate(params); err != nil {
+		return err
+	}
+	return nil
 }
 
 // creates a new Daisy Compute client
@@ -166,9 +172,9 @@ func getInstancePath(instance *compute.Instance, project string) string {
 // Export runs OVF export
 func (oe *OVFExporter) run(ctx context.Context) error {
 	oe.Logger.Log("Starting OVF export workflow.")
-	if oe.timeout.Nanoseconds() > 0 {
+	if oe.params.Timeout.Nanoseconds() > 0 {
 		var cancel func()
-		ctx, cancel = context.WithTimeout(ctx, oe.timeout)
+		ctx, cancel = context.WithTimeout(ctx, oe.params.Timeout)
 		defer cancel()
 	}
 
@@ -213,13 +219,8 @@ func (oe *OVFExporter) run(ctx context.Context) error {
 }
 
 // Run runs OVF export.
-func Run(params *ovfexportdomain.OVFExportParams) (service.Loggable, error) {
-	var oe *OVFExporter
+func (oe *OVFExporter) Run(ctx context.Context) (service.Loggable, error) {
 	var err error
-	if oe, err = NewOVFExporter(params); err != nil {
-		return nil, err
-	}
-	ctx := context.Background()
 	err = oe.run(ctx)
 	return oe.buildLoggable(), err
 }

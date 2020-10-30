@@ -42,7 +42,7 @@ func (iec *instanceExportCleanerImpl) Clean(instance *compute.Instance, params *
 	iec.instance = instance
 	var err error
 	iec.wf, err = runWorkflowWithSteps(context.Background(), "ovf-export-clean",
-		iec.workflowPath, params.Timeout, func(w *daisy.Workflow) error { return iec.populateCleanupSteps(w, instance, params) },
+		iec.workflowPath, params.Timeout.String(), func(w *daisy.Workflow) error { return iec.populateCleanupSteps(w, instance, params) },
 		map[string]string{}, params)
 	if iec.wf.Logger != nil {
 		iec.serialLogs = iec.wf.Logger.ReadSerialPortLogs()
