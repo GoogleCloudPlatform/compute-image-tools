@@ -41,9 +41,11 @@ func NewInstanceExportPreparer(workflowPath string) ovfexportdomain.InstanceExpo
 func (iep *instanceExportPreparerImpl) Prepare(instance *compute.Instance, params *ovfexportdomain.OVFExportParams) error {
 	iep.instance = instance
 	var err error
-	iep.wf, err = runWorkflowWithSteps(context.Background(), "ovf-export-prepare",
-		iep.workflowPath, params.Timeout.String(), func(w *daisy.Workflow) error { return iep.populatePrepareSteps(w, instance, params) },
-		map[string]string{}, params)
+	iep.wf, err = generateWorkflowWithSteps("ovf-export-prepare", iep.workflowPath, "15m", func(w *daisy.Workflow) error { return iep.populatePrepareSteps(w, instance, params) }, map[string]string{}, params)
+	if err != nil {
+		return err
+	}
+	err = daisyutils.RunWorkflowWithCancelSignal(context.Background(), iep.wf)
 	if iep.wf.Logger != nil {
 		iep.serialLogs = iep.wf.Logger.ReadSerialPortLogs()
 	}

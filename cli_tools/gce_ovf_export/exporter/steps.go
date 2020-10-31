@@ -31,12 +31,14 @@ type populateStepsFunc func(*daisy.Workflow) error
 
 func (oe *OVFExporter) prepare(ctx context.Context, instance *compute.Instance) error {
 	return oe.runStep(ctx, func() error {
+		oe.Logger.Log(fmt.Sprintf("Stopping '%v' instance and detaching the disks.", instance.Name))
 		return oe.instanceExportPreparer.Prepare(instance, oe.params)
 	}, oe.instanceExportPreparer.Cancel, oe.instanceExportPreparer.TraceLogs)
 }
 
 func (oe *OVFExporter) exportDisks(ctx context.Context, instance *compute.Instance) error {
 	return oe.runStep(ctx, func() error {
+		oe.Logger.Log("Exporting the disks.")
 		var err error
 		oe.exportedDisks, err = oe.instanceDisksExporter.Export(instance, oe.params)
 		return err
@@ -44,11 +46,12 @@ func (oe *OVFExporter) exportDisks(ctx context.Context, instance *compute.Instan
 }
 
 func (oe *OVFExporter) inspectBootDisk(ctx context.Context) error {
-	bootDisk := getBootDisk(oe.exportedDisks)
-	if bootDisk == nil {
-		return nil
-	}
 	return oe.runStep(ctx, func() error {
+		oe.Logger.Log("Inspecting the boot disk.")
+		bootDisk := getBootDisk(oe.exportedDisks)
+		if bootDisk == nil {
+			return nil
+		}
 		var err error
 		oe.bootDiskInspectionResults, err = oe.inspector.Inspect(
 			daisyutils.GetDiskURI(*oe.params.Project, oe.params.Zone, bootDisk.Disk.Name), true)
@@ -63,6 +66,7 @@ func (oe *OVFExporter) inspectBootDisk(ctx context.Context) error {
 
 func (oe *OVFExporter) generateDescriptor(ctx context.Context, instance *compute.Instance) error {
 	return oe.runStep(ctx, func() error {
+		oe.Logger.Log("Generating OVF descriptor.")
 		bucketName, gcsDirectoryPath, err := storageutils.GetGCSObjectPathElements(oe.params.DestinationURI)
 		if err != nil {
 			return err
@@ -73,6 +77,7 @@ func (oe *OVFExporter) generateDescriptor(ctx context.Context, instance *compute
 
 func (oe *OVFExporter) generateManifest(ctx context.Context) error {
 	return oe.runStep(ctx, func() error {
+		oe.Logger.Log("Generating manifest.")
 		return oe.manifestFileGenerator.GenerateAndWriteToGCS(oe.params.DestinationURI, oe.params.InstanceName)
 	}, oe.manifestFileGenerator.Cancel, func() []string { return nil })
 }
@@ -80,7 +85,13 @@ func (oe *OVFExporter) generateManifest(ctx context.Context) error {
 func (oe *OVFExporter) cleanup(ctx context.Context, instance *compute.Instance) error {
 	// cleanup shouldn't react to time out as it's necessary to perform this step.
 	// Otherwise, instance being exported would be left shut down and disks detached.
-	err := oe.instanceExportCleaner.Clean(instance, oe.params)
+
+	// reload the instance to get the latest state of it
+	instanceCurrentState, err := oe.computeClient.GetInstance(*oe.params.Project, oe.params.Zone, oe.params.InstanceName)
+	if err != nil {
+		return daisy.Errf("Error retrieving instance `%v`: %v", oe.params.InstanceName, err)
+	}
+	err = oe.instanceExportCleaner.Clean(instance, instanceCurrentState, oe.params)
 	if err != nil {
 		return err
 	}
@@ -92,19 +103,6 @@ func (oe *OVFExporter) cleanup(ctx context.Context, instance *compute.Instance) 
 	}
 	oe.appendTraceLogs(oe.instanceExportCleaner.TraceLogs())
 	return nil
-}
-
-func runWorkflowWithSteps(ctx context.Context, workflowName, workflowPath, timeout string,
-	populateStepsFunc populateStepsFunc, varMap map[string]string, params *ovfexportdomain.OVFExportParams) (*daisy.Workflow, error) {
-
-	w, err := generateWorkflowWithSteps(workflowName, workflowPath, timeout, populateStepsFunc, varMap, params)
-	if err != nil {
-		return w, err
-	}
-
-	daisycommon.SetWorkflowAttributes(w, params.DaisyAttrs())
-	err = daisyutils.RunWorkflowWithCancelSignal(ctx, w)
-	return w, err
 }
 
 func generateWorkflowWithSteps(workflowName, workflowPath, timeout string, populateStepsFunc populateStepsFunc, varMap map[string]string, params *ovfexportdomain.OVFExportParams) (*daisy.Workflow, error) {
@@ -127,6 +125,7 @@ func generateWorkflowWithSteps(workflowName, workflowPath, timeout string, popul
 	//oe.labelResources(w)
 	//daisyutils.UpdateAllInstanceNoExternalIP(w, oe.params.NoExternalIP)
 
+	daisycommon.SetWorkflowAttributes(w, params.DaisyAttrs())
 	return w, err
 }
 
@@ -142,6 +141,7 @@ func (oe *OVFExporter) runStep(ctx context.Context, step func() error, cancel fu
 		case <-ctx.Done():
 			e <- oe.getCtxError(ctx)
 		default:
+
 			stepErr := step()
 			wg.Done()
 			e <- stepErr
@@ -175,7 +175,7 @@ func (oe *OVFExporter) appendTraceLogs(traceLogs []string) {
 //TODO: consolidate with gce_vm_image_import.getCtxError()
 func (oe *OVFExporter) getCtxError(ctx context.Context) (err error) {
 	if ctxErr := ctx.Err(); ctxErr == context.DeadlineExceeded {
-		err = daisy.Errf("Import did not complete within the specified timeout of %s", oe.params.Timeout.String())
+		err = daisy.Errf("OVF Export did not complete within the specified timeout of %s", oe.params.Timeout.String())
 	} else {
 		err = ctxErr
 	}

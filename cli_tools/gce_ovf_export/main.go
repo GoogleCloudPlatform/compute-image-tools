@@ -32,6 +32,7 @@ var (
 	instanceName         = flag.String(ovfexportdomain.InstanceNameFlagKey, "", "VM Instance names to be created, separated by commas.")
 	machineImageName     = flag.String(ovfexportdomain.MachineImageNameFlagKey, "", "Name of the machine image to create.")
 	clientID             = flag.String(ovfexportdomain.ClientIDFlagKey, "", "Identifies the client of the exporter, e.g. `gcloud` or `pantheon`")
+	clientVersion        = flag.String("client-version", "", "Identifies the version of the client of the exporter")
 	destinationURI       = flag.String(ovfexportdomain.DestinationURIFlagKey, "", "Google Cloud Storage URI of the OVF or OVA file to export. For example: gs://my-bucket/my-vm.ovf.")
 	ovfFormat            = flag.String(ovfexportdomain.OvfFormatFlagKey, "", "One of: `ovf` or `ova`. Defaults to `ovf`. If `ova` is specified, exported OVF package will be packed as an OVA archive and individual files will be removed from GCS.")
 	diskExportFormat     = flag.String("disk-export-format", "vmdk", "format for disks in OVF, such as vmdk, vhdx, vpc, or qcow2. Any format supported by qemu-img is supported by OVF export. Defaults to `vmdk`.")
@@ -75,24 +76,84 @@ func buildExportParams() *ovfexportdomain.OVFExportParams {
 	return params
 }
 
-func runExport() (service.Loggable, error) {
+func createInstanceExportInputParams() service.InputParams {
+	return service.InputParams{
+		InstanceExportParams: &service.InstanceExportParams{
+			CommonParams:     createCommonInputParams(),
+			DestinationURI:   *destinationURI,
+			InstanceName:     *instanceName,
+			OvfFormat:        *ovfFormat,
+			DiskExportFormat: *diskExportFormat,
+			OS:               *osID,
+			NoExternalIP:     *noExternalIP,
+		},
+	}
+}
+
+func createMachineImageExportInputParams() service.InputParams {
+	return service.InputParams{
+		MachineImageExportParams: &service.MachineImageExportParams{
+			CommonParams:     createCommonInputParams(),
+			DestinationURI:   *destinationURI,
+			MachineImageName: *machineImageName,
+			OvfFormat:        *ovfFormat,
+			DiskExportFormat: *diskExportFormat,
+			OS:               *osID,
+			NoExternalIP:     *noExternalIP,
+		},
+	}
+}
+
+func createCommonInputParams() *service.CommonParams {
+	return &service.CommonParams{
+		ClientID:                *clientID,
+		ClientVersion:           *clientVersion,
+		Network:                 *network,
+		Subnet:                  *subnet,
+		Zone:                    *zoneFlag,
+		Timeout:                 (*timeout).String(),
+		Project:                 *project,
+		ObfuscatedProject:       service.Hash(*project),
+		ScratchBucketGcsPath:    *scratchBucketGcsPath,
+		Oauth:                   *oauth,
+		ComputeEndpointOverride: *ce,
+		DisableGcsLogging:       *gcsLogsDisabled,
+		DisableCloudLogging:     *cloudLogsDisabled,
+		DisableStdoutLogging:    *stdoutLogsDisabled,
+	}
+}
+
+func runExport() error {
+	flag.Parse()
+
 	params := buildExportParams()
 	var oe *ovfexporter.OVFExporter
 	var err error
 	if oe, err = ovfexporter.NewOVFExporter(params); err != nil {
-		return nil, err
+		return err
 	}
 	ctx := context.Background()
-	return oe.Run(ctx)
+
+	exporterClosure := func() (service.Loggable, error) {
+		return oe.Run(ctx)
+	}
+	var paramLog service.InputParams
+	var action string
+	if params.IsInstanceExport() {
+		paramLog = createInstanceExportInputParams()
+		action = service.InstanceExportAction
+	} else {
+		paramLog = createMachineImageExportInputParams()
+		action = service.MachineImageExportAction
+	}
+	if err := service.RunWithServerLogging(action, paramLog, params.Project, exporterClosure); err != nil {
+		return err
+	}
+	return nil
 }
 
 func main() {
-	flag.Parse()
-
-	//TODO: store loggable
-
-	_, err := runExport()
-	if err != nil {
+	if err := runExport(); err != nil {
 		log.Println(err)
 		os.Exit(1)
 	}

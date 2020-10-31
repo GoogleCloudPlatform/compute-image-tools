@@ -88,6 +88,8 @@ type InputParams struct {
 	MachineImageImportParams *MachineImageImportParams `json:"machine_image_import_input_params,omitempty"`
 	WindowsUpgradeParams     *WindowsUpgradeParams     `json:"windows_upgrade_input_params,omitempty"`
 	OnestepImageImportParams *OnestepImageImportParams `json:"onestep_image_import_input_params,omitempty"`
+	InstanceExportParams     *InstanceExportParams     `json:"instance_export_input_params,omitempty"`
+	MachineImageExportParams *MachineImageExportParams `json:"machine_image_export_input_params,omitempty"`
 }
 
 // ImageImportParams contains all input params for image import
@@ -233,6 +235,30 @@ type WindowsUpgradeParams struct {
 	CreateMachineBackup    bool   `json:"create_machine_backup"`
 	AutoRollback           bool   `json:"auto_rollback"`
 	UseStagingInstallMedia bool   `json:"use_staging_install_media"`
+}
+
+// InstanceExportParams contains all input params for instance export
+type InstanceExportParams struct {
+	*CommonParams
+
+	DestinationURI   string `json:"destination_uri,omitempty"`
+	InstanceName     string `json:"instance_name,omitempty"`
+	OvfFormat        string `json:"ovf_format,omitempty"`
+	DiskExportFormat string `json:"disk_export_format,omitempty"`
+	NoExternalIP     bool   `json:"no_external_ip,omitempty"`
+	OS               string `json:"os,omitempty"`
+}
+
+// InstanceExportParams contains all input params for instance export
+type MachineImageExportParams struct {
+	*CommonParams
+
+	DestinationURI   string `json:"destination_uri,omitempty"`
+	MachineImageName string `json:"machine_image_name,omitempty"`
+	OvfFormat        string `json:"ovf_format,omitempty"`
+	DiskExportFormat string `json:"disk_export_format,omitempty"`
+	NoExternalIP     bool   `json:"no_external_ip,omitempty"`
+	OS               string `json:"os,omitempty"`
 }
 
 // OutputInfo contains output values from the tools execution

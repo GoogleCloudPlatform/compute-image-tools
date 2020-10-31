@@ -38,6 +38,7 @@ const (
 	logPrefix                  = "[export-ovf]"
 	instanceExportWorkflow     = "ovf_export/export_instance_to_ovf.wf.json"
 	machineImageExportWorkflow = "ovf_export/export_machine_image_to_ovf.wf.json"
+	bytesPerGB                 = int64(1024 * 1024 * 1024)
 )
 
 const (
@@ -72,7 +73,7 @@ type OVFExporter struct {
 	exportedDisks             []*ovfexportdomain.ExportedDisk
 	bootDiskInspectionResults commondisk.InspectionResult
 	traceLogs                 []string
-	loggableBuilder           *service.OVFExportLoggableBuilder
+	loggableBuilder           *service.OvfExportLoggableBuilder
 }
 
 // NewOVFExporter creates an OVF exporter, including automatically populating dependencies,
@@ -111,7 +112,7 @@ func NewOVFExporter(params *ovfexportdomain.OVFExportParams) (*OVFExporter, erro
 		bucketIteratorCreator:  &storageutils.BucketIteratorCreator{},
 		Logger:                 logger,
 		params:                 params,
-		loggableBuilder:        service.NewOVFExportLoggableBuilder(),
+		loggableBuilder:        service.NewOvfExportLoggableBuilder(),
 		ovfDescriptorGenerator: NewOvfDescriptorGenerator(computeClient, storageClient, *params.Project, params.Zone),
 		manifestFileGenerator:  NewManifestFileGenerator(storageClient),
 		inspector:              inspector,
@@ -157,11 +158,17 @@ func getExportWorkflowPath(params *ovfexportdomain.OVFExportParams) string {
 }
 
 func (oe *OVFExporter) buildLoggable() service.Loggable {
+
 	exportedDisksSourceSizes := make([]int64, len(oe.exportedDisks))
 	exportedDisksTargetSizes := make([]int64, len(oe.exportedDisks))
+	for i, exportedDisk := range oe.exportedDisks {
+		exportedDisksSourceSizes[i] = exportedDisk.Disk.SizeGb
+		exportedDisksTargetSizes[i] = exportedDisk.GcsFileAttrs.Size / bytesPerGB
+	}
 	return oe.loggableBuilder.SetDiskSizes(
 		exportedDisksSourceSizes,
-		exportedDisksTargetSizes).SetTraceLogs(oe.traceLogs).
+		exportedDisksTargetSizes).
+		AppendTraceLogs(oe.traceLogs).
 		Build()
 }
 
@@ -171,7 +178,7 @@ func getInstancePath(instance *compute.Instance, project string) string {
 
 // Export runs OVF export
 func (oe *OVFExporter) run(ctx context.Context) error {
-	oe.Logger.Log("Starting OVF export workflow.")
+	oe.Logger.Log("Starting OVF export.")
 	if oe.params.Timeout.Nanoseconds() > 0 {
 		var cancel func()
 		ctx, cancel = context.WithTimeout(ctx, oe.params.Timeout)
@@ -185,36 +192,27 @@ func (oe *OVFExporter) run(ctx context.Context) error {
 		return daisy.Errf("Error retrieving instance `%v`: %v", oe.params.InstanceName, err)
 	}
 	defer func() {
+		if err != nil {
+			oe.Logger.Log("OVF export finished successfully.")
+		}
 		oe.Logger.Log("Cleaning up.")
 		oe.cleanup(ctx, instance)
 	}()
-
-	oe.Logger.Log(fmt.Sprintf("Stopping '%v' instance and detaching the disks.", instance.Name))
 	if err = oe.prepare(ctx, instance); err != nil {
 		return err
 	}
-
-	oe.Logger.Log("Exporting the disks.")
 	if err := oe.exportDisks(ctx, instance); err != nil {
 		return err
 	}
-
-	oe.Logger.Log("Inspecting the boot disk.")
 	if err := oe.inspectBootDisk(ctx); err != nil {
 		return err
 	}
-
-	oe.Logger.Log("Generating OVF descriptor.")
 	if err = oe.generateDescriptor(ctx, instance); err != nil {
 		return err
 	}
-
-	oe.Logger.Log("Generating manifest.")
 	if err = oe.generateManifest(ctx); err != nil {
 		return err
 	}
-
-	oe.Logger.Log("OVF export finished successfully.")
 	return nil
 }
 

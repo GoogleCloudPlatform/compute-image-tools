@@ -49,9 +49,6 @@ Exactly one of these must be specified:
   network resource is in legacy mode, do not provide this property. If the network is in auto subnet
   mode, providing the subnetwork is optional. If the network is in custom subnet mode, then this
   field should be specified. Zone should be specified if this field is specified.
-+ `-boot-disk-kms-keyring=BOOT_DISK_KMS_KEYRING` The KMS keyring of the key.
-+ `-boot-disk-kms-location=BOOT_DISK_KMS_LOCATION` The Cloud location for the key.
-+ `-boot-disk-kms-project=BOOT_DISK_KMS_PROJECT` The Cloud project for the key.
 + `-timeout=TIMEOUT; default="2h"` Maximum time an export can last before it is failed as TIMEOUT.
   For example, specifying 2h will fail the process after 2 hours. See `gcloud topic datetimes` for
   information on duration formats.
@@ -62,6 +59,7 @@ Exactly one of these must be specified:
 + `-disable-gcs-logging` do not stream logs to GCS
 + `-disable-cloud-logging` do not stream logs to Cloud Logging
 + `-disable-stdout-logging` do not display individual workflow logs on stdout
++ `-client-version` identifies the version of the client of the exporter
 
 ### Usage
 
@@ -70,11 +68,10 @@ Export a VM instance:
 gce_ovf_export -destination-uri=GCS_PATH -client-id=CLIENT_ID
 -instance-name=INSTANCE_NAME [-ovf-format=OVF_FORMAT]
 [-disk-export-format=DISK_FORMAT] [--os] [-network=NETWORK] [-subnet=SUBNET]
-[-boot-disk-kms-key=KMS_KEY : -boot-disk-kms-keyring=KMS_KEYRING -boot-disk-kms-location=KMS_LOCATION -boot-disk-kms-project=KMS_PROJECT]
 [-timeout=TIMEOUT; default="2h"] [-project=PROJECT]
 [-scratch-bucket-gcs-path=SCRATCH_BUCKET_PATH] [-oauth=OAUTH_FILE_PATH]
 [-compute-endpoint-override=CE_ENDPOINT] [-disable-gcs-logging] 
-[-disable-cloud-logging] [-disable-stdout-logging] 
+[-disable-cloud-logging] [-disable-stdout-logging] [-client-version]
 
 ```
 
@@ -83,9 +80,8 @@ Export a machine image:
 gce_ovf_export -destination-uri=GCS_PATH -client-id=CLIENT_ID
 -machine-image-name=MACHINE_IMAGE [-ovf-format=OVF_FORMAT] 
 [-disk-export-format=DISK_FORMAT] [--os] [-network=NETWORK] [-subnet=SUBNET]
-[-boot-disk-kms-key=KMS_KEY : -boot-disk-kms-keyring=KMS_KEYRING -boot-disk-kms-location=KMS_LOCATION -boot-disk-kms-project=KMS_PROJECT]
 [-timeout=TIMEOUT; default="2h"] [-project=PROJECT]
 [-scratch-bucket-gcs-path=SCRATCH_BUCKET_PATH] [-oauth=OAUTH_FILE_PATH]
 [-compute-endpoint-override=CE_ENDPOINT] [-disable-gcs-logging] 
-[-disable-cloud-logging] [-disable-stdout-logging] 
+[-disable-cloud-logging] [-disable-stdout-logging] [-client-version]
 

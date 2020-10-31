@@ -105,15 +105,15 @@ func (b *SingleImageImportLoggableBuilder) Build() Loggable {
 	return b.literalLoggable
 }
 
-// SingleImageImportLoggableBuilder initializes and builds a Loggable with the metadata
-// fields that are relevant when importing a single image.
-type OVFExportLoggableBuilder struct {
+// OvfExportLoggableBuilder initializes and builds a Loggable with the metadata
+// fields that are relevant when exporting OVF.
+type OvfExportLoggableBuilder struct {
 	literalLoggable
 }
 
-// NewOVFExportLoggableBuilder creates and initializes a OVFExportLoggableBuilder.
-func NewOVFExportLoggableBuilder() *OVFExportLoggableBuilder {
-	return &OVFExportLoggableBuilder{literalLoggable{
+// NewOvfExportLoggableBuilder creates and initializes a OvfExportLoggableBuilder.
+func NewOvfExportLoggableBuilder() *OvfExportLoggableBuilder {
+	return &OvfExportLoggableBuilder{literalLoggable{
 		strings: map[string]string{},
 		int64s:  map[string][]int64{},
 		bools:   map[string]bool{},
@@ -121,21 +121,25 @@ func NewOVFExportLoggableBuilder() *OVFExportLoggableBuilder {
 }
 
 // SetDiskAttributes sets disk related attributes.
-func (b *OVFExportLoggableBuilder) SetDiskSizes(sourceSizes []int64,
-	targetSizes []int64) *OVFExportLoggableBuilder {
+func (b *OvfExportLoggableBuilder) SetDiskSizes(sourceSizes []int64,
+	targetSizes []int64) *OvfExportLoggableBuilder {
 
 	b.int64s[sourceSizeGb] = sourceSizes
 	b.int64s[targetSizeGb] = targetSizes
 	return b
 }
 
-// SetTraceLogs sets trace logs during the import.
-func (b *OVFExportLoggableBuilder) SetTraceLogs(traceLogs []string) *OVFExportLoggableBuilder {
-	b.traceLogs = traceLogs
+// AppendTraceLogs sets trace logs during OVF export.
+func (b *OvfExportLoggableBuilder) AppendTraceLogs(traceLogs []string) *OvfExportLoggableBuilder {
+	if b.traceLogs != nil {
+		b.traceLogs = append(b.traceLogs, traceLogs...)
+	} else {
+		b.traceLogs = traceLogs
+	}
 	return b
 }
 
 // Build builds the actual Loggable object.
-func (b *OVFExportLoggableBuilder) Build() Loggable {
+func (b *OvfExportLoggableBuilder) Build() Loggable {
 	return b.literalLoggable
 }

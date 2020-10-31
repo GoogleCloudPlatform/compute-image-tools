@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/storage"
 	commondisk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
@@ -32,16 +33,19 @@ import (
 var (
 	exportedDisks = []*ovfexportdomain.ExportedDisk{
 		{
-			Disk:         &compute.Disk{Name: "bootdisk"},
+			Disk:         &compute.Disk{Name: "bootdisk", SizeGb: 10},
 			AttachedDisk: &compute.AttachedDisk{Boot: true},
+			GcsFileAttrs: &storage.ObjectAttrs{Size: 3 * bytesPerGB},
 		},
 		{
-			Disk:         &compute.Disk{Name: "datadisk1"},
+			Disk:         &compute.Disk{Name: "datadisk1", SizeGb: 20},
 			AttachedDisk: &compute.AttachedDisk{Boot: false},
+			GcsFileAttrs: &storage.ObjectAttrs{Size: 7 * bytesPerGB},
 		},
 		{
-			Disk:         &compute.Disk{Name: "datadisk2"},
+			Disk:         &compute.Disk{Name: "datadisk2", SizeGb: 300},
 			AttachedDisk: &compute.AttachedDisk{Boot: false},
+			GcsFileAttrs: &storage.ObjectAttrs{Size: 90 * bytesPerGB},
 		},
 	}
 )
@@ -62,7 +66,7 @@ func TestRun_HappyPath(t *testing.T) {
 
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
 
-	mockComputeClient.EXPECT().GetInstance(*params.Project, params.Zone, params.InstanceName).Return(instance, nil)
+	mockComputeClient.EXPECT().GetInstance(*params.Project, params.Zone, params.InstanceName).Times(2).Return(instance, nil)
 
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
@@ -87,7 +91,7 @@ func TestRun_HappyPath(t *testing.T) {
 	mockOvfManifestGenerator.EXPECT().GenerateAndWriteToGCS(params.DestinationURI, params.InstanceName).Return(nil)
 
 	mockInstanceExportCleaner := mocks.NewMockInstanceExportCleaner(mockCtrl)
-	mockInstanceExportCleaner.EXPECT().Clean(instance, params).Return(nil)
+	mockInstanceExportCleaner.EXPECT().Clean(instance, instance, params).Return(nil)
 	mockInstanceExportCleaner.EXPECT().TraceLogs().Return([]string{"cleaner trace log"})
 	mockStorageClient.EXPECT().Close().Return(nil)
 
@@ -98,7 +102,7 @@ func TestRun_HappyPath(t *testing.T) {
 		bucketIteratorCreator:  mockBucketIteratorCreator,
 		Logger:                 mockLogger,
 		params:                 params,
-		loggableBuilder:        service.NewOVFExportLoggableBuilder(),
+		loggableBuilder:        service.NewOvfExportLoggableBuilder(),
 		ovfDescriptorGenerator: mockOvfDescriptorGenerator,
 		manifestFileGenerator:  mockOvfManifestGenerator,
 		inspector:              mockInspector,
@@ -109,8 +113,11 @@ func TestRun_HappyPath(t *testing.T) {
 	loggable, err := exporter.Run(context.Background())
 	assert.Nil(t, err)
 	assert.NotNil(t, loggable)
+
 	serialLogs := loggable.ReadSerialPortLogs()
 	assert.Equal(t, []string{"preparer trace log", "disk exporter trace log", "inspector trace log", "cleaner trace log"}, serialLogs)
+	assert.Equal(t, []int64{10, 20, 300}, loggable.GetValueAsInt64Slice("source-size-gb"))
+	assert.Equal(t, []int64{3, 7, 90}, loggable.GetValueAsInt64Slice("target-size-gb"))
 }
 
 func TestRun_DontRunDiskExporterIfPreparerTimedOut(t *testing.T) {
@@ -129,7 +136,7 @@ func TestRun_DontRunDiskExporterIfPreparerTimedOut(t *testing.T) {
 
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
 
-	mockComputeClient.EXPECT().GetInstance(*params.Project, params.Zone, params.InstanceName).Return(instance, nil)
+	mockComputeClient.EXPECT().GetInstance(*params.Project, params.Zone, params.InstanceName).Times(2).Return(instance, nil)
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 
@@ -148,7 +155,7 @@ func TestRun_DontRunDiskExporterIfPreparerTimedOut(t *testing.T) {
 	mockOvfManifestGenerator := mocks.NewMockOvfManifestGenerator(mockCtrl)
 
 	mockInstanceExportCleaner := mocks.NewMockInstanceExportCleaner(mockCtrl)
-	mockInstanceExportCleaner.EXPECT().Clean(instance, params).Return(nil)
+	mockInstanceExportCleaner.EXPECT().Clean(instance, instance, params).Return(nil)
 	mockInstanceExportCleaner.EXPECT().TraceLogs().Return([]string{"cleaner trace log"})
 
 	exporter := &OVFExporter{
@@ -158,7 +165,7 @@ func TestRun_DontRunDiskExporterIfPreparerTimedOut(t *testing.T) {
 		bucketIteratorCreator:  mockBucketIteratorCreator,
 		Logger:                 mockLogger,
 		params:                 params,
-		loggableBuilder:        service.NewOVFExportLoggableBuilder(),
+		loggableBuilder:        service.NewOvfExportLoggableBuilder(),
 		ovfDescriptorGenerator: mockOvfDescriptorGenerator,
 		manifestFileGenerator:  mockOvfManifestGenerator,
 		inspector:              mockInspector,
@@ -186,7 +193,7 @@ func TestRun_DontRunInspectorIfDiskExporterTimedOut(t *testing.T) {
 
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
 
-	mockComputeClient.EXPECT().GetInstance(*params.Project, params.Zone, params.InstanceName).Return(instance, nil)
+	mockComputeClient.EXPECT().GetInstance(*params.Project, params.Zone, params.InstanceName).Times(2).Return(instance, nil)
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 
@@ -208,7 +215,7 @@ func TestRun_DontRunInspectorIfDiskExporterTimedOut(t *testing.T) {
 	mockOvfManifestGenerator := mocks.NewMockOvfManifestGenerator(mockCtrl)
 
 	mockInstanceExportCleaner := mocks.NewMockInstanceExportCleaner(mockCtrl)
-	mockInstanceExportCleaner.EXPECT().Clean(instance, params).Return(nil)
+	mockInstanceExportCleaner.EXPECT().Clean(instance, instance, params).Return(nil)
 	mockInstanceExportCleaner.EXPECT().TraceLogs().Return([]string{"cleaner trace log"})
 
 	exporter := &OVFExporter{
@@ -218,7 +225,7 @@ func TestRun_DontRunInspectorIfDiskExporterTimedOut(t *testing.T) {
 		bucketIteratorCreator:  mockBucketIteratorCreator,
 		Logger:                 mockLogger,
 		params:                 params,
-		loggableBuilder:        service.NewOVFExportLoggableBuilder(),
+		loggableBuilder:        service.NewOvfExportLoggableBuilder(),
 		ovfDescriptorGenerator: mockOvfDescriptorGenerator,
 		manifestFileGenerator:  mockOvfManifestGenerator,
 		inspector:              mockInspector,
@@ -245,7 +252,7 @@ func TestRun_DontRunDescriptorGeneratorIfInspectorTimedOut(t *testing.T) {
 
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
 
-	mockComputeClient.EXPECT().GetInstance(*params.Project, params.Zone, params.InstanceName).Return(instance, nil)
+	mockComputeClient.EXPECT().GetInstance(*params.Project, params.Zone, params.InstanceName).Times(2).Return(instance, nil)
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 
@@ -268,7 +275,7 @@ func TestRun_DontRunDescriptorGeneratorIfInspectorTimedOut(t *testing.T) {
 	mockOvfManifestGenerator := mocks.NewMockOvfManifestGenerator(mockCtrl)
 
 	mockInstanceExportCleaner := mocks.NewMockInstanceExportCleaner(mockCtrl)
-	mockInstanceExportCleaner.EXPECT().Clean(instance, params).Return(nil)
+	mockInstanceExportCleaner.EXPECT().Clean(instance, instance, params).Return(nil)
 	mockInstanceExportCleaner.EXPECT().TraceLogs().Return([]string{"cleaner trace log"})
 
 	exporter := &OVFExporter{
@@ -278,7 +285,7 @@ func TestRun_DontRunDescriptorGeneratorIfInspectorTimedOut(t *testing.T) {
 		bucketIteratorCreator:  mockBucketIteratorCreator,
 		Logger:                 mockLogger,
 		params:                 params,
-		loggableBuilder:        service.NewOVFExportLoggableBuilder(),
+		loggableBuilder:        service.NewOvfExportLoggableBuilder(),
 		ovfDescriptorGenerator: mockOvfDescriptorGenerator,
 		manifestFileGenerator:  mockOvfManifestGenerator,
 		inspector:              mockInspector,
@@ -306,7 +313,7 @@ func TestRun_DontRunManifestGeneratorIfDescriptorGeneratorTimedOut(t *testing.T)
 
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
 
-	mockComputeClient.EXPECT().GetInstance(*params.Project, params.Zone, params.InstanceName).Return(instance, nil)
+	mockComputeClient.EXPECT().GetInstance(*params.Project, params.Zone, params.InstanceName).Times(2).Return(instance, nil)
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 
@@ -335,7 +342,7 @@ func TestRun_DontRunManifestGeneratorIfDescriptorGeneratorTimedOut(t *testing.T)
 	mockOvfManifestGenerator := mocks.NewMockOvfManifestGenerator(mockCtrl)
 
 	mockInstanceExportCleaner := mocks.NewMockInstanceExportCleaner(mockCtrl)
-	mockInstanceExportCleaner.EXPECT().Clean(instance, params).Return(nil)
+	mockInstanceExportCleaner.EXPECT().Clean(instance, instance, params).Return(nil)
 	mockInstanceExportCleaner.EXPECT().TraceLogs().Return([]string{"cleaner trace log"})
 
 	exporter := &OVFExporter{
@@ -345,7 +352,7 @@ func TestRun_DontRunManifestGeneratorIfDescriptorGeneratorTimedOut(t *testing.T)
 		bucketIteratorCreator:  mockBucketIteratorCreator,
 		Logger:                 mockLogger,
 		params:                 params,
-		loggableBuilder:        service.NewOVFExportLoggableBuilder(),
+		loggableBuilder:        service.NewOvfExportLoggableBuilder(),
 		ovfDescriptorGenerator: mockOvfDescriptorGenerator,
 		manifestFileGenerator:  mockOvfManifestGenerator,
 		inspector:              mockInspector,
@@ -373,7 +380,7 @@ func TestRun_TimeOutOnManifestGeneratorTimingOut(t *testing.T) {
 
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
 
-	mockComputeClient.EXPECT().GetInstance(*params.Project, params.Zone, params.InstanceName).Return(instance, nil)
+	mockComputeClient.EXPECT().GetInstance(*params.Project, params.Zone, params.InstanceName).Times(2).Return(instance, nil)
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 
@@ -402,7 +409,7 @@ func TestRun_TimeOutOnManifestGeneratorTimingOut(t *testing.T) {
 		func(_ string) { manifestGeneratorCancelChan <- true }).Return(true)
 
 	mockInstanceExportCleaner := mocks.NewMockInstanceExportCleaner(mockCtrl)
-	mockInstanceExportCleaner.EXPECT().Clean(instance, params).Return(nil)
+	mockInstanceExportCleaner.EXPECT().Clean(instance, instance, params).Return(nil)
 	mockInstanceExportCleaner.EXPECT().TraceLogs().Return([]string{"cleaner trace log"})
 
 	exporter := &OVFExporter{
@@ -412,7 +419,7 @@ func TestRun_TimeOutOnManifestGeneratorTimingOut(t *testing.T) {
 		bucketIteratorCreator:  mockBucketIteratorCreator,
 		Logger:                 mockLogger,
 		params:                 params,
-		loggableBuilder:        service.NewOVFExportLoggableBuilder(),
+		loggableBuilder:        service.NewOvfExportLoggableBuilder(),
 		ovfDescriptorGenerator: mockOvfDescriptorGenerator,
 		manifestFileGenerator:  mockOvfManifestGenerator,
 		inspector:              mockInspector,

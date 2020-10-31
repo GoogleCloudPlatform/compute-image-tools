@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"strings"
 
+	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
@@ -26,7 +27,6 @@ import (
 
 type instanceExportCleanerImpl struct {
 	wf           *daisy.Workflow
-	instance     *compute.Instance
 	workflowPath string
 	serialLogs   []string
 }
@@ -38,52 +38,77 @@ func NewInstanceExportCleaner(workflowPath string) ovfexportdomain.InstanceExpor
 	}
 }
 
-func (iec *instanceExportCleanerImpl) Clean(instance *compute.Instance, params *ovfexportdomain.OVFExportParams) error {
-	iec.instance = instance
+func (iec *instanceExportCleanerImpl) Clean(instanceInitialState, instanceCurrentState *compute.Instance, params *ovfexportdomain.OVFExportParams) error {
+	//if isInstanceRunning(instanceCurrentState) {
+	//	// if instance is running now, it means preparer didn't have time to stop it
+	//	// and detach disks. Nothing to do here.
+	//	fmt.Printf("if instance is running now, it means preparer didn't have time to stop it and detach disks. Nothing to do here.")
+	//	return nil
+	//}
 	var err error
-	iec.wf, err = runWorkflowWithSteps(context.Background(), "ovf-export-clean",
-		iec.workflowPath, params.Timeout.String(), func(w *daisy.Workflow) error { return iec.populateCleanupSteps(w, instance, params) },
+	iec.wf, err = generateWorkflowWithSteps("ovf-export-clean", iec.workflowPath,
+		// don't use default timeout as it might not be long enough for cleanup,
+		// e.g. if it's very short (e.g. 10s)
+		"10m",
+		func(w *daisy.Workflow) error {
+			return iec.populateCleanupSteps(w, instanceInitialState, instanceCurrentState, params)
+		},
 		map[string]string{}, params)
+	if err != nil {
+		fmt.Printf("Error running cleaner wf %v", err)
+		return err
+	}
+	err = daisyutils.RunWorkflowWithCancelSignal(context.Background(), iec.wf)
 	if iec.wf.Logger != nil {
 		iec.serialLogs = iec.wf.Logger.ReadSerialPortLogs()
 	}
 	return err
 }
 
-func (iec *instanceExportCleanerImpl) populateCleanupSteps(w *daisy.Workflow, instance *compute.Instance, params *ovfexportdomain.OVFExportParams) error {
+func (iec *instanceExportCleanerImpl) populateCleanupSteps(
+	w *daisy.Workflow, instanceInitialState *compute.Instance,
+	instanceCurrentState *compute.Instance,
+	params *ovfexportdomain.OVFExportParams) error {
+
 	var nextStepName string
 	var err error
-	if isInstanceRunning(instance) {
+	wasInstanceRunningBeforeExport := isInstanceRunning(instanceInitialState)
+	if wasInstanceRunningBeforeExport {
 		nextStepName = "start-instance"
 	}
-	_, err = iec.addAttachDisksSteps(w, instance, params, nextStepName)
+	_, err = iec.addAttachDisksSteps(w, instanceInitialState, instanceCurrentState, params, nextStepName)
 	if err != nil {
 		return err
 	}
-	if isInstanceRunning(instance) {
-		iec.addStartInstanceStep(w, instance, params, nextStepName)
+	if wasInstanceRunningBeforeExport {
+		iec.addStartInstanceStep(w, instanceInitialState, params, nextStepName)
 	}
 	return nil
 }
 
 // addAttachDisksSteps adds Daisy steps to OVF export workflow to attach disks back to the instance.
 func (iec *instanceExportCleanerImpl) addAttachDisksSteps(w *daisy.Workflow,
-	instance *compute.Instance, params *ovfexportdomain.OVFExportParams, nextStepName string) ([]string, error) {
-	if instance == nil || len(instance.Disks) == 0 {
+	instanceInitialState, instanceCurrentState *compute.Instance,
+	params *ovfexportdomain.OVFExportParams, nextStepName string) ([]string, error) {
+	if instanceInitialState == nil || len(instanceInitialState.Disks) == 0 {
 		return nil, daisy.Errf("No attachedDisks found in the Instance to export")
 	}
-	attachedDisks := instance.Disks
+	attachedDisks := instanceInitialState.Disks
 
 	var stepNames []string
 
 	for _, attachedDisk := range attachedDisks {
+		if doesInstanceHaveDiskAttached(instanceCurrentState, attachedDisk) {
+			// this disk is already attached
+			continue
+		}
 		diskPath := attachedDisk.Source[strings.Index(attachedDisk.Source, "projects/"):]
 		attachDiskStepName := fmt.Sprintf("attach-disk-%v", attachedDisk.DeviceName)
 		stepNames = append(stepNames, attachDiskStepName)
 		attachDiskStep := daisy.NewStepDefaultTimeout(attachDiskStepName, w)
 		attachDiskStep.AttachDisks = &daisy.AttachDisks{
 			{
-				Instance: getInstancePath(instance, *params.Project),
+				Instance: getInstancePath(instanceInitialState, *params.Project),
 				AttachedDisk: compute.AttachedDisk{
 					Mode:       attachedDisk.Mode,
 					Source:     diskPath,
@@ -99,6 +124,15 @@ func (iec *instanceExportCleanerImpl) addAttachDisksSteps(w *daisy.Workflow,
 		}
 	}
 	return stepNames, nil
+}
+
+func doesInstanceHaveDiskAttached(instance *compute.Instance, disk *compute.AttachedDisk) bool {
+	for _, attachedDisk := range instance.Disks {
+		if disk.Source == attachedDisk.Source {
+			return true
+		}
+	}
+	return false
 }
 
 // addStartInstanceStep adds a StartInstance step to a workflow
