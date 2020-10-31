@@ -374,9 +374,11 @@ func TestRunStep_VeryShortTimeout(t *testing.T) {
 		defer cancel()
 
 		cancelChan := make(chan bool)
+		didStepRun := false
 		importer.runStep(ctx,
 			func() error {
 				// step
+				didStepRun = true
 				select {
 				case <-cancelChan:
 					break
@@ -399,6 +401,7 @@ func TestRunStep_VeryShortTimeout(t *testing.T) {
 				//getTraceLogs
 				return []string{}
 			})
+		assert.False(t, didStepRun)
 	})
 }
 
