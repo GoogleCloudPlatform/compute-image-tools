@@ -352,6 +352,72 @@ func TestRun_ProcessCantTimeoutImportSucceeds(t *testing.T) {
 	assert.True(t, duration > importer.timeout)
 }
 
+func TestRunStep_VeryShortTimeout(t *testing.T) {
+	// This test ensures that inflater.runStep doesn't dead lock when timeout
+	// has already passed before step function is able to run.
+
+	doTestWithTimeOut(t, 2*time.Second, func(t *testing.T) {
+		// run this test with a timeout as it might never finish if there is a bug
+
+		importer := importer{
+			preValidator:      mockValidator{},
+			inflater:          &mockInflater{},
+			processorProvider: &mockProcessorProvider{},
+			loggableBuilder:   service.NewSingleImageImportLoggableBuilder(),
+			// this simulates a very short timeout, or a situation when a timeout
+			// occurs immediately after one step finishes and the next one is about
+			// to start
+			timeout: 0 * time.Millisecond,
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), importer.timeout)
+		defer cancel()
+
+		cancelChan := make(chan bool)
+		importer.runStep(ctx,
+			func() error {
+				// step
+				select {
+				case <-cancelChan:
+					break
+				case <-time.After(time.Second * 5):
+					break
+				}
+				return nil
+			},
+			func(string) bool {
+				// cancel
+				select {
+				case cancelChan <- true:
+					break
+				default:
+					break
+				}
+				return true
+			},
+			func() []string {
+				//getTraceLogs
+				return []string{}
+			})
+	})
+}
+
+// doTestWithTimeOut allows a test to be run for a predefined amount of time.
+// If this time passes, the test fails
+func doTestWithTimeOut(t *testing.T, timeout time.Duration, test func(t *testing.T)) {
+	timeoutChan := time.After(timeout)
+	done := make(chan bool)
+	go func() {
+		test(t)
+		done <- true
+	}()
+	select {
+	case <-timeoutChan:
+		t.Fatal("Test timed out")
+	case <-done:
+	}
+}
+
 type mockProcessorProvider struct {
 	processors   []processor
 	err          error

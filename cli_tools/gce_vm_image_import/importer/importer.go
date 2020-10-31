@@ -137,7 +137,6 @@ func (i *importer) runProcess(ctx context.Context) error {
 func (i *importer) runStep(ctx context.Context, step func() error, cancel func(string) bool, getTraceLogs func() []string) (err error) {
 	e := make(chan error)
 	var wg sync.WaitGroup
-	wg.Add(1)
 	go func() {
 		//this select checks if context expired prior to runStep being called
 		//if not, step is run
@@ -145,6 +144,7 @@ func (i *importer) runStep(ctx context.Context, step func() error, cancel func(s
 		case <-ctx.Done():
 			e <- i.getCtxError(ctx)
 		default:
+			wg.Add(1)
 			stepErr := step()
 			wg.Done()
 			e <- stepErr
