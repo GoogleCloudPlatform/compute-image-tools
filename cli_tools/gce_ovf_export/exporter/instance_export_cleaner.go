@@ -47,7 +47,8 @@ func (iec *instanceExportCleanerImpl) init(instance *compute.Instance, params *o
 	attachedDisks := instance.Disks
 
 	for _, attachedDisk := range attachedDisks {
-		attachDiskWf, err := generateWorkflowWithSteps("ovf-export-clean", iec.workflowPath, wfTimeout,
+		attachDiskWf, err := generateWorkflowWithSteps(fmt.Sprintf("ovf-export-clean-attach-disk-%v", attachedDisk.DeviceName),
+			iec.workflowPath, wfTimeout,
 			func(w *daisy.Workflow) error {
 				iec.addAttachDiskStepStep(w, instance, params, attachedDisk)
 				return nil
@@ -61,7 +62,7 @@ func (iec *instanceExportCleanerImpl) init(instance *compute.Instance, params *o
 	wasInstanceRunningBeforeExport := isInstanceRunning(instance)
 	if wasInstanceRunningBeforeExport {
 		var err error
-		iec.startInstanceWf, err = generateWorkflowWithSteps("ovf-export-clean", iec.workflowPath, wfTimeout,
+		iec.startInstanceWf, err = generateWorkflowWithSteps("ovf-export-clean-start-instance", iec.workflowPath, wfTimeout,
 			func(w *daisy.Workflow) error {
 				if wasInstanceRunningBeforeExport {
 					iec.addStartInstanceStep(w, instance, params)
@@ -87,7 +88,7 @@ func (iec *instanceExportCleanerImpl) addStartInstanceStep(w *daisy.Workflow,
 func (iec *instanceExportCleanerImpl) addAttachDiskStepStep(w *daisy.Workflow,
 	instance *compute.Instance, params *ovfexportdomain.OVFExportParams, attachedDisk *compute.AttachedDisk) {
 	diskPath := attachedDisk.Source[strings.Index(attachedDisk.Source, "projects/"):]
-	attachDiskStepName := fmt.Sprintf("attach-disk-%v", attachedDisk.DeviceName)
+	attachDiskStepName := "attach-disk"
 	attachDiskStep := daisy.NewStepDefaultTimeout(attachDiskStepName, w)
 	attachDiskStep.AttachDisks = &daisy.AttachDisks{
 		{
@@ -100,7 +101,6 @@ func (iec *instanceExportCleanerImpl) addAttachDiskStepStep(w *daisy.Workflow,
 			},
 		},
 	}
-
 	w.Steps[attachDiskStepName] = attachDiskStep
 }
 
