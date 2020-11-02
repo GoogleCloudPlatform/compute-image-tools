@@ -56,7 +56,7 @@ function Get-MetadataValue {
         return $default
       }
       # Sleep after each failure with no default value to give the network adapters time to become functional.
-      Start-Sleep -s 10
+      Start-Sleep -s 1
     }
   }
   Write-Host "Failed $max_attemps times to retrieve value from metadata for $key, returning null."
@@ -271,7 +271,9 @@ function Install-32bitPackages {
 
 try {
   Write-Output 'Translate: Beginning translate PowerShell script.'
-
+  # This script can reboot the system under specific conditions, so this wait is to address timing issues at boot.
+  # Using ping instead of timeout in case the clock resets (as it does on first boot).
+  & ping 127.0.0.1 -n 60
   Remove-VMWareTools
   Change-InstanceProperties
   Configure-Network
@@ -283,7 +285,13 @@ try {
   $script:is_byol = Get-MetadataValue -key 'is_byol'
   if ($script:install_packages -eq $null -or $script:sysprep -eq $null -or $script:is_byol -eq $null) {
     Write-Output "Translate: failed to obtain at least one of the required values from metadata, rebooting in an attempt to resolve issue. install_packages=$script:install_packages, sysprep=$script:sysprep, is_byol=$script:is_byol"
-    Restart-Computer -Force
+    if (-not (Test-Path -Path $env:TEMP\translate_metadata_reboot.txt -PathType Leaf)) {
+      New-Item -Path $env:TEMP\translate_metadata_reboot.txt
+      Restart-Computer -Force
+    }
+    else {
+      Throw "Failed to obtain at least one of the required values from metadata and a reboot has already been attempted."
+    }
   }
 
   if ([Environment]::Is64BitOperatingSystem) {
