@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -487,12 +488,11 @@ func (m *mockInflater) Inflate() (persistentDisk, shadowTestFields, error) {
 	if m.inflationTime > 0 {
 		select {
 		case <-m.cancelChan:
-			break
+			return m.pd, m.ii, fmt.Errorf("cancelled inflater")
 		case <-time.After(m.inflationTime):
 			break
 		}
 	}
-
 	return m.pd, m.ii, m.err
 }
 

@@ -145,9 +145,16 @@ func (i *importer) runStep(ctx context.Context, step func() error, cancel func(s
 			e <- i.getCtxError(ctx)
 		default:
 			wg.Add(1)
-			stepErr := step()
-			wg.Done()
-			e <- stepErr
+			var stepErr error
+			defer func() {
+				// error should only be returned after wg is marked as done. Otherwise,
+				// a deadlock can occur when handling a timeout in the select below
+				// because cancel() causes step() to finish, then waits for wg, while
+				// writing to error chan waits on error chan reader which never happens
+				wg.Done()
+				e <- stepErr
+			}()
+			stepErr = step()
 		}
 	}()
 
