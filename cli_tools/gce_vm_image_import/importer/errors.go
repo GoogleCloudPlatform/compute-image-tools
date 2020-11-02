@@ -21,8 +21,7 @@ import (
 func customizeErrorToDetectionResults(osID, detectedDistro, detectedMajor,
 	detectedMinor string, original error) error {
 	fromUser, _ := distro.FromGcloudOSArgument(osID)
-	detected, _ := distro.FromComponents(
-		detectedDistro, detectedMajor, detectedMinor)
+	detected, _ := distro.FromComponents(detectedDistro, detectedMajor, detectedMinor, "")
 	if fromUser != nil && detected != nil && !fromUser.ImportCompatible(detected) {
 		// The error is already logged by Daisy, so skipping re-logging it here.
 		return fmt.Errorf("%q was detected on your disk, "+

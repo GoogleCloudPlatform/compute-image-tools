@@ -17,6 +17,7 @@ package distro
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -29,9 +30,31 @@ const (
 	opensuse = "opensuse"
 	rhel     = "rhel"
 	sles     = "sles"
+	slesSAP  = "sles-sap"
 	ubuntu   = "ubuntu"
 	windows  = "windows"
+
+	archX86 = "x86"
+	archX64 = "x64"
 )
+
+var osFlagExpression = regexp.MustCompile(
+	// Distro is required and is comprised of at least one letter.
+	// There may be two segments, separated by a hyphen.
+	// Examples: ubuntu, sles, sles-sap, windows
+	"^(?P<distro>[a-z]+(?:-[a-z]+)?)" +
+		// Version is required, and is at least one word character.
+		// Examples: 2004, 2008, 2008r2
+		"-(?P<version>\\w+)" +
+		// Architecture is optional. The only options are `x86` and `x64`.
+		"(?:-(?P<arch>x86|x64))?" +
+		// License is optional. The only value is `byol`.
+		"(?:-(?P<license>byol))?$")
+
+var architectures = map[string]bool{
+	archX64: true,
+	archX86: true,
+}
 
 // Release encapsulates product and version information
 // about the operating systems we support.
@@ -52,8 +75,21 @@ type Release interface {
 // a Release if the arguments are syntactically correct, and represent a
 // release that we *may* support. The caller is responsible for verifying
 // whether a translator is available elsewhere in the system.
-func FromComponents(distro string, major string, minor string) (r Release, e error) {
+func FromComponents(distro string, major string, minor string, architecture string) (r Release, e error) {
+	if distro == "" {
+		return nil, errors.New("distro name required")
+	}
 	distro = strings.ToLower(distro)
+	architecture = strings.ToLower(architecture)
+
+	if architecture != "" && !architectures[architecture] {
+		return nil, fmt.Errorf("Architecture `%s` is not supported for import", architecture)
+	}
+
+	if distro == windows {
+		return newWindowsRelease(major, minor, architecture)
+	}
+
 	majorInt, e := strconv.Atoi(major)
 	if e != nil || majorInt < 1 {
 		return nil, fmt.Errorf(
@@ -70,15 +106,6 @@ func FromComponents(distro string, major string, minor string) (r Release, e err
 		}
 	}
 	switch distro {
-	case "":
-		return nil, errors.New("distro name required")
-	case windows:
-		// We don't currently need Windows for this parsing, and punting
-		// since it's not immediately clear how to represent their
-		// version strings, as the user-facing value (Windows 2008r2)
-		// does not match what's used internally by our tools (NT 5.2)
-		// https://en.wikipedia.org/wiki/List_of_Microsoft_Windows_versions
-		return r, errors.New("Windows not yet implemented")
 	case ubuntu:
 		return newUbuntuRelease(majorInt, minorInt)
 	case centos:
@@ -89,14 +116,13 @@ func FromComponents(distro string, major string, minor string) (r Release, e err
 		fallthrough
 	case rhel:
 		return newCommonLinuxRelease(distro, majorInt, minorInt)
-	}
-
-	// SLES supports variants, such as sles-sap.
-	if distro == sles || strings.HasPrefix(distro, sles+"-") {
+	case sles:
+		fallthrough
+	case slesSAP:
 		return newSLESRelease(distro, majorInt, minorInt)
+	default:
+		return nil, fmt.Errorf("distro `%s` is not importable", distro)
 	}
-
-	return nil, fmt.Errorf("distro `%s` is not importable", distro)
 }
 
 // FromGcloudOSArgument parses the argument provided to the `--os` flag of
@@ -106,25 +132,38 @@ func FromComponents(distro string, major string, minor string) (r Release, e err
 //
 // https://cloud.google.com/sdk/gcloud/reference/compute/images/import#--os
 func FromGcloudOSArgument(osFlagValue string) (r Release, e error) {
-	os := strings.ToLower(osFlagValue)
-	if strings.HasSuffix(os, "-byol") {
-		os = strings.TrimSuffix(os, "-byol")
+	if osFlagValue == "windows-8-1-x64-byol" {
+		// windows-8-1-x64-byol is a legacy flag value, and it's the only value that
+		// includes an extra hyphen between its major and minor version. The non-legacy
+		// flag is windows-8-x64-byol.
+		osFlagValue = "windows-8-x64-byol"
 	}
-	lastHyphenIndex := strings.LastIndex(os, "-")
-	if lastHyphenIndex < 0 || lastHyphenIndex == len(os) {
-		return r, fmt.Errorf("expected pattern of `distro-version`. Actual: `%s`", os)
+	match := osFlagExpression.FindStringSubmatch(strings.ToLower(osFlagValue))
+	if match == nil {
+		return r, fmt.Errorf("expected pattern of `distro-version`. Actual: `%s`", osFlagValue)
 	}
-	distro, version := os[:lastHyphenIndex], os[lastHyphenIndex+1:]
+	components := make(map[string]string)
+	for i, name := range osFlagExpression.SubexpNames() {
+		if i != 0 && name != "" {
+			components[name] = match[i]
+		}
+	}
+	distro, version, arch := components["distro"], components["version"], components["arch"]
 
+	var major, minor string
 	if distro == ubuntu {
 		// In gcloud, major and minor are combined as MMmm, such as ubuntu-1804
 		if len(version) != 4 {
 			return r, fmt.Errorf("expected version with length four. Actual: `%s`", version)
 		}
 
-		return FromComponents("ubuntu", version[:2], version[2:])
+		major, minor = version[:2], version[2:]
+	} else if distro == windows && strings.HasSuffix(version, "r2") {
+		major, minor = version[:len(version)-2], "r2"
+	} else {
+		major, minor = version, ""
 	}
-	return FromComponents(distro, version, "")
+	return FromComponents(distro, major, minor, arch)
 }
 
 // commonLinuxRelease is a Release that:
@@ -167,6 +206,44 @@ func newCommonLinuxRelease(distro string, major, minor int) (Release, error) {
 	}, nil
 }
 
+// windowsRelease uses marketing versions rather than NT versions.
+// Currently the only minor version is "r2". For example, the versions
+// 2012 and 2012r2 and *not* import compatible, and have different
+// minor versions. In the first case, the minor version is empty.
+// In the second it is "r2".
+type windowsRelease struct {
+	major, minor, architecture string
+}
+
+func (w windowsRelease) ImportCompatible(other Release) bool {
+	actualOther, ok := other.(windowsRelease)
+	compat := ok &&
+		w.major == actualOther.major &&
+		w.architecture == actualOther.architecture
+	if w.minor == "r2" || actualOther.minor == "r2" {
+		compat = compat && (w.minor == actualOther.minor)
+	}
+	return compat
+}
+
+func (w windowsRelease) AsGcloudArg() string {
+	arg := fmt.Sprintf("windows-%s", w.major)
+	if w.minor == "r2" {
+		arg += "r2"
+	}
+	if w.architecture != "" {
+		arg += "-" + w.architecture
+	}
+	return arg
+}
+
+func newWindowsRelease(major string, minor string, architecture string) (Release, error) {
+	if !regexp.MustCompile("^\\d+$").MatchString(major) {
+		return nil, fmt.Errorf("`%s` is not a valid major version for Windows", major)
+	}
+	return windowsRelease{major, minor, architecture}, nil
+}
+
 // slesRelease is a Release that represents the SLES distro and its variants (such as SLES for SAP).
 // Compatibility requires the same variant and major version.
 type slesRelease struct {
@@ -186,18 +263,16 @@ type slesRelease struct {
 func newSLESRelease(distroAndVariant string, major, minor int) (Release, error) {
 	assert.GreaterThanOrEqualTo(major, 1)
 	assert.GreaterThanOrEqualTo(minor, 0)
-	release := slesRelease{major: major, minor: minor}
-	parts := strings.Split(strings.ToLower(distroAndVariant), "-")
-	switch len(parts) {
-	case 1:
-		assert.Contains(distroAndVariant, []string{sles})
-	case 2:
-		assert.Contains(parts[0], []string{sles})
-		release.variant = parts[1]
+	var variant string
+	switch distroAndVariant {
+	case slesSAP:
+		variant = "sap"
+	case sles:
+		variant = ""
 	default:
-		return nil, fmt.Errorf("unrecognized SLES identifier: `%s`", distroAndVariant)
+		panic(fmt.Sprintf("%q is not valid for SLES", distroAndVariant))
 	}
-	return release, nil
+	return slesRelease{variant, major, minor}, nil
 }
 
 func (r slesRelease) ImportCompatible(other Release) bool {
