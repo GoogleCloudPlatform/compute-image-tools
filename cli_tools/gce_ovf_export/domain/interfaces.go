@@ -29,7 +29,7 @@ type InstanceDisksExporter interface {
 // InstanceExportCleaner cleans a Compute Engine instance after export into OVF
 // by re-attaching disks and starting it up if it was already started.
 type InstanceExportCleaner interface {
-	Clean(instanceInitialState, instanceCurrentState *compute.Instance, params *OVFExportParams) error
+	Clean(instance *compute.Instance, params *OVFExportParams) error
 	TraceLogs() []string
 	Cancel(reason string) bool
 }

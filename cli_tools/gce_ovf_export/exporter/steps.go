@@ -82,17 +82,16 @@ func (oe *OVFExporter) generateManifest(ctx context.Context) error {
 	}, oe.manifestFileGenerator.Cancel, func() []string { return nil })
 }
 
-func (oe *OVFExporter) cleanup(ctx context.Context, instance *compute.Instance) error {
+func (oe *OVFExporter) cleanup(ctx context.Context, instance *compute.Instance, exportError error) error {
 	// cleanup shouldn't react to time out as it's necessary to perform this step.
 	// Otherwise, instance being exported would be left shut down and disks detached.
 
-	// reload the instance to get the latest state of it
-	instanceCurrentState, err := oe.computeClient.GetInstance(*oe.params.Project, oe.params.Zone, oe.params.InstanceName)
-	if err != nil {
-		return daisy.Errf("Error retrieving instance `%v`: %v", oe.params.InstanceName, err)
+	if exportError == nil {
+		oe.Logger.Log("OVF export finished successfully.")
 	}
-	err = oe.instanceExportCleaner.Clean(instance, instanceCurrentState, oe.params)
-	if err != nil {
+	oe.Logger.Log("Cleaning up.")
+
+	if err := oe.instanceExportCleaner.Clean(instance, oe.params); err != nil {
 		return err
 	}
 	if oe.storageClient != nil {
@@ -133,7 +132,6 @@ func generateWorkflowWithSteps(workflowName, workflowPath, timeout string, popul
 func (oe *OVFExporter) runStep(ctx context.Context, step func() error, cancel func(string) bool, getTraceLogs func() []string) (err error) {
 	e := make(chan error)
 	var wg sync.WaitGroup
-	wg.Add(1)
 	go func() {
 		//this select checks if context expired prior to runStep being called
 		//if not, step is run
@@ -141,7 +139,7 @@ func (oe *OVFExporter) runStep(ctx context.Context, step func() error, cancel fu
 		case <-ctx.Done():
 			e <- oe.getCtxError(ctx)
 		default:
-
+			wg.Add(1)
 			stepErr := step()
 			wg.Done()
 			e <- stepErr
