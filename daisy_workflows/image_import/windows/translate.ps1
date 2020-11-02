@@ -41,7 +41,7 @@ function Get-MetadataValue {
 
   # Returns the provided metadata value for a given key.
   $url = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/$key"
-  $max_attemps = 3
+  $max_attemps = 30
   for ($i=0; $i -le $max_attemps; $i++) {
     try {
       $client = New-Object Net.WebClient
@@ -271,9 +271,6 @@ function Install-32bitPackages {
 
 try {
   Write-Output 'Translate: Beginning translate PowerShell script.'
-  # This script can reboot the system under specific conditions, so this wait is to address timing issues at boot.
-  # Using ping instead of timeout in case the clock resets (as it does on first boot).
-  & ping 127.0.0.1 -n 60
   Remove-VMWareTools
   Change-InstanceProperties
   Configure-Network
