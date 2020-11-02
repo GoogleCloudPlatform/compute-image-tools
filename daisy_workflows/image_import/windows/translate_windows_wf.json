@@ -118,8 +118,7 @@
           "Metadata": {
             "install-gce-packages": "${install_gce_packages}",
             "sysprep": "${sysprep}",
-            "is_byol": "${is_byol}",
-            "is_x86": "${is_x86}"
+            "is_byol": "${is_byol}"
           },
           "networkInterfaces": [
             {
