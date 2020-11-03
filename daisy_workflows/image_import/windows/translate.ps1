@@ -280,8 +280,9 @@ try {
   $script:install_packages = Get-MetadataValue -key 'install-gce-packages'
   $script:sysprep = Get-MetadataValue -key 'sysprep'
   $script:is_byol = Get-MetadataValue -key 'is_byol'
-  if ($script:install_packages -eq $null -or $script:sysprep -eq $null -or $script:is_byol -eq $null) {
-    Write-Output "Translate: failed to obtain at least one of the required values from metadata, rebooting in an attempt to resolve issue. install_packages=$script:install_packages, sysprep=$script:sysprep, is_byol=$script:is_byol"
+  $script:is_x86 = Get-MetadataValue -key 'is_x86'
+  if ($script:install_packages -eq $null -or $script:sysprep -eq $null -or $script:is_byol -eq $null -or $script:is_x86 -eq $null) {
+    Write-Output "Translate: failed to obtain at least one of the required values from metadata, rebooting in an attempt to resolve issue. install_packages=$script:install_packages, sysprep=$script:sysprep, is_byol=$script:is_byol, is_x86=$script:is_x86"
     if (-not (Test-Path -Path $env:TEMP\translate_metadata_reboot.txt -PathType Leaf)) {
       New-Item -Path $env:TEMP\translate_metadata_reboot.txt
       Restart-Computer -Force
@@ -291,7 +292,7 @@ try {
     }
   }
 
-  if ([Environment]::Is64BitOperatingSystem) {
+  if ($script:is_x86.ToLower() -ne 'true') {
     Configure-Power
     Install-Packages
   }
