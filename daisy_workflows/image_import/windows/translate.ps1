@@ -60,10 +60,21 @@ function Get-MetadataValue {
 function Remove-VMWareTools {
   Get-ChildItem HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall | Foreach-Object {
     if ((Get-ItemProperty $_.PSPath).DisplayName -eq 'VMWare Tools') {
+      $log_file = [System.IO.Path]::GetTempFileName()
       Write-Output 'Translate: Found VMWare Tools installed, removing...'
-      Start-Process msiexec.exe -ArgumentList @('/x', $_.PSChildName, '/quiet', '/norestart') -Wait -ErrorAction SilentlyContinue
-      Restart-Computer -Force
-      exit 0
+      $process = Start-Process msiexec.exe -ArgumentList @('/x', $_.PSChildName, '/quiet', '/norestart', '/l*V', $log_file) -Wait -PassThru
+      # There are three sucessful return codes for msiexec:
+      #    https://docs.microsoft.com/en-us/windows/win32/msi/error-codes
+      # 0    - ERROR_SUCCESS
+      # 1641 - ERROR_SUCCESS_REBOOT_INITIATED
+      # 3010 - ERROR_SUCCESS_REBOOT_REQUIRED
+      if (($process.ExitCode -eq 0) -or ($process.ExitCode -eq 1641) -or ($process.ExitCode -eq 3010)) {
+        Restart-Computer -Force
+        exit 0
+      } else {
+        Write-Output 'Translate: Unable to remove VMWare Tools. Consider manually removing.'
+        Get-Content $log_file
+      }
     }
   }
 }
