@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"path/filepath"
 	"strings"
 
 	commondisk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
@@ -35,10 +34,8 @@ import (
 )
 
 const (
-	logPrefix                  = "[export-ovf]"
-	instanceExportWorkflow     = "ovf_export/export_instance_to_ovf.wf.json"
-	machineImageExportWorkflow = "ovf_export/export_machine_image_to_ovf.wf.json"
-	bytesPerGB                 = int64(1024 * 1024 * 1024)
+	logPrefix  = "[export-ovf]"
+	bytesPerGB = int64(1024 * 1024 * 1024)
 )
 
 const (
@@ -104,7 +101,6 @@ func NewOVFExporter(params *ovfexportdomain.OVFExportParams) (*OVFExporter, erro
 	if err != nil {
 		return nil, daisy.Errf("Error creating disk inspector: %v", err)
 	}
-	ovfExportWorkflowPath := filepath.Join(params.WorkflowDir, getExportWorkflowPath(params))
 	return &OVFExporter{
 		storageClient:          storageClient,
 		computeClient:          computeClient,
@@ -116,9 +112,9 @@ func NewOVFExporter(params *ovfexportdomain.OVFExportParams) (*OVFExporter, erro
 		ovfDescriptorGenerator: NewOvfDescriptorGenerator(computeClient, storageClient, *params.Project, params.Zone),
 		manifestFileGenerator:  NewManifestFileGenerator(storageClient),
 		inspector:              inspector,
-		instanceDisksExporter:  NewInstanceDisksExporter(ovfExportWorkflowPath, computeClient, storageClient),
-		instanceExportPreparer: NewInstanceExportPreparer(ovfExportWorkflowPath),
-		instanceExportCleaner:  NewInstanceExportCleaner(ovfExportWorkflowPath),
+		instanceDisksExporter:  NewInstanceDisksExporter(computeClient, storageClient),
+		instanceExportPreparer: NewInstanceExportPreparer(),
+		instanceExportCleaner:  NewInstanceExportCleaner(),
 	}, nil
 }
 
@@ -148,13 +144,6 @@ func createComputeClient(ctx *context.Context, params *ovfexportdomain.OVFExport
 		return nil, err
 	}
 	return computeClient, nil
-}
-
-func getExportWorkflowPath(params *ovfexportdomain.OVFExportParams) string {
-	if params.IsInstanceExport() {
-		return instanceExportWorkflow
-	}
-	return machineImageExportWorkflow
 }
 
 func (oe *OVFExporter) buildLoggable() service.Loggable {

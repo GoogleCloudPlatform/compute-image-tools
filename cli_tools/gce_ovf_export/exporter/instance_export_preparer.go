@@ -25,23 +25,21 @@ import (
 )
 
 type instanceExportPreparerImpl struct {
-	wf           *daisy.Workflow
-	instance     *compute.Instance
-	workflowPath string
-	serialLogs   []string
+	wf         *daisy.Workflow
+	instance   *compute.Instance
+	serialLogs []string
 }
 
 // NewInstanceExportPreparer creates a new instance export preparer
-func NewInstanceExportPreparer(workflowPath string) ovfexportdomain.InstanceExportPreparer {
-	return &instanceExportPreparerImpl{
-		workflowPath: workflowPath,
-	}
+func NewInstanceExportPreparer() ovfexportdomain.InstanceExportPreparer {
+	return &instanceExportPreparerImpl{}
 }
 
 func (iep *instanceExportPreparerImpl) Prepare(instance *compute.Instance, params *ovfexportdomain.OVFExportParams) error {
 	iep.instance = instance
 	var err error
-	iep.wf, err = generateWorkflowWithSteps("ovf-export-prepare", iep.workflowPath, "15m", func(w *daisy.Workflow) error { return iep.populatePrepareSteps(w, instance, params) }, map[string]string{}, params)
+	iep.wf, err = generateWorkflowWithSteps("ovf-export-prepare", "30m",
+		func(w *daisy.Workflow) error { return iep.populatePrepareSteps(w, instance, params) }, params)
 	if err != nil {
 		return err
 	}

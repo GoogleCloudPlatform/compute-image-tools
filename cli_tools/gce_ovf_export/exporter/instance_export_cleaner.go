@@ -29,15 +29,12 @@ type instanceExportCleanerImpl struct {
 	wf              *daisy.Workflow
 	attachDiskWfs   []*daisy.Workflow
 	startInstanceWf *daisy.Workflow
-	workflowPath    string
 	serialLogs      []string
 }
 
 // NewInstanceExportCleaner creates a new instance export cleaner
-func NewInstanceExportCleaner(workflowPath string) ovfexportdomain.InstanceExportCleaner {
-	return &instanceExportCleanerImpl{
-		workflowPath: workflowPath,
-	}
+func NewInstanceExportCleaner() ovfexportdomain.InstanceExportCleaner {
+	return &instanceExportCleanerImpl{}
 }
 
 func (iec *instanceExportCleanerImpl) init(instance *compute.Instance, params *ovfexportdomain.OVFExportParams) error {
@@ -48,11 +45,11 @@ func (iec *instanceExportCleanerImpl) init(instance *compute.Instance, params *o
 
 	for _, attachedDisk := range attachedDisks {
 		attachDiskWf, err := generateWorkflowWithSteps(fmt.Sprintf("ovf-export-clean-attach-disk-%v", attachedDisk.DeviceName),
-			iec.workflowPath, wfTimeout,
+			wfTimeout,
 			func(w *daisy.Workflow) error {
 				iec.addAttachDiskStepStep(w, instance, params, attachedDisk)
 				return nil
-			}, map[string]string{}, params)
+			}, params)
 		if err != nil {
 			return err
 		}
@@ -62,13 +59,13 @@ func (iec *instanceExportCleanerImpl) init(instance *compute.Instance, params *o
 	wasInstanceRunningBeforeExport := isInstanceRunning(instance)
 	if wasInstanceRunningBeforeExport {
 		var err error
-		iec.startInstanceWf, err = generateWorkflowWithSteps("ovf-export-clean-start-instance", iec.workflowPath, wfTimeout,
+		iec.startInstanceWf, err = generateWorkflowWithSteps("ovf-export-clean-start-instance", wfTimeout,
 			func(w *daisy.Workflow) error {
 				if wasInstanceRunningBeforeExport {
 					iec.addStartInstanceStep(w, instance, params)
 				}
 				return nil
-			}, map[string]string{}, params)
+			}, params)
 		if err != nil {
 			return err
 		}

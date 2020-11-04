@@ -104,28 +104,48 @@ func (oe *OVFExporter) cleanup(ctx context.Context, instance *compute.Instance, 
 	return nil
 }
 
-func generateWorkflowWithSteps(workflowName, workflowPath, timeout string, populateStepsFunc populateStepsFunc, varMap map[string]string, params *ovfexportdomain.OVFExportParams) (*daisy.Workflow, error) {
-	w, err := daisycommon.ParseWorkflow(workflowPath, varMap, *params.Project,
-		params.Zone, params.ScratchBucketGcsPath, params.Oauth, params.Timeout.String(), params.Ce,
-		params.GcsLogsDisabled, params.CloudLogsDisabled, params.StdoutLogsDisabled)
-	if err != nil {
-		return w, err
-	}
+func generateWorkflowWithSteps(workflowName, timeout string, populateStepsFunc populateStepsFunc,
+	params *ovfexportdomain.OVFExportParams) (*daisy.Workflow, error) {
+
+	w := daisy.New()
+	//w, err := daisycommon.ParseWorkflow(workflowPath, varMap, *params.Project,
+	//	params.Zone, params.ScratchBucketGcsPath, params.Oauth, params.Timeout.String(), params.Ce,
+	//	params.GcsLogsDisabled, params.CloudLogsDisabled, params.StdoutLogsDisabled)
+	//if err != nil {
+	//	return w, err
+	//}
 	w.Name = workflowName
 	w.DefaultTimeout = timeout
 	w.ForceCleanupOnError = true
 	w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
 
-	if err = populateStepsFunc(w); err != nil {
+	if err := populateStepsFunc(w); err != nil {
 		return w, err
 	}
 
-	//TODO: this cannot be done with included workflows. Refactor included workflows by in-lining them
-	//oe.labelResources(w)
-	//daisyutils.UpdateAllInstanceNoExternalIP(w, oe.params.NoExternalIP)
+	//This only works for workflows with no included workflows. If included
+	// workflows are used, this func has to be called as wf.postValidateModifier.
+	//postValidateWorkflowModifier(w, params)
 
 	daisycommon.SetWorkflowAttributes(w, params.DaisyAttrs())
-	return w, err
+	return w, nil
+}
+
+func postValidateWorkflowModifier(w *daisy.Workflow, params *ovfexportdomain.OVFExportParams) {
+	rl := &daisyutils.ResourceLabeler{
+		BuildID:         params.BuildID,
+		BuildIDLabelKey: "gce-ovf-export-build-id",
+		InstanceLabelKeyRetriever: func(instanceName string) string {
+			return "gce-ovf-export-tmp"
+		},
+		DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
+			return "gce-ovf-export-tmp"
+		},
+		ImageLabelKeyRetriever: func(imageName string) string {
+			return "gce-ovf-export-tmp"
+		}}
+	rl.LabelResources(w)
+	daisyutils.UpdateAllInstanceNoExternalIP(w, params.NoExternalIP)
 }
 
 //TODO: consolidate with gce_vm_image_import.runStep()
@@ -183,22 +203,6 @@ func (oe *OVFExporter) getCtxError(ctx context.Context) (err error) {
 		err = ctxErr
 	}
 	return err
-}
-
-func (oe *OVFExporter) labelResources(w *daisy.Workflow) {
-	rl := &daisyutils.ResourceLabeler{
-		BuildID:         oe.BuildID,
-		BuildIDLabelKey: "gce-ovf-export-build-id",
-		InstanceLabelKeyRetriever: func(instanceName string) string {
-			return "gce-ovf-export-tmp"
-		},
-		DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
-			return "gce-ovf-export-tmp"
-		},
-		ImageLabelKeyRetriever: func(imageName string) string {
-			return "gce-ovf-export-tmp"
-		}}
-	rl.LabelResources(w)
 }
 
 func isInstanceRunning(instance *compute.Instance) bool {

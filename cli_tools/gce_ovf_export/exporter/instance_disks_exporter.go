@@ -35,29 +35,36 @@ type instanceDisksExporterImpl struct {
 	computeClient daisycompute.Client
 	storageClient domain.StorageClientInterface
 	exportedDisks []*ovfexportdomain.ExportedDisk
-	workflowPath  string
 	serialLogs    []string
+	wfCallback    wfCallback
 }
 
 // NewInstanceDisksExporter creates a new instance disk exporter
-func NewInstanceDisksExporter(workflowPath string, computeClient daisycompute.Client, storageClient domain.StorageClientInterface) ovfexportdomain.InstanceDisksExporter {
+func NewInstanceDisksExporter(computeClient daisycompute.Client, storageClient domain.StorageClientInterface) ovfexportdomain.InstanceDisksExporter {
 	return &instanceDisksExporterImpl{
-		workflowPath:  workflowPath,
 		computeClient: computeClient,
 		storageClient: storageClient,
 	}
 }
 
+type wfCallback func(w *daisy.Workflow)
+
 func (ide *instanceDisksExporterImpl) Export(instance *compute.Instance, params *ovfexportdomain.OVFExportParams) ([]*ovfexportdomain.ExportedDisk, error) {
 	var err error
-	ide.wf, err = generateWorkflowWithSteps("ovf-export-disk-export", ide.workflowPath,
-		params.Timeout.String(),
-		func(w *daisy.Workflow) error { return ide.populateExportDisksSteps(w, instance, params) },
-		map[string]string{}, params)
-	if err != nil {
+	if ide.wf, err = generateWorkflowWithSteps("ovf-export-disk-export", params.Timeout.String(),
+		func(w *daisy.Workflow) error { return ide.populateExportDisksSteps(w, instance, params) }, params); err != nil {
 		return nil, err
 	}
-	err = daisyutils.RunWorkflowWithCancelSignal(context.Background(), ide.wf)
+	if ide.wfCallback != nil {
+		ide.wfCallback(ide.wf)
+	}
+	if err := daisyutils.RunWorkflowWithCancelSignal(context.Background(), ide.wf); err != nil {
+		return nil, err
+	}
+	// have to use post-validate modifiers due to the use of included workflows
+	//err = ide.wf.RunWithModifiers(context.Background(), nil, func(w *daisy.Workflow) {
+	//	postValidateWorkflowModifier(w, params)
+	//})
 	if ide.wf.Logger != nil {
 		ide.serialLogs = ide.wf.Logger.ReadSerialPortLogs()
 	}
@@ -123,7 +130,7 @@ func (ide *instanceDisksExporterImpl) addExportDisksSteps(w *daisy.Workflow, ins
 		exportDiskStepName = strings.Trim(exportDiskStepName, "-")
 		exportDiskStep := daisy.NewStepDefaultTimeout(exportDiskStepName, w)
 		exportDiskStep.IncludeWorkflow = &daisy.IncludeWorkflow{
-			Path: "../export/disk_export_ext.wf.json",
+			Path: params.WorkflowDir + "/export/disk_export_ext.wf.json",
 			Vars: map[string]string{
 				"source_disk":                diskPath,
 				"destination":                exportedDiskGCSPath,
