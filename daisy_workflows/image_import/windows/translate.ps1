@@ -82,6 +82,11 @@ function Setup-NTP {
   Set-ItemProperty -Path $tzi_path -Name RealTimeIsUniversal -Value 1
 
   # Set up time sync...
+  # Ensure the time service isn't in a pending state; wait until it is not in a pending state.
+  while((Get-Service -Name "W32time").Status -match 'pending') {
+    Write-Host "W32time service is in pending state, waiting 1 second."
+    Start-Sleep -s 1
+  }
   # Stop in case it's running; it probably won't be.
   Stop-Service W32time
   $w32tm = "$env:windir\System32\w32tm.exe"
@@ -101,8 +106,13 @@ function Setup-NTP {
   Run-Command $env:windir\system32\sc.exe triggerinfo w32time start/networkon
   Write-Output 'Configured W32Time to use GCE NTP server.'
 
-  # Sync time now.
+  # Ensure the time service isn't in a pending state; wait until it is not in a pending state.
+  while((Get-Service -Name "W32time").Status -match 'pending') {
+    Write-Host "W32time service is in pending state, waiting 1 second."
+    Start-Sleep -s 1
+  }
   Start-Service W32time
+  # Sync time now.
   Run-Command $w32tm /resync
 }
 
