@@ -44,7 +44,7 @@ def main():
       'name': image_name,
       'family': image_family,
       'version': image_version,
-      'build_date,': build_date,
+      'build_date': build_date,
       'packages': [],
   }
   # All the guest environment packages maintained by guest-os team.
