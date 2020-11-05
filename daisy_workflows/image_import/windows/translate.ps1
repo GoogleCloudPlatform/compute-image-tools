@@ -63,6 +63,27 @@ function Get-MetadataValue {
   return $null
 }
 
+function Wait-Service {
+  <#
+  .SYNOPSIS
+    Wait until the service is not in a pending state.
+  .DESCRIPTION
+    This function waits until the specified service is not in a pending state
+    as you cannot start or stop a service in a pending state.
+  .PARAMETER ServiceName
+    The name of the service to check the state of.
+  #>
+    param (
+    [parameter(Mandatory=$true)]
+      [string]$ServiceName
+  )
+  #
+  while((Get-Service -Name $ServiceName).Status -match 'pending') {
+    Write-Host "$ServiceName service is in a pending state, waiting 1 second."
+    Start-Sleep -s 1
+  }
+}
+
 function Remove-VMWareTools {
   Get-ChildItem HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall | Foreach-Object {
     if ((Get-ItemProperty $_.PSPath).DisplayName -eq 'VMWare Tools') {
@@ -93,11 +114,7 @@ function Setup-NTP {
   Set-ItemProperty -Path $tzi_path -Name RealTimeIsUniversal -Value 1
 
   # Set up time sync...
-  # Ensure the time service isn't in a pending state; wait until it is not in a pending state.
-  while((Get-Service -Name "W32time").Status -match 'pending') {
-    Write-Host "W32time service is in pending state, waiting 1 second."
-    Start-Sleep -s 1
-  }
+  Wait-Service W32time
   # Stop in case it's running; it probably won't be.
   Stop-Service W32time
   $w32tm = "$env:windir\System32\w32tm.exe"
@@ -117,11 +134,7 @@ function Setup-NTP {
   Run-Command $env:windir\system32\sc.exe triggerinfo w32time start/networkon
   Write-Output 'Configured W32Time to use GCE NTP server.'
 
-  # Ensure the time service isn't in a pending state; wait until it is not in a pending state.
-  while((Get-Service -Name "W32time").Status -match 'pending') {
-    Write-Host "W32time service is in pending state, waiting 1 second."
-    Start-Sleep -s 1
-  }
+  Wait-Service W32time
   Start-Service W32time
   # Sync time now.
   Run-Command $w32tm /resync
