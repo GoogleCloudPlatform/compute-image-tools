@@ -282,6 +282,14 @@ var basicCases = []*testCase{
 		os:       "centos-8",
 		inspect:  true,
 	},
+	{
+		// If an admin adds epel to an older version of EL 6 without updating ca-certificates,
+		// then yum operations will fail. For more info: https://stackoverflow.com/questions/26734777
+		caseName: "don't fail when stale CA certificates and epel repo is present",
+		source:   "projects/compute-image-tools-test/global/images/centos-6-epel",
+		os:       "centos-6",
+		inspect:  true,
+	},
 
 	// Windows
 	{

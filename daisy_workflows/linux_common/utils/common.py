@@ -246,6 +246,7 @@ def RunTranslate(translate_func: typing.Callable,
       translate_func()
     logging.success('Translation finished.')
   except Exception as e:
+    logging.debug(traceback.format_exc())
     logging.error('error: %s', str(e))
 
 
