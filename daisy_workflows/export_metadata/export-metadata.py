@@ -38,7 +38,7 @@ def main():
 
   utc_time = datetime.datetime.now(datetime.timezone.utc)
   image_version = utc_time.strftime('%Y%m%d')
-  build_date = utc_time.astimezone().isoformat(),
+  build_date = utc_time.astimezone().isoformat()
   image = {
       'id': image_id,
       'name': image_name,
