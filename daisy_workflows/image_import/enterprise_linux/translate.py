@@ -88,7 +88,100 @@ terminal --timeout=0 serial console
 '''
 
 
-def DistroSpecific(g: guestfs.GuestFS):
+class NonFatalErrors:
+  """Non-fatal errors that occur during translation.
+
+  Not all errors are fatal; when a non-fatal error occurs, track it
+  here. If translation fails, these can be used to create a customized
+  error message.
+  """
+  def __init__(self):
+    # When `yum` isn't found, either the wrong --os was specified, or
+    # the disk contains EL but wasn't mountable by GuestOS.
+    self.yum_command_not_found = False
+
+    # BYOL was specified, but an active subscription wasn't found.
+    self.subscription_manager_status_error = False
+
+    # YUM will fail if any of its repositories are unreachable. Typically
+    # this occurs when there's a local repo that isn't available during
+    # translate. Think: DVD, intranet, NFS.
+    self.yum_unreachable_repo = False
+
+  def __repr__(self):
+    return str(self.__dict__)
+
+
+def check_repos(g: guestfs.GuestFS, errs: NonFatalErrors):
+  """Check for unreachable repos.
+
+  YUM fails if any of its repos are unreachable. Running `yum updateinfo`
+  will have a non-zero return code when it fail to update any of its repos.
+  """
+  v = 'yum updateinfo -v'
+  p = run(g, v)
+  logging.debug('yum updateinfo -v: {}'.format(p))
+  if p.code != 0:
+    errs.yum_unreachable_repo = True
+
+
+def check_yum_on_path(g: guestfs.GuestFS, errs: NonFatalErrors):
+  """Check whether the `yum` command is available.
+
+  If `yum` isn't found, errs is updated.
+  """
+  p = run(g, 'yum --version')
+  logging.debug('yum --version: {}'.format(p))
+  if p.code != 0:
+    errs.yum_command_not_found = True
+
+
+def check_rhel_license(g: guestfs.GuestFS, errs: NonFatalErrors):
+  """Check for an active RHEL license.
+
+  If a license isn't found, errs is updated.
+  """
+  p = run(g, 'subscription-manager status')
+  logging.debug('subscription-manager: {}'.format(p))
+  if p.code != 0:
+    errs.subscription_manager_status_error = True
+
+
+def upgrade_ca_certificates(g: guestfs.GuestFS):
+  """Upgrade ca-certificates, if it is installed.
+
+  Stale or missing CA certificates can cause yum operations to fail.
+  """
+
+  p = run(g, 'rpm -qa ca-certificates | grep ca-certificates')
+  if p.code != 0:
+    logging.debug(
+        'ca-certificates not found. Skipping upgrade. {}'.format(p))
+    return
+
+  upgraded = False
+  try:
+    g.sh('yum upgrade -y ca-certificates')
+    upgraded = True
+  except RuntimeError as e:
+    logging.debug('Failed to upgrade ca-certificates', e)
+    try:
+      # A common failure is older versions of EL where the user has added the
+      # epel repository, and the epel repository is failing to verify.
+      if 'epel' in str(e):
+        g.sh('yum upgrade -y ca-certificates --disablerepo=epel')
+        upgraded = True
+    except RuntimeError as e:
+      logging.debug('Failed second attempt to upgrade ca-certificates', e)
+
+  if upgraded:
+    logging.info('Upgraded ca-certificates package.')
+  else:
+    logging.info('Failed to upgrade ca-certificates package. If import '
+                 'fails, update the package manually and try again.')
+
+
+def DistroSpecific(g: guestfs.GuestFS, errs: NonFatalErrors):
   el_release = utils.GetMetadataAttribute('el_release')
   install_gce = utils.GetMetadataAttribute('install_gce_packages')
   rhel_license = utils.GetMetadataAttribute('use_rhel_gce_license')
@@ -101,35 +194,32 @@ def DistroSpecific(g: guestfs.GuestFS):
   #     /sysroot/etc/i9r7obu6: Operation not permitted
   utils.common.ClearEtcResolv(g)
 
+  check_yum_on_path(g, errs)
+
   # Some imported images haven't contained `/etc/yum.repos.d`.
   if not g.exists('/etc/yum.repos.d'):
     g.mkdir('/etc/yum.repos.d')
 
-  if rhel_license == 'true':
-    if 'Red Hat' in g.cat('/etc/redhat-release'):
+  if 'Red Hat' in g.cat('/etc/redhat-release'):
+    if rhel_license == 'true':
       g.command(['yum', 'remove', '-y', '*rhui*'])
       logging.info('Adding in GCE RHUI package.')
       g.write('/etc/yum.repos.d/google-cloud.repo', repo_compute % el_release)
       yum_install(g, 'google-rhui-client-rhel' + el_release)
+    else:
+      check_rhel_license(g, errs)
+
+  check_repos(g, errs)
 
   # Historically, translations have failed for corrupt dbcache and rpmdb.
   g.sh('yum clean -y all')
+
+  upgrade_ca_certificates(g)
 
   if install_gce == 'true':
     logging.info('Installing GCE packages.')
     g.write('/etc/yum.repos.d/google-cloud.repo', repo_compute % el_release)
     if el_release == '6':
-      # yum operations fail when the epel repo is used with stale
-      # ca-certificates, causing translation to fail. To avoid that,
-      # update ca-certificates when the epel repo is found.
-      #
-      # The `--disablerepo` flag does the following:
-      #  1. Skip the epel repo for *this* operation only.
-      #  2. Block update if the epel repo isn't found.
-      p = run(g, 'yum update -y ca-certificates --disablerepo=epel')
-      logging.debug('yum update -y ca-certificates: code={p.code}, '
-                    'out={p.stdout}, err={p.stderr}'.format(p=p))
-
       if 'CentOS' in g.cat('/etc/redhat-release'):
         logging.info('Installing CentOS SCL.')
         g.command(['rm', '-f', '/etc/yum.repos.d/CentOS-SCL.repo'])
@@ -261,10 +351,31 @@ def yum_install(g, *packages):
       packages, last_exception))
 
 
+def customize_error_message(e: BaseException,
+                            errs: NonFatalErrors) -> BaseException:
+  """Create an error message based on PotentialErrors."""
+  logging.debug('Translation failed due to: {}'.format(e))
+  logging.debug('Potential errors: {}'.format(errs))
+  if errs.yum_command_not_found:
+    return RuntimeError('Verify the disk\'s OS: `yum` not found. {}'.format(e))
+  if errs.subscription_manager_status_error:
+    return RuntimeError(
+        'subscription-manager did not find an active subscription. Omit '
+        '`-byol` to register with on-demand licensing. {}'.format(e))
+  if errs.yum_unreachable_repo:
+    return RuntimeError('Ensure that all configured repos are reachable. '
+                        '{}'.format(e))
+  return e
+
+
 def main():
+  errs = NonFatalErrors()
   disk = '/dev/sdb'
   g = diskutils.MountDisk(disk)
-  DistroSpecific(g)
+  try:
+    DistroSpecific(g, errs)
+  except BaseException as e:
+    raise customize_error_message(e, errs)
   utils.CommonRoutines(g)
   diskutils.UnmountDisk(g)
   utils.Execute(['virt-customize', '-a', disk, '--selinux-relabel'])
