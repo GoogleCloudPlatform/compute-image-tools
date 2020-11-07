@@ -45,7 +45,7 @@ def run(g: 'GuestFSInterface', command) -> 'CompletedProcess':
     >>> run(g, 'printf hi; exit 1')
     {'stdout': 'hi', 'stderr': '', 'code': 1, 'cmd': 'printf hi; exit 1'}
   """
-  tmp_dir = g.mkdtemp('gprocXXXXXX')
+  tmp_dir = g.mkdtemp('/tmp/gprocXXXXXX')
   program_path = os.path.join(tmp_dir, 'program.sh')
   stdout_path = os.path.join(tmp_dir, 'stdout.txt')
   stderr_path = os.path.join(tmp_dir, 'stderr.txt')
