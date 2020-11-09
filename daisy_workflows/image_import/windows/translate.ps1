@@ -348,9 +348,9 @@ try {
     & netsh interface ipv4 set dnsservers "$($_.NetConnectionID)" dhcp | Out-Null
   }
 
+  Enable-RemoteDesktop
+    
   if ($script:sysprep.ToLower() -ne 'true') {
-    Enable-RemoteDesktop
-
     if ($script:is_byol.ToLower() -ne 'true') {
       Write-Output 'Translate: Setting up KMS activation'
       . 'C:\Program Files\Google\Compute Engine\sysprep\activate_instance.ps1' | Out-Null
