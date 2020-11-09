@@ -351,8 +351,6 @@ try {
   Enable-RemoteDesktop
     
   if ($script:sysprep.ToLower() -ne 'true') {
-
-
     if ($script:is_byol.ToLower() -ne 'true') {
       Write-Output 'Translate: Setting up KMS activation'
       . 'C:\Program Files\Google\Compute Engine\sysprep\activate_instance.ps1' | Out-Null
