@@ -36,6 +36,8 @@ const (
 
 	archX86 = "x86"
 	archX64 = "x64"
+
+	r2 = "r2"
 )
 
 var osFlagExpression = regexp.MustCompile(
@@ -45,7 +47,7 @@ var osFlagExpression = regexp.MustCompile(
 	"^(?P<distro>[a-z]+(?:-[a-z]+)?)" +
 		// Version is required, and is at least one word character.
 		// Examples: 2004, 2008, 2008r2
-		"-(?P<version>\\w+)" +
+		"-(?P<version>[a-z0-9]+)" +
 		// Architecture is optional. The only options are `x86` and `x64`.
 		"(?:-(?P<arch>x86|x64))?" +
 		// License is optional. The only value is `byol`.
@@ -54,6 +56,14 @@ var osFlagExpression = regexp.MustCompile(
 var architectures = map[string]bool{
 	archX64: true,
 	archX86: true,
+}
+
+// Flags that don't follow `osFlagExpression` and have been
+// replaced with newer versions. Mapping is from legacy to modern.
+var legacyFlags = map[string]string{
+	// windows-8-1-x64-byol includes an extra hyphen between its
+	// major and minor version. The non-legacy flag is windows-8-x64-byol.
+	"windows-8-1-x64-byol": "windows-8-x64-byol",
 }
 
 // Release encapsulates product and version information
@@ -90,6 +100,10 @@ func FromComponents(distro string, major string, minor string, architecture stri
 		return newWindowsRelease(major, minor, architecture)
 	}
 
+	return newLinuxRelease(distro, major, minor)
+}
+
+func newLinuxRelease(distro string, major string, minor string) (Release, error) {
 	majorInt, e := strconv.Atoi(major)
 	if e != nil || majorInt < 1 {
 		return nil, fmt.Errorf(
@@ -132,11 +146,8 @@ func FromComponents(distro string, major string, minor string, architecture stri
 //
 // https://cloud.google.com/sdk/gcloud/reference/compute/images/import#--os
 func FromGcloudOSArgument(osFlagValue string) (r Release, e error) {
-	if osFlagValue == "windows-8-1-x64-byol" {
-		// windows-8-1-x64-byol is a legacy flag value, and it's the only value that
-		// includes an extra hyphen between its major and minor version. The non-legacy
-		// flag is windows-8-x64-byol.
-		osFlagValue = "windows-8-x64-byol"
+	if legacyFlags[osFlagValue] != "" {
+		osFlagValue = legacyFlags[osFlagValue]
 	}
 	match := osFlagExpression.FindStringSubmatch(strings.ToLower(osFlagValue))
 	if match == nil {
@@ -156,10 +167,9 @@ func FromGcloudOSArgument(osFlagValue string) (r Release, e error) {
 		if len(version) != 4 {
 			return r, fmt.Errorf("expected version with length four. Actual: `%s`", version)
 		}
-
 		major, minor = version[:2], version[2:]
-	} else if distro == windows && strings.HasSuffix(version, "r2") {
-		major, minor = version[:len(version)-2], "r2"
+	} else if distro == windows && strings.HasSuffix(version, r2) {
+		major, minor = version[:len(version)-2], r2
 	} else {
 		major, minor = version, ""
 	}
@@ -211,25 +221,29 @@ func newCommonLinuxRelease(distro string, major, minor int) (Release, error) {
 // 2012 and 2012r2 and *not* import compatible, and have different
 // minor versions. In the first case, the minor version is empty.
 // In the second it is "r2".
+//
+// In terms of import compatibility, currently r2 is the only minor version
+// that is treated separately. Other minor versions (eg: 8 vs 8.1) are treated
+// imported using the same logic.
 type windowsRelease struct {
 	major, minor, architecture string
 }
 
 func (w windowsRelease) ImportCompatible(other Release) bool {
 	actualOther, ok := other.(windowsRelease)
-	compat := ok &&
+	compatible := ok &&
 		w.major == actualOther.major &&
 		w.architecture == actualOther.architecture
-	if w.minor == "r2" || actualOther.minor == "r2" {
-		compat = compat && (w.minor == actualOther.minor)
+	if w.minor == r2 || actualOther.minor == r2 {
+		compatible = compatible && (w.minor == actualOther.minor)
 	}
-	return compat
+	return compatible
 }
 
 func (w windowsRelease) AsGcloudArg() string {
 	arg := fmt.Sprintf("windows-%s", w.major)
-	if w.minor == "r2" {
-		arg += "r2"
+	if w.minor == r2 {
+		arg += r2
 	}
 	if w.architecture != "" {
 		arg += "-" + w.architecture
