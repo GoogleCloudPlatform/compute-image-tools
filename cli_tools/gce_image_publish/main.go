@@ -40,6 +40,7 @@ var (
 	publishVersion = flag.String("publish_version", "", "version for published image if different from source")
 	publishProject = flag.String("publish_project", "", "project to publish images to, will override PublishProject in template")
 	skipDup        = flag.Bool("skip_duplicates", false, "skip publishing any images that already exist, should not be used along with -replace")
+	noRoot         = flag.Bool("no_root", false, "with -source_gcs_path, append .tar.gz instead of /root.tar.gz")
 	replace        = flag.Bool("replace", false, "replace any images that already exist, should not be used along with -skip_duplicates")
 	rollback       = flag.Bool("rollback", false, "rollback image publish")
 	print          = flag.Bool("print", false, "print out the parsed workflow for debugging")
@@ -141,7 +142,7 @@ func main() {
 			errs = append(errs, loadErr)
 			continue
 		}
-		w, err := p.CreateWorkflows(ctx, varMap, regex, *rollback, *skipDup, *replace, *oauth)
+		w, err := p.CreateWorkflows(ctx, varMap, regex, *rollback, *skipDup, *replace, *noRoot, *oauth)
 		if err != nil {
 			createWorkflowErr := fmt.Errorf("Workflow creation error: %s", err)
 			fmt.Println(createWorkflowErr)

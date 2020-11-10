@@ -184,7 +184,7 @@ func (p *Publish) SetExpire() error {
 }
 
 // CreateWorkflows creates a list of daisy workflows from the publish object
-func (p *Publish) CreateWorkflows(ctx context.Context, varMap map[string]string, regex *regexp.Regexp, rollback, skipDup, replace bool, oauth string) ([]*daisy.Workflow, error) {
+func (p *Publish) CreateWorkflows(ctx context.Context, varMap map[string]string, regex *regexp.Regexp, rollback, skipDup, replace, noRoot bool, oauth string) ([]*daisy.Workflow, error) {
 	fmt.Printf("[%q] Preparing workflows from template\n", p.Name)
 
 	var ws []*daisy.Workflow
@@ -192,7 +192,7 @@ func (p *Publish) CreateWorkflows(ctx context.Context, varMap map[string]string,
 		if regex != nil && !regex.MatchString(img.Prefix) {
 			continue
 		}
-		w, err := p.createWorkflow(ctx, img, varMap, rollback, skipDup, replace, oauth)
+		w, err := p.createWorkflow(ctx, img, varMap, rollback, skipDup, replace, noRoot, oauth)
 		if err != nil {
 			return nil, err
 		}
@@ -238,7 +238,7 @@ func (p *Publish) CreateWorkflows(ctx context.Context, varMap map[string]string,
 
 const gcsImageObj = "root.tar.gz"
 
-func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicates, rep bool) (*daisy.CreateImages, *daisy.DeprecateImages, *daisy.DeleteResources, error) {
+func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicates, rep, noRoot bool) (*daisy.CreateImages, *daisy.DeprecateImages, *daisy.DeleteResources, error) {
 	if skipDuplicates && rep {
 		return nil, nil, nil, errors.New("cannot set both skipDuplicates and replace")
 	}
@@ -287,7 +287,11 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 		source = fmt.Sprintf("projects/%s/global/images/%s", p.SourceProject, sourceName)
 		ci.Image.SourceImage = source
 	} else if p.SourceGCSPath != "" {
-		source = fmt.Sprintf("%s/%s/%s", p.SourceGCSPath, sourceName, gcsImageObj)
+		if noRoot {
+			source = fmt.Sprintf("%s/%s.tar.gz", p.SourceGCSPath, sourceName)
+		} else {
+			source = fmt.Sprintf("%s/%s/%s", p.SourceGCSPath, sourceName, gcsImageObj)
+		}
 		ci.Image.RawDisk = &compute.ImageRawDisk{Source: source}
 	} else {
 		return nil, nil, nil, errors.New("neither SourceProject or SourceGCSPath was set")
@@ -475,7 +479,7 @@ func (p *Publish) deprecatePrintOut(deprecateImages *daisy.DeprecateImages) {
 	}
 }
 
-func (p *Publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubImgs []*compute.Image, img *Image, rb, sd, rep bool) error {
+func (p *Publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubImgs []*compute.Image, img *Image, rb, sd, rep, noRoot bool) error {
 	var err error
 	var createImages *daisy.CreateImages
 	var deprecateImages *daisy.DeprecateImages
@@ -483,7 +487,7 @@ func (p *Publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubIm
 	if rb {
 		deleteResources, deprecateImages = rollbackImage(p, img, pubImgs)
 	} else {
-		createImages, deprecateImages, deleteResources, err = publishImage(p, img, pubImgs, sd, rep)
+		createImages, deprecateImages, deleteResources, err = publishImage(p, img, pubImgs, sd, rep, noRoot)
 		if err != nil {
 			return err
 		}
@@ -502,7 +506,7 @@ func (p *Publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubIm
 
 var imagesCache map[string][]*compute.Image
 
-func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[string]string, rb, sd, rep bool, oauth string) (*daisy.Workflow, error) {
+func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[string]string, rb, sd, rep, noRoot bool, oauth string) (*daisy.Workflow, error) {
 	fmt.Printf("  - Creating publish workflow for %q\n", img.Prefix)
 	w := daisy.New()
 	for k, v := range varMap {
@@ -538,7 +542,7 @@ func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[str
 		imagesCache[cacheKey] = pubImgs
 	}
 
-	if err := p.populateWorkflow(ctx, w, pubImgs, img, rb, sd, rep); err != nil {
+	if err := p.populateWorkflow(ctx, w, pubImgs, img, rb, sd, rep, noRoot); err != nil {
 		return nil, fmt.Errorf("populateWorkflow failed: %s", err)
 	}
 	if len(w.Steps) == 0 {
