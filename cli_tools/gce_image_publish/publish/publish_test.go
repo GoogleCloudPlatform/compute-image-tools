@@ -50,6 +50,7 @@ func TestPublishImage(t *testing.T) {
 		pubImgs []*compute.Image
 		skipDup bool
 		replace bool
+		noRoot  bool
 		wantCI  *daisy.CreateImages
 		wantDI  *daisy.DeprecateImages
 		wantErr bool
@@ -64,6 +65,7 @@ func TestPublishImage(t *testing.T) {
 				{Name: "foo-1", Family: "foo-family", Deprecated: &compute.DeprecationStatus{State: "DEPRECATED"}},
 				{Name: "bar-1", Family: "bar-family", Deprecated: &compute.DeprecationStatus{State: "DEPRECATED"}},
 			},
+			false,
 			false,
 			false,
 			&daisy.CreateImages{Images: []*daisy.Image{
@@ -86,6 +88,7 @@ func TestPublishImage(t *testing.T) {
 			},
 			false,
 			false,
+			false,
 			&daisy.CreateImages{Images: []*daisy.Image{{ImageBase: daisy.ImageBase{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}}, Image: compute.Image{
 				Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"}},
 			}},
@@ -102,8 +105,23 @@ func TestPublishImage(t *testing.T) {
 			[]*compute.Image{},
 			false,
 			false,
+			false,
 			&daisy.CreateImages{Images: []*daisy.Image{{ImageBase: daisy.ImageBase{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}}, Image: compute.Image{
 				Name: "foo-3", Family: "foo-family", RawDisk: &compute.ImageRawDisk{Source: "gs://bar-project-path/foo-3/root.tar.gz"}}},
+			}},
+			nil,
+			false,
+		},
+		{
+			"GCSPath with noRoot case",
+			&Publish{SourceGCSPath: "gs://bar-project-path", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
+			&Image{Prefix: "foo", Family: "foo-family"},
+			[]*compute.Image{},
+			false,
+			false,
+			true,
+			&daisy.CreateImages{Images: []*daisy.Image{{ImageBase: daisy.ImageBase{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}}, Image: compute.Image{
+				Name: "foo-3", Family: "foo-family", RawDisk: &compute.ImageRawDisk{Source: "gs://bar-project-path/foo-3.tar.gz"}}},
 			}},
 			nil,
 			false,
@@ -113,6 +131,7 @@ func TestPublishImage(t *testing.T) {
 			&Publish{SourceGCSPath: "gs://bar-project-path", SourceProject: "bar-project"},
 			&Image{},
 			nil,
+			false,
 			false,
 			false,
 			nil,
@@ -126,6 +145,7 @@ func TestPublishImage(t *testing.T) {
 			nil,
 			false,
 			false,
+			false,
 			nil,
 			nil,
 			true,
@@ -135,6 +155,7 @@ func TestPublishImage(t *testing.T) {
 			&Publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
 			&Image{Prefix: "foo", Family: "foo-family", GuestOsFeatures: []string{"foo-feature"}},
 			[]*compute.Image{{Name: "foo-3", Family: "foo-family"}},
+			false,
 			false,
 			false,
 			nil,
@@ -151,6 +172,7 @@ func TestPublishImage(t *testing.T) {
 			},
 			true,
 			false,
+			false,
 			nil,
 			&daisy.DeprecateImages{{Image: "foo-2", Project: "foo-project", DeprecationStatus: compute.DeprecationStatus{State: "DEPRECATED", Replacement: "https://www.googleapis.com/compute/v1/projects/foo-project/global/images/foo-3"}}},
 			false,
@@ -165,6 +187,7 @@ func TestPublishImage(t *testing.T) {
 			},
 			false,
 			true,
+			false,
 			&daisy.CreateImages{Images: []*daisy.Image{{ImageBase: daisy.ImageBase{OverWrite: true, Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}}, Image: compute.Image{
 				Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"}},
 			}},
@@ -179,6 +202,7 @@ func TestPublishImage(t *testing.T) {
 			[]*compute.Image{
 				{Name: "bar-x", Family: "bar-family"},
 			},
+			false,
 			false,
 			false,
 			&daisy.CreateImages{Images: []*daisy.Image{{ImageBase: daisy.ImageBase{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-x"}}, Image: compute.Image{
@@ -197,6 +221,7 @@ func TestPublishImage(t *testing.T) {
 			},
 			false,
 			false,
+			false,
 			&daisy.CreateImages{Images: []*daisy.Image{{ImageBase: daisy.ImageBase{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}}, Image: compute.Image{
 				Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"}},
 			}},
@@ -208,6 +233,7 @@ func TestPublishImage(t *testing.T) {
 			&Publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
 			&Image{Prefix: "foo", Family: "foo-family", GuestOsFeatures: []string{"foo-feature"}, IgnoreLicenseValidationIfForbidden: true},
 			[]*compute.Image{},
+			false,
 			false,
 			false,
 			&daisy.CreateImages{Images: []*daisy.Image{{ImageBase: daisy.ImageBase{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}, IgnoreLicenseValidationIfForbidden: true}, Image: compute.Image{
@@ -223,6 +249,7 @@ func TestPublishImage(t *testing.T) {
 			[]*compute.Image{},
 			false,
 			false,
+			false,
 			&daisy.CreateImages{Images: []*daisy.Image{{ImageBase: daisy.ImageBase{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}, IgnoreLicenseValidationIfForbidden: false}, Image: compute.Image{
 				Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"}, GuestOsFeatures: []string{"foo-feature"}},
 			}},
@@ -236,6 +263,7 @@ func TestPublishImage(t *testing.T) {
 			[]*compute.Image{},
 			false,
 			false,
+			false,
 			&daisy.CreateImages{Images: []*daisy.Image{{ImageBase: daisy.ImageBase{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-x"}}, Image: compute.Image{
 				Name: "foo-x", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-x", ShieldedInstanceInitialState: fakeInitialState},
 			}}},
@@ -244,7 +272,7 @@ func TestPublishImage(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		dr, di, _, err := publishImage(tt.p, tt.img, tt.pubImgs, tt.skipDup, tt.replace)
+		dr, di, _, err := publishImage(tt.p, tt.img, tt.pubImgs, tt.skipDup, tt.replace, tt.noRoot)
 		if tt.wantErr && err != nil {
 			continue
 		}
@@ -384,6 +412,7 @@ func TestPopulateWorkflow(t *testing.T) {
 			{Name: "test-old", Family: "test-family"},
 		},
 		p.Images[0],
+		false,
 		false,
 		false,
 		false,
