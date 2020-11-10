@@ -87,6 +87,40 @@ terminal --timeout=0 serial console
 '''
 
 
+def upgrade_ca_certificates(g: guestfs.GuestFS):
+  """Upgrade ca-certificates, if it is installed.
+
+  Stale or missing CA certificates can cause yum operations to fail.
+  """
+
+  try:
+    g.sh('rpm -V ca-certificates')
+  except RuntimeError as e:
+    logging.debug('ca-certificates not found. Skipping upgrade.', e)
+    return
+
+  upgraded = False
+  try:
+    g.sh('yum upgrade -y ca-certificates')
+    upgraded = True
+  except RuntimeError as e:
+    logging.debug('Failed to upgrade ca-certificates', e)
+    try:
+      # A common failure is older versions of EL where the user has added the
+      # epel repository, and the epel repository is failing to verify.
+      if 'epel' in str(e):
+        g.sh('yum upgrade -y ca-certificates --disablerepo=epel')
+        upgraded = True
+    except RuntimeError as e:
+      logging.debug('Failed second attempt to upgrade ca-certificates', e)
+
+  if upgraded:
+    logging.info('Upgraded ca-certificates package.')
+  else:
+    logging.info('Failed to upgrade ca-certificates package. If import '
+                 'fails, update the package manually and try again.')
+
+
 def DistroSpecific(g: guestfs.GuestFS):
   el_release = utils.GetMetadataAttribute('el_release')
   install_gce = utils.GetMetadataAttribute('install_gce_packages')
@@ -110,6 +144,11 @@ def DistroSpecific(g: guestfs.GuestFS):
       logging.info('Adding in GCE RHUI package.')
       g.write('/etc/yum.repos.d/google-cloud.repo', repo_compute % el_release)
       yum_install(g, 'google-rhui-client-rhel' + el_release)
+
+  # Historically, translations have failed for corrupt dbcache and rpmdb.
+  g.sh('yum clean -y all')
+
+  upgrade_ca_certificates(g)
 
   if install_gce == 'true':
     logging.info('Installing GCE packages.')
@@ -256,4 +295,4 @@ def main():
 
 
 if __name__ == '__main__':
-  utils.RunTranslate(main)
+  utils.RunTranslate(main, run_with_tracing=False)
