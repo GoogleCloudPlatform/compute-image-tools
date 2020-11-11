@@ -286,15 +286,14 @@ var basicCases = []*testCase{
 		inspect:  true,
 	}, {
 		// Fail when yum has an unreachable repo.
-		caseName: "edens-el-unreachable-repos",
-		source:   "projects/compute-image-tools-test/global/images/centos-8-cdrom-repo",
-		os:       "centos-8",
-		expectedError: "Ensure that all configured repos are reachable.*" +
-			"Errors during downloading metadata for repository 'InstallMedia'",
-		inspect: true,
+		caseName:      "el-unreachable-repos",
+		source:        "projects/compute-image-tools-test/global/images/centos-8-cdrom-repo",
+		os:            "centos-8",
+		expectedError: "Ensure all configured repos are reachable",
+		inspect:       true,
 	}, {
 		// Fail when imported as RHEL BYOL, but image does not have valid subscription.
-		caseName: "edens-rhel-byol-without-subscription",
+		caseName: "rhel-byol-without-subscription",
 		source:   "projects/compute-image-tools-test/global/images/rhel-8-0",
 		os:       "rhel-8-byol",
 		expectedError: "subscription-manager did not find an active subscription.*" +
@@ -302,7 +301,7 @@ var basicCases = []*testCase{
 		inspect: true,
 	}, {
 		// Fail when `yum` not found.
-		caseName:      "edens-el-yum-not-found",
+		caseName:      "el-yum-not-found",
 		source:        "projects/compute-image-tools-test/global/images/manjaro",
 		os:            "centos-8",
 		expectedError: "Verify the disk's OS: `yum` not found.",
