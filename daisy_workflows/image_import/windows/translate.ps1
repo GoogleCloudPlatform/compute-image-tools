@@ -320,6 +320,7 @@ try {
     if (-not (Test-Path -Path $env:TEMP\translate_metadata_reboot.txt -PathType Leaf)) {
       New-Item -Path $env:TEMP\translate_metadata_reboot.txt
       Restart-Computer -Force
+      exit 0
     }
     else {
       Throw "Failed to obtain at least one of the required values from metadata and a reboot has already been attempted."
@@ -349,7 +350,7 @@ try {
   }
 
   Enable-RemoteDesktop
-    
+
   if ($script:sysprep.ToLower() -ne 'true') {
     if ($script:is_byol.ToLower() -ne 'true') {
       Write-Output 'Translate: Setting up KMS activation'
