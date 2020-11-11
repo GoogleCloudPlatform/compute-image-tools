@@ -30,6 +30,7 @@ import time
 import guestfs
 import utils
 import utils.diskutils as diskutils
+from utils.guestfsprocess import run
 
 repo_compute = '''
 [google-compute-engine]
@@ -87,40 +88,6 @@ terminal --timeout=0 serial console
 '''
 
 
-def upgrade_ca_certificates(g: guestfs.GuestFS):
-  """Upgrade ca-certificates, if it is installed.
-
-  Stale or missing CA certificates can cause yum operations to fail.
-  """
-
-  try:
-    g.sh('rpm -V ca-certificates')
-  except RuntimeError as e:
-    logging.debug('ca-certificates not found. Skipping upgrade.', e)
-    return
-
-  upgraded = False
-  try:
-    g.sh('yum upgrade -y ca-certificates')
-    upgraded = True
-  except RuntimeError as e:
-    logging.debug('Failed to upgrade ca-certificates', e)
-    try:
-      # A common failure is older versions of EL where the user has added the
-      # epel repository, and the epel repository is failing to verify.
-      if 'epel' in str(e):
-        g.sh('yum upgrade -y ca-certificates --disablerepo=epel')
-        upgraded = True
-    except RuntimeError as e:
-      logging.debug('Failed second attempt to upgrade ca-certificates', e)
-
-  if upgraded:
-    logging.info('Upgraded ca-certificates package.')
-  else:
-    logging.info('Failed to upgrade ca-certificates package. If import '
-                 'fails, update the package manually and try again.')
-
-
 def DistroSpecific(g: guestfs.GuestFS):
   el_release = utils.GetMetadataAttribute('el_release')
   install_gce = utils.GetMetadataAttribute('install_gce_packages')
@@ -148,12 +115,21 @@ def DistroSpecific(g: guestfs.GuestFS):
   # Historically, translations have failed for corrupt dbcache and rpmdb.
   g.sh('yum clean -y all')
 
-  upgrade_ca_certificates(g)
-
   if install_gce == 'true':
     logging.info('Installing GCE packages.')
     g.write('/etc/yum.repos.d/google-cloud.repo', repo_compute % el_release)
     if el_release == '6':
+      # yum operations fail when the epel repo is used with stale
+      # ca-certificates, causing translation to fail. To avoid that,
+      # update ca-certificates when the epel repo is found.
+      #
+      # The `--disablerepo` flag does the following:
+      #  1. Skip the epel repo for *this* operation only.
+      #  2. Block update if the epel repo isn't found.
+      p = run(g, 'yum update -y ca-certificates --disablerepo=epel')
+      logging.debug('yum update -y ca-certificates: code={p.code}, '
+                    'out={p.stdout}, err={p.stderr}'.format(p=p))
+
       if 'CentOS' in g.cat('/etc/redhat-release'):
         logging.info('Installing CentOS SCL.')
         g.command(['rm', '-f', '/etc/yum.repos.d/CentOS-SCL.repo'])
