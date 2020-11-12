@@ -15,7 +15,6 @@
 package disk
 
 import (
-	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -71,32 +70,25 @@ func NewInspector(wfAttributes daisycommon.WorkflowAttributes, network string, s
 	daisycommon.SetWorkflowAttributes(wf, wfAttributes)
 	wf.Vars["network"] = daisy.Var{Value: network}
 	wf.Vars["subnet"] = daisy.Var{Value: subnet}
-	return &bootInspector{[]string{}, &defaultDaisyWorker{wf}}, nil
+	return &bootInspector{[]string{}, daisycommon.NewDaisyWorker(wf)}, nil
 }
 
-// bootInspect implements disk.Inspector using the Python boot-inspect package,
+// bootInspector implements disk.Inspector using the Python boot-inspect package,
 // executed on a worker VM using Daisy.
 type bootInspector struct {
 	traceLogs []string
-	worker    daisyWorker
-}
-
-// daisyWorker is a facade over daisy.Workflow to facilitate mocking.
-type daisyWorker interface {
-	runAndReadSerialValue(key string, vars map[string]string) (string, error)
-	cancel(reason string) bool
-	traceLogs() []string
+	worker    daisycommon.DaisyWorker
 }
 
 func (i *bootInspector) Cancel(reason string) bool {
 	i.tracef("Canceling with reason: %q", reason)
-	return i.worker.cancel(reason)
+	return i.worker.Cancel(reason)
 }
 
 func (i *bootInspector) TraceLogs() []string {
 	var combined []string
 	combined = append(combined, i.traceLogs...)
-	combined = append(combined, i.worker.traceLogs()...)
+	combined = append(combined, i.worker.TraceLogs()...)
 	return combined
 }
 
@@ -112,7 +104,7 @@ func (i *bootInspector) Inspect(reference string, inspectOS bool) (InspectionRes
 		"pd_uri":        reference,
 		"is_inspect_os": strconv.FormatBool(inspectOS),
 	}
-	encodedProto, err := i.worker.runAndReadSerialValue("inspect_pb", vars)
+	encodedProto, err := i.worker.RunAndReadSerialValue("inspect_pb", vars)
 	if err != nil {
 		return i.assembleErrors(reference, results, pb.InspectionResults_RUNNING_WORKER, err)
 	}
@@ -145,13 +137,13 @@ func (i *bootInspector) tracef(format string, a ...interface{}) {
 }
 
 // assembleErrors sets the errorWhen field, and generates an error object.
-func (i *bootInspector) assembleErrors(pdURI string, results *pb.InspectionResults,
+func (i *bootInspector) assembleErrors(reference string, results *pb.InspectionResults,
 	errorWhen pb.InspectionResults_ErrorWhen, err error) (InspectionResult, error) {
 	results.ErrorWhen = errorWhen
 	if err != nil {
-		err = fmt.Errorf("failed to inspect %v: %w", pdURI, err)
+		err = fmt.Errorf("failed to inspect %v: %w", reference, err)
 	} else {
-		err = fmt.Errorf("failed to inspect %v", pdURI)
+		err = fmt.Errorf("failed to inspect %v", reference)
 	}
 	return createLegacyResults(results), err
 }
@@ -160,7 +152,6 @@ func (i *bootInspector) assembleErrors(pdURI string, results *pb.InspectionResul
 func createLegacyResults(pbResults *pb.InspectionResults) (results InspectionResult) {
 	if pbResults.OsCount == 1 && pbResults.OsRelease != nil {
 		results = InspectionResult{
-
 			Distro: pbResults.OsRelease.GetDistro(),
 			Major:  pbResults.OsRelease.GetMajorVersion(),
 			Minor:  pbResults.OsRelease.GetMinorVersion(),
@@ -175,7 +166,7 @@ func createLegacyResults(pbResults *pb.InspectionResults) (results InspectionRes
 	return results
 }
 
-// validate checks the fields from a pb.InspectionResults object for logical consistency, returning
+// validate checks the fields from a pb.InspectionResults object for consistency, returning
 // an error if an issue is found.
 func (i *bootInspector) validate(results *pb.InspectionResults) error {
 	// Only populate OsRelease when one OS is found.
@@ -221,7 +212,8 @@ func (i *bootInspector) populate(results *pb.InspectionResults) error {
 		distroName := strings.ReplaceAll(strings.ToLower(results.OsRelease.GetDistroId().String()), "_", "-")
 
 		results.OsRelease.Distro = distroName
-		version, err := distro.FromComponents(distroName, major, minor)
+		version, err := distro.FromComponents(distroName, major, minor,
+			results.OsRelease.Architecture.String())
 		if err != nil {
 			i.tracef("Failed to interpret version distro=%q, major=%q, minor=%q: %v",
 				distroEnum, major, minor, err)
@@ -230,38 +222,4 @@ func (i *bootInspector) populate(results *pb.InspectionResults) error {
 		}
 	}
 	return nil
-}
-
-type defaultDaisyWorker struct {
-	wf *daisy.Workflow
-}
-
-// runAndReadSerialValue runs the daisy workflow with the supplied vars, and returns the serial
-// output value associated with the supplied key.
-func (w *defaultDaisyWorker) runAndReadSerialValue(key string, vars map[string]string) (string, error) {
-	for k, v := range vars {
-		w.wf.AddVar(k, v)
-	}
-	err := w.wf.Run(context.Background())
-	if err != nil {
-		return "", err
-	}
-	return w.wf.GetSerialConsoleOutputValue(key), nil
-}
-
-func (w *defaultDaisyWorker) cancel(reason string) bool {
-	if w.wf != nil {
-		w.wf.CancelWithReason(reason)
-		return true
-	}
-
-	//indicate cancel was not performed
-	return false
-}
-
-func (w *defaultDaisyWorker) traceLogs() []string {
-	if w.wf != nil && w.wf.Logger != nil {
-		return w.wf.Logger.ReadSerialPortLogs()
-	}
-	return []string{}
 }

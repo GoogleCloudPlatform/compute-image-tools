@@ -1,3 +1,17 @@
+//  Copyright 2020 Google Inc. All Rights Reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+
 package disk
 
 import (
@@ -8,54 +22,38 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
 
-func Test_NewInspector_SetsWorkflowVars(t *testing.T) {
-	inspector, err := NewInspector(daisycommon.WorkflowAttributes{
-		Project:           "project-id",
-		Zone:              "zone-id",
-		WorkflowDirectory: "../../../daisy_workflows",
-	}, "network-id", "subnet-id")
-
-	assert.NoError(t, err)
-	realWorker := inspector.(*bootInspector).worker.(*defaultDaisyWorker)
-	assert.Equal(t, realWorker.wf.Project, "project-id")
-	assert.Equal(t, realWorker.wf.Zone, "zone-id")
-	assert.Equal(t, realWorker.wf.Vars["network"].Value, "network-id")
-	assert.Equal(t, realWorker.wf.Vars["subnet"].Value, "subnet-id")
-}
-
-func Test_bootInspector_PassesVarsWhenInvokingWorkflow(t *testing.T) {
+func TestBootInspector_Inspect_PassesVarsWhenInvokingWorkflow(t *testing.T) {
 	for caseNumber, tt := range []struct {
 		inspectOS bool
-		pdURI     string
+		reference string
 	}{
-		{inspectOS: true, pdURI: "uri/for/pd"},
-		{inspectOS: false, pdURI: "uri/for/pd"},
+		{inspectOS: true, reference: "uri/for/pd"},
+		{inspectOS: false, reference: "uri/for/pd"},
 	} {
-		caseName := fmt.Sprintf("%d inspectOS=%v, pdURI=%v", caseNumber, tt.inspectOS, tt.pdURI)
+		caseName := fmt.Sprintf("%d inspectOS=%v, reference=%v", caseNumber, tt.inspectOS, tt.reference)
 		t.Run(caseName, func(t *testing.T) {
 			expected := &pb.InspectionResults{
 				UefiBootable: true,
 			}
-			inspector := bootInspector{
-				worker: &mockDaisyWorker{
-					runExpectedKey: "inspect_pb",
-					runExpectedVars: map[string]string{
-						"pd_uri":        tt.pdURI,
-						"is_inspect_os": strconv.FormatBool(tt.inspectOS),
-					},
-					runReturnString: encode(expected),
-					t:               t,
-				},
-			}
 
-			actual, err := inspector.Inspect(tt.pdURI, tt.inspectOS)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			worker := mocks.NewMockDaisyWorker(mockCtrl)
+			worker.EXPECT().RunAndReadSerialValue("inspect_pb", map[string]string{
+				"pd_uri":        tt.reference,
+				"is_inspect_os": strconv.FormatBool(tt.inspectOS),
+			}).Return(encodeToBase64(expected), nil)
+			inspector := bootInspector{worker: worker}
+
+			actual, err := inspector.Inspect(tt.reference, tt.inspectOS)
 			assert.NoError(t, err)
 			assert.Equal(t, InspectionResult{UEFIBootable: true}, actual)
 		})
@@ -88,13 +86,15 @@ func TestBootInspector_Inspect_WorkerAndTransitErrors(t *testing.T) {
 		},
 	} {
 		t.Run(tt.caseName, func(t *testing.T) {
-			inspector := bootInspector{
-				worker: &mockDaisyWorker{
-					runReturnError:  tt.errorFromInspection,
-					runReturnString: tt.base64FromInspection,
-				},
-			}
-			actual, err := inspector.Inspect("pdURI", true)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			worker := mocks.NewMockDaisyWorker(mockCtrl)
+			worker.EXPECT().RunAndReadSerialValue("inspect_pb", map[string]string{
+				"pd_uri":        "reference",
+				"is_inspect_os": "true",
+			}).Return(tt.base64FromInspection, tt.errorFromInspection)
+			inspector := bootInspector{worker: worker}
+			actual, err := inspector.Inspect("reference", true)
 			if err == nil {
 				t.Fatal("err must be non-nil")
 			}
@@ -207,12 +207,16 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 		},
 	} {
 		t.Run(tt.caseName, func(t *testing.T) {
-			inspector := bootInspector{
-				worker: &mockDaisyWorker{
-					runReturnString: encode(tt.responseFromInspection),
-				},
-			}
-			results, err := inspector.Inspect("pdURI", true)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			worker := mocks.NewMockDaisyWorker(mockCtrl)
+			worker.EXPECT().RunAndReadSerialValue("inspect_pb", map[string]string{
+				"pd_uri":        "reference",
+				"is_inspect_os": "true",
+			}).Return(encodeToBase64(tt.responseFromInspection), nil)
+			worker.EXPECT().TraceLogs().Return(nil)
+			inspector := bootInspector{worker: worker}
+			results, err := inspector.Inspect("reference", true)
 			if err == nil {
 				t.Fatal("err must be non-nil")
 			}
@@ -223,7 +227,44 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 	}
 }
 
-func encode(results *pb.InspectionResults) string {
+func TestBootInspector_IncludesRemoteAndWorkerLogs(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	worker := mocks.NewMockDaisyWorker(mockCtrl)
+	worker.EXPECT().TraceLogs().Return([]string{"serial console1", "serial console2"})
+
+	inspector := bootInspector{worker: worker}
+	inspector.tracef("log %s %v", "A", false)
+	inspector.tracef("log %s", "B")
+
+	actual := inspector.TraceLogs()
+	assert.Contains(t, actual, "serial console1")
+	assert.Contains(t, actual, "serial console2")
+	assert.Contains(t, actual, "log A false")
+	assert.Contains(t, actual, "log B")
+}
+
+func TestBootInspector_ForwardsCancelToWorkflow(t *testing.T) {
+	for _, tt := range []struct {
+		name      string
+		reason    string
+		cancelled bool
+	}{
+		{"cancel success", "reason 1", true},
+		{"cancel failed", "reason 2", false},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			worker := mocks.NewMockDaisyWorker(mockCtrl)
+			worker.EXPECT().Cancel(tt.reason).Return(tt.cancelled)
+			inspector := bootInspector{worker: worker}
+			assert.Equal(t, tt.cancelled, inspector.Cancel(tt.reason))
+		})
+	}
+}
+
+func encodeToBase64(results *pb.InspectionResults) string {
 	if results == nil {
 		return ""
 	}
@@ -247,84 +288,4 @@ func assertLogsContainResults(t *testing.T, inspector bootInspector, results *pb
 	if !traceIncludesResults {
 		t.Errorf("Trace logs didn't include results.\n Logs:%#v\n Results: %v", logs, resultString)
 	}
-}
-
-func Test_bootInspector_IncludesRemoteAndWorkerLogs(t *testing.T) {
-	workerLogs := []string{"serial console1", "serial console2"}
-	inspector := bootInspector{
-		worker: &mockDaisyWorker{traceLogsReturn: workerLogs},
-	}
-
-	inspector.tracef("log %s %v", "A", false)
-	inspector.tracef("log %s", "B")
-
-	assert.Contains(t, inspector.TraceLogs(), "serial console1")
-	assert.Contains(t, inspector.TraceLogs(), "serial console2")
-	assert.Contains(t, inspector.TraceLogs(), "log A false")
-	assert.Contains(t, inspector.TraceLogs(), "log B")
-}
-
-func Test_bootInspector_ForwardsCancelToDaisyWorker(t *testing.T) {
-	mockWorker := &mockDaisyWorker{
-		cancelExpectedReason: "reason",
-		t:                    t,
-	}
-	inspector := bootInspector{
-		worker: mockWorker,
-	}
-	inspector.Cancel("reason")
-
-}
-
-func Test_bootInspector_ForwardsCancelToWorkflow(t *testing.T) {
-	for _, tt := range []struct {
-		name      string
-		reason    string
-		cancelled bool
-	}{
-		{"cancel success", "reason 1", true},
-		{"cancel failed", "reason 2", false},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			mockWorker := &mockDaisyWorker{
-				cancelExpectedReason: tt.reason,
-				cancelReturn:         tt.cancelled,
-				t:                    t,
-			}
-			inspector := bootInspector{
-				worker: mockWorker,
-			}
-			assert.Equal(t, tt.cancelled, inspector.Cancel(tt.reason))
-		})
-	}
-}
-
-type mockDaisyWorker struct {
-	runExpectedKey       string
-	runExpectedVars      map[string]string
-	runReturnString      string
-	runReturnError       error
-	traceLogsReturn      []string
-	cancelExpectedReason string
-	cancelReturn         bool
-	t                    *testing.T
-}
-
-func (m *mockDaisyWorker) runAndReadSerialValue(key string, vars map[string]string) (string, error) {
-	if m.runExpectedKey != "" {
-		assert.Equal(m.t, m.runExpectedKey, key)
-	}
-	if m.runExpectedVars != nil {
-		assert.Equal(m.t, m.runExpectedVars, vars)
-	}
-	return m.runReturnString, m.runReturnError
-}
-
-func (m *mockDaisyWorker) cancel(reason string) bool {
-	assert.Equal(m.t, m.cancelExpectedReason, reason)
-	return m.cancelReturn
-}
-
-func (m *mockDaisyWorker) traceLogs() []string {
-	return m.traceLogsReturn
 }
