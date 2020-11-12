@@ -277,10 +277,35 @@ var basicCases = []*testCase{
 
 	// EL - Error cases
 	{
-		caseName: "el-allow-extra-dirs-in-lib-modules", // b/168774581
+		// Don't fail when /lib/modules contains directories other than kernel modules.
+		// Spec: http://linux-training.be/sysadmin/ch28.html#idp68123376
+		// Bug: b/168774581
+		caseName: "el-allow-extra-dirs-in-lib-modules",
 		source:   "projects/compute-image-tools-test/global/images/el-depmod-extra-lib-modules",
 		os:       "centos-8",
 		inspect:  true,
+	}, {
+		// Fail when yum has an unreachable repo.
+		caseName:      "el-unreachable-repos",
+		source:        "projects/compute-image-tools-test/global/images/centos-8-cdrom-repo",
+		os:            "centos-8",
+		expectedError: "Ensure all configured repos are reachable",
+		inspect:       true,
+	}, {
+		// Fail when imported as RHEL BYOL, but image does not have valid subscription.
+		caseName: "rhel-byol-without-subscription",
+		source:   "projects/compute-image-tools-test/global/images/rhel-8-0",
+		os:       "rhel-8-byol",
+		expectedError: "subscription-manager did not find an active subscription.*" +
+			"Omit `-byol` to register with on-demand licensing.",
+		inspect: true,
+	}, {
+		// Fail when `yum` not found.
+		caseName:      "el-yum-not-found",
+		source:        "projects/compute-image-tools-test/global/images/manjaro",
+		os:            "centos-8",
+		expectedError: "Verify the disk's OS: `yum` not found.",
+		inspect:       true,
 	},
 	{
 		// If an admin adds epel to an older version of EL 6 without updating ca-certificates,
@@ -454,7 +479,8 @@ func (t testCase) verifyExpectedError(junit *junitxml.TestCase, actualErr error,
 	}
 
 	lastLine := getLastLine(importLog)
-	if !strings.Contains(lastLine, t.expectedError) {
+
+	if !regexp.MustCompile(t.expectedError).MatchString(lastLine) {
 		t.writeFailure(junit, "Message shown to user %q did not contain %q.",
 			lastLine, t.expectedError)
 	}
