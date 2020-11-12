@@ -53,6 +53,7 @@
           "Metadata": {
             "files_gcs_dir": "${SOURCESPATH}/import_files",
             "script": "translate.py",
+            "script_prints_status": "yes",
             "prefix": "Translate",
             "ubuntu_release": "${ubuntu_release}",
             "install_gce_packages": "${install_gce_packages}"

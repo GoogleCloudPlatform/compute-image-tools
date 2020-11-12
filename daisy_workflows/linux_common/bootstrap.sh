@@ -131,4 +131,11 @@ chmod +x "$path_script"
 CheckPython3Installation
 
 logger -p daemon.info "Status: Running $path_script"
+# Remove the trap when script_prints_status equals "yes".
+# Useful when the script handles its own communication with
+# daisy (typically with prefixes such as "TranslateSuccess"
+# and "TranslateFailure").
+GetMetadataAttribute "script_prints_status"
+[ "$attribute_value" = "yes" ] && trap - EXIT
+
 "$path_script"
