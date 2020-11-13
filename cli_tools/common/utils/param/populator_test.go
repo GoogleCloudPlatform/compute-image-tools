@@ -263,14 +263,14 @@ func TestPopulator_PopulateMissingParametersDoesNotChangeProvidedScratchBucketAn
 
 func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.T) {
 	for _, tt := range []struct {
-		caseName             string
-		client               string
-		deleteResult         error
-		deleteExpected       bool
-		expectedError        string
-		expectedAnonError    string
-		scratchBucketGCSPath string
-		fileGCSPath          string
+		caseName                string
+		client                  string
+		deleteResult            error
+		deleteExpected          bool
+		expectedError           string
+		expectedAnonymizedError string
+		scratchBucketGCSPath    string
+		fileGCSPath             string
 	}{
 		{
 			caseName:       "In scratch - gcloud - Successful deletion",
@@ -279,9 +279,9 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 			deleteExpected: true,
 			expectedError: "Scratch bucket \"scratchbucket\" is not in project \"a_project\". " +
 				"Deleted \"gs://scratchbucket/sourcefile\"",
-			expectedAnonError:    "Scratch bucket %q is not in project %q. Deleted %q",
-			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
-			fileGCSPath:          "gs://scratchbucket/sourcefile",
+			expectedAnonymizedError: "Scratch bucket %q is not in project %q. Deleted %q",
+			scratchBucketGCSPath:    "gs://scratchbucket/scratchpath",
+			fileGCSPath:             "gs://scratchbucket/sourcefile",
 		},
 		{
 			caseName:       "In scratch - gcloud - Failed deletion",
@@ -291,34 +291,34 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 			expectedError: "Scratch bucket \"scratchbucket\" is not in project \"a_project\". Failed to delete " +
 				"\"gs://scratchbucket/sourcefile\": Failed to delete path. " +
 				"Check with the owner of gs://\"scratchbucket\" for more information",
-			expectedAnonError: "Scratch bucket %q is not in project %q. Failed to delete %q: %v. " +
+			expectedAnonymizedError: "Scratch bucket %q is not in project %q. Failed to delete %q: %v. " +
 				"Check with the owner of gs://%q for more information",
 			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
 			fileGCSPath:          "gs://scratchbucket/sourcefile",
 		},
 		{
-			caseName:             "In scratch - not gcloud - don't delete",
-			client:               "api",
-			expectedError:        "Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
-			expectedAnonError:    "Scratch bucket %q is not in project %q",
-			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
-			fileGCSPath:          "gs://scratchbucket/sourcefile",
+			caseName:                "In scratch - not gcloud - don't delete",
+			client:                  "api",
+			expectedError:           "Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
+			expectedAnonymizedError: "Scratch bucket %q is not in project %q",
+			scratchBucketGCSPath:    "gs://scratchbucket/scratchpath",
+			fileGCSPath:             "gs://scratchbucket/sourcefile",
 		},
 		{
-			caseName:             "Not in scratch - Don't delete",
-			client:               "gcloud",
-			expectedError:        "Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
-			expectedAnonError:    "Scratch bucket %q is not in project %q",
-			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
-			fileGCSPath:          "gs://source-images/sourcefile",
+			caseName:                "Not in scratch - Don't delete",
+			client:                  "gcloud",
+			expectedError:           "Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
+			expectedAnonymizedError: "Scratch bucket %q is not in project %q",
+			scratchBucketGCSPath:    "gs://scratchbucket/scratchpath",
+			fileGCSPath:             "gs://source-images/sourcefile",
 		},
 		{
-			caseName:             "GCS Image - Don't delete",
-			client:               "gcloud",
-			expectedError:        "Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
-			expectedAnonError:    "Scratch bucket %q is not in project %q",
-			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
-			fileGCSPath:          "",
+			caseName:                "GCS Image - Don't delete",
+			client:                  "gcloud",
+			expectedError:           "Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
+			expectedAnonymizedError: "Scratch bucket %q is not in project %q",
+			scratchBucketGCSPath:    "gs://scratchbucket/scratchpath",
+			fileGCSPath:             "",
 		},
 	} {
 		t.Run(tt.caseName, func(t *testing.T) {
@@ -350,7 +350,7 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 
 			realError := err.(daisy.DError)
 			assert.EqualError(t, realError, tt.expectedError)
-			assert.Equal(t, strings.Join(realError.AnonymizedErrs(), ""), tt.expectedAnonError)
+			assert.Equal(t, strings.Join(realError.AnonymizedErrs(), ""), tt.expectedAnonymizedError)
 		})
 	}
 }
