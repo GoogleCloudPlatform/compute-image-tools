@@ -121,7 +121,7 @@ func (facade *inflaterFacade) Inflate() (persistentDisk, shadowTestFields, error
 		} else if isCausedByAlphaAPIAccess(shadowErr) {
 			matchResult = "Shadow inflater not executed: no Alpha API access"
 		} else {
-			matchResult = "Shadow inflater failed while main inflater succeeded"
+			matchResult = fmt.Sprintf("Shadow inflater failed while main inflater succeeded: [%v]", shadowErr)
 		}
 	}
 
