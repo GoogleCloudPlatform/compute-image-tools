@@ -79,23 +79,23 @@ func populateScratchBucketGcsPath(scratchBucketGcsPath *string, zone string, mgc
 		}
 
 		if !scratchBucketCreator.IsBucketInProject(*project, scratchBucketName) {
-			errorParts := []string{
-				fmt.Sprintf("Scratch bucket %q is not in project %q",
-					scratchBucketName, *project),
-			}
+			anonymizedErrorMessage := "Scratch bucket %q is not in project %q"
+
+			substitutions := []interface{}{scratchBucketName, *project}
 
 			if removeFileWhenScratchNotOwned && strings.HasPrefix(file, fmt.Sprintf("gs://%s/", scratchBucketName)) {
 				err := storageClient.DeleteObject(file)
 				if err == nil {
-					errorParts = append(errorParts, fmt.Sprintf("Deleted %q", file))
+					anonymizedErrorMessage += ". Deleted %q"
+					substitutions = append(substitutions, file)
 				} else {
-					errorParts = append(errorParts, fmt.Sprintf(
-						"Failed to delete %q: %v. Check with the owner of gs://%q for more information",
-						file, err, scratchBucketName))
+					anonymizedErrorMessage += ". Failed to delete %q: %v. " +
+						"Check with the owner of gs://%q for more information"
+					substitutions = append(substitutions, file, err, scratchBucketName)
 				}
 			}
 
-			return "", daisy.Errf(strings.Join(errorParts, ". "))
+			return "", daisy.Errf(anonymizedErrorMessage, substitutions...)
 		}
 
 		scratchBucketAttrs, err := storageClient.GetBucketAttrs(scratchBucketName)
