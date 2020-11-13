@@ -93,7 +93,7 @@ func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error)
 
 	err := inflater.computeClient.CreateDiskBeta(inflater.args.Project, inflater.args.Zone, &cd)
 	if err != nil {
-		return persistentDisk{}, shadowTestFields{}, err
+		return persistentDisk{}, shadowTestFields{}, daisy.Errf("Failed to create shadow disk: %v", err)
 	}
 
 	// Cleanup the shadow disk ignoring error
@@ -134,7 +134,7 @@ func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error)
 	// Calculate checksum by daisy workflow
 	inflater.addTraceLog("Started checksum calculation.")
 	ii.checksum, err = inflater.calculateChecksum(ctx, diskURI)
-	return pd, ii, err
+	return pd, ii, daisy.Errf("Failed to calculate checksum: %v", err)
 }
 
 func (inflater *apiInflater) getShadowDiskName() string {
