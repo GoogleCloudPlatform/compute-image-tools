@@ -17,6 +17,7 @@ package param
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"cloud.google.com/go/storage"
@@ -267,6 +268,7 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 		deleteResult         error
 		deleteExpected       bool
 		expectedError        string
+		expectedAnonError    string
 		scratchBucketGCSPath string
 		fileGCSPath          string
 	}{
@@ -277,6 +279,7 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 			deleteExpected: true,
 			expectedError: "Scratch bucket \"scratchbucket\" is not in project \"a_project\". " +
 				"Deleted \"gs://scratchbucket/sourcefile\"",
+			expectedAnonError:    "Scratch bucket %q is not in project %q. Deleted %q",
 			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
 			fileGCSPath:          "gs://scratchbucket/sourcefile",
 		},
@@ -288,6 +291,8 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 			expectedError: "Scratch bucket \"scratchbucket\" is not in project \"a_project\". Failed to delete " +
 				"\"gs://scratchbucket/sourcefile\": Failed to delete path. " +
 				"Check with the owner of gs://\"scratchbucket\" for more information",
+			expectedAnonError: "Scratch bucket %q is not in project %q. Failed to delete %q: %v. " +
+				"Check with the owner of gs://%q for more information",
 			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
 			fileGCSPath:          "gs://scratchbucket/sourcefile",
 		},
@@ -295,6 +300,7 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 			caseName:             "In scratch - not gcloud - don't delete",
 			client:               "api",
 			expectedError:        "Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
+			expectedAnonError:    "Scratch bucket %q is not in project %q",
 			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
 			fileGCSPath:          "gs://scratchbucket/sourcefile",
 		},
@@ -302,6 +308,7 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 			caseName:             "Not in scratch - Don't delete",
 			client:               "gcloud",
 			expectedError:        "Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
+			expectedAnonError:    "Scratch bucket %q is not in project %q",
 			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
 			fileGCSPath:          "gs://source-images/sourcefile",
 		},
@@ -309,6 +316,7 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 			caseName:             "GCS Image - Don't delete",
 			client:               "gcloud",
 			expectedError:        "Scratch bucket \"scratchbucket\" is not in project \"a_project\"",
+			expectedAnonError:    "Scratch bucket %q is not in project %q",
 			scratchBucketGCSPath: "gs://scratchbucket/scratchpath",
 			fileGCSPath:          "",
 		},
@@ -340,7 +348,9 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 				mockScratchBucketCreator,
 			).PopulateMissingParameters(&project, tt.client, &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
 
-			assert.EqualError(t, err, tt.expectedError)
+			realError := err.(daisy.DError)
+			assert.EqualError(t, realError, tt.expectedError)
+			assert.Equal(t, strings.Join(realError.AnonymizedErrs(), ""), tt.expectedAnonError)
 		})
 	}
 }
