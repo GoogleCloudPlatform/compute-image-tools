@@ -121,6 +121,14 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 			expectErrorToContain: "Worker should not return OsRelease when NumOsFound != 1",
 		},
 		{
+			caseName: "Fail when OsCount is one and OsRelease is nil",
+			responseFromInspection: &pb.InspectionResults{
+				OsCount: 1,
+			},
+			expectResults:        InspectionResult{},
+			expectErrorToContain: "Worker should return OsRelease when OsCount == 1",
+		},
+		{
 			caseName: "Fail when OsCount > 1 and OsRelease non-nil",
 			responseFromInspection: &pb.InspectionResults{
 				OsCount:   2,
