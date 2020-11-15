@@ -35,6 +35,7 @@ COPY --from=0 /gce_vm_image_import gce_vm_image_import
 COPY --from=0 /gce_vm_image_export gce_vm_image_export
 COPY --from=0 /gce_onestep_image_import gce_onestep_image_import
 COPY /daisy_workflows/ /daisy_workflows/
+COPY /proto/ /proto/
 COPY /daisy_integration_tests/scripts/post_translate_test.sh .
 COPY /daisy_integration_tests/scripts/post_translate_test.ps1 .
 COPY /cli_tools_tests/e2e/gce_image_import_export/test_suites/scripts/post_translate_test.wf.json .

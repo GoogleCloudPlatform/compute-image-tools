@@ -54,7 +54,8 @@ boot-inspect /images/ubuntu-16.04-server-cloudimg-amd64-disk1.vmdk
 
 ## Running unit tests
 
-The safe and quick option is to run the prow job's container locally:
+The safe and quick option is to run the prow job's container locally.
+From the root of the compute-image-tools repo:
 
 ```shell script
 rm -rf /tmp/artifacts && mkdir /tmp/artifacts
@@ -63,7 +64,7 @@ docker run --volume $(pwd):/project:ro \
   --workdir /project \
   --volume /tmp/artifacts:/artifacts \
   --env ARTIFACTS=/artifacts \
-  gcr.io/gcp-guest/pytest .
+  gcr.io/gcp-guest/pytest daisy_workflows/image_import/inspection
 ```
 
 You'll have the same results as running on prow, and you'll

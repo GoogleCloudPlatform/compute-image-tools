@@ -19,6 +19,9 @@ setup(
   name="boot_inspect",
   version="0.1",
   package_dir={"": "src"},
+  install_requires=[
+    'compute_image_tools_proto',
+  ],
   packages=find_namespace_packages(where="src"),
   entry_points={
     "console_scripts": [

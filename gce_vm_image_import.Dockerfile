@@ -22,5 +22,6 @@ RUN apt-key add gcsfuse-apt-key.gpg
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -q -y gcsfuse
 COPY linux/gce_vm_image_import /gce_vm_image_import
 COPY daisy_workflows/ /daisy_workflows/
+COPY proto/ /proto/
 
 ENTRYPOINT ["/gce_vm_image_import"]

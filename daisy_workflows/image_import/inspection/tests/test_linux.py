@@ -17,6 +17,7 @@ import os
 
 from boot_inspect import inspection, model
 from boot_inspect.system import filesystems
+from compute_image_tools_proto import inspect_pb2
 import pytest
 import yaml
 
@@ -31,11 +32,19 @@ def test_yaml_encoded_cases(fpath):
     assert 'files' in loaded_yaml
     assert 'expected' in loaded_yaml
     fs = filesystems.DictBackedFilesystem(loaded_yaml['files'])
-    expected = model.OperatingSystem(
-      model.distro_for(loaded_yaml['expected']['distro']),
-      model.Version(loaded_yaml['expected']['major'],
-                    loaded_yaml['expected']['minor']))
+    expected = inspect_pb2.OsRelease(
+        major_version=none_to_empty(loaded_yaml['expected'].get('major')),
+        minor_version=none_to_empty(loaded_yaml['expected'].get('minor')),
+        distro_id=(model.distro_for(loaded_yaml['expected']['distro'])),
+    )
+    inspector = inspection._linux_inspector(fs)
+    actual = inspector.inspect()
+    if expected.minor_version == "None":
+      assert False
+    assert expected == actual
 
-  inspector = inspection._linux_inspector(fs)
-  actual = inspector.inspect()
-  assert expected == actual
+
+def none_to_empty(v) -> str:
+  if not v:
+    return ''
+  return str(v)
