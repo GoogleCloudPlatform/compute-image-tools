@@ -20,9 +20,8 @@
   },
   "Sources": {
     "daisy-shim.sh": "daisy-shim.sh",
-    "boot_inspect/src": "../inspection/src",
-    "boot_inspect/setup.py": "../inspection/setup.py",
-    "compute_image_tools_proto": "../../../proto/py"
+    "setup.py": "setup.py",
+    "src": "src"
   },
   "Steps": {
     "run-inspection": {

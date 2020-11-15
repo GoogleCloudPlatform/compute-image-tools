@@ -14,30 +14,27 @@
 # limitations under the License.
 """Tests functions exposed by the di.model module."""
 
+import json
 import unittest
 
 from boot_inspect import model
-from compute_image_tools_proto import inspect_pb2
 
 
 class TestDistro:
 
   def test_name_lookup_is_case_insensitive(self):
-    assert inspect_pb2.Distro.UBUNTU == model.distro_for("ubuntu")
-    assert inspect_pb2.Distro.UBUNTU == model.distro_for("Ubuntu")
-    assert inspect_pb2.Distro.OPENSUSE == model.distro_for("opensuse")
-    assert inspect_pb2.Distro.OPENSUSE == model.distro_for("openSUSE")
-    assert inspect_pb2.Distro.RHEL == model.distro_for("rhel")
-    assert inspect_pb2.Distro.RHEL == model.distro_for("RHEL")
-    assert inspect_pb2.Distro.CENTOS == model.distro_for("CentOS")
-    assert inspect_pb2.Distro.CENTOS == model.distro_for("centos")
+    assert model.Distro.UBUNTU == model.distro_for("ubuntu")
+    assert model.Distro.UBUNTU == model.distro_for("Ubuntu")
+    assert model.Distro.OPENSUSE == model.distro_for("opensuse")
+    assert model.Distro.OPENSUSE == model.distro_for("openSUSE")
+    assert model.Distro.RHEL == model.distro_for("rhel")
+    assert model.Distro.RHEL == model.distro_for("RHEL")
+    assert model.Distro.CENTOS == model.distro_for("CentOS")
+    assert model.Distro.CENTOS == model.distro_for("centos")
 
   def test_name_lookup_returns_None_when_no_match(self):
     assert model.distro_for("not-a-distro-name") is None
     assert model.distro_for("") is None
-
-  def test_name_lookup_supports_hyphens(self):
-    assert inspect_pb2.Distro.SLES_SAP == model.distro_for("sles-sap")
 
 
 class TestVersion(unittest.TestCase):
@@ -64,3 +61,107 @@ class TestVersion(unittest.TestCase):
 
   def test_to_string__empty_when_version_empty(self):
     assert "" == str(model.Version(""))
+
+
+class TestJSONEncoder:
+
+  def test_happy_case(self):
+    inspection_results = model.InspectionResults(
+      device="/dev/sdb",
+      os=model.OperatingSystem(
+        distro=model.Distro.WINDOWS,
+        version=model.Version(major="8", minor="1"),
+      ),
+      architecture=model.Architecture.x86,
+    )
+
+    expected = {
+      "device": "/dev/sdb",
+      "os": {
+        "distro": "windows",
+        "version": {
+          "major": "8",
+          "minor": "1",
+        }
+      },
+      "architecture": "x86",
+    }
+    actual = json.dumps(inspection_results, cls=model.ModelJSONEncoder)
+    assert expected == json.loads(actual)
+
+  def test_allow_empty_minor_version(self):
+    inspection_results = model.InspectionResults(
+      device="/dev/sdb",
+      os=model.OperatingSystem(
+        distro=model.Distro.UBUNTU,
+        version=model.Version(major="14", ),
+      ),
+      architecture=model.Architecture.x64,
+    )
+
+    expected = {
+      "device": "/dev/sdb",
+      "os": {
+        "distro": "ubuntu",
+        "version": {
+          "major": "14",
+          "minor": "",
+        }
+      },
+      "architecture": "x64",
+    }
+    actual = json.dumps(inspection_results, cls=model.ModelJSONEncoder)
+    assert expected == json.loads(actual)
+
+  def test_keep_leading_zeroes_in_version(self):
+    inspection_results = model.InspectionResults(
+      device="/dev/sdb",
+      os=model.OperatingSystem(
+        distro=model.Distro.UBUNTU,
+        version=model.Version(major="0x0", minor="04"),
+      ),
+      architecture=model.Architecture.x64,
+    )
+
+    expected = {
+      "device": "/dev/sdb",
+      "os": {
+        "distro": "ubuntu",
+        "version": {
+          "major": "0x0",
+          "minor": "04",
+        }
+      },
+      "architecture": "x64",
+    }
+    actual = json.dumps(inspection_results, cls=model.ModelJSONEncoder)
+    assert expected == json.loads(actual)
+
+  def test_allow_all_fields_empty(self):
+    inspection_results = model.InspectionResults(
+        os=None, device=None, architecture=None)
+
+    expected = {"architecture": None, "device": None, "os": None}
+    actual = json.dumps(inspection_results, cls=model.ModelJSONEncoder)
+    assert expected == json.loads(actual)
+
+  def test_inspection_results_with_boot(self):
+    boot_results = model.BootInspectionResults(
+        bios_bootable=True, uefi_bootable=True, root_fs="btrfs")
+    expected_boot_results = {"bios_bootable": True, "uefi_bootable": True,
+                             "root_fs": "btrfs"}
+    actual_boot_results = json.dumps(boot_results, cls=model.ModelJSONEncoder)
+    assert expected_boot_results == json.loads(actual_boot_results)
+
+    inspection_results = model.InspectionResults(
+        os=None, device=None, architecture=None)
+    inspection_results.bios_bootable = boot_results.bios_bootable
+    inspection_results.uefi_bootable = boot_results.uefi_bootable
+    inspection_results.root_fs = boot_results.root_fs
+    expected_inspection_results = {"architecture": None, "device": None,
+                                   "os": None, "bios_bootable": True,
+                                   "uefi_bootable": True,
+                                   "root_fs": "btrfs"}
+    actual_inspection_results = json.dumps(inspection_results,
+                                           cls=model.ModelJSONEncoder)
+    assert expected_inspection_results == json.loads(actual_inspection_results)

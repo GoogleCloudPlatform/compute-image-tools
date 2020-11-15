@@ -26,5 +26,4 @@ envlist = [
 
 test-deps = [
     "pyyaml == 5.3.1",
-    "//proto/py",
 ]

@@ -19,7 +19,6 @@ import typing
 
 from boot_inspect import model
 import boot_inspect.system.filesystems
-from compute_image_tools_proto import inspect_pb2
 
 
 class FileExistenceMatcher:
@@ -70,6 +69,8 @@ class VersionReader:
       metadata_file: The file that *must* be present to allow a match.
       version_pattern: A regex pattern that matches the version string within
       the content of `metadata_file`.
+      derivative_metadata_files: Files that indicate the presence of a
+      derivative distro.
     """
     self._metadata_file = metadata_file
     self._version_pattern = version_pattern
@@ -89,7 +90,7 @@ class Fingerprint:
   """
 
   def __init__(self,
-               distro: inspect_pb2.Distro,
+               distro: model.Distro,
                aliases: typing.Iterable[str] = (),
                fs_predicate: FileExistenceMatcher = None,
                version_reader: VersionReader = None):
@@ -105,10 +106,8 @@ class Fingerprint:
     """
     self.distro = distro
     self._name_matcher = re.compile(
-        '|'.join([
-            re.escape(w)
-            for w in list(aliases) + [inspect_pb2.Distro.Name(distro)]
-        ]), re.IGNORECASE)
+        '|'.join([re.escape(w) for w in list(aliases) + [distro.value]]),
+        re.IGNORECASE)
     self._fs_predicate = fs_predicate
     self._legacy_version_reader = version_reader
 
@@ -136,7 +135,7 @@ class Fingerprint:
 
   def match(
       self,
-      fs: boot_inspect.system.filesystems.Filesystem) -> inspect_pb2.OsRelease:
+      fs: boot_inspect.system.filesystems.Filesystem) -> model.OperatingSystem:
     """Returns the OperatingSystem that is identified."""
     etc_os_rel = {}
     if fs.is_file('/etc/os-release'):
@@ -152,11 +151,9 @@ class Fingerprint:
       matches = False
 
     if matches:
-      version = self._get_version(etc_os_rel, fs)
-      return inspect_pb2.OsRelease(
-          major_version=version.major,
-          minor_version=version.minor,
-          distro_id=self.distro,
+      return model.OperatingSystem(
+          distro=self.distro,
+          version=self._get_version(etc_os_rel, fs),
       )
 
 
@@ -173,7 +170,7 @@ class Inspector:
     self._fs = fs
     self._fingerprints = fingerprints
 
-  def inspect(self) -> inspect_pb2.OsRelease:
+  def inspect(self) -> model.OperatingSystem:
     """Returns the OperatingSystem that is identified, or None if a
     match isn't found.
     """

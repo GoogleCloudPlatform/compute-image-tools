@@ -33,15 +33,14 @@ import os
 import re
 import sys
 
+from boot_inspect import model
 from boot_inspect.inspectors.os import architecture, linux, windows
 import boot_inspect.system.filesystems
-from compute_image_tools_proto import inspect_pb2
 
 _LINUX = [
-    linux.Fingerprint(inspect_pb2.Distro.AMAZON,
-                      aliases=['amzn', 'amazonlinux']),
+    linux.Fingerprint(model.Distro.AMAZON, aliases=['amzn', 'amazonlinux']),
     linux.Fingerprint(
-        inspect_pb2.Distro.CENTOS,
+        model.Distro.CENTOS,
         fs_predicate=linux.FileExistenceMatcher(
             require={'/etc/centos-release'},
             disallow={'/etc/fedora-release',
@@ -51,16 +50,16 @@ _LINUX = [
             version_pattern=re.compile(r'\d+\.\d+')),
     ),
     linux.Fingerprint(
-        inspect_pb2.Distro.DEBIAN,
+        model.Distro.DEBIAN,
         version_reader=linux.VersionReader(
             metadata_file='/etc/debian_version',
             version_pattern=re.compile(r'\d+\.\d+'),
         ),
     ),
-    linux.Fingerprint(inspect_pb2.Distro.FEDORA),
-    linux.Fingerprint(inspect_pb2.Distro.KALI),
+    linux.Fingerprint(model.Distro.FEDORA),
+    linux.Fingerprint(model.Distro.KALI),
     linux.Fingerprint(
-        inspect_pb2.Distro.RHEL,
+        model.Distro.RHEL,
         fs_predicate=linux.FileExistenceMatcher(
             require={'/etc/redhat-release'},
             disallow={'/etc/fedora-release',
@@ -77,24 +76,25 @@ _LINUX = [
     # This is documented here:
     #   https://www.suse.com/support/kb/doc/?id=000019341
     linux.Fingerprint(
-        inspect_pb2.Distro.SLES_SAP,
+        model.Distro.SLES_SAP,
         aliases=['sles', 'sles_sap'],
         fs_predicate=linux.FileExistenceMatcher(
             require={'/etc/products.d/SLES_SAP.prod'})
     ),
-    linux.Fingerprint(inspect_pb2.Distro.SLES),
-    linux.Fingerprint(inspect_pb2.Distro.OPENSUSE, aliases=['opensuse-leap']),
-    linux.Fingerprint(inspect_pb2.Distro.ORACLE,
-                      aliases=['ol', 'oraclelinux']),
-    linux.Fingerprint(inspect_pb2.Distro.UBUNTU),
+    linux.Fingerprint(model.Distro.SLES),
+    linux.Fingerprint(model.Distro.OPENSUSE, aliases=['opensuse-leap']),
+    linux.Fingerprint(model.Distro.ORACLE, aliases=['ol', 'oraclelinux']),
+    linux.Fingerprint(model.Distro.UBUNTU),
 ]
 
 
-def inspect_device(g) -> inspect_pb2.InspectionResults:
+def inspect_device(g, device: str) -> model.InspectionResults:
   """Finds boot-related properties for a device using offline inspection.
 
   Args:
     g (guestfs.GuestFS): A launched, but unmounted, GuestFS instance.
+    device: a reference to a mounted block device (eg: /dev/sdb), or
+    to a virtual disk file (eg: /opt/images/disk.vmdk).
 
   Example:
 
@@ -106,10 +106,8 @@ def inspect_device(g) -> inspect_pb2.InspectionResults:
 
   roots = g.inspect_os()
   if len(roots) == 0:
-    return inspect_pb2.InspectionResults(
-        os_count=len(roots)
-
-    )
+    print('inspect_vm: no operating systems found', file=sys.stderr)
+    sys.exit(1)
   root = roots[0]
   mount_points = g.inspect_get_mountpoints(root)
   for dev, mp in sorted(mount_points.items(), key=lambda k: len(k[0])):
@@ -121,18 +119,17 @@ def inspect_device(g) -> inspect_pb2.InspectionResults:
   operating_system = linux.Inspector(fs, _LINUX).inspect()
   if not operating_system:
     operating_system = windows.Inspector(g, root).inspect()
-  if operating_system:
-    operating_system.architecture = architecture.Inspector(g, root).inspect()
-
+  arch = architecture.Inspector(g, root).inspect()
   g.umount_all()
 
-  return inspect_pb2.InspectionResults(
-      os_release=operating_system,
-      os_count=1,
+  return model.InspectionResults(
+      device=device,
+      os=operating_system,
+      architecture=arch,
   )
 
 
-def inspect_boot_loader(g, device) -> inspect_pb2.InspectionResults:
+def inspect_boot_loader(g, device) -> model.BootInspectionResults:
   """Finds boot-loader properties for the device using offline inspection.
 
   Args:
@@ -176,7 +173,7 @@ def inspect_boot_loader(g, device) -> inspect_pb2.InspectionResults:
   except Exception as e:
     print("Failed to inspect disk partition: ", e)
 
-  return inspect_pb2.InspectionResults(
+  return model.BootInspectionResults(
       bios_bootable=bios_bootable,
       uefi_bootable=uefi_bootable,
       root_fs=root_fs,

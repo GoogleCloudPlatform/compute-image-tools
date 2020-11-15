@@ -14,12 +14,32 @@
 # limitations under the License.
 """Domain objects related to disk inspection."""
 
+import enum
+import json
 import re
+import typing
 
-from compute_image_tools_proto import inspect_pb2
+
+class Distro(enum.Enum):
+  """Distributions that are detectable.
+
+  The value of the enum is conveyed to the user.
+  """
+  AMAZON = 'amazon'
+  CENTOS = 'centos'
+  DEBIAN = 'debian'
+  FEDORA = 'fedora'
+  KALI = 'kali'
+  OPENSUSE = 'opensuse'
+  ORACLE = 'oracle'
+  RHEL = 'rhel'
+  SLES = 'sles'
+  SLES_SAP = 'sles-sap'
+  UBUNTU = 'ubuntu'
+  WINDOWS = 'windows'
 
 
-def distro_for(name: str) -> inspect_pb2.Distro:
+def distro_for(name: str):
   """Returns the Distro that corresponds to `name`.
 
   The search is case insensitive, and is performed against the enum's value.
@@ -27,10 +47,16 @@ def distro_for(name: str) -> inspect_pb2.Distro:
   """
   if not name:
     return None
-  pattern = re.compile(name.replace('-', '_'), re.IGNORECASE)
-  for d in inspect_pb2.Distro.DESCRIPTOR.values_by_name:
-    if pattern.fullmatch(d):
-      return inspect_pb2.Distro.Value(d)
+  pattern = re.compile(name, re.IGNORECASE)
+  for d in Distro:
+    if pattern.fullmatch(d.value):
+      return d
+
+
+class Architecture(enum.Enum):
+  x64 = 'x64'
+  x86 = 'x86'
+  unknown = 'unknown'
 
 
 class Version:
@@ -67,3 +93,63 @@ class Version:
     return (isinstance(o, Version)
             and o.major == self.major
             and o.minor == self.minor)
+
+
+class OperatingSystem:
+  """Encapsulates a specific operating system release.
+
+  Examples:
+    Windows 6.1
+    Ubuntu 14.04
+    CentOS 6
+  """
+
+  def __init__(self, distro: Distro, version: Version):
+    self.distro = distro
+    self.version = version
+
+  def __repr__(self) -> str:
+    return str(self.__dict__)
+
+  def __eq__(self, other):
+    if isinstance(other, self.__class__):
+      return self.__dict__ == other.__dict__
+    else:
+      return False
+
+
+class InspectionResults:
+  """Collection of all inspection results."""
+
+  def __init__(self, device: str, os: OperatingSystem,
+               architecture: Architecture):
+    self.device = device
+    self.os = os
+    self.architecture = architecture
+
+
+class BootInspectionResults:
+  """Collection of boot inspection results."""
+
+  def __init__(self, bios_bootable: bool, uefi_bootable: bool,
+      root_fs: str):
+    self.bios_bootable = bios_bootable
+    self.uefi_bootable = uefi_bootable
+    self.root_fs = root_fs
+
+
+class ModelJSONEncoder(json.JSONEncoder):
+  """Supports JSON encoding of the classes defined in this module."""
+
+  def default(self, o: typing.Any) -> typing.Any:
+    if isinstance(o, enum.Enum):
+      return o.value
+    if isinstance(o, Version):
+      return o.__dict__
+    if isinstance(o, OperatingSystem):
+      return o.__dict__
+    if isinstance(o, InspectionResults):
+      return o.__dict__
+    if isinstance(o, BootInspectionResults):
+      return o.__dict__
+    return super().default(o)
