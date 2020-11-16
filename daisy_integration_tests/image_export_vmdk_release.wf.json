@@ -25,7 +25,7 @@
         "Vars": {
           "destination": "${gcs_export}",
           "format": "vmdk",
-          "source_image": "projects/debian-cloud/global/images/family/debian-9"
+          "source_image": "projects/debian-cloud/global/images/family/debian-10"
         }
       }
     }
