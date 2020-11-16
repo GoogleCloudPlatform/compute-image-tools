@@ -17,7 +17,7 @@
             {
               "initializeParams": {
                 "diskType": "pd-ssd",
-                "sourceImage": "projects/debian-cloud/global/images/family/debian-9"
+                "sourceImage": "projects/debian-cloud/global/images/family/debian-10"
               }
             }
           ],
@@ -33,7 +33,7 @@
             {
               "initializeParams": {
                 "diskType": "pd-ssd",
-                "sourceImage": "projects/debian-cloud/global/images/family/debian-9"
+                "sourceImage": "projects/debian-cloud/global/images/family/debian-10"
               }
             }
           ],
@@ -45,7 +45,7 @@
             {
               "initializeParams": {
                 "diskType": "pd-ssd",
-                "sourceImage": "projects/debian-cloud/global/images/family/debian-9"
+                "sourceImage": "projects/debian-cloud/global/images/family/debian-10"
               }
             },
             {
@@ -62,7 +62,7 @@
             {
               "initializeParams": {
                 "diskType": "pd-ssd",
-                "sourceImage": "projects/debian-cloud/global/images/family/debian-9"
+                "sourceImage": "projects/debian-cloud/global/images/family/debian-10"
               }
             },
             {

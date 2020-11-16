@@ -24,7 +24,7 @@
           "image_name": "${image_name}",
           "importer_instance_disk_size": "200",
           "source_disk_file": "${source_disk_file}",
-          "import_instance_disk_image": "projects/compute-image-tools-test/global/images/family/debian-9-worker"
+          "import_instance_disk_image": "projects/compute-image-tools-test/global/images/family/debian-10-worker"
         }
       }
     }

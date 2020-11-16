@@ -46,7 +46,7 @@
         "Path": "../daisy_workflows/export/image_export.wf.json",
         "Vars": {
           "destination": "${gcs_export}",
-          "source_image": "projects/debian-cloud/global/images/family/debian-9"
+          "source_image": "projects/debian-cloud/global/images/family/debian-10"
         }
       }
     },
