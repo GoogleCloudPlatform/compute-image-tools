@@ -1,9 +1,0 @@
-{
-  "Name": "export-ovf",
-  "DefaultTimeout": "240m",
-  "Vars": {
-  },
-  "Steps": {
-  },
-  "Dependencies": {}
-}

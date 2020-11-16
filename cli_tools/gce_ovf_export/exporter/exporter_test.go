@@ -85,7 +85,7 @@ func TestRun_HappyPath(t *testing.T) {
 	mockInspector.EXPECT().TraceLogs().Return([]string{"inspector trace log"})
 
 	mockOvfDescriptorGenerator := mocks.NewMockOvfDescriptorGenerator(mockCtrl)
-	mockOvfDescriptorGenerator.EXPECT().GenerateAndWriteOVFDescriptor(instance, exportedDisks, "ovfbucket", "OVFpath", &inspectionResults).Return(nil)
+	mockOvfDescriptorGenerator.EXPECT().GenerateAndWriteOVFDescriptor(instance, exportedDisks, "ovfbucket", "OVFpath/", &inspectionResults).Return(nil)
 
 	mockOvfManifestGenerator := mocks.NewMockOvfManifestGenerator(mockCtrl)
 	mockOvfManifestGenerator.EXPECT().GenerateAndWriteToGCS(params.DestinationURI, params.InstanceName).Return(nil)
@@ -333,7 +333,7 @@ func TestRun_DontRunManifestGeneratorIfDescriptorGeneratorTimedOut(t *testing.T)
 	descriptorGeneratorCancelChan := make(chan bool)
 	mockOvfDescriptorGenerator := mocks.NewMockOvfDescriptorGenerator(mockCtrl)
 	mockOvfDescriptorGenerator.EXPECT().GenerateAndWriteOVFDescriptor(
-		instance, exportedDisks, "ovfbucket", "OVFpath", &inspectionResults).Do(
+		instance, exportedDisks, "ovfbucket", "OVFpath/", &inspectionResults).Do(
 		func(_ *compute.Instance, _ []*ovfexportdomain.ExportedDisk, _, _ string, _ *commondisk.InspectionResult) {
 			sleepStep(descriptorGeneratorCancelChan)
 		}).Return(nil)
@@ -399,7 +399,7 @@ func TestRun_TimeOutOnManifestGeneratorTimingOut(t *testing.T) {
 
 	mockOvfDescriptorGenerator := mocks.NewMockOvfDescriptorGenerator(mockCtrl)
 	mockOvfDescriptorGenerator.EXPECT().GenerateAndWriteOVFDescriptor(
-		instance, exportedDisks, "ovfbucket", "OVFpath", &inspectionResults).Return(nil)
+		instance, exportedDisks, "ovfbucket", "OVFpath/", &inspectionResults).Return(nil)
 
 	manifestGeneratorCancelChan := make(chan bool)
 	mockOvfManifestGenerator := mocks.NewMockOvfManifestGenerator(mockCtrl)

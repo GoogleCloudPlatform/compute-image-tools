@@ -31,12 +31,12 @@ import (
 )
 
 type instanceDisksExporterImpl struct {
-	wf            *daisy.Workflow
-	computeClient daisycompute.Client
-	storageClient domain.StorageClientInterface
-	exportedDisks []*ovfexportdomain.ExportedDisk
-	serialLogs    []string
-	wfCallback    wfCallback
+	wf               *daisy.Workflow
+	computeClient    daisycompute.Client
+	storageClient    domain.StorageClientInterface
+	exportedDisks    []*ovfexportdomain.ExportedDisk
+	serialLogs       []string
+	wfPreRunCallback wfCallback
 }
 
 // NewInstanceDisksExporter creates a new instance disk exporter
@@ -47,16 +47,14 @@ func NewInstanceDisksExporter(computeClient daisycompute.Client, storageClient d
 	}
 }
 
-type wfCallback func(w *daisy.Workflow)
-
 func (ide *instanceDisksExporterImpl) Export(instance *compute.Instance, params *ovfexportdomain.OVFExportParams) ([]*ovfexportdomain.ExportedDisk, error) {
 	var err error
 	if ide.wf, err = generateWorkflowWithSteps("ovf-export-disk-export", params.Timeout.String(),
 		func(w *daisy.Workflow) error { return ide.populateExportDisksSteps(w, instance, params) }, params); err != nil {
 		return nil, err
 	}
-	if ide.wfCallback != nil {
-		ide.wfCallback(ide.wf)
+	if ide.wfPreRunCallback != nil {
+		ide.wfPreRunCallback(ide.wf)
 	}
 	if err := daisyutils.RunWorkflowWithCancelSignal(context.Background(), ide.wf); err != nil {
 		return nil, err
@@ -99,7 +97,7 @@ func (ide *instanceDisksExporterImpl) populateExportedDisksMetadata(params *ovfe
 
 func (ide *instanceDisksExporterImpl) populateExportDisksSteps(w *daisy.Workflow, instance *compute.Instance, params *ovfexportdomain.OVFExportParams) error {
 	var err error
-	ide.exportedDisks, err = ide.addExportDisksSteps(w, instance, []string{}, params)
+	ide.exportedDisks, err = ide.addExportDisksSteps(w, instance, params)
 	if err != nil {
 		return err
 	}
@@ -108,7 +106,7 @@ func (ide *instanceDisksExporterImpl) populateExportDisksSteps(w *daisy.Workflow
 
 // addExportDisksSteps adds Daisy steps to OVF export workflow to export disks.
 // It returns an array of GCS paths of exported disks in the same order as Instance.Disks.
-func (ide *instanceDisksExporterImpl) addExportDisksSteps(w *daisy.Workflow, instance *compute.Instance, previousStepNames []string, params *ovfexportdomain.OVFExportParams) ([]*ovfexportdomain.ExportedDisk, error) {
+func (ide *instanceDisksExporterImpl) addExportDisksSteps(w *daisy.Workflow, instance *compute.Instance, params *ovfexportdomain.OVFExportParams) ([]*ovfexportdomain.ExportedDisk, error) {
 	if instance == nil || len(instance.Disks) == 0 {
 		return nil, daisy.Errf("No attachedDisks found in the Instance to export")
 	}
@@ -116,7 +114,11 @@ func (ide *instanceDisksExporterImpl) addExportDisksSteps(w *daisy.Workflow, ins
 	var exportedDisks []*ovfexportdomain.ExportedDisk
 
 	for i, attachedDisk := range attachedDisks {
-		diskPath := attachedDisk.Source[strings.Index(attachedDisk.Source, "projects/"):]
+		indexOfProjects := strings.Index(attachedDisk.Source, "projects/")
+		if indexOfProjects < 0 {
+			return nil, daisy.Errf("Disk source `%v` is invalid.", attachedDisk.Source)
+		}
+		diskPath := attachedDisk.Source[indexOfProjects:]
 		exportedDiskGCSPath := params.DestinationURI + attachedDisk.DeviceName + "." + params.DiskExportFormat
 		exportedDisks = append(exportedDisks, &ovfexportdomain.ExportedDisk{AttachedDisk: attachedDisk, GcsPath: exportedDiskGCSPath})
 
@@ -144,13 +146,7 @@ func (ide *instanceDisksExporterImpl) addExportDisksSteps(w *daisy.Workflow, ins
 				"disk_resizing_mon.sh":       "../export/disk_resizing_mon.sh",
 			},
 		}
-
 		w.Steps[exportDiskStepName] = exportDiskStep
-		if len(previousStepNames) > 0 {
-			for _, previousStepName := range previousStepNames {
-				w.Dependencies[exportDiskStepName] = append(w.Dependencies[exportDiskStepName], previousStepName)
-			}
-		}
 	}
 	return exportedDisks, nil
 }

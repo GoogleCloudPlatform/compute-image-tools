@@ -14,26 +14,31 @@
 
 package ovfexportdomain
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
-const TestProject = "aProject"
+const TestProject = "a-project"
 const TestZone = "us-central1-c"
 const TestRegion = "us-central1"
-const TestSubnet = "aSubnet"
+
+var TestSubnet = fmt.Sprintf("projects/%v/regions/%v/subnetworks/%v", TestProject, TestRegion, "a-subnet")
+var TestNetwork = fmt.Sprintf("projects/%v/global/networks/%v", TestProject, "a-network")
 
 func GetAllInstanceExportParams() *OVFExportParams {
 	var project = TestProject
 	return &OVFExportParams{
 		InstanceName:         "instance1",
 		ClientID:             "aClient",
-		DestinationURI:       "gs://ovfbucket/OVFpath",
-		Network:              "aNetwork",
+		DestinationURI:       "gs://ovfbucket/OVFpath/",
+		Network:              TestNetwork,
 		Subnet:               TestSubnet,
 		Zone:                 TestZone,
 		OsID:                 "ubuntu-1404",
 		Timeout:              3 * time.Hour,
 		Project:              &project,
-		ScratchBucketGcsPath: "gs://bucket/folder",
+		ScratchBucketGcsPath: "gs://bucket/folder/",
 		Oauth:                "oAuthFilePath",
 		Ce:                   "us-east1-c",
 		GcsLogsDisabled:      true,
@@ -52,8 +57,8 @@ func GetAllMachineImageExportParams() *OVFExportParams {
 		MachineImageName:     "machine-image1",
 		ClientID:             "aClient",
 		DestinationURI:       "gs://ovfbucket/OVFpath",
-		Network:              "aNetwork",
-		Subnet:               "aSubnet",
+		Network:              TestNetwork,
+		Subnet:               TestSubnet,
 		Zone:                 TestZone,
 		OsID:                 "ubuntu-1404",
 		Timeout:              3 * time.Hour,

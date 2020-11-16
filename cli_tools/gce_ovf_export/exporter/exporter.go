@@ -181,7 +181,7 @@ func (oe *OVFExporter) run(ctx context.Context) error {
 		return daisy.Errf("Error retrieving instance `%v`: %v", oe.params.InstanceName, err)
 	}
 	defer func() {
-		oe.cleanup(ctx, instance, err)
+		oe.cleanup(instance, err)
 	}()
 	if err = oe.prepare(ctx, instance); err != nil {
 		return err

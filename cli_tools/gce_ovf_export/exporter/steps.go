@@ -82,17 +82,15 @@ func (oe *OVFExporter) generateManifest(ctx context.Context) error {
 	}, oe.manifestFileGenerator.Cancel, func() []string { return nil })
 }
 
-func (oe *OVFExporter) cleanup(ctx context.Context, instance *compute.Instance, exportError error) error {
+func (oe *OVFExporter) cleanup(instance *compute.Instance, exportError error) error {
 	// cleanup shouldn't react to time out as it's necessary to perform this step.
 	// Otherwise, instance being exported would be left shut down and disks detached.
-
-	if exportError == nil {
-		oe.Logger.Log("OVF export finished successfully.")
-	}
 	oe.Logger.Log("Cleaning up.")
-
 	if err := oe.instanceExportCleaner.Clean(instance, oe.params); err != nil {
 		return err
+	}
+	if exportError == nil {
+		oe.Logger.Log("OVF export finished successfully.")
 	}
 	if oe.storageClient != nil {
 		err := oe.storageClient.Close()

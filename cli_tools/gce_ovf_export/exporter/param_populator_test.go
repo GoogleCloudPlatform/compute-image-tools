@@ -33,11 +33,13 @@ func TestPopulate(t *testing.T) {
 	params := ovfexportdomain.GetAllInstanceExportParams()
 	params.Started = time.Date(2020, time.October, 28, 23, 24, 0, 0, time.UTC)
 	params.BuildID = "abc"
+	params.Network = "a-network"
+	params.Subnet = "a-subnet"
 
 	err := runPopulateParams(params, mockCtrl)
 	assert.Nil(t, err)
-	assert.Equal(t, "global/networks/aNetwork", params.Network)
-	assert.Equal(t, fmt.Sprintf("regions/%v/subnetworks/%v", ovfexportdomain.TestRegion, ovfexportdomain.TestSubnet), params.Subnet)
+	assert.Equal(t, "global/networks/a-network", params.Network)
+	assert.Equal(t, fmt.Sprintf("regions/%v/subnetworks/%v", ovfexportdomain.TestRegion, "a-subnet"), params.Subnet)
 	assert.Equal(t, "gs://bucket/folder/gce-ovf-export-2020-10-28T23:24:00Z-abc", params.ScratchBucketGcsPath)
 	assert.Equal(t, "gs://ovfbucket/ovfpath/", params.DestinationURI)
 }

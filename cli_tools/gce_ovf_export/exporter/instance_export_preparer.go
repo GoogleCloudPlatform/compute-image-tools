@@ -25,9 +25,10 @@ import (
 )
 
 type instanceExportPreparerImpl struct {
-	wf         *daisy.Workflow
-	instance   *compute.Instance
-	serialLogs []string
+	wf               *daisy.Workflow
+	instance         *compute.Instance
+	serialLogs       []string
+	wfPreRunCallback wfCallback
 }
 
 // NewInstanceExportPreparer creates a new instance export preparer
@@ -43,6 +44,9 @@ func (iep *instanceExportPreparerImpl) Prepare(instance *compute.Instance, param
 	if err != nil {
 		return err
 	}
+	if iep.wfPreRunCallback != nil {
+		iep.wfPreRunCallback(iep.wf)
+	}
 	err = daisyutils.RunWorkflowWithCancelSignal(context.Background(), iep.wf)
 	if iep.wf.Logger != nil {
 		iep.serialLogs = iep.wf.Logger.ReadSerialPortLogs()
@@ -56,27 +60,20 @@ func (iep *instanceExportPreparerImpl) populatePrepareSteps(w *daisy.Workflow, i
 		previousStepName = "stop-instance"
 		iep.addStopInstanceStep(w, instance, previousStepName, params)
 	}
-
-	_, err := iep.addDetachDisksSteps(w, instance, previousStepName, params)
-
-	if err != nil {
+	if err := iep.addDetachDisksSteps(w, instance, previousStepName, params); err != nil {
 		return err
 	}
 	return nil
 }
 
 // addDetachDisksSteps adds Daisy steps to OVF export workflow to detach instance disks.
-func (iep *instanceExportPreparerImpl) addDetachDisksSteps(w *daisy.Workflow, instance *compute.Instance, previousStepName string, params *ovfexportdomain.OVFExportParams) ([]string, error) {
+func (iep *instanceExportPreparerImpl) addDetachDisksSteps(w *daisy.Workflow, instance *compute.Instance, previousStepName string, params *ovfexportdomain.OVFExportParams) error {
 	if instance == nil || len(instance.Disks) == 0 {
-		return nil, daisy.Errf("No attachedDisks found in the Instance to export")
+		return daisy.Errf("No attachedDisks found in the Instance to export")
 	}
 	attachedDisks := instance.Disks
-
-	var stepNames []string
-
 	for i, attachedDisk := range attachedDisks {
 		detachDiskStepName := fmt.Sprintf("detach-disk-%v-%v", i, attachedDisk.DeviceName)
-		stepNames = append(stepNames, detachDiskStepName)
 		detachDiskStep := daisy.NewStepDefaultTimeout(detachDiskStepName, w)
 		detachDiskStep.DetachDisks = &daisy.DetachDisks{
 			&daisy.DetachDisk{
@@ -90,7 +87,7 @@ func (iep *instanceExportPreparerImpl) addDetachDisksSteps(w *daisy.Workflow, in
 			w.Dependencies[detachDiskStepName] = append(w.Dependencies[detachDiskStepName], previousStepName)
 		}
 	}
-	return stepNames, nil
+	return nil
 }
 
 func (iep *instanceExportPreparerImpl) TraceLogs() []string {
