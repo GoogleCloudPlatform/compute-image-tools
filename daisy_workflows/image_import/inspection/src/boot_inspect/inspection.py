@@ -128,7 +128,7 @@ def inspect_device(g) -> inspect_pb2.InspectionResults:
 
   return inspect_pb2.InspectionResults(
       os_release=operating_system,
-      os_count=1,
+      os_count=1 if operating_system else 0,
   )
 
 

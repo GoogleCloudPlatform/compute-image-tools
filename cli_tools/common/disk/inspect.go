@@ -178,6 +178,10 @@ func (i *bootInspector) validate(results *pb.InspectionResults) error {
 		return nil
 	}
 
+	if results.OsRelease == nil {
+		return errors.New("Worker should return OsRelease when OsCount == 1")
+	}
+
 	if results.OsRelease.CliFormatted != "" {
 		return errors.New("Worker should not return CliFormatted")
 	}

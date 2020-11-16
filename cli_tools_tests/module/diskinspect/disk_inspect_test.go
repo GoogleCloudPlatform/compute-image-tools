@@ -273,6 +273,24 @@ func TestInspectDisk(t *testing.T) {
 	}
 }
 
+func TestInspectDisk_NoOSResults_WhenDistroUnrecognized(t *testing.T) {
+	t.Parallel()
+
+	image := "projects/compute-image-tools-test/global/images/manjaro"
+	expected := disk.InspectionResult{}
+
+	assertInspectionSucceeds(t, image, expected)
+}
+
+func TestInspectDisk_NoOSResults_WhenDiskEmpty(t *testing.T) {
+	t.Parallel()
+
+	image := "projects/compute-image-tools-test/global/images/blank-10g"
+	expected := disk.InspectionResult{}
+
+	assertInspectionSucceeds(t, image, expected)
+}
+
 func TestInspectionWorksWithNonDefaultNetwork(t *testing.T) {
 	t.Parallel()
 
@@ -346,4 +364,33 @@ func deleteDisk(t *testing.T, client daisycompute.Client, project, diskURI strin
 	} else {
 		t.Logf("Deleted disk")
 	}
+}
+
+func assertInspectionSucceeds(t *testing.T, image string, expected disk.InspectionResult) {
+	project := runtime.GetConfig("GOOGLE_CLOUD_PROJECT", "project")
+
+	client, inspector := makeClientAndInspector(t, project)
+
+	diskURI := createDisk(t, client, project, image)
+	defer deleteDisk(t, client, project, diskURI)
+	actual, err := inspector.Inspect(diskURI, true)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, actual)
+}
+
+func makeClientAndInspector(t *testing.T, project string) (daisycompute.Client, disk.Inspector) {
+	client, err := daisycompute.NewClient(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	inspector, err := disk.NewInspector(daisycommon.WorkflowAttributes{
+		Project:           project,
+		Zone:              zone,
+		WorkflowDirectory: workflowDir,
+	}, defaultNetwork, defaultSubnet)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return client, inspector
 }
