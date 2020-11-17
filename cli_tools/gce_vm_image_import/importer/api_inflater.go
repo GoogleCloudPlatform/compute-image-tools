@@ -134,7 +134,10 @@ func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error)
 	// Calculate checksum by daisy workflow
 	inflater.addTraceLog("Started checksum calculation.")
 	ii.checksum, err = inflater.calculateChecksum(ctx, diskURI)
-	return pd, ii, daisy.Errf("Failed to calculate checksum: %v", err)
+	if err != nil {
+		err = daisy.Errf("Failed to calculate checksum: %v", err)
+	}
+	return pd, ii, err
 }
 
 func (inflater *apiInflater) getShadowDiskName() string {
