@@ -17,6 +17,9 @@ package exporter
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -51,27 +54,60 @@ const (
 	logPrefix = "[image-export]"
 )
 
-func validateAndParseFlags(clientID string, destinationURI string, sourceImage string, labels string) (
-	map[string]string, error) {
+func validateAndParseFlags(clientID string, destinationURI string, sourceImage string, labels string, oauth string) (
+	userLabels map[string]string, computeServiceAccount string, err error) {
 
-	if err := validation.ValidateStringFlagNotEmpty(clientID, ClientIDFlagKey); err != nil {
-		return nil, err
+	fmt.Println(">>>1")
+	if err = validation.ValidateStringFlagNotEmpty(clientID, ClientIDFlagKey); err != nil {
+		return
 	}
-	if err := validation.ValidateStringFlagNotEmpty(destinationURI, DestinationURIFlagKey); err != nil {
-		return nil, err
+	fmt.Println(">>>1")
+	if err = validation.ValidateStringFlagNotEmpty(destinationURI, DestinationURIFlagKey); err != nil {
+		return
 	}
-	if err := validation.ValidateStringFlagNotEmpty(sourceImage, SourceImageFlagKey); err != nil {
-		return nil, err
+	fmt.Println(">>>1")
+	if err = validation.ValidateStringFlagNotEmpty(sourceImage, SourceImageFlagKey); err != nil {
+		return
 	}
 
+	fmt.Println(">>>1")
 	if labels != "" {
-		userLabels, err := param.ParseKeyValues(labels)
+		userLabels, err = param.ParseKeyValues(labels)
 		if err != nil {
-			return nil, err
+			return
 		}
-		return userLabels, nil
 	}
-	return nil, nil
+
+	fmt.Println(">>>1")
+	computeServiceAccount, err = parseServiceAccountFromOAuthFile(oauth)
+	return
+}
+
+func parseServiceAccountFromOAuthFile(oauth string) (string, error) {
+	fmt.Println(">>>2")
+	oauth = strings.TrimSpace(oauth)
+	if oauth == "" {
+		return "", nil
+	}
+
+	var oauthFields map[string]string
+	fmt.Println(">>>2")
+	fileContent, err := ioutil.ReadFile(oauth)
+	if err != nil {
+		return "", daisy.Errf("Failed to read oauth file, path '%v'", oauth)
+	}
+	fmt.Println(">>>3")
+	if err = json.Unmarshal(fileContent, &oauthFields); err != nil {
+		return "", daisy.Errf("Failed to unmarshal oauth file, path '%v'", oauth)
+	}
+	fmt.Println(">>>4")
+	account, ok := oauthFields["client_email"]
+	if !ok {
+		return "", daisy.Errf("Failed to get 'client_email' from oauth file")
+	}
+	fmt.Println(">>>5")
+	fmt.Println(">>>>>>client_email:", account)
+	return account, nil
 }
 
 func getWorkflowPath(format string, currentExecutablePath string) string {
@@ -153,12 +189,13 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 // Run runs export workflow.
 func Run(clientID string, destinationURI string, sourceImage string, format string,
 	project *string, network string, subnet string, zone string, timeout string,
-	scratchBucketGcsPath string, oauth string, ce string, computeServiceAccount string, gcsLogsDisabled bool,
+	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool,
 	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, currentExecutablePath string) (*daisy.Workflow, error) {
 
 	log.SetPrefix(logPrefix + " ")
 
-	userLabels, err := validateAndParseFlags(clientID, destinationURI, sourceImage, labels)
+	fmt.Println(">>>>start")
+	userLabels, computeServiceAccount, err := validateAndParseFlags(clientID, destinationURI, sourceImage, labels, oauth)
 	if err != nil {
 		return nil, err
 	}
