@@ -29,6 +29,7 @@ import (
 
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 	"github.com/google/uuid"
 	"github.com/minio/highwayhash"
 )
@@ -196,11 +197,7 @@ func (l *Logger) getOutputInfo(loggable Loggable, err error) *OutputInfo {
 
 		// TODO: ideally we suppose to set o.InspectionResults. Will modify after proto is adjusted.
 		if l.Params.ImageImportParams != nil {
-			l.Params.ImageImportParams.InspectionResults = InspectionResults{
-				UEFIBootable: loggable.GetValueAsBool(uefiBootable),
-				BIOSBootable: loggable.GetValueAsBool(biosBootable),
-				RootFS:       loggable.GetValue(rootFS),
-			}
+			l.Params.ImageImportParams.InspectionResults = loggable.GetInspectionResults()
 		}
 	}
 
@@ -394,5 +391,6 @@ type Loggable interface {
 	GetValue(key string) string
 	GetValueAsBool(key string) bool
 	GetValueAsInt64Slice(key string) []int64
+	GetInspectionResults() *pb.InspectionResults
 	ReadSerialPortLogs() []string
 }
