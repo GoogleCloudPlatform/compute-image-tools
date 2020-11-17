@@ -82,7 +82,7 @@ func (i *bootInspector) TraceLogs() []string {
 // "projects/project-name/zones/us-central1-a/disks/disk-name". `inspectOS` is a flag
 // to determine whether to inspect OS on the disk.
 func (i *bootInspector) Inspect(reference string, inspectOS bool) (*pb.InspectionResults, error) {
-	started := time.Now()
+	startTime := time.Now()
 	results := &pb.InspectionResults{}
 
 	// Run the inspection worker.
@@ -92,7 +92,7 @@ func (i *bootInspector) Inspect(reference string, inspectOS bool) (*pb.Inspectio
 	}
 	encodedProto, err := i.worker.RunAndReadSerialValue("inspect_pb", vars)
 	if err != nil {
-		return i.assembleErrors(reference, results, pb.InspectionResults_RUNNING_WORKER, err, started)
+		return i.assembleErrors(reference, results, pb.InspectionResults_RUNNING_WORKER, err, startTime)
 	}
 
 	// Decode the base64-encoded proto.
@@ -101,20 +101,20 @@ func (i *bootInspector) Inspect(reference string, inspectOS bool) (*pb.Inspectio
 		err = proto.Unmarshal(bytes, results)
 	}
 	if err != nil {
-		return i.assembleErrors(reference, results, pb.InspectionResults_DECODING_WORKER_RESPONSE, err, started)
+		return i.assembleErrors(reference, results, pb.InspectionResults_DECODING_WORKER_RESPONSE, err, startTime)
 	}
 	i.tracef("Detection results: %s", results.String())
 
 	// Validate the results.
 	if err = i.validate(results); err != nil {
-		return i.assembleErrors(reference, results, pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS, err, started)
+		return i.assembleErrors(reference, results, pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS, err, startTime)
 	}
 
 	if err = i.populate(results); err != nil {
-		return i.assembleErrors(reference, results, pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS, err, started)
+		return i.assembleErrors(reference, results, pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS, err, startTime)
 	}
 
-	results.ElapsedTimeMs = time.Now().Sub(started).Milliseconds()
+	results.ElapsedTimeMs = time.Now().Sub(startTime).Milliseconds()
 	return results, nil
 }
 
@@ -125,14 +125,14 @@ func (i *bootInspector) tracef(format string, a ...interface{}) {
 
 // assembleErrors sets the errorWhen field, and generates an error object.
 func (i *bootInspector) assembleErrors(reference string, results *pb.InspectionResults,
-	errorWhen pb.InspectionResults_ErrorWhen, err error, started time.Time) (*pb.InspectionResults, error) {
+	errorWhen pb.InspectionResults_ErrorWhen, err error, startTime time.Time) (*pb.InspectionResults, error) {
 	results.ErrorWhen = errorWhen
 	if err != nil {
 		err = fmt.Errorf("failed to inspect %v: %w", reference, err)
 	} else {
 		err = fmt.Errorf("failed to inspect %v", reference)
 	}
-	results.ElapsedTimeMs = time.Now().Sub(started).Milliseconds()
+	results.ElapsedTimeMs = time.Now().Sub(startTime).Milliseconds()
 	return results, err
 }
 
