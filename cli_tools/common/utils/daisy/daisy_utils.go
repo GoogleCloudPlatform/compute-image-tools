@@ -86,6 +86,8 @@ var (
 	}
 	privacyRegex    = regexp.MustCompile(`\[Privacy\->.*?<\-Privacy\]`)
 	privacyTagRegex = regexp.MustCompile(`(\[Privacy\->)|(<\-Privacy\])`)
+
+	debianWorkerRegex = regexp.MustCompile("projects/compute-image-tools/global/images/family/debian-\\d+-worker")
 )
 
 // GetSortedOSIDs returns the supported OS identifiers, sorted.
@@ -146,14 +148,14 @@ func UpdateAllInstanceNoExternalIP(workflow *daisy.Workflow, noExternalIP bool) 
 }
 
 // UpdateToUEFICompatible marks workflow resources (disks and images) to be UEFI
-// compatible by adding "UEFI_COMPATIBLE" to GuestOSFeatures. Debian 9 workers
+// compatible by adding "UEFI_COMPATIBLE" to GuestOSFeatures. Debian workers
 // are excluded until UEFI becomes the default boot method.
 func UpdateToUEFICompatible(workflow *daisy.Workflow) {
 	workflow.IterateWorkflowSteps(func(step *daisy.Step) {
 		if step.CreateDisks != nil {
 			for _, disk := range *step.CreateDisks {
-				// for the time being, don't run Debian 9 worker in UEFI mode
-				if strings.Contains(disk.SourceImage, "projects/compute-image-tools/global/images/family/debian-9-worker") {
+				// for the time being, don't run Debian worker in UEFI mode
+				if debianWorkerRegex.MatchString(disk.SourceImage) {
 					continue
 				}
 				// also, don't run Windows bootstrap worker in UEFI mode

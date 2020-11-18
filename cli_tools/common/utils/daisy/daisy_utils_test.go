@@ -246,7 +246,7 @@ func createWorkflowWithCreateDiskImageAndIncludeWorkflow() *daisy.Workflow {
 				},
 				{
 					Disk: compute.Disk{
-						SourceImage: "projects/compute-image-tools/global/images/family/debian-9-worker",
+						SourceImage: "projects/compute-image-tools/global/images/family/debian-10-worker",
 					},
 				},
 			},
