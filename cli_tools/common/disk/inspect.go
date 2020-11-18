@@ -21,6 +21,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"google.golang.org/protobuf/proto"
 
@@ -38,25 +39,9 @@ const (
 type Inspector interface {
 	// Inspect finds partition and boot-related properties for a disk and
 	// returns an InspectionResult. The reference is implementation specific.
-	Inspect(reference string, inspectOS bool) (InspectionResult, error)
+	Inspect(reference string, inspectOS bool) (*pb.InspectionResults, error)
 	Cancel(reason string) bool
 	TraceLogs() []string
-}
-
-// InspectionResult contains the partition and boot-related properties of a disk.
-type InspectionResult struct {
-	// UEFIBootable indicates whether the disk is bootable with UEFI.
-	UEFIBootable bool
-
-	// BIOSBootableWithHybridMBROrProtectiveMBR indicates whether the disk is BIOS-bootable
-	// or "hybrid MBR" mode or "protective MBR" mode.
-	BIOSBootableWithHybridMBROrProtectiveMBR bool
-
-	// RootFS indicates the file system type of the partition containing
-	// the root directory ("/").
-	RootFS string
-
-	Architecture, Distro, Major, Minor string
 }
 
 // NewInspector creates an Inspector that can inspect GCP disks.
@@ -96,7 +81,8 @@ func (i *bootInspector) TraceLogs() []string {
 // returns an InspectionResult. `reference` is a fully-qualified PD URI, such as
 // "projects/project-name/zones/us-central1-a/disks/disk-name". `inspectOS` is a flag
 // to determine whether to inspect OS on the disk.
-func (i *bootInspector) Inspect(reference string, inspectOS bool) (InspectionResult, error) {
+func (i *bootInspector) Inspect(reference string, inspectOS bool) (*pb.InspectionResults, error) {
+	startTime := time.Now()
 	results := &pb.InspectionResults{}
 
 	// Run the inspection worker.
@@ -106,7 +92,7 @@ func (i *bootInspector) Inspect(reference string, inspectOS bool) (InspectionRes
 	}
 	encodedProto, err := i.worker.RunAndReadSerialValue("inspect_pb", vars)
 	if err != nil {
-		return i.assembleErrors(reference, results, pb.InspectionResults_RUNNING_WORKER, err)
+		return i.assembleErrors(reference, results, pb.InspectionResults_RUNNING_WORKER, err, startTime)
 	}
 
 	// Decode the base64-encoded proto.
@@ -115,20 +101,21 @@ func (i *bootInspector) Inspect(reference string, inspectOS bool) (InspectionRes
 		err = proto.Unmarshal(bytes, results)
 	}
 	if err != nil {
-		return i.assembleErrors(reference, results, pb.InspectionResults_DECODING_WORKER_RESPONSE, err)
+		return i.assembleErrors(reference, results, pb.InspectionResults_DECODING_WORKER_RESPONSE, err, startTime)
 	}
 	i.tracef("Detection results: %s", results.String())
 
 	// Validate the results.
 	if err = i.validate(results); err != nil {
-		return i.assembleErrors(reference, results, pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS, err)
+		return i.assembleErrors(reference, results, pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS, err, startTime)
 	}
 
 	if err = i.populate(results); err != nil {
-		return i.assembleErrors(reference, results, pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS, err)
+		return i.assembleErrors(reference, results, pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS, err, startTime)
 	}
 
-	return createLegacyResults(results), nil
+	results.ElapsedTimeMs = time.Now().Sub(startTime).Milliseconds()
+	return results, nil
 }
 
 // tracef formats according to a format specifier and appends the results to the trace logs.
@@ -138,32 +125,15 @@ func (i *bootInspector) tracef(format string, a ...interface{}) {
 
 // assembleErrors sets the errorWhen field, and generates an error object.
 func (i *bootInspector) assembleErrors(reference string, results *pb.InspectionResults,
-	errorWhen pb.InspectionResults_ErrorWhen, err error) (InspectionResult, error) {
+	errorWhen pb.InspectionResults_ErrorWhen, err error, startTime time.Time) (*pb.InspectionResults, error) {
 	results.ErrorWhen = errorWhen
 	if err != nil {
 		err = fmt.Errorf("failed to inspect %v: %w", reference, err)
 	} else {
 		err = fmt.Errorf("failed to inspect %v", reference)
 	}
-	return createLegacyResults(results), err
-}
-
-// createLegacyResults converts pb.InspectionResults to InspectionResult.
-func createLegacyResults(pbResults *pb.InspectionResults) (results InspectionResult) {
-	if pbResults.OsCount == 1 && pbResults.OsRelease != nil {
-		results = InspectionResult{
-			Distro: pbResults.OsRelease.GetDistro(),
-			Major:  pbResults.OsRelease.GetMajorVersion(),
-			Minor:  pbResults.OsRelease.GetMinorVersion(),
-		}
-		if pbResults.OsRelease.Architecture != pb.Architecture_ARCHITECTURE_UNKNOWN {
-			results.Architecture = strings.ToLower(pbResults.OsRelease.Architecture.String())
-		}
-	}
-	results.UEFIBootable = pbResults.GetUefiBootable()
-	results.BIOSBootableWithHybridMBROrProtectiveMBR = pbResults.GetBiosBootable()
-	results.RootFS = pbResults.RootFs
-	return results
+	results.ElapsedTimeMs = time.Now().Sub(startTime).Milliseconds()
+	return results, err
 }
 
 // validate checks the fields from a pb.InspectionResults object for consistency, returning

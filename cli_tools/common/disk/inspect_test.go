@@ -24,7 +24,9 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/proto"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
@@ -55,7 +57,10 @@ func TestBootInspector_Inspect_PassesVarsWhenInvokingWorkflow(t *testing.T) {
 
 			actual, err := inspector.Inspect(tt.reference, tt.inspectOS)
 			assert.NoError(t, err)
-			assert.Equal(t, InspectionResult{UEFIBootable: true}, actual)
+			actual.ElapsedTimeMs = 0
+			if diff := cmp.Diff(&pb.InspectionResults{UefiBootable: true}, actual, protocmp.Transform()); diff != "" {
+				t.Errorf("unexpected difference:\n%v", diff)
+			}
 		})
 	}
 }
@@ -65,23 +70,29 @@ func TestBootInspector_Inspect_WorkerAndTransitErrors(t *testing.T) {
 		caseName             string
 		base64FromInspection string
 		errorFromInspection  error
-		expectResults        InspectionResult
+		expectResults        *pb.InspectionResults
 		expectErrorToContain string
 	}{
 		{
-			caseName:             "worker fails to run",
-			errorFromInspection:  errors.New("failure-from-daisy"),
-			expectResults:        InspectionResult{},
+			caseName:            "worker fails to run",
+			errorFromInspection: errors.New("failure-from-daisy"),
+			expectResults: &pb.InspectionResults{
+				ErrorWhen: pb.InspectionResults_RUNNING_WORKER,
+			},
 			expectErrorToContain: "failure-from-daisy",
 		}, {
 			caseName:             "worker returns invalid base64",
 			base64FromInspection: "garbage",
-			expectResults:        InspectionResult{},
+			expectResults: &pb.InspectionResults{
+				ErrorWhen: pb.InspectionResults_DECODING_WORKER_RESPONSE,
+			},
 			expectErrorToContain: "base64",
 		}, {
 			caseName:             "worker returns invalid proto bytes",
 			base64FromInspection: base64.StdEncoding.EncodeToString([]byte("garbage")),
-			expectResults:        InspectionResult{},
+			expectResults: &pb.InspectionResults{
+				ErrorWhen: pb.InspectionResults_DECODING_WORKER_RESPONSE,
+			},
 			expectErrorToContain: "cannot parse",
 		},
 	} {
@@ -99,7 +110,10 @@ func TestBootInspector_Inspect_WorkerAndTransitErrors(t *testing.T) {
 				t.Fatal("err must be non-nil")
 			}
 			assert.Contains(t, err.Error(), tt.expectErrorToContain)
-			assert.Equal(t, tt.expectResults, actual)
+			actual.ElapsedTimeMs = 0
+			if diff := cmp.Diff(tt.expectResults, actual, protocmp.Transform()); diff != "" {
+				t.Errorf("unexpected difference:\n%v", diff)
+			}
 		})
 	}
 }
@@ -108,7 +122,7 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 	for _, tt := range []struct {
 		caseName               string
 		responseFromInspection *pb.InspectionResults
-		expectResults          InspectionResult
+		expectResults          *pb.InspectionResults
 		expectErrorToContain   string
 	}{
 		{
@@ -117,7 +131,10 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 				OsCount:   0,
 				OsRelease: &pb.OsRelease{},
 			},
-			expectResults:        InspectionResult{},
+			expectResults: &pb.InspectionResults{
+				ErrorWhen: pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS,
+				OsRelease: &pb.OsRelease{},
+			},
 			expectErrorToContain: "Worker should not return OsRelease when NumOsFound != 1",
 		},
 		{
@@ -125,7 +142,10 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 			responseFromInspection: &pb.InspectionResults{
 				OsCount: 1,
 			},
-			expectResults:        InspectionResult{},
+			expectResults: &pb.InspectionResults{
+				OsCount:   1,
+				ErrorWhen: pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS,
+			},
 			expectErrorToContain: "Worker should return OsRelease when OsCount == 1",
 		},
 		{
@@ -134,7 +154,11 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 				OsCount:   2,
 				OsRelease: &pb.OsRelease{},
 			},
-			expectResults:        InspectionResult{},
+			expectResults: &pb.InspectionResults{
+				OsCount:   2,
+				ErrorWhen: pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS,
+				OsRelease: &pb.OsRelease{},
+			},
 			expectErrorToContain: "Worker should not return OsRelease when NumOsFound != 1",
 		},
 		{
@@ -149,10 +173,16 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 					CliFormatted: "ubuntu-1804",
 				},
 			},
-			expectResults: InspectionResult{
-				Architecture: "x64",
-				Major:        "18",
-				Minor:        "04",
+			expectResults: &pb.InspectionResults{
+				ErrorWhen: pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS,
+				OsCount:   1,
+				OsRelease: &pb.OsRelease{
+					Architecture: pb.Architecture_X64,
+					MajorVersion: "18",
+					MinorVersion: "04",
+					DistroId:     pb.Distro_UBUNTU,
+					CliFormatted: "ubuntu-1804",
+				},
 			},
 			expectErrorToContain: "Worker should not return CliFormatted",
 		}, {
@@ -166,10 +196,15 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 					Distro:       "ubuntu",
 				},
 			},
-			expectResults: InspectionResult{
-				Architecture: "x64",
-				Distro:       "ubuntu",
-				Major:        "10",
+			expectResults: &pb.InspectionResults{
+				ErrorWhen: pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS,
+				OsCount:   1,
+				OsRelease: &pb.OsRelease{
+					Architecture: pb.Architecture_X64,
+					MajorVersion: "10",
+					DistroId:     pb.Distro_UBUNTU,
+					Distro:       "ubuntu",
+				},
 			},
 			expectErrorToContain: "Worker should not return Distro name",
 		}, {
@@ -181,8 +216,13 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 					DistroId:     pb.Distro_UBUNTU,
 				},
 			},
-			expectResults: InspectionResult{
-				Architecture: "x64",
+			expectResults: &pb.InspectionResults{
+				ErrorWhen: pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS,
+				OsCount:   1,
+				OsRelease: &pb.OsRelease{
+					Architecture: pb.Architecture_X64,
+					DistroId:     pb.Distro_UBUNTU,
+				},
 			},
 			expectErrorToContain: "Missing MajorVersion",
 		}, {
@@ -194,8 +234,13 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 					MajorVersion: "10",
 				},
 			},
-			expectResults: InspectionResult{
-				Major: "10",
+			expectResults: &pb.InspectionResults{
+				ErrorWhen: pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS,
+				OsCount:   1,
+				OsRelease: &pb.OsRelease{
+					DistroId:     pb.Distro_UBUNTU,
+					MajorVersion: "10",
+				},
 			},
 			expectErrorToContain: "Missing Architecture",
 		}, {
@@ -207,9 +252,13 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 					MajorVersion: "10",
 				},
 			},
-			expectResults: InspectionResult{
-				Architecture: "x64",
-				Major:        "10",
+			expectResults: &pb.InspectionResults{
+				ErrorWhen: pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS,
+				OsCount:   1,
+				OsRelease: &pb.OsRelease{
+					Architecture: pb.Architecture_X64,
+					MajorVersion: "10",
+				},
 			},
 			expectErrorToContain: "Missing DistroId",
 		},
@@ -230,7 +279,10 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 			}
 			assert.Contains(t, err.Error(), tt.expectErrorToContain)
 			assertLogsContainResults(t, inspector, tt.responseFromInspection)
-			assert.Equal(t, tt.expectResults, results)
+			results.ElapsedTimeMs = 0
+			if diff := cmp.Diff(tt.expectResults, results, protocmp.Transform()); diff != "" {
+				t.Errorf("unexpected difference:\n%v", diff)
+			}
 		})
 	}
 }

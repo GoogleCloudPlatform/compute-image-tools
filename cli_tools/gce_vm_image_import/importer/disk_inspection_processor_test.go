@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,9 +54,8 @@ type mockDiskInspector struct {
 	wf           *daisy.Workflow
 }
 
-func (m mockDiskInspector) Inspect(reference string, inspectOS bool) (ir disk.InspectionResult, err error) {
-	ir.UEFIBootable = m.uefiBootable
-	return
+func (m mockDiskInspector) Inspect(reference string, inspectOS bool) (*pb.InspectionResults, error) {
+	return &pb.InspectionResults{UefiBootable: m.uefiBootable}, nil
 }
 
 func (m mockDiskInspector) Cancel(reason string) bool {

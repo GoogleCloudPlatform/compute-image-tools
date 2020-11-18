@@ -17,6 +17,9 @@ package diskinspect
 import (
 	"context"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
+	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/testing/protocmp"
 	"strings"
 	"testing"
 
@@ -55,27 +58,37 @@ func TestInspectDisk(t *testing.T) {
 	for _, tt := range []struct {
 		caseName string
 		imageURI string
-		expected disk.InspectionResult
+		expected *pb.InspectionResults
 	}{
 		{
 			imageURI: "projects/opensuse-cloud/global/images/opensuse-leap-15-2-v20200702",
-			expected: disk.InspectionResult{
-				Architecture:                             "x64",
-				Distro:                                   "opensuse",
-				Major:                                    "15",
-				Minor:                                    "2",
-				UEFIBootable:                             true,
-				BIOSBootableWithHybridMBROrProtectiveMBR: true,
+			expected: &pb.InspectionResults{
+				OsRelease: &pb.OsRelease{
+					CliFormatted: "opensuse-15",
+					Distro:       "opensuse",
+					MajorVersion: "15",
+					MinorVersion: "2",
+					Architecture: pb.Architecture_X64,
+					DistroId:     pb.Distro_OPENSUSE,
+				},
+				BiosBootable: true,
+				UefiBootable: true,
+				OsCount:      1,
 			},
 		}, {
 			imageURI: "projects/suse-sap-cloud/global/images/sles-15-sp1-sap-v20200803",
-			expected: disk.InspectionResult{
-				Architecture:                             "x64",
-				Distro:                                   "sles-sap",
-				Major:                                    "15",
-				Minor:                                    "1",
-				UEFIBootable:                             true,
-				BIOSBootableWithHybridMBROrProtectiveMBR: true,
+			expected: &pb.InspectionResults{
+				OsRelease: &pb.OsRelease{
+					CliFormatted: "sles-sap-15",
+					Distro:       "sles-sap",
+					MajorVersion: "15",
+					MinorVersion: "1",
+					Architecture: pb.Architecture_X64,
+					DistroId:     pb.Distro_SLES_SAP,
+				},
+				BiosBootable: true,
+				UefiBootable: true,
+				OsCount:      1,
 			},
 		},
 
@@ -83,154 +96,222 @@ func TestInspectDisk(t *testing.T) {
 		{
 			caseName: "UEFI inspection test for GPT UEFI",
 			imageURI: "projects/gce-uefi-images/global/images/rhel-7-v20200403",
-			expected: disk.InspectionResult{
-				Architecture:                             "x64",
-				Distro:                                   "rhel",
-				Major:                                    "7",
-				Minor:                                    "8",
-				UEFIBootable:                             true,
-				BIOSBootableWithHybridMBROrProtectiveMBR: false,
+			expected: &pb.InspectionResults{
+				OsRelease: &pb.OsRelease{
+					CliFormatted: "rhel-7",
+					Distro:       "rhel",
+					MajorVersion: "7",
+					MinorVersion: "8",
+					Architecture: pb.Architecture_X64,
+					DistroId:     pb.Distro_RHEL,
+				},
+				UefiBootable: true,
+				OsCount:      1,
 			},
 		}, {
 			caseName: "UEFI inspection test for MBR-only",
 			imageURI: "projects/debian-cloud/global/images/debian-9-stretch-v20200714",
-			expected: disk.InspectionResult{
-				Architecture:                             "x64",
-				Distro:                                   "debian",
-				Major:                                    "9",
-				Minor:                                    "12",
-				UEFIBootable:                             false,
-				BIOSBootableWithHybridMBROrProtectiveMBR: false,
+			expected: &pb.InspectionResults{
+				OsRelease: &pb.OsRelease{
+					CliFormatted: "debian-9",
+					Distro:       "debian",
+					MajorVersion: "9",
+					MinorVersion: "12",
+					Architecture: pb.Architecture_X64,
+					DistroId:     pb.Distro_DEBIAN,
+				},
+				OsCount: 1,
 			},
 		}, {
 			caseName: "UEFI inspection test for GPT UEFI - windows",
 			imageURI: "projects/gce-uefi-images/global/images/windows-server-2019-dc-core-v20200609",
-			expected: disk.InspectionResult{
-				Architecture:                             "x64",
-				Distro:                                   "windows",
-				Major:                                    "2019",
-				Minor:                                    "",
-				UEFIBootable:                             true,
-				BIOSBootableWithHybridMBROrProtectiveMBR: false,
+			expected: &pb.InspectionResults{
+				OsRelease: &pb.OsRelease{
+					CliFormatted: "windows-2019-x64",
+					Distro:       "windows",
+					MajorVersion: "2019",
+					Architecture: pb.Architecture_X64,
+					DistroId:     pb.Distro_WINDOWS,
+				},
+				UefiBootable: true,
+				OsCount:      1,
 			},
 		}, {
 			caseName: "UEFI inspection test for GPT UEFI with BIOS boot",
 			imageURI: "projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317",
-			expected: disk.InspectionResult{
-				Architecture:                             "x64",
-				Distro:                                   "ubuntu",
-				Major:                                    "18",
-				Minor:                                    "04",
-				UEFIBootable:                             true,
-				BIOSBootableWithHybridMBROrProtectiveMBR: true,
+			expected: &pb.InspectionResults{
+				OsRelease: &pb.OsRelease{
+					CliFormatted: "ubuntu-1804",
+					Distro:       "ubuntu",
+					MajorVersion: "18",
+					MinorVersion: "04",
+					Architecture: pb.Architecture_X64,
+					DistroId:     pb.Distro_UBUNTU,
+				},
+				BiosBootable: true,
+				UefiBootable: true,
+				OsCount:      1,
 			},
 		}, {
 			caseName: "UEFI inspection test for GPT UEFI with hybrid MBR",
 			imageURI: "projects/compute-image-tools-test/global/images/image-ubuntu-2004-hybrid-mbr",
-			expected: disk.InspectionResult{
-				Architecture:                             "x64",
-				Distro:                                   "ubuntu",
-				Major:                                    "20",
-				Minor:                                    "04",
-				UEFIBootable:                             true,
-				BIOSBootableWithHybridMBROrProtectiveMBR: true,
+			expected: &pb.InspectionResults{
+				OsRelease: &pb.OsRelease{
+					CliFormatted: "ubuntu-2004",
+					Distro:       "ubuntu",
+					MajorVersion: "20",
+					MinorVersion: "04",
+					Architecture: pb.Architecture_X64,
+					DistroId:     pb.Distro_UBUNTU,
+				},
+				BiosBootable: true,
+				UefiBootable: true,
+				OsCount:      1,
 			},
 		}, {
 			caseName: "UEFI inspection test for MBR-only UEFI",
 			imageURI: "projects/compute-image-tools-test/global/images/image-uefi-mbr-only",
-			expected: disk.InspectionResult{
-				Architecture:                             "x64",
-				Distro:                                   "ubuntu",
-				Major:                                    "16",
-				Minor:                                    "04",
-				UEFIBootable:                             true,
-				BIOSBootableWithHybridMBROrProtectiveMBR: false,
+			expected: &pb.InspectionResults{
+				OsRelease: &pb.OsRelease{
+					CliFormatted: "ubuntu-1604",
+					Distro:       "ubuntu",
+					MajorVersion: "16",
+					MinorVersion: "04",
+					Architecture: pb.Architecture_X64,
+					DistroId:     pb.Distro_UBUNTU,
+				},
+				UefiBootable: true,
+				OsCount:      1,
 			},
 		},
 
 		// Windows Server
 		{
 			imageURI: "projects/windows-cloud/global/images/windows-server-2008-r2-dc-v20200114",
-			expected: disk.InspectionResult{
-				Architecture: "x64",
-				Distro:       "windows",
-				Major:        "2008",
-				Minor:        "r2",
+			expected: &pb.InspectionResults{
+				OsRelease: &pb.OsRelease{
+					CliFormatted: "windows-2008r2-x64",
+					Distro:       "windows",
+					MajorVersion: "2008",
+					MinorVersion: "r2",
+					Architecture: pb.Architecture_X64,
+					DistroId:     pb.Distro_WINDOWS,
+				},
+				OsCount: 1,
 			},
 		}, {
 			imageURI: "projects/compute-image-tools-test/global/images/windows-2012-r2-vmware-import",
-			expected: disk.InspectionResult{
-				Architecture: "x64",
-				Distro:       "windows",
-				Major:        "2012",
-				Minor:        "r2",
+			expected: &pb.InspectionResults{
+				OsRelease: &pb.OsRelease{
+					CliFormatted: "windows-2012r2-x64",
+					Distro:       "windows",
+					MajorVersion: "2012",
+					MinorVersion: "r2",
+					Architecture: pb.Architecture_X64,
+					DistroId:     pb.Distro_WINDOWS,
+				},
+				OsCount: 1,
 			},
 		}, {
 			imageURI: "projects/compute-image-tools-test/global/images/windows-2016-import",
-			expected: disk.InspectionResult{
-				Architecture: "x64",
-				Distro:       "windows",
-				Major:        "2016",
-				Minor:        "",
+			expected: &pb.InspectionResults{
+				OsRelease: &pb.OsRelease{
+					CliFormatted: "windows-2016-x64",
+					Distro:       "windows",
+					MajorVersion: "2016",
+					Architecture: pb.Architecture_X64,
+					DistroId:     pb.Distro_WINDOWS,
+				},
+				OsCount: 1,
 			},
 		}, {
 			imageURI: "projects/compute-image-tools-test/global/images/windows-2019",
-			expected: disk.InspectionResult{
-				Architecture: "x64",
-				Distro:       "windows",
-				Major:        "2019",
-				Minor:        "",
+			expected: &pb.InspectionResults{
+				OsRelease: &pb.OsRelease{
+					CliFormatted: "windows-2019-x64",
+					Distro:       "windows",
+					MajorVersion: "2019",
+					Architecture: pb.Architecture_X64,
+					DistroId:     pb.Distro_WINDOWS,
+				},
+				OsCount: 1,
 			},
 		},
 
 		// Windows Desktop
 		{
 			imageURI: "projects/compute-image-tools-test/global/images/windows-7-ent-x86-nodrivers",
-			expected: disk.InspectionResult{
-				Architecture: "x86",
-				Distro:       "windows",
-				Major:        "7",
-				Minor:        "",
+			expected: &pb.InspectionResults{
+				OsRelease: &pb.OsRelease{
+					CliFormatted: "windows-7-x86",
+					Distro:       "windows",
+					MajorVersion: "7",
+					Architecture: pb.Architecture_X86,
+					DistroId:     pb.Distro_WINDOWS,
+				},
+				OsCount: 1,
 			},
 		}, {
 			imageURI: "projects/compute-image-tools-test/global/images/windows-7-import",
-			expected: disk.InspectionResult{
-				Architecture: "x64",
-				Distro:       "windows",
-				Major:        "7",
-				Minor:        "",
+			expected: &pb.InspectionResults{
+				OsRelease: &pb.OsRelease{
+					CliFormatted: "windows-7-x64",
+					Distro:       "windows",
+					MajorVersion: "7",
+					Architecture: pb.Architecture_X64,
+					DistroId:     pb.Distro_WINDOWS,
+				},
+				OsCount: 1,
 			},
 		}, {
 			imageURI: "projects/compute-image-tools-test/global/images/windows-8-1-ent-x86-nodrivers",
-			expected: disk.InspectionResult{
-				Architecture: "x86",
-				Distro:       "windows",
-				Major:        "8",
-				Minor:        "1",
+			expected: &pb.InspectionResults{
+				OsRelease: &pb.OsRelease{
+					CliFormatted: "windows-8-x86",
+					Distro:       "windows",
+					MajorVersion: "8",
+					MinorVersion: "1",
+					Architecture: pb.Architecture_X86,
+					DistroId:     pb.Distro_WINDOWS,
+				},
+				OsCount: 1,
 			},
 		}, {
 			imageURI: "projects/compute-image-tools-test/global/images/windows-8-1-x64",
-			expected: disk.InspectionResult{
-				Architecture: "x64",
-				Distro:       "windows",
-				Major:        "8",
-				Minor:        "1",
+			expected: &pb.InspectionResults{
+				OsRelease: &pb.OsRelease{
+					CliFormatted: "windows-8-x64",
+					Distro:       "windows",
+					MajorVersion: "8",
+					MinorVersion: "1",
+					Architecture: pb.Architecture_X64,
+					DistroId:     pb.Distro_WINDOWS,
+				},
+				OsCount: 1,
 			},
 		}, {
 			imageURI: "projects/compute-image-tools-test/global/images/windows-10-1909-ent-x86-nodrivers",
-			expected: disk.InspectionResult{
-				Architecture: "x86",
-				Distro:       "windows",
-				Major:        "10",
-				Minor:        "",
+			expected: &pb.InspectionResults{
+				OsRelease: &pb.OsRelease{
+					CliFormatted: "windows-10-x86",
+					Distro:       "windows",
+					MajorVersion: "10",
+					Architecture: pb.Architecture_X86,
+					DistroId:     pb.Distro_WINDOWS,
+				},
+				OsCount: 1,
 			},
 		}, {
 			imageURI: "projects/compute-image-tools-test/global/images/windows-10-1709-import",
-			expected: disk.InspectionResult{
-				Architecture: "x64",
-				Distro:       "windows",
-				Major:        "10",
-				Minor:        "",
+			expected: &pb.InspectionResults{
+				OsRelease: &pb.OsRelease{
+					CliFormatted: "windows-10-x64",
+					Distro:       "windows",
+					MajorVersion: "10",
+					Architecture: pb.Architecture_X64,
+					DistroId:     pb.Distro_WINDOWS,
+				},
+				OsCount: 1,
 			},
 		},
 	} {
@@ -256,17 +337,9 @@ func TestInspectDisk(t *testing.T) {
 
 			actual, err := inspector.Inspect(diskURI, true)
 			assert.NoError(t, err)
-			// Manual formatting for two reasons:
-			//  1. go-junit-report doesn't have good support for testify/assert:
-			//     https://github.com/jstemmer/go-junit-report/issues/47
-			//  2. Align the equals to simplify comparing the structs. For example:
-			//
-			//     inspection_test.go:72:
-			//        expected = ...
-			//          actual = ...
-			if currentTest.expected != actual {
-				t.Errorf("\nexpected = %#v"+
-					"\n  actual = %#v", currentTest.expected, actual)
+			actual.ElapsedTimeMs = 0
+			if diff := cmp.Diff(currentTest.expected, actual, protocmp.Transform()); diff != "" {
+				t.Errorf("unexpected difference:\n%v", diff)
 			}
 			deleteDisk(t, client, project, diskURI)
 		})
@@ -277,7 +350,7 @@ func TestInspectDisk_NoOSResults_WhenDistroUnrecognized(t *testing.T) {
 	t.Parallel()
 
 	image := "projects/compute-image-tools-test/global/images/manjaro"
-	expected := disk.InspectionResult{}
+	expected := &pb.InspectionResults{}
 
 	assertInspectionSucceeds(t, image, expected)
 }
@@ -286,7 +359,7 @@ func TestInspectDisk_NoOSResults_WhenDiskEmpty(t *testing.T) {
 	t.Parallel()
 
 	image := "projects/compute-image-tools-test/global/images/blank-10g"
-	expected := disk.InspectionResult{}
+	expected := &pb.InspectionResults{}
 
 	assertInspectionSucceeds(t, image, expected)
 }
@@ -335,8 +408,8 @@ func TestInspectionWorksWithNonDefaultNetwork(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Inspect failed: %v", err)
 			}
-			if actual.Distro != "opensuse" {
-				t.Errorf("expected=opensuse, actual=%s", actual.Distro)
+			if actual.GetOsRelease().GetDistro() != "opensuse" {
+				t.Errorf("expected=opensuse, actual=%s", actual.GetOsRelease().GetDistro())
 			}
 		})
 	}
@@ -366,7 +439,7 @@ func deleteDisk(t *testing.T, client daisycompute.Client, project, diskURI strin
 	}
 }
 
-func assertInspectionSucceeds(t *testing.T, image string, expected disk.InspectionResult) {
+func assertInspectionSucceeds(t *testing.T, image string, expected *pb.InspectionResults) {
 	project := runtime.GetConfig("GOOGLE_CLOUD_PROJECT", "project")
 
 	client, inspector := makeClientAndInspector(t, project)
@@ -375,7 +448,10 @@ func assertInspectionSucceeds(t *testing.T, image string, expected disk.Inspecti
 	defer deleteDisk(t, client, project, diskURI)
 	actual, err := inspector.Inspect(diskURI, true)
 	assert.NoError(t, err)
-	assert.Equal(t, expected, actual)
+	actual.ElapsedTimeMs = 0
+	if diff := cmp.Diff(expected, actual, protocmp.Transform()); diff != "" {
+		t.Errorf("unexpected difference:\n%v", diff)
+	}
 }
 
 func makeClientAndInspector(t *testing.T, project string) (daisycompute.Client, disk.Inspector) {

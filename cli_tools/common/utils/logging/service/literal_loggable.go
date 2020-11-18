@@ -14,11 +14,18 @@
 
 package service
 
+import "github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
+
 type literalLoggable struct {
-	strings   map[string]string
-	int64s    map[string][]int64
-	bools     map[string]bool
-	traceLogs []string
+	strings           map[string]string
+	int64s            map[string][]int64
+	bools             map[string]bool
+	traceLogs         []string
+	inspectionResults *pb.InspectionResults
+}
+
+func (w literalLoggable) GetInspectionResults() *pb.InspectionResults {
+	return w.inspectionResults
 }
 
 func (w literalLoggable) GetValue(key string) string { return w.strings[key] }
@@ -42,6 +49,12 @@ func NewSingleImageImportLoggableBuilder() *SingleImageImportLoggableBuilder {
 		int64s:  map[string][]int64{},
 		bools:   map[string]bool{},
 	}}
+}
+
+// SetInspectionResults sets inspection results.
+func (b *SingleImageImportLoggableBuilder) SetInspectionResults(inspectionResults *pb.InspectionResults) *SingleImageImportLoggableBuilder {
+	b.inspectionResults = inspectionResults
+	return b
 }
 
 // SetUEFIMetrics sets UEFI related metrics.

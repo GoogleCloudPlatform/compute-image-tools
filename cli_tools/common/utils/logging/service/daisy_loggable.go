@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
 
 // NewLoggableFromWorkflow provides a Loggable from a daisy workflow.
@@ -31,6 +32,10 @@ func NewLoggableFromWorkflow(wf *daisy.Workflow) Loggable {
 
 type workflowLoggable struct {
 	wf *daisy.Workflow
+}
+
+func (w workflowLoggable) GetInspectionResults() *pb.InspectionResults {
+	return nil
 }
 
 func (w workflowLoggable) GetValue(key string) string {
