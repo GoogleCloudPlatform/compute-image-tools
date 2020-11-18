@@ -19,7 +19,7 @@
       "Description": "size of the importer instance disk, additional disk space is unused for the import but a larger size increases PD write speed"
     },
     "import_instance_disk_image": {
-      "Value": "projects/compute-image-tools/global/images/family/debian-10-worker",
+      "Value": "projects/compute-image-tools/global/images/debian-9-worker-v20200616",
       "Description": "image to use for the importer instance"
     },
     "disk_name": "imported-disk-${ID}",

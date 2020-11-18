@@ -177,7 +177,7 @@ func (inflater *apiInflater) calculateChecksum(ctx context.Context, diskURI stri
 				{
 					Disk: compute.Disk{
 						Name:        "disk-${NAME}",
-						SourceImage: "projects/compute-image-tools/global/images/family/debian-10-worker",
+						SourceImage: "projects/compute-image-tools/global/images/debian-9-worker-v20200616",
 						Type:        "pd-ssd",
 					},
 					FallbackToPdStandard: true,
