@@ -51,7 +51,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 			{
 				Disk: compute.Disk{
 					Name:        diskImporterDiskName,
-					SourceImage: "projects/compute-image-tools/global/images/family/debian-10-worker",
+					SourceImage: "projects/compute-image-tools/global/images/family/debian-9-worker",
 					Type:        "pd-ssd",
 				},
 				SizeGb:               gceMinimumDiskSizeGB,
