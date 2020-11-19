@@ -64,6 +64,7 @@
           "Metadata": {
             "files_gcs_dir": "${SOURCESPATH}/import_files",
             "script": "run-translate.sh",
+            "script_prints_status": "yes",
             "prefix": "Translate",
             "install_gce_packages": "${install_gce_packages}"
           },

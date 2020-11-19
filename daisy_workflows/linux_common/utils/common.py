@@ -237,6 +237,7 @@ def RunTranslate(translate_func: typing.Callable,
     run_with_tracing: When enabled, the closure will be executed with
     trace.Trace, resulting in executed lines being printed to stdout.
   """
+  exit_code = 0
   try:
     if run_with_tracing:
       tracer = trace.Trace(
@@ -246,8 +247,11 @@ def RunTranslate(translate_func: typing.Callable,
       translate_func()
     logging.success('Translation finished.')
   except Exception as e:
+    exit_code = 1
     logging.debug(traceback.format_exc())
     logging.error('error: %s', str(e))
+  logging.shutdown()
+  sys.exit(exit_code)
 
 
 def MakeExecutable(file_path):
