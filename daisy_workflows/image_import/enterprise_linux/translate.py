@@ -110,6 +110,9 @@ def check_repos(spec: TranslateSpec) -> str:
   YUM fails if any of its repos are unreachable. Running `yum updateinfo`
   will have a non-zero return code when it fail to update any of its repos.
   """
+  if run(spec.g, 'yum --help | grep updateinfo').code != 0:
+    logging.debug('command `yum updateinfo` not available. skipping test.')
+    return ''
   v = 'yum updateinfo -v'
   p = run(spec.g, v)
   logging.debug('yum updateinfo -v: {}'.format(p))
@@ -188,8 +191,9 @@ def DistroSpecific(spec: TranslateSpec):
       #  1. Skip the epel repo for *this* operation only.
       #  2. Block update if the epel repo isn't found.
       p = run(g, 'yum update -y ca-certificates --disablerepo=epel')
-      logging.debug('yum update -y ca-certificates: code={p.code}, '
-                    'out={p.stdout}, err={p.stderr}'.format(p=p))
+      logging.debug('Attempted conditional update of '
+                    'ca-certificates. Success expected only '
+                    'if epel repo is installed. Result={}'.format(p))
 
       if spec.distro == Distro.CENTOS:
         logging.info('Installing CentOS SCL.')
@@ -302,24 +306,23 @@ def yum_install(g, *packages):
   Raises:
       RuntimeError: If there is a failure during installation.
   """
-  last_exception = None
+  p = None
   for i in range(6):
-    try:
-      # There's no sleep on the first iteration since `i` is zero.
-      time.sleep(i**2)
-      # Bypass HTTP proxies configured in the guest image to allow
-      # import to continue when the proxy is unreachable.
-      #   no_proxy="*": Disables proxies set by using the `http_proxy`
-      #                 environment variable.
-      #   proxy=_none_: Disables proxies set in /etc/yum.conf.
-      g.sh('no_proxy="*" yum install --setopt=proxy=_none_ -y ' + ' '.join(
-          '"{0}"'.format(p) for p in packages))
+    # There's no sleep on the first iteration since `i` is zero.
+    time.sleep(i**2)
+    # Bypass HTTP proxies configured in the guest image to allow
+    # import to continue when the proxy is unreachable.
+    #   no_proxy="*": Disables proxies set by using the `http_proxy`
+    #                 environment variable.
+    #   proxy=_none_: Disables proxies set in /etc/yum.conf.
+    cmd = 'no_proxy="*" yum install --setopt=proxy=_none_ -y ' + ' '.join(
+        '"{0}"'.format(p) for p in packages)
+    p = run(g, cmd)
+    if p.code == 0:
       return
-    except Exception as e:
-      last_exception = e
-      logging.debug('Failed to install {}. Details: {}.'.format(packages, e))
+    logging.debug('Yum install failed: {}'.format(p))
   raise RuntimeError('Failed to install {}. Details: {}.'.format(
-      packages, last_exception))
+      ', '.join(packages), p))
 
 
 def run_translate(g: guestfs.GuestFS):
@@ -345,7 +348,7 @@ def run_translate(g: guestfs.GuestFS):
     for check in checks:
       msg = check(spec)
       if msg:
-        raise RuntimeError('{} {}'.format(msg, raised))
+        raise RuntimeError('{} {}'.format(msg, raised)) from raised
     raise raised
 
 
