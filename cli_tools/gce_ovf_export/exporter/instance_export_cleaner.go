@@ -26,13 +26,15 @@ import (
 )
 
 type instanceExportCleanerImpl struct {
-	wf              *daisy.Workflow
-	attachDiskWfs   []*daisy.Workflow
-	startInstanceWf *daisy.Workflow
-	serialLogs      []string
+	wf               *daisy.Workflow
+	attachDiskWfs    []*daisy.Workflow
+	startInstanceWf  *daisy.Workflow
+	serialLogs       []string
+	wfPreRunCallback wfCallback
 }
 
-// NewInstanceExportCleaner creates a new instance export cleaner
+// NewInstanceExportCleaner creates a new instance export cleaner which is
+// responsible for bringing the exported VM back to it's pre-export state
 func NewInstanceExportCleaner() ovfexportdomain.InstanceExportCleaner {
 	return &instanceExportCleanerImpl{}
 }
@@ -54,6 +56,7 @@ func (iec *instanceExportCleanerImpl) init(instance *compute.Instance, params *o
 			return err
 		}
 		iec.attachDiskWfs = append(iec.attachDiskWfs, attachDiskWf)
+
 	}
 
 	wasInstanceRunningBeforeExport := isInstanceRunning(instance)
@@ -107,6 +110,9 @@ func (iec *instanceExportCleanerImpl) Clean(instance *compute.Instance, params *
 		return err
 	}
 	for _, attachDiskWf := range iec.attachDiskWfs {
+		if iec.wfPreRunCallback != nil {
+			iec.wfPreRunCallback(attachDiskWf)
+		}
 		// ignore errors as these will be due to instance being already started or disks already attached
 		_ = daisyutils.RunWorkflowWithCancelSignal(context.Background(), attachDiskWf)
 		if attachDiskWf.Logger != nil {
@@ -114,6 +120,9 @@ func (iec *instanceExportCleanerImpl) Clean(instance *compute.Instance, params *
 		}
 	}
 	if iec.startInstanceWf != nil {
+		if iec.wfPreRunCallback != nil {
+			iec.wfPreRunCallback(iec.startInstanceWf)
+		}
 		err = daisyutils.RunWorkflowWithCancelSignal(context.Background(), iec.startInstanceWf)
 		if iec.startInstanceWf.Logger != nil {
 			iec.serialLogs = append(iec.serialLogs, iec.startInstanceWf.Logger.ReadSerialPortLogs()...)

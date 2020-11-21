@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	logPrefix  = "[export-ovf]"
+	logPrefix  = "[ovf-export]"
 	bytesPerGB = int64(1024 * 1024 * 1024)
 )
 

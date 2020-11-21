@@ -26,7 +26,7 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
-func TestPreparer(t *testing.T) {
+func TestCleaner(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -40,10 +40,12 @@ func TestPreparer(t *testing.T) {
 			{
 				Source:     fmt.Sprintf("projects/%v/zones/us-central1-c/disks/disk-a", project),
 				DeviceName: "disk-a-dev",
+				Mode:       "READ_WRITE",
 			},
 			{
 				Source:     fmt.Sprintf("projects/%v/zones/us-central1-c/disks/disk-b", project),
 				DeviceName: "disk-b-dev",
+				Mode:       "READ_WRITE",
 			},
 		},
 		Zone: params.Zone,
@@ -76,20 +78,19 @@ func TestPreparer(t *testing.T) {
 	mockComputeClient.EXPECT().ListNetworks(project).Return([]*compute.Network{{Name: "a-network", SelfLink: params.Network}}, nil).AnyTimes()
 	mockComputeClient.EXPECT().ListSubnetworks(project, region).Return([]*compute.Subnetwork{{Name: "a-subnet", Region: region, SelfLink: params.Subnet}}, nil).AnyTimes()
 	mockComputeClient.EXPECT().GetInstance(project, params.Zone, params.InstanceName).Return(instance, nil).AnyTimes()
-	mockComputeClient.EXPECT().StopInstance(project, params.Zone, params.InstanceName).Return(nil)
+	mockComputeClient.EXPECT().StartInstance(project, params.Zone, params.InstanceName).Return(nil)
 
-	for diskIndex, disk := range disks {
-		mockComputeClient.EXPECT().GetDisk(project, params.Zone, disk.Name).Return(disk, nil).AnyTimes()
-		mockComputeClient.EXPECT().DetachDisk(project, params.Zone, params.InstanceName, instance.Disks[diskIndex].DeviceName).Return(nil)
+	for diskIndex := range disks {
+		mockComputeClient.EXPECT().AttachDisk(project, params.Zone, params.InstanceName, instance.Disks[diskIndex]).Return(nil)
 	}
 
 	mockClientSetter := func(w *daisy.Workflow) {
 		w.ComputeClient = mockComputeClient
 		w.StorageClient = testGCSClient
 	}
-	instanceExportPreparer := &instanceExportPreparerImpl{}
-	instanceExportPreparer.wfPreRunCallback = mockClientSetter
+	instanceExportCleaner := &instanceExportCleanerImpl{}
+	instanceExportCleaner.wfPreRunCallback = mockClientSetter
 
-	err = instanceExportPreparer.Prepare(instance, params)
+	err = instanceExportCleaner.Clean(instance, params)
 	assert.Nil(t, err)
 }

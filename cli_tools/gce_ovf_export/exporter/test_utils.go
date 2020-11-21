@@ -41,7 +41,7 @@ func (t *testGCSClient) addGCSObj(o string) {
 	t.testGCSObjs = append(t.testGCSObjs, o)
 }
 
-func newTestGCSClient() (*storage.Client, error, *testGCSClient) {
+func newTestGCSClient() (*storage.Client, *testGCSClient, error) {
 	testGCSClient := &testGCSClient{testGCSObjsMx: sync.Mutex{}}
 	nameRgx := regexp.MustCompile(`"name":"([^"].*)"`)
 	rewriteRgx := regexp.MustCompile(`/b/([^/]+)/o/([^/]+)/rewriteTo/b/([^/]+)/o/([^?]+)`)
@@ -127,22 +127,25 @@ func newTestGCSClient() (*storage.Client, error, *testGCSClient) {
 		}
 	}))
 	storageClient, err := storage.NewClient(context.Background(), option.WithEndpoint(ts.URL), option.WithHTTPClient(http.DefaultClient))
-	return storageClient, err, testGCSClient
+	return storageClient, testGCSClient, err
 }
 
-type startsWithMatcher struct {
+// StartsWithMatcher is a matcher that matches string prefixes
+type StartsWithMatcher struct {
 	prefix string
 }
 
-func StartsWith(prefix string) *startsWithMatcher {
-	return &startsWithMatcher{prefix: prefix}
+// StartsWith returns a StartsWithMatcher that matches string prefixes
+func StartsWith(prefix string) *StartsWithMatcher {
+	return &StartsWithMatcher{prefix: prefix}
 }
 
-func (m *startsWithMatcher) String() string {
+func (m *StartsWithMatcher) String() string {
 	return fmt.Sprintf("starts with prefix " + m.prefix)
 }
 
-func (m *startsWithMatcher) Matches(x interface{}) bool {
+// Matches returns true if x is a string and it matches a string prefix
+func (m *StartsWithMatcher) Matches(x interface{}) bool {
 	s, ok := x.(string)
 	if !ok {
 		return false

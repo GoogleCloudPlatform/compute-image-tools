@@ -15,7 +15,6 @@
 package ovfexporter
 
 import (
-	"bytes"
 	"encoding/xml"
 	"fmt"
 	"strconv"
@@ -25,9 +24,9 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/exporter/ovf"
 	ovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"github.com/vmware/govmomi/ovf"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -82,11 +81,10 @@ func (g *ovfDescriptorGeneratorImpl) GenerateAndWriteOVFDescriptor(instance *com
 // Generate generates an OVF descriptor based on the instance exported and disk file paths.
 func (g *ovfDescriptorGeneratorImpl) generate(instance *compute.Instance, exportedDisks []*ovfexportdomain.ExportedDisk, diskInspectionResult *commondisk.InspectionResult) (*ovf.Envelope, error) {
 	descriptor := &ovf.Envelope{}
-	descriptor.VirtualHardware = &ovf.VirtualHardwareSection{}
 	descriptor.References = make([]ovf.File, len(exportedDisks))
 	descriptor.Disk = &ovf.DiskSection{Disks: make([]ovf.VirtualDiskDesc, len(exportedDisks)), Section: ovf.Section{Info: "Virtual disk information"}}
 
-	descriptor.VirtualSystem = &ovf.VirtualSystem{Content: ovf.Content{Info: "A GCE virtual machine", Name: &instance.Name}}
+	descriptor.VirtualSystem = &ovf.VirtualSystem{Content: ovf.Content{Info: "A GCE virtual machine", ID: instance.Name, Name: &instance.Name}}
 	descriptor.VirtualSystem.VirtualHardware = make([]ovf.VirtualHardwareSection, 1)
 	descriptor.VirtualSystem.VirtualHardware[0] = ovf.VirtualHardwareSection{Section: ovf.Section{Info: "Virtual hardware requirements"}}
 
@@ -94,15 +92,17 @@ func (g *ovfDescriptorGeneratorImpl) generate(instance *compute.Instance, export
 	descriptor.VirtualSystem.VirtualHardware[0].System = &ovf.VirtualSystemSettingData{CIMVirtualSystemSettingData: ovf.CIMVirtualSystemSettingData{ElementName: "Virtual Hardware Family", InstanceID: "0", VirtualSystemIdentifier: &instance.Name}}
 
 	// disk controller
-	disController := ovf.ResourceAllocationSettingData{
+	discControllerName := "SCSI Controller"
+	diskController := ovf.ResourceAllocationSettingData{
 		CIMResourceAllocationSettingData: ovf.CIMResourceAllocationSettingData{
-			Description:  strPtr("SCSI Controller"),
+			ElementName:  discControllerName,
+			Description:  strPtr(discControllerName),
 			InstanceID:   generateVirtualHardwareItemID(descriptor),
 			ResourceType: func() *uint16 { v := iSCSIController; return &v }(),
 		},
 	}
 	descriptor.VirtualSystem.VirtualHardware[0].Item = append(
-		descriptor.VirtualSystem.VirtualHardware[0].Item, disController)
+		descriptor.VirtualSystem.VirtualHardware[0].Item, diskController)
 
 	// machine type (CPU, memory)
 	if err := g.populateMachineType(instance, descriptor); err != nil {
@@ -110,29 +110,17 @@ func (g *ovfDescriptorGeneratorImpl) generate(instance *compute.Instance, export
 	}
 
 	// disks
-	//TODO: look for AttachedDisk.Boot and export that one first
+	// first add boot disk...
 	for diskIndex, exportedDisk := range exportedDisks {
-		diskGCSFileName := exportedDisk.GcsPath
-		if slash := strings.LastIndex(diskGCSFileName, "/"); slash > -1 {
-			diskGCSFileName = diskGCSFileName[slash+1:]
+		if exportedDisk.AttachedDisk.Boot {
+			g.addDisk(exportedDisk, descriptor, diskIndex, diskController.InstanceID)
 		}
-		descriptor.References[diskIndex] = ovf.File{
-			Href: diskGCSFileName,
-			ID:   "file" + strconv.Itoa(diskIndex),
-			Size: uint(exportedDisk.GcsFileAttrs.Size),
+	}
+	//...then data disks
+	for diskIndex, exportedDisk := range exportedDisks {
+		if !exportedDisk.AttachedDisk.Boot {
+			g.addDisk(exportedDisk, descriptor, diskIndex, diskController.InstanceID)
 		}
-
-		descriptor.Disk.Disks[diskIndex] = ovf.VirtualDiskDesc{
-			DiskID:                  fmt.Sprintf("vmdisk%v", diskIndex),
-			FileRef:                 &descriptor.References[diskIndex].ID,
-			Capacity:                strconv.FormatInt(exportedDisk.Disk.SizeGb, 10),
-			CapacityAllocationUnits: strPtr("byte * 2^30"),
-		}
-
-		//TODO: virtual hardware section for ordering? might not be necessary for export. We used it for import to determine order of disks if disks are spread over multiple controllers
-		descriptor.VirtualSystem.VirtualHardware[0].Item = append(
-			descriptor.VirtualSystem.VirtualHardware[0].Item,
-			*createDiskItem(generateVirtualHardwareItemID(descriptor), disController.InstanceID, diskIndex, descriptor.Disk.Disks[diskIndex].DiskID))
 	}
 
 	g.populateOS(descriptor, diskInspectionResult)
@@ -140,6 +128,33 @@ func (g *ovfDescriptorGeneratorImpl) generate(instance *compute.Instance, export
 	//TODO items: network, video card
 
 	return descriptor, nil
+}
+
+func (g *ovfDescriptorGeneratorImpl) addDisk(exportedDisk *ovfexportdomain.ExportedDisk, descriptor *ovf.Envelope, diskIndex int, diskControllerInstanceID string) {
+	diskGCSFileName := exportedDisk.GcsPath
+	if slash := strings.LastIndex(diskGCSFileName, "/"); slash > -1 {
+		diskGCSFileName = diskGCSFileName[slash+1:]
+	}
+	descriptor.References[diskIndex] = ovf.File{
+		Href: diskGCSFileName,
+		ID:   "file" + strconv.Itoa(diskIndex),
+		Size: uint(exportedDisk.GcsFileAttrs.Size),
+	}
+
+	descriptor.Disk.Disks[diskIndex] = ovf.VirtualDiskDesc{
+		DiskID:   fmt.Sprintf("vmdisk%v", diskIndex),
+		FileRef:  &descriptor.References[diskIndex].ID,
+		Capacity: strconv.FormatInt(exportedDisk.Disk.SizeGb*bytesPerGB, 10),
+	}
+
+	descriptor.VirtualSystem.VirtualHardware[0].Item = append(
+		descriptor.VirtualSystem.VirtualHardware[0].Item,
+		*createDiskItem(generateVirtualHardwareItemID(descriptor),
+			diskControllerInstanceID,
+			diskIndex,
+			descriptor.Disk.Disks[diskIndex].DiskID,
+		),
+	)
 }
 
 func (g *ovfDescriptorGeneratorImpl) populateMachineType(instance *compute.Instance, descriptor *ovf.Envelope) error {
@@ -179,7 +194,7 @@ func (g *ovfDescriptorGeneratorImpl) populateOS(descriptor *ovf.Envelope, ir *co
 }
 
 func formatOSDescription(ir *commondisk.InspectionResult) string {
-	//TODO: this can be extracted from virt-inspector output, e.g. <product_name>Windows Server 2012 R2 Standard</product_name>
+	//TODO: this can be extracted from virt-inspector output, e.g. <product_name>Windows Server 2012 R2 Standard</product_name
 	desc := strings.Title(fmt.Sprintf("%v %v", ir.Distro, ir.Major))
 	if ir.Major != "" {
 		desc = fmt.Sprintf("%v.%v", desc, ir.Minor)
@@ -222,7 +237,6 @@ func (g *ovfDescriptorGeneratorImpl) createCPUItem(machineType *compute.MachineT
 			ElementName:     fmt.Sprintf("%v virtual CPU(s)", machineType.GuestCpus),
 			InstanceID:      instanceID,
 			ResourceType:    func() *uint16 { v := cpu; return &v }(),
-			//TODO: information loss possible only on 32-bit systems, highly unlikely to happen
 			VirtualQuantity: func() *uint { v := uint(machineType.GuestCpus); return &v }(),
 		},
 	}
@@ -236,21 +250,24 @@ func (g *ovfDescriptorGeneratorImpl) createMemoryItem(machineType *compute.Machi
 			ElementName:     fmt.Sprintf("%vMB of memory", machineType.MemoryMb),
 			InstanceID:      instanceID,
 			ResourceType:    func() *uint16 { v := memory; return &v }(),
-			//TODO: information loss possible only on 32-bit systems, highly unlikely to happen
 			VirtualQuantity: func() *uint { v := uint(machineType.MemoryMb); return &v }(),
 		},
 	}
 }
 
 func marshal(descriptor *ovf.Envelope) (string, error) {
-	var buf bytes.Buffer
-	enc := xml.NewEncoder(&buf)
-	err := enc.Encode(&descriptor)
+	descriptor.XMLNSCIM = "http://schemas.dmtf.org/wbem/wscim/1/common"
+	descriptor.XMLNSOVF = "http://schemas.dmtf.org/ovf/envelope/1"
+	descriptor.XMLNSRASD = "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_ResourceAllocationSettingData"
+	descriptor.XMLNSVMW = "http://www.vmware.com/schema/ovf"
+	descriptor.XMLNSVSSD = "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_VirtualSystemSettingData"
+	descriptor.XMLNSXSI = "http://www.w3.org/2001/XMLSchema-instance"
+
+	raw, err := xml.MarshalIndent(&descriptor, "", "  ")
 	if err != nil {
 		return "", err
 	}
-
-	return buf.String(), nil
+	return string(raw), nil
 }
 
 func strPtr(s string) *string {

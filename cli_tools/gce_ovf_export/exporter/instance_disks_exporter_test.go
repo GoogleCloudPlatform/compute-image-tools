@@ -35,8 +35,8 @@ func TestDiskExporter_HappyPath(t *testing.T) {
 	params.Oauth = ""
 
 	//TODO: remove full path after dev is done
-	params.WorkflowDir = "../../daisy_workflows/"
-	//params.WorkflowDir = "/usr/local/google/home/zoranl/go/src/github.com/GoogleCloudPlatform/compute-image-tools/daisy_workflows/"
+	//params.WorkflowDir = "../../daisy_workflows/"
+	params.WorkflowDir = "/usr/local/google/home/zoranl/go/src/github.com/GoogleCloudPlatform/compute-image-tools/daisy_workflows/"
 	project := *params.Project
 	region := "us-central1"
 
@@ -69,7 +69,7 @@ func TestDiskExporter_HappyPath(t *testing.T) {
 	diskFileSizes := []int64{15, 70}
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	testGCSClient, err, _ := newTestGCSClient() // used by Daisy
+	testGCSClient, _, err := newTestGCSClient() // used by Daisy
 	if err != nil {
 		t.Fail()
 	}
