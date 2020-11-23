@@ -15,16 +15,18 @@
 package e2e
 
 const (
-	projectIDWithoutDefaultServiceAccountFlag                      = "project_id_without_default_service_account"
-	projectIDWithoutDefaultServiceAccountPermissionFlag            = "project_id_without_default_service_account_permission"
-	computeServiceAccountWithoutDefaultServiceAccountFlag          = "compute_service_account_without_default_service_account"
+	projectIDWithoutDefaultServiceAccountFlag                       = "project_id_without_default_service_account"
+	projectIDWithoutDefaultServiceAccountPermissionFlag             = "project_id_without_default_service_account_permission"
+	computeServiceAccountWithoutDefaultServiceAccountFlag           = "compute_service_account_without_default_service_account"
 	computeServiceAccountWithoutDefaultServiceAccountPermissionFlag = "compute_service_account_without_default_service_account_permission"
 )
 
 // Additional variables used for e2e testing
 var (
-	ProjectIDWithoutDefaultServiceAccount, ProjectIDWithoutDefaultServiceAccountPermission,
-	ComputeServiceAccountWithoutDefaultServiceAccount, ComputeServiceAccountWithoutDefaultServiceAccountPermission string
+	ProjectIDWithoutDefaultServiceAccount                       string
+	ProjectIDWithoutDefaultServiceAccountPermission             string
+	ComputeServiceAccountWithoutDefaultServiceAccount           string
+	ComputeServiceAccountWithoutDefaultServiceAccountPermission string
 )
 
 // GetServiceAccountTestVariables extract extra test variables related to service account from input variable map.
@@ -45,7 +47,7 @@ func GetServiceAccountTestVariables(argMap map[string]string) bool {
 	}
 
 	if ProjectIDWithoutDefaultServiceAccount == "" || ProjectIDWithoutDefaultServiceAccountPermission == "" ||
-			ComputeServiceAccountWithoutDefaultServiceAccount == "" || ComputeServiceAccountWithoutDefaultServiceAccountPermission == "" {
+		ComputeServiceAccountWithoutDefaultServiceAccount == "" || ComputeServiceAccountWithoutDefaultServiceAccountPermission == "" {
 		return false
 	}
 
