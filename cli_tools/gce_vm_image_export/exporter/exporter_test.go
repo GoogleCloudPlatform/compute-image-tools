@@ -138,8 +138,8 @@ func TestBuildDaisyVarsWithoutComputeServiceAccount(t *testing.T) {
 		"", "", "", "", "", "",
 		ws)
 
-	_, o= got["compute_service_account"]
-	assert.False(t, ok)
+	_, hasVar := got["compute_service_account"]
+	assert.False(t, hasVar)
 }
 
 func resetArgs() {

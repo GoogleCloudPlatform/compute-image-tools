@@ -85,31 +85,39 @@ func getWorkflowPath(format string, currentExecutablePath string) string {
 func buildDaisyVars(destinationURI string, sourceImage string, format string, network string,
 	subnet string, region string, computeServiceAccount string) map[string]string {
 
+	destinationURI = strings.TrimSpace(destinationURI)
+	sourceImage = strings.TrimSpace(sourceImage)
+	format = strings.TrimSpace(format)
+	network = strings.TrimSpace(network)
+	subnet = strings.TrimSpace(subnet)
+	region = strings.TrimSpace(region)
+	computeServiceAccount = strings.TrimSpace(computeServiceAccount)
+
 	varMap := map[string]string{}
 
-	varMap["destination"] = strings.TrimSpace(destinationURI)
+	varMap["destination"] = destinationURI
 
 	varMap["source_image"] = param.GetGlobalResourcePath(
-		"images", strings.TrimSpace(sourceImage))
+		"images", sourceImage)
 
-	if strings.TrimSpace(format) != "" {
-		varMap["format"] = strings.TrimSpace(format)
+	if format != "" {
+		varMap["format"] = format
 	}
-	if strings.TrimSpace(subnet) != "" {
+	if subnet != "" {
 		varMap["export_subnet"] = param.GetRegionalResourcePath(
-			strings.TrimSpace(region), "subnetworks", strings.TrimSpace(subnet))
+			region, "subnetworks", subnet)
 
 		// When subnet is set, we need to grant a value to network to avoid fallback to default
-		if strings.TrimSpace(network) == "" {
+		if network == "" {
 			varMap["export_network"] = ""
 		}
 	}
-	if strings.TrimSpace(network) != "" {
+	if network != "" {
 		varMap["export_network"] = param.GetGlobalResourcePath(
-			"networks", strings.TrimSpace(network))
+			"networks", network)
 	}
-	if strings.TrimSpace(computeServiceAccount) != "" {
-		varMap["compute_service_account"] = strings.TrimSpace(computeServiceAccount)
+	if computeServiceAccount != "" {
+		varMap["compute_service_account"] = computeServiceAccount
 	}
 	return varMap
 }

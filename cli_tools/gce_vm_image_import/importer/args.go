@@ -48,7 +48,6 @@ type ImportArguments struct {
 	ClientVersion         string
 	CloudLogsDisabled     bool
 	ComputeEndpoint       string
-	ComputeServiceAccount string
 	WorkflowDir           string
 	CustomWorkflow        string
 	DataDisk              bool
@@ -223,9 +222,6 @@ func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
 
 	flagSet.Var((*flags.TrimmedString)(&args.ComputeEndpoint), "compute_endpoint_override",
 		"API endpoint to override default.")
-
-	flagSet.Var((*flags.TrimmedString)(&args.ComputeServiceAccount), "compute_service_account",
-		"Compute service account to override default.")
 
 	flagSet.BoolVar(&args.GcsLogsDisabled, "disable_gcs_logging", false,
 		"Do not store logs in GCS.")
