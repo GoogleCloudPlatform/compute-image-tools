@@ -47,7 +47,7 @@ var (
 func exportEntry() (service.Loggable, error) {
 	currentExecutablePath := string(os.Args[0])
 	wf, err := exporter.Run(*clientID, *destinationURI, *sourceImage, *format, project,
-		*network, *subnet, *zone, *timeout, *scratchBucketGcsPath, *oauth, *ce,
+		*network, *subnet, *zone, *timeout, *scratchBucketGcsPath, *oauth, *ce, *computeServiceAccount,
 		*gcsLogsDisabled, *cloudLogsDisabled, *stdoutLogsDisabled, *labels, currentExecutablePath)
 	return service.NewLoggableFromWorkflow(wf), err
 }
