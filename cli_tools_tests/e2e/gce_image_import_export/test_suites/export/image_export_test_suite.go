@@ -72,6 +72,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 		testsMap[testType][imageExportWithSubnetWithoutNetworkTestCase] = runImageExportWithSubnetWithoutNetworkParamsTest
 	}
 
+	// Only test service account scenario for wrapper, until gcloud support it.
 	imageExportRawWithoutDefaultServiceAccountTestCase := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", e2e.Wrapper, "Export Raw without default service account"))
 	imageExportVMDKWithoutDefaultServiceAccountPermissionTestCase := junitxml.NewTestCase(

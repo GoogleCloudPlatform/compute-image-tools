@@ -76,7 +76,8 @@ func TestBuildDaisyVarsWithoutFormatConversion(t *testing.T) {
 		ws+format+ws,
 		ws+network+ws,
 		ws+subnet+ws,
-		ws+"aRegion"+ws)
+		ws+"aRegion"+ws,
+		"")
 
 	assert.Equal(t, "global/images/anImage", got["source_image"])
 	assert.Equal(t, "gs://bucket/exported_image", got["destination"])
@@ -94,7 +95,8 @@ func TestBuildDaisyVarsWithFormatConversion(t *testing.T) {
 		ws+"vmdk"+ws,
 		ws+network+ws,
 		ws+subnet+ws,
-		ws+"aRegion"+ws)
+		ws+"aRegion"+ws,
+		"")
 
 	assert.Equal(t, "global/images/anImage", got["source_image"])
 	assert.Equal(t, "gs://bucket/exported_image", got["destination"])
@@ -113,9 +115,31 @@ func TestBuildDaisyVarsWithSimpleImageName(t *testing.T) {
 		ws+format+ws,
 		ws+network+ws,
 		ws+subnet+ws,
-		ws+"aRegion"+ws)
+		ws+"aRegion"+ws,
+		"")
 
 	assert.Equal(t, "global/images/anImage", got["source_image"])
+}
+
+func TestBuildDaisyVarsWithComputeServiceAccount(t *testing.T) {
+	resetArgs()
+	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000"
+	got := buildDaisyVars(
+		"", "", "", "", "", "",
+		ws+"account1"+ws)
+
+	assert.Equal(t, "account1", got["compute_service_account"])
+}
+
+func TestBuildDaisyVarsWithoutComputeServiceAccount(t *testing.T) {
+	resetArgs()
+	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000"
+	got := buildDaisyVars(
+		"", "", "", "", "", "",
+		ws)
+
+	_, o= got["compute_service_account"]
+	assert.False(t, ok)
 }
 
 func resetArgs() {

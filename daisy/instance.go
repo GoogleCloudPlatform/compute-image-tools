@@ -553,7 +553,6 @@ func (i *Instance) populateScopes() DError {
 	if i.Scopes == nil {
 		i.Scopes = append(i.Scopes, "https://www.googleapis.com/auth/devstorage.read_only")
 	}
-
 	if i.ServiceAccounts == nil {
 		i.ServiceAccounts = []*compute.ServiceAccount{{Email: "default", Scopes: i.Scopes}}
 	}
@@ -564,7 +563,6 @@ func (i *InstanceBeta) populateScopes() DError {
 	if i.Scopes == nil {
 		i.Scopes = append(i.Scopes, "https://www.googleapis.com/auth/devstorage.read_only")
 	}
-
 	if i.ServiceAccounts == nil {
 		i.ServiceAccounts = []*computeBeta.ServiceAccount{{Email: "default", Scopes: i.Scopes}}
 	}

@@ -52,23 +52,26 @@ const (
 )
 
 func validateAndParseFlags(clientID string, destinationURI string, sourceImage string, labels string) (
-	userLabels map[string]string, err error) {
+	map[string]string, error) {
 
-	if err = validation.ValidateStringFlagNotEmpty(clientID, ClientIDFlagKey); err != nil {
-		return
+	if err := validation.ValidateStringFlagNotEmpty(clientID, ClientIDFlagKey); err != nil {
+		return nil, err
 	}
-	if err = validation.ValidateStringFlagNotEmpty(destinationURI, DestinationURIFlagKey); err != nil {
-		return
+	if err := validation.ValidateStringFlagNotEmpty(destinationURI, DestinationURIFlagKey); err != nil {
+		return nil, err
 	}
-	if err = validation.ValidateStringFlagNotEmpty(sourceImage, SourceImageFlagKey); err != nil {
-		return
+	if err := validation.ValidateStringFlagNotEmpty(sourceImage, SourceImageFlagKey); err != nil {
+		return nil, err
 	}
 
 	if labels != "" {
-		userLabels, err = param.ParseKeyValues(labels)
+		userLabels, err := param.ParseKeyValues(labels)
+		if err != nil {
+			return nil, err
+		}
+		return userLabels, nil
 	}
-
-	return
+	return nil, nil
 }
 
 func getWorkflowPath(format string, currentExecutablePath string) string {
