@@ -285,6 +285,13 @@ var basicCases = []*testCase{
 		os:       "centos-8",
 		inspect:  true,
 	}, {
+		// Fail when a package isn't found, and alert user with useful message.
+		caseName:      "el-package-not-found",
+		source:        "projects/compute-image-tools-test/global/images/centos-6-missing-base-repo",
+		os:            "centos-6",
+		expectedError: "No package centos-release-scl available",
+		inspect:       true,
+	}, {
 		// Fail when yum has an unreachable repo.
 		caseName:      "el-unreachable-repos",
 		source:        "projects/compute-image-tools-test/global/images/centos-8-cdrom-repo",
