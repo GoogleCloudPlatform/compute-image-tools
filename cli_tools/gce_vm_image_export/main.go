@@ -37,7 +37,7 @@ var (
 	scratchBucketGcsPath  = flag.String("scratch_bucket_gcs_path", "", "GCS scratch bucket to use, overrides what is set in workflow.")
 	oauth                 = flag.String("oauth", "", "path to oauth json file, overrides what is set in workflow.")
 	ce                    = flag.String("compute_endpoint_override", "", "API endpoint to override default.")
-	computeServiceAccount = flag.String("compute_service_account", "", "Compute service account to be used by exporter Virtual Machine.")
+	computeServiceAccount = flag.String("compute_service_account", "", "Compute service account to be used by exporter Virtual Machine. When empty, the Compute Engine default service account is used.")
 	gcsLogsDisabled       = flag.Bool("disable_gcs_logging", false, "do not stream logs to GCS.")
 	cloudLogsDisabled     = flag.Bool("disable_cloud_logging", false, "do not stream logs to Cloud Logging.")
 	stdoutLogsDisabled    = flag.Bool("disable_stdout_logging", false, "do not display individual workflow logs on stdout.")

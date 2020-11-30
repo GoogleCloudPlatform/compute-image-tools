@@ -21,35 +21,35 @@ const (
 	computeServiceAccountWithoutDefaultServiceAccountPermissionFlag = "compute_service_account_without_default_service_account_permission"
 )
 
-// Additional variables used for e2e testing
-var (
-	ProjectIDWithoutDefaultServiceAccount                       string
-	ProjectIDWithoutDefaultServiceAccountPermission             string
-	ComputeServiceAccountWithoutDefaultServiceAccount           string
-	ComputeServiceAccountWithoutDefaultServiceAccountPermission string
-)
+// ServiceAccountTestVariables contains service-account related test variables.
+type ServiceAccountTestVariables struct {
+	ProjectID             string
+	ComputeServiceAccount string
+}
 
 // GetServiceAccountTestVariables extract extra test variables related to service account from input variable map.
-func GetServiceAccountTestVariables(argMap map[string]string) bool {
+func GetServiceAccountTestVariables(argMap map[string]string, isDefaultServiceAccountDeleted bool) (v ServiceAccountTestVariables, ok bool) {
 	for key, val := range argMap {
-		switch key {
-		case projectIDWithoutDefaultServiceAccountFlag:
-			ProjectIDWithoutDefaultServiceAccount = val
-		case projectIDWithoutDefaultServiceAccountPermissionFlag:
-			ProjectIDWithoutDefaultServiceAccountPermission = val
-		case computeServiceAccountWithoutDefaultServiceAccountFlag:
-			ComputeServiceAccountWithoutDefaultServiceAccount = val
-		case computeServiceAccountWithoutDefaultServiceAccountPermissionFlag:
-			ComputeServiceAccountWithoutDefaultServiceAccountPermission = val
-		default:
-			// args not related
+		if isDefaultServiceAccountDeleted {
+			switch key {
+			case projectIDWithoutDefaultServiceAccountFlag:
+				v.ProjectID = val
+			case computeServiceAccountWithoutDefaultServiceAccountFlag:
+				v.ComputeServiceAccount = val
+			default:
+				// args not related
+			}
+		} else {
+			switch key {
+			case projectIDWithoutDefaultServiceAccountPermissionFlag:
+				v.ProjectID = val
+			case computeServiceAccountWithoutDefaultServiceAccountPermissionFlag:
+				v.ComputeServiceAccount = val
+			default:
+				// args not related
+			}
 		}
 	}
-
-	if ProjectIDWithoutDefaultServiceAccount == "" || ProjectIDWithoutDefaultServiceAccountPermission == "" ||
-		ComputeServiceAccountWithoutDefaultServiceAccount == "" || ComputeServiceAccountWithoutDefaultServiceAccountPermission == "" {
-		return false
-	}
-
-	return true
+	ok = v.ProjectID != "" && v.ComputeServiceAccount != ""
+	return
 }
