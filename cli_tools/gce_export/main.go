@@ -111,7 +111,7 @@ func writeGzipProgress(start time.Time, size int64, rp, wp *progress) {
 
 func gcsClient(ctx context.Context, oauth string) (domain.StorageClientInterface, error) {
 	log.SetPrefix(logPrefix + " ")
-	logger := logging.NewStdoutLogger(logPrefix)
+	logger := logging.NewToolLogger(logPrefix)
 
 	baseTransport := &http.Transport{
 		DisableKeepAlives:     false,

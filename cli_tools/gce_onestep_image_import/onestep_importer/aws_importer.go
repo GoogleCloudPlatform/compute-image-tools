@@ -121,7 +121,7 @@ func newAWSImporter(oauth string, timeoutChan chan struct{}, args *awsImportArgu
 // createGCSClient creates a new GCS client.
 func createGCSClient(ctx context.Context, oauth string) (domain.StorageClientInterface, error) {
 	log.SetPrefix(logPrefix + " ")
-	logger := logging.NewStdoutLogger(logPrefix)
+	logger := logging.NewToolLogger(logPrefix)
 
 	baseTransport := &http.Transport{
 		DisableKeepAlives:     false,

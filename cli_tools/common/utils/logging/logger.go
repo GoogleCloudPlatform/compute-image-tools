@@ -15,50 +15,179 @@
 package logging
 
 import (
-	"fmt"
 	"log"
+	"os"
+	"strings"
 	"time"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
+	"github.com/golang/protobuf/proto"
 )
 
-// LogEntry encapsulates a single log entry.
-type LogEntry struct {
-	LocalTimestamp time.Time `json:"localTimestamp"`
-	Message        string    `json:"message"`
+// LogWriter is a logger for interactive tools. It supports
+// string messages and structured metrics.
+//
+// Structured metrics are accumulated over the lifespan of the logger.
+//
+// To rebuild the mock, run `go generate ./...`
+//go:generate go run github.com/golang/mock/mockgen -package mocks -source $GOFILE -destination ../../../mocks/mock_logger.go
+type LogWriter interface {
+	// WriteUser messages are shown in Pantheon or Gcloud to the user.
+	WriteUser(message string)
+	// WriteDebug messages are shown in the console output of the CLI tool.
+	WriteDebug(message string)
+	// WriteTrace messages are saved to the logging backend  (OutputInfo.serial_outputs)
+	WriteTrace(message string)
+	// WriteMetric merges all non-default fields into a single OutputInfo instance.
+	WriteMetric(metric *pb.OutputInfo)
 }
 
-func newLogEntry(message string) *LogEntry {
-	return &LogEntry{LocalTimestamp: time.Now(), Message: message}
+// RedirectGlobalLogsToUser redirects the standard library's static logger
+// to logWriter.User.
+func RedirectGlobalLogsToUser(logWriter LogWriter) {
+	log.SetPrefix("")
+	log.SetFlags(0)
+	log.SetOutput(redirectShim{logWriter})
 }
 
-func (e *LogEntry) String() string {
-	return fmt.Sprintf("%s %s", e.LocalTimestamp.Format("2006-01-02T15:04:05Z"), e.Message)
+// redirectShim forwards Go's standard logger to LogWriter.User.
+type redirectShim struct {
+	writer LogWriter
 }
 
-// LoggerInterface is logger abstraction
-type LoggerInterface interface {
-	Log(message string)
+func (l redirectShim) Write(p []byte) (n int, err error) {
+	l.writer.WriteUser(string(p))
+	return len(p), nil
 }
 
-// NewStdoutLogger creates a new logger which uses prefix for all messages logged.
-// All messages are sent to stdout.
-func NewStdoutLogger(prefix string) LoggerInterface {
-	return stdoutLogger{prefix: prefix}
+// LogReader exposes pb.OutputInfo to a consumer.
+type LogReader interface {
+	ReadOutputInfo() *pb.OutputInfo
 }
 
-type stdoutLogger struct{ prefix string }
-
-// Log logs a message
-func (l stdoutLogger) Log(message string) {
-	fmt.Printf("%s %s\n", l.prefix, newLogEntry(message))
+// ToolLogger is a logger for interactive tools. It supports
+// string messages and structured metrics.
+//
+// Structured metrics are accumulated over the lifespan of the logger.
+type ToolLogger interface {
+	LogWriter
+	LogReader
 }
 
-// NewDefaultLogger creates a new logger that sends all messages to the default logger.
-func NewDefaultLogger() LoggerInterface {
-	return defaultLogger{}
+// defaultToolLogger is an implementation of ToolLogger that writes to an arbitrary writer.
+// It has the following behavior for each level:
+//
+// User:
+//  - Writes to the underlying log.Logger with an optional prefix. The prefix is used by
+//    gcloud and the web console for filtering which logs are shown to the user.
+//  - In addition to writing to the underlying log.Logger, the messages are buffered for
+//    inclusion in OutputInfo.SerialOutputs.
+// Debug:
+//  - Writes to the underlying log.Logger with an optional prefix.
+//  - In addition to writing to the underlying log.Logger, the messages are buffered for
+//    inclusion in OutputInfo.SerialOutputs.
+// Trace:
+//  - Included in OutputInfo.SerialOutputs
+type defaultToolLogger struct {
+	// userPrefix and debugPrefix are strings that are prepended to user and debug messages.
+	// The userPrefix string should be kept in sync with the matcher used by gcloud and the
+	// web UI when determining which log messages to show to the user.
+	userPrefix, debugPrefix string
+
+	// output: Destination for user and debug messages.
+	output *log.Logger
+
+	// trace: Buffer of trace messages. Cleared when ReadOutputInfo is called.
+	trace []string
+
+	// stdoutLogger: Buffer of messages sent to the output logger. Cleared when
+	// ReadOutputInfo is called.
+	userAndDebugBuffer strings.Builder
+
+	// outputInfo: View of OutputInfo that is updated when WriteMetric is called.
+	// Reset when ReadOutputInfo info is called.
+	outputInfo *pb.OutputInfo
+
+	// timestampFormat is the format string used when writing the current time in user and debug messages.
+	timestampFormat string
+
+	// timeProvider is a function that returns the current time. Typically time.Now. Exposed for testing.
+	timeProvider func() time.Time
 }
 
-type defaultLogger struct{}
+// WriteUser writes message to the underlying log.Logger, and then buffers the message
+// for inclusion in ReadOutputInfo().
+func (l *defaultToolLogger) WriteUser(message string) {
+	l.write(l.userPrefix, message)
+}
 
-func (d defaultLogger) Log(message string) {
-	log.Printf("%s\n", newLogEntry(message))
+// WriteDebug writes message to the underlying log.Logger, and then buffers the message
+// for inclusion in ReadOutputInfo().
+func (l *defaultToolLogger) WriteDebug(message string) {
+	l.write(l.debugPrefix, message)
+}
+
+// WriteTrace buffers the message for inclusion in ReadOutputInfo().
+func (l *defaultToolLogger) WriteTrace(message string) {
+	l.trace = append(l.trace, message)
+}
+
+// WriteMetric keeps non-nil fields from metric for inclusion in ReadOutputInfo().
+// Elements of list fields are appended to the underlying view.
+func (l *defaultToolLogger) WriteMetric(metric *pb.OutputInfo) {
+	proto.Merge(l.outputInfo, metric)
+}
+
+// Returns a view comprised of:
+//   - Calls to WriteMetric
+//   - All user, debug, and trace logs. User and debug logs are appended into a single
+//     member of OutputInfo.SerialLogs; each trace log is a separate member.
+// All buffers are cleared when this is called. In other words, a subsequent call to
+// ReadOutputInfo will return an empty object.
+func (l *defaultToolLogger) ReadOutputInfo() *pb.OutputInfo {
+	// Prepend stdout logs (user, debug) to the trace logs.
+	var combinedTrace []string
+	if l.userAndDebugBuffer.Len() > 0 {
+		combinedTrace = []string{l.userAndDebugBuffer.String()}
+		l.userAndDebugBuffer.Reset()
+	}
+	ret := &pb.OutputInfo{SerialOutputs: append(combinedTrace, l.trace...)}
+	l.trace = []string{}
+	proto.Merge(ret, l.outputInfo)
+	l.outputInfo = &pb.OutputInfo{}
+	return ret
+}
+
+// write a message to the underlying logger, and buffer it for inclusion in OutputInfo.SerialLogs.
+func (l *defaultToolLogger) write(prefix, message string) {
+	var logLineParts []string
+	if prefix != "" {
+		if strings.HasSuffix(prefix, ":") {
+			logLineParts = append(logLineParts, prefix)
+		} else {
+			logLineParts = append(logLineParts, prefix+":")
+		}
+	}
+	logLineParts = append(logLineParts, l.timeProvider().Format(l.timestampFormat), message)
+	logLine := strings.Join(logLineParts, " ")
+	l.output.Print(logLine)
+	l.userAndDebugBuffer.WriteString(logLine)
+	if !strings.HasSuffix(logLine, "\n") {
+		l.userAndDebugBuffer.WriteByte('\n')
+	}
+}
+
+// NewToolLogger returns a ToolLogger that writes user and debug messages to
+// stdout. The userPrefix string is prepended to WriteUser messages. Specify
+// the string that gcloud and the web console uses to find its matches.
+func NewToolLogger(userPrefix string) ToolLogger {
+	return &defaultToolLogger{
+		userPrefix:      userPrefix,
+		debugPrefix:     "[debug]",
+		timestampFormat: time.RFC3339,
+		output:          log.New(os.Stdout, "", 0),
+		trace:           []string{},
+		outputInfo:      &pb.OutputInfo{},
+		timeProvider:    time.Now,
+	}
 }
