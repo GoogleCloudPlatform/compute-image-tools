@@ -36,14 +36,14 @@ const (
 )
 
 var (
-	_argMap map[string]string
+	argMap map[string]string
 )
 
 // TestSuite is image export test suite.
 func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
-	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp, testProjectConfig *testconfig.Project, argMap map[string]string) {
+	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp, testProjectConfig *testconfig.Project, argMapInput map[string]string) {
 
-	_argMap = argMap
+	argMap = argMapInput
 
 	testTypes := []e2e.CLITestType{
 		e2e.Wrapper,
@@ -282,7 +282,7 @@ func runImageExportWithSubnetWithoutNetworkParamsTest(ctx context.Context, testC
 func runImageExportRawWithoutDefaultServiceAccountTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
-	testVariables, ok := e2e.GetServiceAccountTestVariables(_argMap, true)
+	testVariables, ok := e2e.GetServiceAccountTestVariables(argMap, true)
 	if !ok {
 		e2e.Failure(testCase, logger, fmt.Sprintln("Failed to get service account test args"))
 		return
@@ -326,7 +326,7 @@ func runImageExportRawWithoutDefaultServiceAccountTest(ctx context.Context, test
 func runImageExportVMDKWithoutDefaultServiceAccountPermissionTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
-	testVariables, ok := e2e.GetServiceAccountTestVariables(_argMap, false)
+	testVariables, ok := e2e.GetServiceAccountTestVariables(argMap, false)
 	if !ok {
 		e2e.Failure(testCase, logger, fmt.Sprintln("Failed to get service account test args"))
 		return
