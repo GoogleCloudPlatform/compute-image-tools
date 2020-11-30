@@ -285,7 +285,7 @@ var basicCases = []*testCase{
 		os:       "centos-8",
 		inspect:  true,
 	}, {
-		// Fail when a packge isn't found, and alert user with useful message.
+		// Fail when a package isn't found, and alert user with useful message.
 		caseName:      "el-package-not-found",
 		source:        "projects/compute-image-tools-test/global/images/centos-6-missing-base-repo",
 		os:            "centos-6",
