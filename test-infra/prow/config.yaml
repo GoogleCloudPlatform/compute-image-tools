@@ -219,7 +219,11 @@ periodics:
            ubuntu_ami_id=ami-04d75010218164863,windows_ami_id=ami-0c91f2e838828598d,\
            ubuntu_vmdk=s3://onestep-test/ubuntu1804.vmdk,\
            windows_vmdk=s3://onestep-test/windows2019.vmdk,\
-           aws_cred_file_path=gs://compute-image-tools-test-resources/onestep-test-user"
+           aws_cred_file_path=gs://compute-image-tools-test-resources/onestep-test-user,\
+           compute_service_account_without_default_service_account=pool-001-1-sa@compute-image-test-pool-001-1.iam.gserviceaccount.com,\
+           compute_service_account_without_default_service_account_permission=pool-001-2-sa@compute-image-test-pool-001-2.iam.gserviceaccount.com,\
+           project_id_without_default_service_account=compute-image-test-pool-001-1,\
+           project_id_without_default_service_account_permission=compute-image-test-pool-001-2"
        env:
        - name: ARTIFACTS
          value: /artifacts
