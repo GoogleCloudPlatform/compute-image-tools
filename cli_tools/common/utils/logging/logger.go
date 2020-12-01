@@ -18,6 +18,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
@@ -32,11 +33,16 @@ import (
 // To rebuild the mock, run `go generate ./...`
 //go:generate go run github.com/golang/mock/mockgen -package mocks -source $GOFILE -destination ../../../mocks/mock_logger.go
 type LogWriter interface {
-	// WriteUser messages are shown in Pantheon or Gcloud to the user.
+	// WriteUser messages appear in the following places:
+	//  1. Web UI and gcloud.
+	//  2. Standard output of the CLI tool.
+	//  3. Backend trace logs (all debug and user logs are combined to a single trace log).
 	WriteUser(message string)
-	// WriteDebug messages are shown in the console output of the CLI tool.
+	// WriteDebug messages appear in the following places:
+	//  1. Standard output of the CLI tool.
+	//  2. Backend trace logs (all debug and user logs are combined to a single trace log).
 	WriteDebug(message string)
-	// WriteTrace messages are saved to the logging backend  (OutputInfo.serial_outputs)
+	// WriteTrace messages are saved to the logging backend (OutputInfo.serial_outputs).
 	WriteTrace(message string)
 	// WriteMetric merges all non-default fields into a single OutputInfo instance.
 	WriteMetric(metric *pb.OutputInfo)
@@ -113,6 +119,9 @@ type defaultToolLogger struct {
 
 	// timeProvider is a function that returns the current time. Typically time.Now. Exposed for testing.
 	timeProvider func() time.Time
+
+	// mutationLock should be taken when reading or writing trace, userAndDebugBuffer, or outputInfo.
+	mutationLock sync.Mutex
 }
 
 // WriteUser writes message to the underlying log.Logger, and then buffers the message
@@ -129,12 +138,18 @@ func (l *defaultToolLogger) WriteDebug(message string) {
 
 // WriteTrace buffers the message for inclusion in ReadOutputInfo().
 func (l *defaultToolLogger) WriteTrace(message string) {
+	l.mutationLock.Lock()
+	defer l.mutationLock.Unlock()
+
 	l.trace = append(l.trace, message)
 }
 
 // WriteMetric keeps non-nil fields from metric for inclusion in ReadOutputInfo().
 // Elements of list fields are appended to the underlying view.
 func (l *defaultToolLogger) WriteMetric(metric *pb.OutputInfo) {
+	l.mutationLock.Lock()
+	defer l.mutationLock.Unlock()
+
 	proto.Merge(l.outputInfo, metric)
 }
 
@@ -145,6 +160,10 @@ func (l *defaultToolLogger) WriteMetric(metric *pb.OutputInfo) {
 // All buffers are cleared when this is called. In other words, a subsequent call to
 // ReadOutputInfo will return an empty object.
 func (l *defaultToolLogger) ReadOutputInfo() *pb.OutputInfo {
+	// Locking since ReadOutputInfo has a side effect of clearing the internal state.
+	l.mutationLock.Lock()
+	defer l.mutationLock.Unlock()
+
 	// Prepend stdout logs (user, debug) to the trace logs.
 	var combinedTrace []string
 	if l.userAndDebugBuffer.Len() > 0 {
@@ -160,21 +179,28 @@ func (l *defaultToolLogger) ReadOutputInfo() *pb.OutputInfo {
 
 // write a message to the underlying logger, and buffer it for inclusion in OutputInfo.SerialLogs.
 func (l *defaultToolLogger) write(prefix, message string) {
-	var logLineParts []string
+	var logLineBuilder strings.Builder
+	// If there's a prefix, ensure it ends with a colon.
 	if prefix != "" {
-		if strings.HasSuffix(prefix, ":") {
-			logLineParts = append(logLineParts, prefix)
-		} else {
-			logLineParts = append(logLineParts, prefix+":")
+		logLineBuilder.WriteString(prefix)
+		if !strings.HasSuffix(prefix, ":") {
+			logLineBuilder.WriteByte(':')
 		}
+		logLineBuilder.WriteByte(' ')
 	}
-	logLineParts = append(logLineParts, l.timeProvider().Format(l.timestampFormat), message)
-	logLine := strings.Join(logLineParts, " ")
+	logLineBuilder.WriteString(l.timeProvider().Format(l.timestampFormat))
+	logLineBuilder.WriteByte(' ')
+	logLineBuilder.WriteString(message)
+	// Ensure the log always ends with a newline.
+	if !strings.HasSuffix(message, "\n") {
+		logLineBuilder.WriteByte('\n')
+	}
+	logLine := logLineBuilder.String()
+
+	l.mutationLock.Lock()
+	defer l.mutationLock.Unlock()
 	l.output.Print(logLine)
 	l.userAndDebugBuffer.WriteString(logLine)
-	if !strings.HasSuffix(logLine, "\n") {
-		l.userAndDebugBuffer.WriteByte('\n')
-	}
 }
 
 // NewToolLogger returns a ToolLogger that writes user and debug messages to
