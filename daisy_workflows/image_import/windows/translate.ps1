@@ -359,7 +359,7 @@ try {
 
     if ($script:install_packages.ToLower() -ne 'true') {
       Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm remove google-compute-engine-metadata-scripts
-      Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm remove google-compute-powershell
+      Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm remove google-compute-engine-powershell
     }
   } else {
     Write-Output 'Translate: Launching sysprep.'
