@@ -79,10 +79,10 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	// Only test service account scenario for wrapper, until gcloud support it.
 	imageExportRawWithoutDefaultServiceAccountTestCase := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", e2e.Wrapper, "Export Raw without default service account"))
-	imageExportVMDKWithoutDefaultServiceAccountPermissionTestCase := junitxml.NewTestCase(
+	imageExportVMDKDefaultServiceAccountWithMissingPermissionsTestCase := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", e2e.Wrapper, "Export VMDK without default service account permission"))
 	testsMap[e2e.Wrapper][imageExportRawWithoutDefaultServiceAccountTestCase] = runImageExportRawWithoutDefaultServiceAccountTest
-	testsMap[e2e.Wrapper][imageExportVMDKWithoutDefaultServiceAccountPermissionTestCase] = runImageExportVMDKWithoutDefaultServiceAccountPermissionTest
+	testsMap[e2e.Wrapper][imageExportVMDKDefaultServiceAccountWithMissingPermissionsTestCase] = runImageExportVMDKDefaultServiceAccountWithMissingPermissionsTest
 
 	e2e.CLITestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex, testProjectConfig, testSuiteName, testsMap)
 }
@@ -323,7 +323,7 @@ func runImageExportRawWithoutDefaultServiceAccountTest(ctx context.Context, test
 	runExportTest(ctx, argsMap[testType], testType, logger, testCase, bucketName, objectName)
 }
 
-func runImageExportVMDKWithoutDefaultServiceAccountPermissionTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runImageExportVMDKDefaultServiceAccountWithMissingPermissionsTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	testVariables, ok := e2e.GetServiceAccountTestVariables(argMap, false)
