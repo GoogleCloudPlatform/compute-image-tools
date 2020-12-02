@@ -110,8 +110,6 @@ func toWorkingDir(currentDir, workflowDir string) string {
 // InitWorkflowPath initializes workflow path field
 func (params *OVFExportParams) InitWorkflowPath() {
 	currentExecutablePath := filepath.Dir(os.Args[0])
-	//TODO: remove in prod
-	currentExecutablePath = "/usr/local/google/home/zoranl/go/src/github.com/GoogleCloudPlatform/compute-image-tools/"
 	params.WorkflowDir = toWorkingDir(currentExecutablePath, mainWorkflowDir)
 }
 

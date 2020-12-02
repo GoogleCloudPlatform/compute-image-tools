@@ -87,8 +87,6 @@ func (g *ovfDescriptorGeneratorImpl) generate(instance *compute.Instance, export
 	descriptor.VirtualSystem = &ovf.VirtualSystem{Content: ovf.Content{Info: "A GCE virtual machine", ID: instance.Name, Name: &instance.Name}}
 	descriptor.VirtualSystem.VirtualHardware = make([]ovf.VirtualHardwareSection, 1)
 	descriptor.VirtualSystem.VirtualHardware[0] = ovf.VirtualHardwareSection{Section: ovf.Section{Info: "Virtual hardware requirements"}}
-
-	//TODO: do we need VirtualSystemType? It's set to e.g. "vmx-11". It's a VMWare identifier
 	descriptor.VirtualSystem.VirtualHardware[0].System = &ovf.VirtualSystemSettingData{CIMVirtualSystemSettingData: ovf.CIMVirtualSystemSettingData{ElementName: "Virtual Hardware Family", InstanceID: "0", VirtualSystemIdentifier: &instance.Name}}
 
 	// disk controller
@@ -124,8 +122,6 @@ func (g *ovfDescriptorGeneratorImpl) generate(instance *compute.Instance, export
 	}
 
 	g.populateOS(descriptor, diskInspectionResult)
-
-	//TODO items: network, video card
 
 	return descriptor, nil
 }

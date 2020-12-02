@@ -106,12 +106,6 @@ func generateWorkflowWithSteps(workflowName, timeout string, populateStepsFunc p
 	params *ovfexportdomain.OVFExportParams) (*daisy.Workflow, error) {
 
 	w := daisy.New()
-	//w, err := daisycommon.ParseWorkflow(workflowPath, varMap, *params.Project,
-	//	params.Zone, params.ScratchBucketGcsPath, params.Oauth, params.Timeout.String(), params.Ce,
-	//	params.GcsLogsDisabled, params.CloudLogsDisabled, params.StdoutLogsDisabled)
-	//if err != nil {
-	//	return w, err
-	//}
 	w.Name = workflowName
 	w.DefaultTimeout = timeout
 	w.ForceCleanupOnError = true

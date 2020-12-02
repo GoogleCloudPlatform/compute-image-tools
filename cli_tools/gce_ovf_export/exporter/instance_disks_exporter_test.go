@@ -33,10 +33,8 @@ func TestDiskExporter_HappyPath(t *testing.T) {
 
 	params := ovfexportdomain.GetAllInstanceExportParams()
 	params.Oauth = ""
+	params.WorkflowDir = "../../../daisy_workflows/"
 
-	//TODO: remove full path after dev is done
-	//params.WorkflowDir = "../../daisy_workflows/"
-	params.WorkflowDir = "/usr/local/google/home/zoranl/go/src/github.com/GoogleCloudPlatform/compute-image-tools/daisy_workflows/"
 	project := *params.Project
 	region := "us-central1"
 

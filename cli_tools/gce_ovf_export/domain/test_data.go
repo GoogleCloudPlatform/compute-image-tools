@@ -19,13 +19,22 @@ import (
 	"time"
 )
 
+// TestProject is a test value for project flag
 const TestProject = "a-project"
+
+// TestZone is a test value for zone flag
 const TestZone = "us-central1-c"
+
+// TestRegion is a test value for region
 const TestRegion = "us-central1"
 
-var TestSubnet = fmt.Sprintf("projects/%v/regions/%v/subnetworks/%v", TestProject, TestRegion, "a-subnet")
+// TestNetwork is a test value for network path
 var TestNetwork = fmt.Sprintf("projects/%v/global/networks/%v", TestProject, "a-network")
 
+// TestSubnet is a test value for subnet path
+var TestSubnet = fmt.Sprintf("projects/%v/regions/%v/subnetworks/%v", TestProject, TestRegion, "a-subnet")
+
+// GetAllInstanceExportParams returns a new OVFExportParams reference for instance export with default values
 func GetAllInstanceExportParams() *OVFExportParams {
 	var project = TestProject
 	return &OVFExportParams{
@@ -50,6 +59,7 @@ func GetAllInstanceExportParams() *OVFExportParams {
 	}
 }
 
+// GetAllMachineImageExportParams returns a new OVFExportParams reference for machine image export with default values
 func GetAllMachineImageExportParams() *OVFExportParams {
 	project := TestProject
 

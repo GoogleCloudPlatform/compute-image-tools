@@ -18,6 +18,7 @@ package ovf
 
 import "encoding/xml"
 
+// Envelope represents OVF descriptor
 type Envelope struct {
 	XMLName   xml.Name `xml:"http://schemas.dmtf.org/ovf/envelope/1 Envelope"`
 	XMLNSCIM  string   `xml:"xmlns:cim,attr"`
@@ -44,6 +45,7 @@ type Envelope struct {
 	VirtualSystem *VirtualSystem `xml:"VirtualSystem"`
 }
 
+// VirtualSystem represents OVF virtual system
 type VirtualSystem struct {
 	Content
 
@@ -54,6 +56,7 @@ type VirtualSystem struct {
 	VirtualHardware []VirtualHardwareSection `xml:"VirtualHardwareSection"`
 }
 
+// File represents file element
 type File struct {
 	ID          string  `xml:"id,attr"`
 	Href        string  `xml:"href,attr"`
@@ -62,23 +65,27 @@ type File struct {
 	ChunkSize   *int    `xml:"chunkSize,attr"`
 }
 
+// Content is a base struct for other named OVF elements
 type Content struct {
 	ID   string  `xml:"id,attr"`
 	Info string  `xml:"Info"`
 	Name *string `xml:"Name"`
 }
 
+// Section is a base struct representing unnamed sections
 type Section struct {
 	Required *bool  `xml:"required,attr"`
 	Info     string `xml:"Info"`
 }
 
+// AnnotationSection is annotation section
 type AnnotationSection struct {
 	Section
 
 	Annotation string `xml:"Annotation"`
 }
 
+// ProductSection is product section
 type ProductSection struct {
 	Section
 
@@ -95,6 +102,7 @@ type ProductSection struct {
 	Property    []Property `xml:"Property"`
 }
 
+// Property represents a property
 type Property struct {
 	Key              string  `xml:"key,attr"`
 	Type             string  `xml:"type,attr"`
@@ -109,29 +117,34 @@ type Property struct {
 	Values []PropertyConfigurationValue `xml:"Value"`
 }
 
+// PropertyConfigurationValue represents property configuration value
 type PropertyConfigurationValue struct {
 	Value         string  `xml:"value,attr"`
 	Configuration *string `xml:"configuration,attr"`
 }
 
+// NetworkSection represents network section
 type NetworkSection struct {
 	Section
 
 	Networks []Network `xml:"Network"`
 }
 
+// Network represents network
 type Network struct {
 	Name string `xml:"name,attr"`
 
 	Description string `xml:"Description"`
 }
 
+// DiskSection represents disk section
 type DiskSection struct {
 	Section
 
 	Disks []VirtualDiskDesc `xml:"Disk"`
 }
 
+//VirtualDiskDesc represents virtual disk description
 type VirtualDiskDesc struct {
 	DiskID                  string  `xml:"ovf:diskId,attr"`
 	FileRef                 *string `xml:"ovf:fileRef,attr"`
@@ -142,6 +155,7 @@ type VirtualDiskDesc struct {
 	ParentRef               *string `xml:"ovf:parentRef,attr"`
 }
 
+// OperatingSystemSection represents operating system section
 type OperatingSystemSection struct {
 	Section
 
@@ -152,12 +166,14 @@ type OperatingSystemSection struct {
 	Description *string `xml:"Description"`
 }
 
+// EulaSection represents EULA section
 type EulaSection struct {
 	Section
 
 	License string `xml:"License"`
 }
 
+// VirtualHardwareSection represents virtual hardware section
 type VirtualHardwareSection struct {
 	Section
 
@@ -169,10 +185,12 @@ type VirtualHardwareSection struct {
 	StorageItem []StorageAllocationSettingData  `xml:"StorageItem"`
 }
 
+// VirtualSystemSettingData represents virtual system settings
 type VirtualSystemSettingData struct {
 	CIMVirtualSystemSettingData
 }
 
+// ResourceAllocationSettingData represents resource allocation settings
 type ResourceAllocationSettingData struct {
 	CIMResourceAllocationSettingData
 
@@ -181,6 +199,7 @@ type ResourceAllocationSettingData struct {
 	Required      *bool   `xml:"required,attr"`
 }
 
+// StorageAllocationSettingData represents storage allocation settings
 type StorageAllocationSettingData struct {
 	CIMStorageAllocationSettingData
 
@@ -189,18 +208,21 @@ type StorageAllocationSettingData struct {
 	Bound         *string `xml:"bound,attr"`
 }
 
+// ResourceAllocationSection represents resource allocations
 type ResourceAllocationSection struct {
 	Section
 
 	Item []ResourceAllocationSettingData `xml:"Item"`
 }
 
+// DeploymentOptionSection represents deployment options
 type DeploymentOptionSection struct {
 	Section
 
 	Configuration []DeploymentOptionConfiguration `xml:"Configuration"`
 }
 
+// DeploymentOptionConfiguration represents deployment options
 type DeploymentOptionConfiguration struct {
 	ID      string `xml:"id,attr"`
 	Default *bool  `xml:"default,attr"`
