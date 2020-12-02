@@ -71,7 +71,7 @@ func (oe *OVFExporter) generateDescriptor(ctx context.Context, instance *compute
 		if err != nil {
 			return err
 		}
-		return oe.ovfDescriptorGenerator.GenerateAndWriteOVFDescriptor(instance, oe.exportedDisks, bucketName, gcsDirectoryPath, &oe.bootDiskInspectionResults)
+		return oe.ovfDescriptorGenerator.GenerateAndWriteOVFDescriptor(instance, oe.exportedDisks, bucketName, gcsDirectoryPath, oe.bootDiskInspectionResults)
 	}, oe.ovfDescriptorGenerator.Cancel, func() []string { return nil })
 }
 

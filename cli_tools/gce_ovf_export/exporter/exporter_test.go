@@ -21,10 +21,10 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-	commondisk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
+	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
@@ -57,7 +57,14 @@ func TestRun_HappyPath(t *testing.T) {
 	params := ovfexportdomain.GetAllInstanceExportParams()
 	instance := &compute.Instance{}
 
-	inspectionResults := commondisk.InspectionResult{Architecture: "x86", Distro: "ubuntu", Major: "16", Minor: "4"}
+	inspectionResults := &pb.InspectionResults{
+		OsRelease: &pb.OsRelease{
+			Architecture: pb.Architecture_X86,
+			Distro:       "ubuntu",
+			MajorVersion: "16",
+			MinorVersion: "4",
+		},
+	}
 
 	mockLogger := mocks.NewMockLoggerInterface(mockCtrl)
 	mockLogger.EXPECT().Log(gomock.Any()).AnyTimes()
@@ -85,7 +92,7 @@ func TestRun_HappyPath(t *testing.T) {
 	mockInspector.EXPECT().TraceLogs().Return([]string{"inspector trace log"})
 
 	mockOvfDescriptorGenerator := mocks.NewMockOvfDescriptorGenerator(mockCtrl)
-	mockOvfDescriptorGenerator.EXPECT().GenerateAndWriteOVFDescriptor(instance, exportedDisks, "ovfbucket", "OVFpath/", &inspectionResults).Return(nil)
+	mockOvfDescriptorGenerator.EXPECT().GenerateAndWriteOVFDescriptor(instance, exportedDisks, "ovfbucket", "OVFpath/", inspectionResults).Return(nil)
 
 	mockOvfManifestGenerator := mocks.NewMockOvfManifestGenerator(mockCtrl)
 	mockOvfManifestGenerator.EXPECT().GenerateAndWriteToGCS(params.DestinationURI, params.InstanceName).Return(nil)
@@ -267,7 +274,7 @@ func TestRun_DontRunDescriptorGeneratorIfInspectorTimedOut(t *testing.T) {
 	inspectorCancelChan := make(chan bool)
 	mockInspector := mocks.NewMockInspector(mockCtrl)
 	mockInspector.EXPECT().Inspect(
-		fmt.Sprintf("projects/%v/zones/%v/disks/%v", *params.Project, params.Zone, "bootdisk"), true).Do(func(reference string, inspectOS bool) { sleepStep(inspectorCancelChan) }).Return(commondisk.InspectionResult{}, nil)
+		fmt.Sprintf("projects/%v/zones/%v/disks/%v", *params.Project, params.Zone, "bootdisk"), true).Do(func(reference string, inspectOS bool) { sleepStep(inspectorCancelChan) }).Return(&pb.InspectionResults{}, nil)
 	mockInspector.EXPECT().Cancel("timed-out").Do(func(_ string) { inspectorCancelChan <- true }).Return(true)
 	mockInspector.EXPECT().TraceLogs().Return([]string{"inspector trace log"})
 
@@ -303,8 +310,14 @@ func TestRun_DontRunManifestGeneratorIfDescriptorGeneratorTimedOut(t *testing.T)
 	params := ovfexportdomain.GetAllInstanceExportParams()
 	params.Timeout = 100 * time.Millisecond
 	instance := &compute.Instance{}
-	inspectionResults := commondisk.InspectionResult{Architecture: "x86", Distro: "ubuntu", Major: "16", Minor: "4"}
-
+	inspectionResults := &pb.InspectionResults{
+		OsRelease: &pb.OsRelease{
+			Architecture: pb.Architecture_X86,
+			Distro:       "ubuntu",
+			MajorVersion: "16",
+			MinorVersion: "4",
+		},
+	}
 	mockLogger := mocks.NewMockLoggerInterface(mockCtrl)
 	mockLogger.EXPECT().Log(gomock.Any()).AnyTimes()
 
@@ -333,8 +346,8 @@ func TestRun_DontRunManifestGeneratorIfDescriptorGeneratorTimedOut(t *testing.T)
 	descriptorGeneratorCancelChan := make(chan bool)
 	mockOvfDescriptorGenerator := mocks.NewMockOvfDescriptorGenerator(mockCtrl)
 	mockOvfDescriptorGenerator.EXPECT().GenerateAndWriteOVFDescriptor(
-		instance, exportedDisks, "ovfbucket", "OVFpath/", &inspectionResults).Do(
-		func(_ *compute.Instance, _ []*ovfexportdomain.ExportedDisk, _, _ string, _ *commondisk.InspectionResult) {
+		instance, exportedDisks, "ovfbucket", "OVFpath/", inspectionResults).Do(
+		func(_ *compute.Instance, _ []*ovfexportdomain.ExportedDisk, _, _ string, _ *pb.InspectionResults) {
 			sleepStep(descriptorGeneratorCancelChan)
 		}).Return(nil)
 	mockOvfDescriptorGenerator.EXPECT().Cancel("timed-out").Do(func(_ string) { descriptorGeneratorCancelChan <- true }).Return(true)
@@ -370,8 +383,14 @@ func TestRun_TimeOutOnManifestGeneratorTimingOut(t *testing.T) {
 	params := ovfexportdomain.GetAllInstanceExportParams()
 	params.Timeout = 100 * time.Millisecond
 	instance := &compute.Instance{}
-	inspectionResults := commondisk.InspectionResult{Architecture: "x86", Distro: "ubuntu", Major: "16", Minor: "4"}
-
+	inspectionResults := &pb.InspectionResults{
+		OsRelease: &pb.OsRelease{
+			Architecture: pb.Architecture_X86,
+			Distro:       "ubuntu",
+			MajorVersion: "16",
+			MinorVersion: "4",
+		},
+	}
 	mockLogger := mocks.NewMockLoggerInterface(mockCtrl)
 	mockLogger.EXPECT().Log(gomock.Any()).AnyTimes()
 
@@ -399,7 +418,7 @@ func TestRun_TimeOutOnManifestGeneratorTimingOut(t *testing.T) {
 
 	mockOvfDescriptorGenerator := mocks.NewMockOvfDescriptorGenerator(mockCtrl)
 	mockOvfDescriptorGenerator.EXPECT().GenerateAndWriteOVFDescriptor(
-		instance, exportedDisks, "ovfbucket", "OVFpath/", &inspectionResults).Return(nil)
+		instance, exportedDisks, "ovfbucket", "OVFpath/", inspectionResults).Return(nil)
 
 	manifestGeneratorCancelChan := make(chan bool)
 	mockOvfManifestGenerator := mocks.NewMockOvfManifestGenerator(mockCtrl)

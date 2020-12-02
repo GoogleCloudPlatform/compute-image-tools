@@ -20,13 +20,13 @@ import (
 	"strconv"
 	"strings"
 
-	commondisk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/exporter/ovf"
 	ovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -62,7 +62,7 @@ func NewOvfDescriptorGenerator(computeClient daisycompute.Client, storageClient 
 
 // GenerateAndWriteOVFDescriptor generates an OVF descriptor based on the
 // instance exported and disk file paths. and stores it as a file in GCS.
-func (g *ovfDescriptorGeneratorImpl) GenerateAndWriteOVFDescriptor(instance *compute.Instance, exportedDisks []*ovfexportdomain.ExportedDisk, bucketName, gcsDirectoryPath string, diskInspectionResult *commondisk.InspectionResult) error {
+func (g *ovfDescriptorGeneratorImpl) GenerateAndWriteOVFDescriptor(instance *compute.Instance, exportedDisks []*ovfexportdomain.ExportedDisk, bucketName, gcsDirectoryPath string, diskInspectionResult *pb.InspectionResults) error {
 	var err error
 	var descriptor *ovf.Envelope
 	if descriptor, err = g.generate(instance, exportedDisks, diskInspectionResult); err != nil {
@@ -79,7 +79,7 @@ func (g *ovfDescriptorGeneratorImpl) GenerateAndWriteOVFDescriptor(instance *com
 }
 
 // Generate generates an OVF descriptor based on the instance exported and disk file paths.
-func (g *ovfDescriptorGeneratorImpl) generate(instance *compute.Instance, exportedDisks []*ovfexportdomain.ExportedDisk, diskInspectionResult *commondisk.InspectionResult) (*ovf.Envelope, error) {
+func (g *ovfDescriptorGeneratorImpl) generate(instance *compute.Instance, exportedDisks []*ovfexportdomain.ExportedDisk, diskInspectionResult *pb.InspectionResults) (*ovf.Envelope, error) {
 	descriptor := &ovf.Envelope{}
 	descriptor.References = make([]ovf.File, len(exportedDisks))
 	descriptor.Disk = &ovf.DiskSection{Disks: make([]ovf.VirtualDiskDesc, len(exportedDisks)), Section: ovf.Section{Info: "Virtual disk information"}}
@@ -169,7 +169,7 @@ func (g *ovfDescriptorGeneratorImpl) populateMachineType(instance *compute.Insta
 	return nil
 }
 
-func (g *ovfDescriptorGeneratorImpl) populateOS(descriptor *ovf.Envelope, ir *commondisk.InspectionResult) error {
+func (g *ovfDescriptorGeneratorImpl) populateOS(descriptor *ovf.Envelope, ir *pb.InspectionResults) error {
 	descriptor.VirtualSystem.OperatingSystem = make([]ovf.OperatingSystemSection, 1)
 	descriptor.VirtualSystem.OperatingSystem[0].Info = "The kind of installed guest operating system"
 
@@ -177,11 +177,11 @@ func (g *ovfDescriptorGeneratorImpl) populateOS(descriptor *ovf.Envelope, ir *co
 	descriptor.VirtualSystem.OperatingSystem[0].ID = 0
 	descriptor.VirtualSystem.OperatingSystem[0].OSType = strPtr("Unknown")
 	if ir != nil {
-		osInfo, osID := ovfutils.GetOSInfoForInspectionResults(*ir)
+		osInfo, osID := ovfutils.GetOSInfoForInspectionResults(ir)
 		if osInfo != nil {
 			descriptor.VirtualSystem.OperatingSystem[0].ID = osID
 			//TODO: include minor version as well
-			descriptor.VirtualSystem.OperatingSystem[0].Version = strPtr(ir.Major)
+			descriptor.VirtualSystem.OperatingSystem[0].Version = strPtr(ir.GetOsRelease().GetMajorVersion())
 			descriptor.VirtualSystem.OperatingSystem[0].OSType = strPtr(osInfo.OsType) //TODO this field is not currently populated in ovf_utils
 			descriptor.VirtualSystem.OperatingSystem[0].Description = strPtr(formatOSDescription(ir))
 		}
@@ -189,17 +189,17 @@ func (g *ovfDescriptorGeneratorImpl) populateOS(descriptor *ovf.Envelope, ir *co
 	return nil
 }
 
-func formatOSDescription(ir *commondisk.InspectionResult) string {
+func formatOSDescription(ir *pb.InspectionResults) string {
 	//TODO: this can be extracted from virt-inspector output, e.g. <product_name>Windows Server 2012 R2 Standard</product_name
-	desc := strings.Title(fmt.Sprintf("%v %v", ir.Distro, ir.Major))
-	if ir.Major != "" {
-		desc = fmt.Sprintf("%v.%v", desc, ir.Minor)
+	desc := strings.Title(fmt.Sprintf("%v %v", ir.GetOsRelease().GetDistro(), ir.GetOsRelease().GetMajorVersion()))
+	if ir.GetOsRelease().GetMinorVersion() != "" {
+		desc = fmt.Sprintf("%v.%v", desc, ir.GetOsRelease().GetMinorVersion())
 	}
 	architectureDesc := ""
-	switch ir.Architecture {
-	case "x86":
+	switch ir.GetOsRelease().GetArchitecture() {
+	case pb.Architecture_X86:
 		architectureDesc = "32-bit"
-	case "x64":
+	case pb.Architecture_X64:
 		architectureDesc = "64-bit"
 	}
 	if architectureDesc != "" {

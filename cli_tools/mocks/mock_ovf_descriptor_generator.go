@@ -16,8 +16,8 @@
 package mocks
 
 import (
-	disk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	domain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
+	pb "github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 	gomock "github.com/golang/mock/gomock"
 	v1 "google.golang.org/api/compute/v1"
 	reflect "reflect"
@@ -61,7 +61,7 @@ func (mr *MockOvfDescriptorGeneratorMockRecorder) Cancel(arg0 interface{}) *gomo
 }
 
 // GenerateAndWriteOVFDescriptor mocks base method
-func (m *MockOvfDescriptorGenerator) GenerateAndWriteOVFDescriptor(arg0 *v1.Instance, arg1 []*domain.ExportedDisk, arg2, arg3 string, arg4 *disk.InspectionResult) error {
+func (m *MockOvfDescriptorGenerator) GenerateAndWriteOVFDescriptor(arg0 *v1.Instance, arg1 []*domain.ExportedDisk, arg2, arg3 string, arg4 *pb.InspectionResults) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateAndWriteOVFDescriptor", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(error)

@@ -21,9 +21,9 @@ import (
 	"testing"
 
 	"cloud.google.com/go/storage"
-	commondisk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
+	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
@@ -68,8 +68,14 @@ func TestOvfDescriptorGenerator_GenerateAndWriteOVFDescriptor(t *testing.T) {
 		GcsFileAttrs: &storage.ObjectAttrs{},
 	}
 	exportedDisks := []*ovfexportdomain.ExportedDisk{disk1, disk2}
-	diskInspectionResults := &commondisk.InspectionResult{Distro: "ubuntu", Major: "18", Minor: "04", Architecture: "x64"}
-
+	diskInspectionResults := &pb.InspectionResults{
+		OsRelease: &pb.OsRelease{
+			Architecture: pb.Architecture_X64,
+			Distro:       "ubuntu",
+			MajorVersion: "18",
+			MinorVersion: "04",
+		},
+	}
 	g := ovfDescriptorGeneratorImpl{storageClient: mockStorageClient, computeClient: mockComputeClient, Project: project, Zone: zone}
 	err := g.GenerateAndWriteOVFDescriptor(instance, exportedDisks, bucket, gcsFolder, diskInspectionResults)
 	assert.Nil(t, err)

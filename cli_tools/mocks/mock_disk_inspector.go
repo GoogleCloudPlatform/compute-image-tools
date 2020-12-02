@@ -16,7 +16,7 @@
 package mocks
 
 import (
-	disk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
+	pb "github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 )
@@ -59,10 +59,10 @@ func (mr *MockInspectorMockRecorder) Cancel(arg0 interface{}) *gomock.Call {
 }
 
 // Inspect mocks base method
-func (m *MockInspector) Inspect(arg0 string, arg1 bool) (disk.InspectionResult, error) {
+func (m *MockInspector) Inspect(arg0 string, arg1 bool) (*pb.InspectionResults, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Inspect", arg0, arg1)
-	ret0, _ := ret[0].(disk.InspectionResult)
+	ret0, _ := ret[0].(*pb.InspectionResults)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

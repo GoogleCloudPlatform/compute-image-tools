@@ -29,6 +29,7 @@ import (
 	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
 )
@@ -68,7 +69,7 @@ type OVFExporter struct {
 	ovfDescriptorGenerator    ovfexportdomain.OvfDescriptorGenerator
 	manifestFileGenerator     ovfexportdomain.OvfManifestGenerator
 	exportedDisks             []*ovfexportdomain.ExportedDisk
-	bootDiskInspectionResults commondisk.InspectionResult
+	bootDiskInspectionResults *pb.InspectionResults
 	traceLogs                 []string
 	loggableBuilder           *service.OvfExportLoggableBuilder
 }

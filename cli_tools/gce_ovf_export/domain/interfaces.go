@@ -15,7 +15,7 @@
 package ovfexportdomain
 
 import (
-	commondisk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
+	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -52,7 +52,7 @@ type OvfManifestGenerator interface {
 // OvfDescriptorGenerator is responsible for generating OVF descriptor based on
 //GCE instance being exported.
 type OvfDescriptorGenerator interface {
-	GenerateAndWriteOVFDescriptor(instance *compute.Instance, exportedDisks []*ExportedDisk, bucketName, gcsDirectoryPath string, diskInspectionResult *commondisk.InspectionResult) error
+	GenerateAndWriteOVFDescriptor(instance *compute.Instance, exportedDisks []*ExportedDisk, bucketName, gcsDirectoryPath string, diskInspectionResult *pb.InspectionResults) error
 	Cancel(reason string) bool
 }
 
