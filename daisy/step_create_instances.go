@@ -197,7 +197,9 @@ func (ci *CreateInstances) run(ctx context.Context, s *Step) DError {
 		}
 
 		ib.createdInWorkflow = true
-		go logSerialOutput(ctx, s, ii, ib, 1, 3*time.Second)
+		for _, port := range ib.SerialPortsToLog {
+			go logSerialOutput(ctx, s, ii, ib, port, 3*time.Second)
+		}
 	}
 
 	if ci.instanceUsesBetaFeatures() {
