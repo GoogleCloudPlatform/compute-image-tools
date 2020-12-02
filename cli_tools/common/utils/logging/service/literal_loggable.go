@@ -120,7 +120,7 @@ func NewOvfExportLoggableBuilder() *OvfExportLoggableBuilder {
 	}}
 }
 
-// SetDiskAttributes sets disk related attributes.
+// SetDiskSizes sets disk sizes for OVF exported disks
 func (b *OvfExportLoggableBuilder) SetDiskSizes(sourceSizes []int64,
 	targetSizes []int64) *OvfExportLoggableBuilder {
 

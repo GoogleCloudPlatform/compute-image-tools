@@ -113,6 +113,7 @@ type HTTPClientInterface interface {
 	Get(url string) (resp *http.Response, err error)
 }
 
+// ManifestFileGeneratorInterface represents OVF manifest file generator
 type ManifestFileGeneratorInterface interface {
 	GenerateAndWriteToGCS(gcsPath, manifestFileName string) error
 	Generate(bucketName, directoryPath string) (string, error)

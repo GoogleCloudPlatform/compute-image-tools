@@ -249,7 +249,7 @@ type InstanceExportParams struct {
 	OS               string `json:"os,omitempty"`
 }
 
-// InstanceExportParams contains all input params for instance export
+// MachineImageExportParams contains all input params for instance export
 type MachineImageExportParams struct {
 	*CommonParams
 

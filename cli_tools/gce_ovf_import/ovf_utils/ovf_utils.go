@@ -37,6 +37,7 @@ const (
 	usbController          uint16 = 23
 )
 
+// OsInfo holds OS information for OVF import and export
 type OsInfo struct {
 	// description holds OS description that can be used for messages shown to users
 	description string
@@ -189,6 +190,7 @@ var ovfOSIDToImporterOSID = map[int16]OsInfo{
 	121: {description: "Microsoft Windows 10 64-bit", importerOSIDs: []string{"windows-10-x64-byol"}, nonDeterministic: true},
 }
 
+// GetOSInfoForInspectionResults builds OS info from inspection results
 func GetOSInfoForInspectionResults(ir *pb.InspectionResults) (*OsInfo, int16) {
 	release, err := distro.FromComponents(
 		ir.GetOsRelease().GetDistro(),
@@ -201,8 +203,8 @@ func GetOSInfoForInspectionResults(ir *pb.InspectionResults) (*OsInfo, int16) {
 	}
 	osGcloudArg := release.AsGcloudArg()
 	for osID, osInfo := range ovfOSIDToImporterOSID {
-		for _, importerOsId := range osInfo.importerOSIDs {
-			if strings.HasPrefix(strings.ToLower(importerOsId), strings.ToLower(osGcloudArg)) {
+		for _, importerOsID := range osInfo.importerOSIDs {
+			if strings.HasPrefix(strings.ToLower(importerOsID), strings.ToLower(osGcloudArg)) {
 				return &osInfo, osID
 			}
 		}
