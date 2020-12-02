@@ -52,7 +52,7 @@ func (d defaultProcessorProvider) provide(pd persistentDisk) (processors []proce
 	}
 
 	processors = append(processors, newDiskInspectionProcessor(d.diskInspector, d.ImportArguments))
-	processors = append(processors, newUefiProcessor(d.computeClient, d.ImportArguments))
+	processors = append(processors, newMetadataProcessor(d.computeClient, d.ImportArguments))
 
 	bootableDiskProcessor, err := newBootableDiskProcessor(d.ImportArguments)
 	if err != nil {

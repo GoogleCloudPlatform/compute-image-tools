@@ -25,13 +25,18 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
-// uefiProcessor mutate the disk in order to make the image compatible with UEFI boot.
-type uefiProcessor struct {
+// metadataProcessor ensures metadata is present on a GCP disk. If
+// metadata is missing, the disk will be recreated.
+type metadataProcessor struct {
 	args              ImportArguments
 	computeDiskClient daisyCompute.Client
 }
 
-func (p *uefiProcessor) process(pd persistentDisk,
+func newMetadataProcessor(computeDiskClient daisyCompute.Client, args ImportArguments) processor {
+	return &metadataProcessor{args, computeDiskClient}
+}
+
+func (p *metadataProcessor) process(pd persistentDisk,
 	loggableBuilder *service.SingleImageImportLoggableBuilder) (persistentDisk, error) {
 
 	// If this is not a UEFI disk, don't add "UEFI_COMPATIBLE" for it.
@@ -75,20 +80,11 @@ func (p *uefiProcessor) process(pd persistentDisk,
 	return pd, nil
 }
 
-func (p *uefiProcessor) cancel(reason string) bool {
+func (p *metadataProcessor) cancel(reason string) bool {
 	// Cancel is not performed since there is only one critical API call - CreateDisk
 	return false
 }
 
-func (p *uefiProcessor) traceLogs() []string {
+func (p *metadataProcessor) traceLogs() []string {
 	return []string{}
-}
-
-func newUefiProcessor(computeDiskClient daisyCompute.Client,
-	args ImportArguments) processor {
-
-	return &uefiProcessor{
-		args:              args,
-		computeDiskClient: computeDiskClient,
-	}
 }
