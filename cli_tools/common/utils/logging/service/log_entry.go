@@ -94,30 +94,32 @@ type InputParams struct {
 type ImageImportParams struct {
 	*CommonParams
 
-	ImageName          string                `json:"image_name,omitempty"`
-	DataDisk           bool                  `json:"data_disk"`
-	OS                 string                `json:"os,omitempty"`
-	SourceFile         string                `json:"source_file,omitempty"`
-	SourceImage        string                `json:"source_image,omitempty"`
-	NoGuestEnvironment bool                  `json:"no_guest_environment"`
-	Family             string                `json:"family,omitempty"`
-	Description        string                `json:"description,omitempty"`
-	NoExternalIP       bool                  `json:"no_external_ip"`
-	HasKmsKey          bool                  `json:"has_kms_key"`
-	HasKmsKeyring      bool                  `json:"has_kms_keyring"`
-	HasKmsLocation     bool                  `json:"has_kms_location"`
-	HasKmsProject      bool                  `json:"has_kms_project"`
-	StorageLocation    string                `json:"storage_location,omitempty"`
-	InspectionResults  *pb.InspectionResults `json:"inspection_results,omitempty"`
+	ImageName             string                `json:"image_name,omitempty"`
+	DataDisk              bool                  `json:"data_disk"`
+	OS                    string                `json:"os,omitempty"`
+	SourceFile            string                `json:"source_file,omitempty"`
+	SourceImage           string                `json:"source_image,omitempty"`
+	NoGuestEnvironment    bool                  `json:"no_guest_environment"`
+	Family                string                `json:"family,omitempty"`
+	Description           string                `json:"description,omitempty"`
+	NoExternalIP          bool                  `json:"no_external_ip"`
+	HasKmsKey             bool                  `json:"has_kms_key"`
+	HasKmsKeyring         bool                  `json:"has_kms_keyring"`
+	HasKmsLocation        bool                  `json:"has_kms_location"`
+	HasKmsProject         bool                  `json:"has_kms_project"`
+	StorageLocation       string                `json:"storage_location,omitempty"`
+	InspectionResults     *pb.InspectionResults `json:"inspection_results,omitempty"`
+	ComputeServiceAccount string                `json:"compute_service_account,omitempty"`
 }
 
 // ImageExportParams contains all input params for image export
 type ImageExportParams struct {
 	*CommonParams
 
-	DestinationURI string `json:"destination_uri,omitempty"`
-	SourceImage    string `json:"source_image,omitempty"`
-	Format         string `json:"format,omitempty"`
+	DestinationURI        string `json:"destination_uri,omitempty"`
+	SourceImage           string `json:"source_image,omitempty"`
+	Format                string `json:"format,omitempty"`
+	ComputeServiceAccount string `json:"compute_service_account,omitempty"`
 }
 
 // OnestepImageImportParams contains all input params for onestep image import
@@ -125,17 +127,18 @@ type OnestepImageImportParams struct {
 	*CommonParams
 
 	// Image import params
-	ImageName          string `json:"image_name,omitempty"`
-	OS                 string `json:"os,omitempty"`
-	NoGuestEnvironment bool   `json:"no_guest_environment"`
-	Family             string `json:"family,omitempty"`
-	Description        string `json:"description,omitempty"`
-	NoExternalIP       bool   `json:"no_external_ip"`
-	HasKmsKey          bool   `json:"has_kms_key"`
-	HasKmsKeyring      bool   `json:"has_kms_keyring"`
-	HasKmsLocation     bool   `json:"has_kms_location"`
-	HasKmsProject      bool   `json:"has_kms_project"`
-	StorageLocation    string `json:"storage_location,omitempty"`
+	ImageName             string `json:"image_name,omitempty"`
+	OS                    string `json:"os,omitempty"`
+	NoGuestEnvironment    bool   `json:"no_guest_environment"`
+	Family                string `json:"family,omitempty"`
+	Description           string `json:"description,omitempty"`
+	NoExternalIP          bool   `json:"no_external_ip"`
+	HasKmsKey             bool   `json:"has_kms_key"`
+	HasKmsKeyring         bool   `json:"has_kms_keyring"`
+	HasKmsLocation        bool   `json:"has_kms_location"`
+	HasKmsProject         bool   `json:"has_kms_project"`
+	StorageLocation       string `json:"storage_location,omitempty"`
+	ComputeServiceAccount string `json:"compute_service_account,omitempty"`
 
 	// AWS related params
 	AWSAMIID             string `json:"aws_ami_id,omitempty"`
@@ -168,6 +171,7 @@ type InstanceImportParams struct {
 	HasBootDiskKmsProject       bool   `json:"has_boot_disk_kms_project"`
 	NoGuestEnvironment          bool   `json:"no_guest_environment"`
 	NodeAffinityLabel           string `json:"node_affinity_label,omitempty"`
+	ComputeServiceAccount       string `json:"compute_service_account,omitempty"`
 }
 
 // MachineImageImportParams contains all input params for machine image import
@@ -197,6 +201,7 @@ type MachineImageImportParams struct {
 	NodeAffinityLabel           string `json:"node_affinity_label,omitempty"`
 	Hostname                    string `json:"hostname,omitempty"`
 	MachineImageStorageLocation string `json:"machine_image_storage_location,omitempty"`
+	ComputeServiceAccount       string `json:"compute_service_account,omitempty"`
 }
 
 // CommonParams is only used to organize the code without impacting hierarchy of data

@@ -74,9 +74,10 @@ func main() {
 				DisableCloudLogging:     *cloudLogsDisabled,
 				DisableStdoutLogging:    *stdoutLogsDisabled,
 			},
-			DestinationURI: *destinationURI,
-			SourceImage:    *sourceImage,
-			Format:         *format,
+			DestinationURI:        *destinationURI,
+			SourceImage:           *sourceImage,
+			Format:                *format,
+			ComputeServiceAccount: *computeServiceAccount,
 		},
 	}
 

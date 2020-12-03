@@ -44,40 +44,41 @@ const (
 // ImportArguments holds the structured results of parsing CLI arguments,
 // and optionally allows for validating and populating the arguments.
 type ImportArguments struct {
-	ExecutionID          string
-	ClientID             string
-	ClientVersion        string
-	CloudLogsDisabled    bool
-	ComputeEndpoint      string
-	WorkflowDir          string
-	CustomWorkflow       string
-	DataDisk             bool
-	Description          string
-	Family               string
-	GcsLogsDisabled      bool
-	ImageName            string
-	Inspect              bool
-	Labels               map[string]string
-	Network              string
-	NoExternalIP         bool
-	NoGuestEnvironment   bool
-	Oauth                string
-	BYOL                 bool
-	OS                   string
-	Project              string
-	Region               string
-	ScratchBucketGcsPath string
-	Source               Source
-	SourceFile           string
-	SourceImage          string
-	StdoutLogsDisabled   bool
-	StorageLocation      string
-	Subnet               string
-	SysprepWindows       bool
-	Started              time.Time
-	Timeout              time.Duration
-	UefiCompatible       bool
-	Zone                 string
+	ExecutionID           string
+	ClientID              string
+	ClientVersion         string
+	CloudLogsDisabled     bool
+	ComputeEndpoint       string
+	ComputeServiceAccount string
+	WorkflowDir           string
+	CustomWorkflow        string
+	DataDisk              bool
+	Description           string
+	Family                string
+	GcsLogsDisabled       bool
+	ImageName             string
+	Inspect               bool
+	Labels                map[string]string
+	Network               string
+	NoExternalIP          bool
+	NoGuestEnvironment    bool
+	Oauth                 string
+	BYOL                  bool
+	OS                    string
+	Project               string
+	Region                string
+	ScratchBucketGcsPath  string
+	Source                Source
+	SourceFile            string
+	SourceImage           string
+	StdoutLogsDisabled    bool
+	StorageLocation       string
+	Subnet                string
+	SysprepWindows        bool
+	Started               time.Time
+	Timeout               time.Duration
+	UefiCompatible        bool
+	Zone                  string
 }
 
 // NewImportArguments parses args to create an ImportArguments instance.
