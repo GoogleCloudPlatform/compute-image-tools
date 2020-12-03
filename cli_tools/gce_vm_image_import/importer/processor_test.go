@@ -70,7 +70,7 @@ func TestDefaultProcessorProvider_InspectUEFI(t *testing.T) {
 	assert.Equal(t, 3, len(processors), "there should be 3 processors, got %v", len(processors))
 	_, ok := processors[0].(*diskInspectionProcessor)
 	assert.True(t, ok, "the 1st processor is not diskInspectionDiskProcessor")
-	_, ok = processors[1].(*uefiProcessor)
+	_, ok = processors[1].(*metadataProcessor)
 	assert.True(t, ok, "the 2nd processor is not uefiProcessor")
 	_, ok = processors[2].(*bootableDiskProcessor)
 	assert.True(t, ok, "the 3rd processor is not bootableDiskProcessor")
