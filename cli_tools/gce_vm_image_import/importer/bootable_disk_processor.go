@@ -60,13 +60,10 @@ func (b *bootableDiskProcessor) traceLogs() []string {
 	return []string{}
 }
 
-func newBootableDiskProcessor(args ImportArguments) (processor, error) {
-	var translateWorkflowPath string
-	if args.CustomWorkflow != "" {
-		translateWorkflowPath = args.CustomWorkflow
-	} else {
-		relPath := daisy_utils.GetTranslateWorkflowPath(args.OS)
-		translateWorkflowPath = path.Join(args.WorkflowDir, "image_import", relPath)
+func newBootableDiskProcessor(args ImportArguments, wfPath string) (processor, error) {
+	translateWorkflowPath, err := findWorkflowFile(wfPath, args.WorkflowDir)
+	if err != nil {
+		return nil, err
 	}
 
 	vars := map[string]string{
@@ -95,6 +92,20 @@ func newBootableDiskProcessor(args ImportArguments) (processor, error) {
 		args:     args,
 		workflow: workflow,
 	}, err
+}
+
+func findWorkflowFile(wfPath string, daisyWorkflowDir string) (string, error) {
+	for _, p := range []string{
+		wfPath,
+		path.Join(daisyWorkflowDir, wfPath),
+		path.Join(daisyWorkflowDir, "image_import", wfPath),
+	} {
+		info, err := os.Stat(p)
+		if !os.IsNotExist(err) && !info.IsDir() {
+			return p, nil
+		}
+	}
+	return "", daisy.Errf("Workflow %s not found", wfPath)
 }
 
 func (b *bootableDiskProcessor) postValidateFunc() daisy.WorkflowModifier {

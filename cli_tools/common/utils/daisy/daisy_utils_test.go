@@ -15,7 +15,10 @@
 package daisy
 
 import (
+	"os"
+	"path"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -23,6 +26,113 @@ import (
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
+
+func Test_GetTranslationSettings_ResolveSameWorkflowPathAsOldMap(t *testing.T) {
+	// This map was used by the old logic for resolving workflows from an osID.
+	// By iterating over each, we verify that the new system returns the same
+	// values as the old system.
+	osChoices := map[string]string{
+		"debian-8":            "debian/translate_debian_8.wf.json",
+		"debian-9":            "debian/translate_debian_9.wf.json",
+		"centos-6":            "enterprise_linux/translate_centos_6.wf.json",
+		"centos-7":            "enterprise_linux/translate_centos_7.wf.json",
+		"centos-8":            "enterprise_linux/translate_centos_8.wf.json",
+		"opensuse-15":         "suse/translate_opensuse_15.wf.json",
+		"rhel-6":              "enterprise_linux/translate_rhel_6_licensed.wf.json",
+		"rhel-7":              "enterprise_linux/translate_rhel_7_licensed.wf.json",
+		"rhel-8":              "enterprise_linux/translate_rhel_8_licensed.wf.json",
+		"rhel-6-byol":         "enterprise_linux/translate_rhel_6_byol.wf.json",
+		"rhel-7-byol":         "enterprise_linux/translate_rhel_7_byol.wf.json",
+		"rhel-8-byol":         "enterprise_linux/translate_rhel_8_byol.wf.json",
+		"sles-12":             "suse/translate_sles_12.wf.json",
+		"sles-12-byol":        "suse/translate_sles_12_byol.wf.json",
+		"sles-sap-12":         "suse/translate_sles_sap_12.wf.json",
+		"sles-sap-12-byol":    "suse/translate_sles_sap_12_byol.wf.json",
+		"sles-15":             "suse/translate_sles_15.wf.json",
+		"sles-15-byol":        "suse/translate_sles_15_byol.wf.json",
+		"sles-sap-15":         "suse/translate_sles_sap_15.wf.json",
+		"sles-sap-15-byol":    "suse/translate_sles_sap_15_byol.wf.json",
+		"ubuntu-1404":         "ubuntu/translate_ubuntu_1404.wf.json",
+		"ubuntu-1604":         "ubuntu/translate_ubuntu_1604.wf.json",
+		"ubuntu-1804":         "ubuntu/translate_ubuntu_1804.wf.json",
+		"ubuntu-2004":         "ubuntu/translate_ubuntu_2004.wf.json",
+		"windows-2008r2":      "windows/translate_windows_2008_r2.wf.json",
+		"windows-2008r2-byol": "windows/translate_windows_2008_r2_byol.wf.json",
+		"windows-2012":        "windows/translate_windows_2012.wf.json",
+		"windows-2012-byol":   "windows/translate_windows_2012_byol.wf.json",
+		"windows-2012r2":      "windows/translate_windows_2012_r2.wf.json",
+		"windows-2012r2-byol": "windows/translate_windows_2012_r2_byol.wf.json",
+		"windows-2016":        "windows/translate_windows_2016.wf.json",
+		"windows-2016-byol":   "windows/translate_windows_2016_byol.wf.json",
+		"windows-2019":        "windows/translate_windows_2019.wf.json",
+		"windows-2019-byol":   "windows/translate_windows_2019_byol.wf.json",
+		"windows-7-x64-byol":  "windows/translate_windows_7_x64_byol.wf.json",
+		"windows-7-x86-byol":  "windows/translate_windows_7_x86_byol.wf.json",
+		"windows-8-x64-byol":  "windows/translate_windows_8_x64_byol.wf.json",
+		"windows-8-x86-byol":  "windows/translate_windows_8_x86_byol.wf.json",
+		"windows-10-x64-byol": "windows/translate_windows_10_x64_byol.wf.json",
+		"windows-10-x86-byol": "windows/translate_windows_10_x86_byol.wf.json",
+
+		// Legacy:
+		"windows-7-byol":       "windows/translate_windows_7_x64_byol.wf.json",
+		"windows-8-1-x64-byol": "windows/translate_windows_8_x64_byol.wf.json",
+		"windows-10-byol":      "windows/translate_windows_10_x64_byol.wf.json",
+	}
+
+	for osID, workflowPath := range osChoices {
+		t.Run(osID, func(t *testing.T) {
+			settings, err := GetTranslationSettings(osID)
+			assert.NoError(t, err)
+			assert.Equal(t, workflowPath, settings.WorkflowPath)
+		})
+	}
+}
+
+func Test_GetTranslationSettings_ReturnsSameLicenseAsContainedInJSON(t *testing.T) {
+	// Originally, the JSON workflows in daisy_workflows/image_import were the source of truth
+	// for licensing info. This test verifies that the license returned by LookupImportableOS
+	// is the same as the JSON workflow.
+
+	workflowDir := "../../../../daisy_workflows/image_import"
+
+	if _, err := os.Stat(workflowDir); os.IsNotExist(err) {
+		t.Fatal("Can't find", workflowDir)
+	}
+	for _, osID := range GetSortedOSIDs() {
+		t.Run(osID, func(t *testing.T) {
+			settings, err := GetTranslationSettings(osID)
+			assert.NoError(t, err)
+			assert.NotEmpty(t, settings.WorkflowPath)
+			assert.Contains(t, settings.LicenseURI, "licenses/")
+
+			workflowPath := path.Join(workflowDir, settings.WorkflowPath)
+			if _, err := os.Stat(workflowPath); os.IsNotExist(err) {
+				t.Fatal("Can't find", workflowPath)
+			}
+
+			// Ensure that the license from ImportableOS is specified in the
+			// JSON workflow.
+			var licensesInWorkflow []string
+			wf, err := daisy.NewFromFile(workflowPath)
+			assert.NoError(t, err)
+
+			// SLES workflows put the license in a variable. All others
+			// put the license directly in the CreateImage step.
+			if strings.Contains(osID, "sles") {
+				licensesInWorkflow = []string{wf.Vars["license"].Value}
+			} else {
+				for _, step := range wf.Steps {
+					if step.CreateImages != nil {
+						for _, image := range step.CreateImages.Images {
+							licensesInWorkflow = image.Licenses
+						}
+					}
+				}
+			}
+			assert.Contains(t, licensesInWorkflow, settings.LicenseURI)
+		})
+	}
+}
 
 func TestValidateOsValid(t *testing.T) {
 	err := ValidateOS("ubuntu-1604")
@@ -40,10 +150,10 @@ func TestValidateOsInvalid(t *testing.T) {
 
 func TestGetSortedOSIDs(t *testing.T) {
 	actual := GetSortedOSIDs()
-	assert.Len(t, actual, len(osChoices))
+	assert.Len(t, actual, len(supportedOS))
 	assert.True(t, sort.StringsAreSorted(actual))
-	for choice := range osChoices {
-		assert.Contains(t, actual, choice)
+	for _, choice := range supportedOS {
+		assert.Contains(t, actual, choice.GcloudArg)
 	}
 }
 

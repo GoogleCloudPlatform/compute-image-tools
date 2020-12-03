@@ -15,63 +15,75 @@
 package importer
 
 import (
+	"errors"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDefaultProcessorProvider_InspectDataDisk(t *testing.T) {
+func Test_DefaultProcessorProvider_SkipsPlanningForDataDisk(t *testing.T) {
 	processorProvider := defaultProcessorProvider{
 		ImportArguments: ImportArguments{
-			WorkflowDir: "../../../daisy_workflows",
-			DataDisk:    true,
+			DataDisk: true,
 		},
 	}
 
 	processors, err := processorProvider.provide(persistentDisk{})
 	assert.NoError(t, err)
-	assert.Equal(t, 1, len(processors), "there should be 1 processor, got %v", len(processors))
-	_, ok := processors[0].(*dataDiskProcessor)
-	assert.True(t, ok, "processor is not dataDiskProcessor")
+	assert.Len(t, processors, 1)
+	assert.IsType(t, &dataDiskProcessor{}, processors[0])
 }
 
-func TestDefaultProcessorProvider_InspectOS(t *testing.T) {
-	processorProvider := defaultProcessorProvider{
-		ImportArguments: ImportArguments{
-			Inspect:     true,
-			WorkflowDir: "../../../daisy_workflows",
-			OS:          "ubuntu-1804",
-		},
-	}
-
-	pd := persistentDisk{}
-	processors, err := processorProvider.provide(pd)
-	assert.NoError(t, err)
-	assert.Equal(t, 3, len(processors), "there should be 3 processors, got %v", len(processors))
-	p, ok := processors[0].(*diskInspectionProcessor)
-	assert.True(t, ok, "the 1st processor is not diskInspectionDiskProcessor")
-
-	p.process(pd, service.NewSingleImageImportLoggableBuilder())
-}
-
-func TestDefaultProcessorProvider_InspectUEFI(t *testing.T) {
+func Test_DefaultProcessorProvider_IncludesMetadataStepWhenMetadataChangesRequired(t *testing.T) {
 	processorProvider := defaultProcessorProvider{
 		ImportArguments: ImportArguments{
 			WorkflowDir: "../../../daisy_workflows",
-			OS:          "ubuntu-1804",
-			Inspect:     true,
+		},
+		planner: mockProcessPlanner{
+			result: &processingPlan{
+				requiredLicenses:        []string{"url/license"},
+				translationWorkflowPath: daisy.GetTranslateWorkflowPath("ubuntu-1804"),
+			},
 		},
 	}
-
-	pd := persistentDisk{uri: "old-uri"}
-	processors, err := processorProvider.provide(pd)
+	processors, err := processorProvider.provide(persistentDisk{})
 	assert.NoError(t, err)
-	assert.Equal(t, 3, len(processors), "there should be 3 processors, got %v", len(processors))
-	_, ok := processors[0].(*diskInspectionProcessor)
-	assert.True(t, ok, "the 1st processor is not diskInspectionDiskProcessor")
-	_, ok = processors[1].(*metadataProcessor)
-	assert.True(t, ok, "the 2nd processor is not uefiProcessor")
-	_, ok = processors[2].(*bootableDiskProcessor)
-	assert.True(t, ok, "the 3rd processor is not bootableDiskProcessor")
+	assert.Len(t, processors, 2)
+	assert.IsType(t, &metadataProcessor{}, processors[0])
+	assert.IsType(t, &bootableDiskProcessor{}, processors[1])
+}
+
+func Test_DefaultProcessorProvider_SkipsMetadataStepWhenNoChangesRequired(t *testing.T) {
+	processorProvider := defaultProcessorProvider{
+		ImportArguments: ImportArguments{
+			WorkflowDir: "../../../daisy_workflows",
+		},
+		planner: mockProcessPlanner{
+			result: &processingPlan{
+				translationWorkflowPath: daisy.GetTranslateWorkflowPath("ubuntu-1804"),
+			},
+		},
+	}
+	processors, err := processorProvider.provide(persistentDisk{})
+	assert.NoError(t, err)
+	assert.Len(t, processors, 1)
+	assert.IsType(t, &bootableDiskProcessor{}, processors[0])
+}
+
+func Test_DefaultProcessorProvider_FailsWhenPlanningFails(t *testing.T) {
+	processorProvider := defaultProcessorProvider{
+		planner: mockProcessPlanner{err: errors.New("planning failed")},
+	}
+	_, err := processorProvider.provide(persistentDisk{})
+	assert.Error(t, err, "planning failed")
+}
+
+type mockProcessPlanner struct {
+	err    error
+	result *processingPlan
+}
+
+func (m mockProcessPlanner) plan(pd persistentDisk) (*processingPlan, error) {
+	return m.result, m.err
 }

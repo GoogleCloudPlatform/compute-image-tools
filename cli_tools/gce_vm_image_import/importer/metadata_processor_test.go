@@ -26,32 +26,80 @@ import (
 
 func Test_MetadataProcessor_RecreateDiskWhenRequestedAttributesNotFound(t *testing.T) {
 	project, zone := "test-project", "test-zone"
-	originalDiskName, uefiDiskName := "disk-name", "disk-name-uefi"
-	incomingDiskURI, uefiDiskURI := "zones/test-zone/disks/disk-name", "zones/test-zone/disks/disk-name-uefi"
-	args := ImportArguments{
-		Project: project,
-		Zone:    zone,
-	}
+	originalDiskName, modifiedDiskName := "disk-name", "disk-name-1"
+	incomingDiskURI, modifiedDiskURI := "zones/test-zone/disks/disk-name", "zones/test-zone/disks/disk-name-1"
 	tests := []struct {
 		name             string
 		fetchedDisk      *compute.Disk
 		expectedNewDisk  *compute.Disk
 		argPD            persistentDisk
+		requiredFeatures []*compute.GuestOsFeature
+		requiredLicenses []string
 		expectedReturnPD persistentDisk
 	}{
 		{
-			name: "UEFI requested; returned disk not tagged",
+			name: "Needs one guest OS feature",
 			fetchedDisk: &compute.Disk{
 				Name:       originalDiskName,
 				SourceDisk: incomingDiskURI,
 			},
 			expectedNewDisk: &compute.Disk{
-				Name:            uefiDiskName,
+				Name:            modifiedDiskName,
 				SourceDisk:      incomingDiskURI,
 				GuestOsFeatures: []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}},
 			},
-			argPD:            persistentDisk{isUEFICompatible: true, uri: incomingDiskURI},
-			expectedReturnPD: persistentDisk{isUEFICompatible: true, uri: uefiDiskURI},
+			requiredFeatures: []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}},
+			argPD:            persistentDisk{uri: incomingDiskURI},
+			expectedReturnPD: persistentDisk{uri: modifiedDiskURI},
+		},
+		{
+			name: "Needs two guest OS feature",
+			fetchedDisk: &compute.Disk{
+				Name:       originalDiskName,
+				SourceDisk: incomingDiskURI,
+			},
+			expectedNewDisk: &compute.Disk{
+				Name:            modifiedDiskName,
+				SourceDisk:      incomingDiskURI,
+				GuestOsFeatures: []*compute.GuestOsFeature{{Type: "WINDOWS"}, {Type: "UEFI_COMPATIBLE"}},
+			},
+			requiredFeatures: []*compute.GuestOsFeature{{Type: "WINDOWS"}, {Type: "UEFI_COMPATIBLE"}},
+			argPD:            persistentDisk{uri: incomingDiskURI},
+			expectedReturnPD: persistentDisk{uri: modifiedDiskURI},
+		},
+		{
+			name: "Needs license",
+			fetchedDisk: &compute.Disk{
+				Name:       originalDiskName,
+				SourceDisk: incomingDiskURI,
+				Licenses:   []string{"existing/license"},
+			},
+			expectedNewDisk: &compute.Disk{
+				Name:       modifiedDiskName,
+				SourceDisk: incomingDiskURI,
+				Licenses:   []string{"existing/license", "additional/license/uri"},
+			},
+			requiredLicenses: []string{"additional/license/uri"},
+			argPD:            persistentDisk{uri: incomingDiskURI},
+			expectedReturnPD: persistentDisk{uri: modifiedDiskURI},
+		},
+		{
+			name: "Needs license and UEFI tag",
+			fetchedDisk: &compute.Disk{
+				Name:       originalDiskName,
+				SourceDisk: incomingDiskURI,
+				Licenses:   []string{"existing/license"},
+			},
+			expectedNewDisk: &compute.Disk{
+				Name:            modifiedDiskName,
+				SourceDisk:      incomingDiskURI,
+				Licenses:        []string{"existing/license", "additional/license/uri"},
+				GuestOsFeatures: []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}},
+			},
+			requiredFeatures: []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}},
+			requiredLicenses: []string{"additional/license/uri"},
+			argPD:            persistentDisk{uri: incomingDiskURI},
+			expectedReturnPD: persistentDisk{uri: modifiedDiskURI},
 		},
 	}
 
@@ -63,7 +111,10 @@ func Test_MetadataProcessor_RecreateDiskWhenRequestedAttributesNotFound(t *testi
 			mockComputeClient.EXPECT().CreateDisk(project, zone, tt.expectedNewDisk).Return(nil)
 			mockComputeClient.EXPECT().DeleteDisk(project, zone, originalDiskName).Return(nil)
 
-			returnedPD, err := newMetadataProcessor(mockComputeClient, args).process(tt.argPD, nil)
+			processor := newMetadataProcessor(project, zone, mockComputeClient)
+			processor.requiredLicenses = tt.requiredLicenses
+			processor.requiredFeatures = tt.requiredFeatures
+			returnedPD, err := processor.process(tt.argPD, nil)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectedReturnPD, returnedPD)
 		})
@@ -74,8 +125,8 @@ func Test_MetadataProcessor_ReturnEarlyWhenNoChangesRequested(t *testing.T) {
 	mockCtrl, mockComputeClient := createMockClient(t)
 	defer mockCtrl.Finish()
 
-	originalPD := persistentDisk{isUEFICompatible: false}
-	returnedPD, err := newMetadataProcessor(mockComputeClient, ImportArguments{}).process(originalPD, nil)
+	originalPD := persistentDisk{}
+	returnedPD, err := newMetadataProcessor("project", "zone", mockComputeClient).process(originalPD, nil)
 
 	assert.NoError(t, err)
 	assert.Equal(t, originalPD, returnedPD)
@@ -83,21 +134,38 @@ func Test_MetadataProcessor_ReturnEarlyWhenNoChangesRequested(t *testing.T) {
 
 func Test_MetadataProcessor_DontModifyDisk_IfChangesAlreadyPresent(t *testing.T) {
 	project, zone, originalDiskName := "test-project", "test-zone", "disk-name"
-	args := ImportArguments{
-		Project: project,
-		Zone:    zone,
-	}
 	tests := []struct {
-		name        string
-		fetchedDisk *compute.Disk
-		argPD       persistentDisk
+		name             string
+		requiredLicenses []string
+		requiredFeatures []*compute.GuestOsFeature
+		fetchedDisk      *compute.Disk
+		argPD            persistentDisk
 	}{
 		{
-			name: "UEFI requested; returned disk already tagged",
+			name: "UEFI requested; already tagged.",
 			fetchedDisk: &compute.Disk{
 				GuestOsFeatures: []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}},
 			},
-			argPD: persistentDisk{isUEFICompatible: true, uri: "zones/test-zone/disks/disk-name"},
+			requiredFeatures: []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}},
+			argPD:            persistentDisk{uri: "zones/test-zone/disks/disk-name"},
+		},
+		{
+			name: "Requested license already present.",
+			fetchedDisk: &compute.Disk{
+				Licenses: []string{"other/license", "requested/license"},
+			},
+			requiredLicenses: []string{"requested/license"},
+			argPD:            persistentDisk{uri: "zones/test-zone/disks/disk-name"},
+		},
+		{
+			name: "UEFI and license requested; both present.",
+			fetchedDisk: &compute.Disk{
+				GuestOsFeatures: []*compute.GuestOsFeature{{Type: "WINDOWS"}, {Type: "UEFI_COMPATIBLE"}},
+				Licenses:        []string{"other/license", "requested/license"},
+			},
+			requiredFeatures: []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}},
+			requiredLicenses: []string{"requested/license"},
+			argPD:            persistentDisk{uri: "zones/test-zone/disks/disk-name"},
 		},
 	}
 
@@ -107,7 +175,10 @@ func Test_MetadataProcessor_DontModifyDisk_IfChangesAlreadyPresent(t *testing.T)
 			defer mockCtrl.Finish()
 			mockComputeClient.EXPECT().GetDisk(project, zone, originalDiskName).Return(tt.fetchedDisk, nil)
 
-			returnedPD, err := newMetadataProcessor(mockComputeClient, args).process(tt.argPD, nil)
+			processor := newMetadataProcessor(project, zone, mockComputeClient)
+			processor.requiredLicenses = tt.requiredLicenses
+			processor.requiredFeatures = tt.requiredFeatures
+			returnedPD, err := processor.process(tt.argPD, nil)
 
 			assert.NoError(t, err)
 			assert.Equal(t, tt.argPD, returnedPD)
@@ -120,8 +191,10 @@ func Test_MetadataProcessor_DontModifyOriginalDisk_IfGetFails(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockComputeClient.EXPECT().GetDisk(gomock.Any(), gomock.Any(), gomock.Any()).Return(&compute.Disk{}, errors.New("can't find disk"))
-	argPD := persistentDisk{isUEFICompatible: true}
-	returnedPD, err := newMetadataProcessor(mockComputeClient, ImportArguments{}).process(argPD, nil)
+	argPD := persistentDisk{sizeGb: 10}
+	processor := newMetadataProcessor("project", "zone", mockComputeClient)
+	processor.requiredLicenses = []string{"new/license"}
+	returnedPD, err := processor.process(argPD, nil)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Failed to get disk")
@@ -134,12 +207,14 @@ func Test_MetadataProcessor_DontDeleteOriginalDisk_IfCreateFails(t *testing.T) {
 	mockComputeClient.EXPECT().GetDisk(gomock.Any(), gomock.Any(), gomock.Any()).Return(&compute.Disk{}, nil)
 	mockComputeClient.EXPECT().CreateDisk(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("disk create failed"))
 
-	originalPD := persistentDisk{isUEFICompatible: true}
-	returnedPD, err := newMetadataProcessor(mockComputeClient, ImportArguments{}).process(originalPD, nil)
+	argPD := persistentDisk{sizeGb: 10}
+	processor := newMetadataProcessor("project", "zone", mockComputeClient)
+	processor.requiredLicenses = []string{"new/license"}
+	returnedPD, err := processor.process(argPD, nil)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Failed to create UEFI disk")
-	assert.Equal(t, originalPD, returnedPD)
+	assert.Equal(t, argPD, returnedPD)
 }
 
 func Test_MetadataProcessor_SilentlyPassesIfDeleteFails(t *testing.T) {
@@ -149,9 +224,11 @@ func Test_MetadataProcessor_SilentlyPassesIfDeleteFails(t *testing.T) {
 	mockComputeClient.EXPECT().CreateDisk(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 	mockComputeClient.EXPECT().DeleteDisk(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("can't find disk"))
 
-	argPD := persistentDisk{isUEFICompatible: true, uri: "zones/test-zone/disks/disk-name"}
-	expectedReturnPD := persistentDisk{isUEFICompatible: true, uri: "zones/test-zone/disks/disk-name-uefi"}
-	returnedPD, err := newMetadataProcessor(mockComputeClient, ImportArguments{Zone: "test-zone"}).process(argPD, nil)
+	argPD := persistentDisk{uri: "zones/test-zone/disks/disk-name"}
+	expectedReturnPD := persistentDisk{uri: "zones/test-zone/disks/disk-name-1"}
+	processor := newMetadataProcessor("project", "test-zone", mockComputeClient)
+	processor.requiredLicenses = []string{"license/uri"}
+	returnedPD, err := processor.process(argPD, nil)
 
 	assert.NoError(t, err)
 	assert.Equal(t, expectedReturnPD, returnedPD)

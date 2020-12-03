@@ -16,10 +16,10 @@ package daisy
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
-	"reflect"
 	"regexp"
 	"sort"
 	"strings"
@@ -36,54 +36,207 @@ const (
 	translateFailedPrefix = "TranslateFailed"
 )
 
-var (
-	osChoices = map[string]string{
-		"debian-8":            "debian/translate_debian_8.wf.json",
-		"debian-9":            "debian/translate_debian_9.wf.json",
-		"centos-6":            "enterprise_linux/translate_centos_6.wf.json",
-		"centos-7":            "enterprise_linux/translate_centos_7.wf.json",
-		"centos-8":            "enterprise_linux/translate_centos_8.wf.json",
-		"opensuse-15":         "suse/translate_opensuse_15.wf.json",
-		"rhel-6":              "enterprise_linux/translate_rhel_6_licensed.wf.json",
-		"rhel-7":              "enterprise_linux/translate_rhel_7_licensed.wf.json",
-		"rhel-8":              "enterprise_linux/translate_rhel_8_licensed.wf.json",
-		"rhel-6-byol":         "enterprise_linux/translate_rhel_6_byol.wf.json",
-		"rhel-7-byol":         "enterprise_linux/translate_rhel_7_byol.wf.json",
-		"rhel-8-byol":         "enterprise_linux/translate_rhel_8_byol.wf.json",
-		"sles-12":             "suse/translate_sles_12.wf.json",
-		"sles-12-byol":        "suse/translate_sles_12_byol.wf.json",
-		"sles-sap-12":         "suse/translate_sles_sap_12.wf.json",
-		"sles-sap-12-byol":    "suse/translate_sles_sap_12_byol.wf.json",
-		"sles-15":             "suse/translate_sles_15.wf.json",
-		"sles-15-byol":        "suse/translate_sles_15_byol.wf.json",
-		"sles-sap-15":         "suse/translate_sles_sap_15.wf.json",
-		"sles-sap-15-byol":    "suse/translate_sles_sap_15_byol.wf.json",
-		"ubuntu-1404":         "ubuntu/translate_ubuntu_1404.wf.json",
-		"ubuntu-1604":         "ubuntu/translate_ubuntu_1604.wf.json",
-		"ubuntu-1804":         "ubuntu/translate_ubuntu_1804.wf.json",
-		"ubuntu-2004":         "ubuntu/translate_ubuntu_2004.wf.json",
-		"windows-2008r2":      "windows/translate_windows_2008_r2.wf.json",
-		"windows-2008r2-byol": "windows/translate_windows_2008_r2_byol.wf.json",
-		"windows-2012":        "windows/translate_windows_2012.wf.json",
-		"windows-2012-byol":   "windows/translate_windows_2012_byol.wf.json",
-		"windows-2012r2":      "windows/translate_windows_2012_r2.wf.json",
-		"windows-2012r2-byol": "windows/translate_windows_2012_r2_byol.wf.json",
-		"windows-2016":        "windows/translate_windows_2016.wf.json",
-		"windows-2016-byol":   "windows/translate_windows_2016_byol.wf.json",
-		"windows-2019":        "windows/translate_windows_2019.wf.json",
-		"windows-2019-byol":   "windows/translate_windows_2019_byol.wf.json",
-		"windows-7-x64-byol":  "windows/translate_windows_7_x64_byol.wf.json",
-		"windows-7-x86-byol":  "windows/translate_windows_7_x86_byol.wf.json",
-		"windows-8-x64-byol":  "windows/translate_windows_8_x64_byol.wf.json",
-		"windows-8-x86-byol":  "windows/translate_windows_8_x86_byol.wf.json",
-		"windows-10-x64-byol": "windows/translate_windows_10_x64_byol.wf.json",
-		"windows-10-x86-byol": "windows/translate_windows_10_x86_byol.wf.json",
+// TranslationSettings includes information that needs to be added to a disk or image after it is imported,
+// for a particular OS and version.
+type TranslationSettings struct {
+	// GcloudArg is the user-facing string corresponding to this OS, version, and licensing mode.
+	// It is passed as a value of the `--os` flag.
+	GcloudArg string
 
-		// for backward compatibility, to be removed once clients (gcloud and UI) and docs are all updated
-		"windows-7-byol":       "windows/translate_windows_7_x64_byol.wf.json",
-		"windows-8-1-x64-byol": "windows/translate_windows_8_x64_byol.wf.json",
-		"windows-10-byol":      "windows/translate_windows_10_x64_byol.wf.json",
+	// LicenseURI is the GCP Compute license corresponding to this OS, version, and licensing mode:
+	//  https://cloud.google.com/compute/docs/reference/rest/v1/licenses
+	LicenseURI string
+
+	// WorkflowPath is the path to a Daisy json workflow, relative to the
+	// `daisy_workflows/image_import` directory.
+	WorkflowPath string
+}
+
+var (
+	supportedOS = []TranslationSettings{
+		// Enterprise Linux
+		{
+			GcloudArg:    "centos-6",
+			WorkflowPath: "enterprise_linux/translate_centos_6.wf.json",
+			LicenseURI:   "projects/centos-cloud/global/licenses/centos-6",
+		}, {
+			GcloudArg:    "centos-7",
+			WorkflowPath: "enterprise_linux/translate_centos_7.wf.json",
+			LicenseURI:   "projects/centos-cloud/global/licenses/centos-7",
+		}, {
+			GcloudArg:    "centos-8",
+			WorkflowPath: "enterprise_linux/translate_centos_8.wf.json",
+			LicenseURI:   "projects/centos-cloud/global/licenses/centos-8",
+		}, {
+			GcloudArg:    "rhel-6",
+			WorkflowPath: "enterprise_linux/translate_rhel_6_licensed.wf.json",
+			LicenseURI:   "projects/rhel-cloud/global/licenses/rhel-6-server",
+		}, {
+			GcloudArg:    "rhel-6-byol",
+			WorkflowPath: "enterprise_linux/translate_rhel_6_byol.wf.json",
+			LicenseURI:   "projects/rhel-cloud/global/licenses/rhel-6-byol",
+		}, {
+			GcloudArg:    "rhel-7",
+			WorkflowPath: "enterprise_linux/translate_rhel_7_licensed.wf.json",
+			LicenseURI:   "projects/rhel-cloud/global/licenses/rhel-7-server",
+		}, {
+			GcloudArg:    "rhel-7-byol",
+			WorkflowPath: "enterprise_linux/translate_rhel_7_byol.wf.json",
+			LicenseURI:   "projects/rhel-cloud/global/licenses/rhel-7-byol",
+		}, {
+			GcloudArg:    "rhel-8",
+			WorkflowPath: "enterprise_linux/translate_rhel_8_licensed.wf.json",
+			LicenseURI:   "projects/rhel-cloud/global/licenses/rhel-8-server",
+		}, {
+			GcloudArg:    "rhel-8-byol",
+			WorkflowPath: "enterprise_linux/translate_rhel_8_byol.wf.json",
+			LicenseURI:   "projects/rhel-cloud/global/licenses/rhel-8-byos",
+		},
+
+		// SUSE
+		{
+			GcloudArg:    "opensuse-15",
+			WorkflowPath: "suse/translate_opensuse_15.wf.json",
+			LicenseURI:   "projects/opensuse-cloud/global/licenses/opensuse-leap-42",
+		}, {
+			GcloudArg:    "sles-12",
+			WorkflowPath: "suse/translate_sles_12.wf.json",
+			LicenseURI:   "projects/suse-cloud/global/licenses/sles-12",
+		}, {
+			GcloudArg:    "sles-12-byol",
+			WorkflowPath: "suse/translate_sles_12_byol.wf.json",
+			LicenseURI:   "projects/suse-byos-cloud/global/licenses/sles-12-byos",
+		}, {
+			GcloudArg:    "sles-sap-12",
+			WorkflowPath: "suse/translate_sles_sap_12.wf.json",
+			LicenseURI:   "projects/suse-sap-cloud/global/licenses/sles-sap-12",
+		}, {
+			GcloudArg:    "sles-sap-12-byol",
+			WorkflowPath: "suse/translate_sles_sap_12_byol.wf.json",
+			LicenseURI:   "projects/suse-byos-cloud/global/licenses/sles-sap-12-byos",
+		}, {
+			GcloudArg:    "sles-15",
+			WorkflowPath: "suse/translate_sles_15.wf.json",
+			LicenseURI:   "projects/suse-cloud/global/licenses/sles-15",
+		}, {
+			GcloudArg:    "sles-15-byol",
+			WorkflowPath: "suse/translate_sles_15_byol.wf.json",
+			LicenseURI:   "projects/suse-byos-cloud/global/licenses/sles-15-byos",
+		}, {
+			GcloudArg:    "sles-sap-15",
+			WorkflowPath: "suse/translate_sles_sap_15.wf.json",
+			LicenseURI:   "projects/suse-sap-cloud/global/licenses/sles-sap-15",
+		}, {
+			GcloudArg:    "sles-sap-15-byol",
+			WorkflowPath: "suse/translate_sles_sap_15_byol.wf.json",
+			LicenseURI:   "projects/suse-byos-cloud/global/licenses/sles-sap-15-byos",
+		},
+
+		// Debian
+		{
+			GcloudArg:    "debian-8",
+			WorkflowPath: "debian/translate_debian_8.wf.json",
+			LicenseURI:   "projects/debian-cloud/global/licenses/debian-8-jessie",
+		}, {
+			GcloudArg:    "debian-9",
+			WorkflowPath: "debian/translate_debian_9.wf.json",
+			LicenseURI:   "projects/debian-cloud/global/licenses/debian-9-stretch",
+		},
+
+		// Ubuntu
+		{
+			GcloudArg:    "ubuntu-1404",
+			WorkflowPath: "ubuntu/translate_ubuntu_1404.wf.json",
+			LicenseURI:   "projects/ubuntu-os-cloud/global/licenses/ubuntu-1404-trusty",
+		}, {
+			GcloudArg:    "ubuntu-1604",
+			WorkflowPath: "ubuntu/translate_ubuntu_1604.wf.json",
+			LicenseURI:   "projects/ubuntu-os-cloud/global/licenses/ubuntu-1604-xenial",
+		}, {
+			GcloudArg:    "ubuntu-1804",
+			WorkflowPath: "ubuntu/translate_ubuntu_1804.wf.json",
+			LicenseURI:   "projects/ubuntu-os-cloud/global/licenses/ubuntu-1804-lts",
+		}, {
+			GcloudArg:    "ubuntu-2004",
+			WorkflowPath: "ubuntu/translate_ubuntu_2004.wf.json",
+			LicenseURI:   "projects/ubuntu-os-cloud/global/licenses/ubuntu-2004-lts",
+		},
+
+		// Windows
+		{
+			GcloudArg:    "windows-7-x64-byol",
+			WorkflowPath: "windows/translate_windows_7_x64_byol.wf.json",
+			LicenseURI:   "projects/windows-cloud/global/licenses/windows-7-x64-byol",
+		}, {
+			GcloudArg:    "windows-7-x86-byol",
+			WorkflowPath: "windows/translate_windows_7_x86_byol.wf.json",
+			LicenseURI:   "projects/windows-cloud/global/licenses/windows-7-x86-byol",
+		}, {
+			GcloudArg:    "windows-8-x64-byol",
+			WorkflowPath: "windows/translate_windows_8_x64_byol.wf.json",
+			LicenseURI:   "projects/windows-cloud/global/licenses/windows-8-x64-byol",
+		}, {
+			GcloudArg:    "windows-8-x86-byol",
+			WorkflowPath: "windows/translate_windows_8_x86_byol.wf.json",
+			LicenseURI:   "projects/windows-cloud/global/licenses/windows-8-x86-byol",
+		}, {
+			GcloudArg:    "windows-10-x64-byol",
+			WorkflowPath: "windows/translate_windows_10_x64_byol.wf.json",
+			LicenseURI:   "projects/windows-cloud/global/licenses/windows-10-x64-byol",
+		}, {
+			GcloudArg:    "windows-10-x86-byol",
+			WorkflowPath: "windows/translate_windows_10_x86_byol.wf.json",
+			LicenseURI:   "projects/windows-cloud/global/licenses/windows-10-x86-byol",
+		}, {
+			GcloudArg:    "windows-2008r2",
+			WorkflowPath: "windows/translate_windows_2008_r2.wf.json",
+			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2008-r2-dc",
+		}, {
+			GcloudArg:    "windows-2008r2-byol",
+			WorkflowPath: "windows/translate_windows_2008_r2_byol.wf.json",
+			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2008-r2-byol",
+		}, {
+			GcloudArg:    "windows-2012",
+			WorkflowPath: "windows/translate_windows_2012.wf.json",
+			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2012-dc",
+		}, {
+			GcloudArg:    "windows-2012-byol",
+			WorkflowPath: "windows/translate_windows_2012_byol.wf.json",
+			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2012-byol",
+		}, {
+			GcloudArg:    "windows-2012r2",
+			WorkflowPath: "windows/translate_windows_2012_r2.wf.json",
+			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2012-r2-dc",
+		}, {
+			GcloudArg:    "windows-2012r2-byol",
+			WorkflowPath: "windows/translate_windows_2012_r2_byol.wf.json",
+			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2012-r2-byol",
+		}, {
+			GcloudArg:    "windows-2016",
+			WorkflowPath: "windows/translate_windows_2016.wf.json",
+			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2016-dc",
+		}, {
+			GcloudArg:    "windows-2016-byol",
+			WorkflowPath: "windows/translate_windows_2016_byol.wf.json",
+			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2016-byol",
+		}, {
+			GcloudArg:    "windows-2019",
+			WorkflowPath: "windows/translate_windows_2019.wf.json",
+			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2019-dc",
+		}, {
+			GcloudArg:    "windows-2019-byol",
+			WorkflowPath: "windows/translate_windows_2019_byol.wf.json",
+			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2019-byol",
+		},
 	}
+
+	// legacyIDs maps a legacy identifier to its replacement.
+	legacyIDs = map[string]string{
+		"windows-7-byol":       "windows-7-x64-byol",
+		"windows-8-1-x64-byol": "windows-8-x64-byol",
+		"windows-10-byol":      "windows-10-x64-byol",
+	}
+
 	privacyRegex    = regexp.MustCompile(`\[Privacy\->.*?<\-Privacy\]`)
 	privacyTagRegex = regexp.MustCompile(`(\[Privacy\->)|(<\-Privacy\])`)
 
@@ -92,9 +245,9 @@ var (
 
 // GetSortedOSIDs returns the supported OS identifiers, sorted.
 func GetSortedOSIDs() []string {
-	choices := make([]string, 0, len(osChoices))
-	for k := range osChoices {
-		choices = append(choices, k)
+	choices := make([]string, 0, len(supportedOS))
+	for _, k := range supportedOS {
+		choices = append(choices, k.GcloudArg)
 	}
 	sort.Strings(choices)
 	return choices
@@ -102,20 +255,36 @@ func GetSortedOSIDs() []string {
 
 // ValidateOS validates that osID is supported by Daisy image import
 func ValidateOS(osID string) error {
-	if osID == "" {
-		return daisy.Errf("osID is empty")
-	}
-	if _, osValid := osChoices[osID]; !osValid {
-		// Expose osID and osChoices in the anonymized error message since they are not sensitive values.
-		allowedValuesMsg := fmt.Sprintf("Allowed values: %v", reflect.ValueOf(osChoices).MapKeys())
-		return daisy.Errf("os `%v` is invalid. "+allowedValuesMsg, osID)
-	}
-	return nil
+	_, err := GetTranslationSettings(osID)
+	return err
 }
 
-// GetTranslateWorkflowPath returns path to image translate workflow path for given OS
-func GetTranslateWorkflowPath(os string) string {
-	return osChoices[os]
+// GetTranslateWorkflowPath returns the path to image translate workflow for the given osID.
+// An empty string is returned if the osID is not supported for import.
+func GetTranslateWorkflowPath(osID string) string {
+	settings, _ := GetTranslationSettings(osID)
+	return settings.WorkflowPath
+}
+
+// GetTranslationSettings returns parameters required for translating a particular OS, version,
+// and licensing mode to run on GCE.
+//
+// An error is returned if the OS, version, and licensing mode is not supported for import.
+func GetTranslationSettings(osID string) (spec TranslationSettings, err error) {
+	if osID == "" {
+		return spec, errors.New("osID is empty")
+	}
+
+	if replacement := legacyIDs[osID]; replacement != "" {
+		osID = replacement
+	}
+	for _, choice := range supportedOS {
+		if choice.GcloudArg == osID {
+			return choice, nil
+		}
+	}
+	allowedValuesMsg := fmt.Sprintf("Allowed values: %v", GetSortedOSIDs())
+	return spec, daisy.Errf("os `%v` is invalid. "+allowedValuesMsg, osID)
 }
 
 // UpdateAllInstanceNoExternalIP updates all Create Instance steps in the workflow to operate

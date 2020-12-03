@@ -197,11 +197,10 @@ func (inflater *daisyInflater) Inflate() (persistentDisk, shadowTestFields, erro
 }
 
 type persistentDisk struct {
-	uri              string
-	sizeGb           int64
-	sourceGb         int64
-	sourceType       string
-	isUEFICompatible bool
+	uri        string
+	sizeGb     int64
+	sourceGb   int64
+	sourceType string
 }
 
 type shadowTestFields struct {

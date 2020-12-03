@@ -17,6 +17,7 @@ package importer
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
@@ -28,56 +29,113 @@ import (
 // metadataProcessor ensures metadata is present on a GCP disk. If
 // metadata is missing, the disk will be recreated.
 type metadataProcessor struct {
-	args              ImportArguments
+	project, zone     string
 	computeDiskClient daisyCompute.Client
+
+	requiredLicenses []string
+	requiredFeatures []*compute.GuestOsFeature
 }
 
-func newMetadataProcessor(computeDiskClient daisyCompute.Client, args ImportArguments) processor {
-	return &metadataProcessor{args, computeDiskClient}
+func newMetadataProcessor(
+	project string,
+	zone string,
+	computeDiskClient daisyCompute.Client) *metadataProcessor {
+	return &metadataProcessor{project: project, zone: zone, computeDiskClient: computeDiskClient}
 }
 
 func (p *metadataProcessor) process(pd persistentDisk,
 	loggableBuilder *service.SingleImageImportLoggableBuilder) (persistentDisk, error) {
 
-	// If this is not a UEFI disk, don't add "UEFI_COMPATIBLE" for it.
-	if !pd.isUEFICompatible {
+	// Fast path 1: No modification requested.
+	if len(p.requiredFeatures) == 0 && len(p.requiredLicenses) == 0 {
 		return pd, nil
 	}
 
-	// If "UEFI_COMPATIBLE" has already existed on the disk, nothing extra needs to be done.
-	diskName := daisyUtils.GetResourceID(pd.uri)
-	d, err := p.computeDiskClient.GetDisk(p.args.Project, p.args.Zone, diskName)
-	if err != nil {
-		return pd, daisy.Errf("Failed to get disk: %v", err)
-	}
-	for _, f := range d.GuestOsFeatures {
-		if f.Type == "UEFI_COMPATIBLE" {
-			return pd, nil
-		}
+	// Fast path 2: The current disk already has the requested modifications present.
+	changesRequired, newDisk, err := p.stageRequestForNewDisk(pd)
+	if !changesRequired || err != nil {
+		return pd, err
 	}
 
-	// Now let's add "UEFI_COMPATIBLE" to the disk's guestOsFeatures.
-	// GuestOSFeatures are immutable properties. Therefore:
-	// 1. Copy the existing disk, adding "UEFI_COMPATIBLE"
-	// 2. Update the reference
-	// 3. Delete the previous disk.
-	newDiskName := fmt.Sprintf("%v-uefi", diskName)
-	err = p.computeDiskClient.CreateDisk(p.args.Project, p.args.Zone, &compute.Disk{
-		Name:            newDiskName,
-		SourceDisk:      pd.uri,
-		GuestOsFeatures: []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}},
-	})
+	// Slow path: Clone then delete the existing disk and return a reference
+	// to the new disk.
+	err = p.computeDiskClient.CreateDisk(p.project, p.zone, newDisk)
 	if err != nil {
 		return pd, daisy.Errf("Failed to create UEFI disk: %v", err)
 	}
-	log.Println("UEFI disk created: ", newDiskName)
+	log.Println("UEFI disk created: ", newDisk.Name)
 
 	// Delete the old disk after the new disk is created.
-	deleteDisk(p.computeDiskClient, p.args.Project, p.args.Zone, pd)
+	deleteDisk(p.computeDiskClient, p.project, p.zone, pd)
 
 	// Update the new disk URI
-	pd.uri = fmt.Sprintf("zones/%v/disks/%v", p.args.Zone, newDiskName)
+	pd.uri = fmt.Sprintf("zones/%v/disks/%v", p.zone, newDisk.Name)
 	return pd, nil
+}
+
+// stageRequestForNewDisk fetches the disk associated with `pd`, and creates a compute.Disk
+// struct that contains requested modifications.
+//
+// When false, `cloneRequired` signifies that the current disk satisfies all requested changes.
+func (p *metadataProcessor) stageRequestForNewDisk(pd persistentDisk) (cloneRequired bool, newDisk *compute.Disk, err error) {
+
+	diskName := daisyUtils.GetResourceID(pd.uri)
+	currentDisk, err := p.computeDiskClient.GetDisk(p.project, p.zone, diskName)
+	if err != nil {
+		return false, nil, daisy.Errf("Failed to get disk: %v", err)
+	}
+
+	newDiskName := fmt.Sprintf("%v-1", diskName)
+	newDisk = &compute.Disk{
+		Name:       newDiskName,
+		SourceDisk: pd.uri,
+	}
+	if len(currentDisk.GuestOsFeatures) > 0 {
+		newDisk.GuestOsFeatures = make([]*compute.GuestOsFeature, len(currentDisk.GuestOsFeatures))
+		copy(newDisk.GuestOsFeatures, currentDisk.GuestOsFeatures)
+	}
+	if len(currentDisk.Licenses) > 0 {
+		newDisk.Licenses = make([]string, len(currentDisk.Licenses))
+		copy(newDisk.Licenses, currentDisk.Licenses)
+	}
+
+	cloneRequired = false
+	for _, feature := range p.requiredFeatures {
+		if !hasGuestOSFeature(currentDisk, feature) {
+			newDisk.GuestOsFeatures = append(newDisk.GuestOsFeatures, feature)
+			cloneRequired = true
+		}
+	}
+	for _, license := range p.requiredLicenses {
+		if !hasLicense(currentDisk, license) {
+			newDisk.Licenses = append(newDisk.Licenses, license)
+			cloneRequired = true
+		}
+	}
+	return cloneRequired, newDisk, nil
+}
+
+func hasLicense(oldDisk *compute.Disk, requestedLicense string) bool {
+	for _, foundLicense := range oldDisk.Licenses {
+		// Licenses are expressed as [GCP resources](https://cloud.google.com/apis/design/resource_names),
+		// which can either be a full URL, or a path. Both of these are valid:
+		//   -  https://www.googleapis.com/compute/v1/projects/windows-cloud/global/licenses/windows-10-enterprise-byol
+		//   -  projects/windows-cloud/global/licenses/windows-10-enterprise-byol
+		// The double suffix match supports all combinations of full URI and path.
+		if strings.HasSuffix(foundLicense, requestedLicense) || strings.HasSuffix(requestedLicense, foundLicense) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasGuestOSFeature(oldDisk *compute.Disk, feature *compute.GuestOsFeature) bool {
+	for _, f := range oldDisk.GuestOsFeatures {
+		if f.Type == feature.Type {
+			return true
+		}
+	}
+	return false
 }
 
 func (p *metadataProcessor) cancel(reason string) bool {

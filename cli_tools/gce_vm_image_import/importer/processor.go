@@ -15,7 +15,6 @@
 package importer
 
 import (
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
@@ -40,24 +39,34 @@ type processorProvider interface {
 type defaultProcessorProvider struct {
 	ImportArguments
 	computeClient daisyCompute.Client
-	diskInspector disk.Inspector
+	planner       processPlanner
 }
 
-func (d defaultProcessorProvider) provide(pd persistentDisk) (processors []processor, err error) {
+func (d defaultProcessorProvider) provide(pd persistentDisk) ([]processor, error) {
+
 	if d.DataDisk {
-		processors = append(processors, newDataDiskProcessor(pd, d.computeClient, d.Project,
-			d.Labels, d.StorageLocation, d.Description,
-			d.Family, d.ImageName))
-		return
+		return []processor{
+			newDataDiskProcessor(pd, d.computeClient, d.Project,
+				d.Labels, d.StorageLocation, d.Description,
+				d.Family, d.ImageName)}, nil
 	}
 
-	processors = append(processors, newDiskInspectionProcessor(d.diskInspector, d.ImportArguments))
-	processors = append(processors, newMetadataProcessor(d.computeClient, d.ImportArguments))
-
-	bootableDiskProcessor, err := newBootableDiskProcessor(d.ImportArguments)
+	plan, err := d.planner.plan(pd)
 	if err != nil {
-		return
+		return nil, err
 	}
-	processors = append(processors, bootableDiskProcessor)
-	return
+
+	var processors []processor
+	if plan.metadataChangesRequired() {
+		p := newMetadataProcessor(d.ImportArguments.Project, d.ImportArguments.Zone, d.computeClient)
+		p.requiredLicenses = plan.requiredLicenses
+		p.requiredFeatures = plan.requiredFeatures
+		processors = append(processors, p)
+	}
+
+	bootableDiskProcessor, err := newBootableDiskProcessor(d.ImportArguments, plan.translationWorkflowPath)
+	if err != nil {
+		return nil, err
+	}
+	return append(processors, bootableDiskProcessor), nil
 }
