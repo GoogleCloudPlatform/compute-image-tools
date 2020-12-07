@@ -43,13 +43,13 @@ func Test_RedirectGlobalLogsToUser_CapturesStandardLog(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockLogger := mocks.NewMockLogWriter(mockCtrl)
-	mockLogger.EXPECT().WriteUser("hello world\n")
+	mockLogger := mocks.NewMockLogger(mockCtrl)
+	mockLogger.EXPECT().User("hello world\n")
 	RedirectGlobalLogsToUser(mockLogger)
 	log.Print("hello world")
 }
 
-func Test_DefaultToolLogger_WriteUser_FormatsLikeDaisy(t *testing.T) {
+func Test_DefaultToolLogger_User_FormatsLikeDaisy(t *testing.T) {
 	fromDaisy := (&daisy.LogEntry{
 		LocalTimestamp: dateTime,
 		WorkflowName:   "image-import",
@@ -57,13 +57,13 @@ func Test_DefaultToolLogger_WriteUser_FormatsLikeDaisy(t *testing.T) {
 	}).String()
 
 	logger, written := setupTestLogger("[image-import]", dateTime)
-	logger.WriteUser("msg")
+	logger.User("msg")
 	fromToolLogger := written.String()
 
 	assert.Equal(t, fromDaisy, fromToolLogger)
 }
 
-func Test_DefaultToolLogger_WriteUser_Prefixes(t *testing.T) {
+func Test_DefaultToolLogger_User_Prefixes(t *testing.T) {
 	// Using a colon after the prefix follows the pattern of Daisy's
 	// standard logger. See daisy.LogEntry.String
 	type test struct {
@@ -93,47 +93,47 @@ func Test_DefaultToolLogger_WriteUser_Prefixes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			logger, written := setupTestLogger(tt.userPrefix, dateTime)
-			logger.WriteUser("message")
+			logger.User("message")
 			actual := written.String()
 			assert.Equal(t, tt.expectWritten, actual)
 		})
 	}
 }
 
-func Test_DefaultToolLogger_WriteUserAndDebugInterleave(t *testing.T) {
+func Test_DefaultToolLogger_UserAndDebugInterleave(t *testing.T) {
 	type test struct {
 		name         string
-		logCalls     func(writer LogWriter)
+		logCalls     func(writer Logger)
 		expectedLogs string
 	}
 
 	tests := []test{
 		{
 			name:         "no logs when empty write",
-			logCalls:     func(writer LogWriter) {},
+			logCalls:     func(writer Logger) {},
 			expectedLogs: "",
 		},
 		{
 			name: "prepend specified user prefix",
-			logCalls: func(writer LogWriter) {
-				writer.WriteUser("hello user")
+			logCalls: func(writer Logger) {
+				writer.User("hello user")
 			},
 			expectedLogs: "[image-import]: 2009-11-10T23:10:15Z hello user\n",
 		},
 		{
 			name: "prepend a debug prefix",
-			logCalls: func(writer LogWriter) {
-				writer.WriteDebug("hello debug")
+			logCalls: func(writer Logger) {
+				writer.Debug("hello debug")
 			},
 			expectedLogs: "[debug]: 2009-11-10T23:10:15Z hello debug\n",
 		},
 		{
 			name: "maintain order when multiple writes",
-			logCalls: func(writer LogWriter) {
-				writer.WriteDebug("hello debug1")
-				writer.WriteUser("hello user1")
-				writer.WriteUser("hello user2")
-				writer.WriteDebug("hello debug2")
+			logCalls: func(writer Logger) {
+				writer.Debug("hello debug1")
+				writer.User("hello user1")
+				writer.User("hello user2")
+				writer.Debug("hello debug2")
 			},
 			expectedLogs: "[debug]: 2009-11-10T23:10:15Z hello debug1\n" +
 				"[image-import]: 2009-11-10T23:10:15Z hello user1\n" +
@@ -142,9 +142,9 @@ func Test_DefaultToolLogger_WriteUserAndDebugInterleave(t *testing.T) {
 		},
 		{
 			name: "don't add extra newlines",
-			logCalls: func(writer LogWriter) {
-				writer.WriteDebug("hello debug1\n")
-				writer.WriteUser("hello user1\n")
+			logCalls: func(writer Logger) {
+				writer.Debug("hello debug1\n")
+				writer.User("hello user1\n")
 			},
 			expectedLogs: "[debug]: 2009-11-10T23:10:15Z hello debug1\n" +
 				"[image-import]: 2009-11-10T23:10:15Z hello user1\n",
@@ -157,20 +157,20 @@ func Test_DefaultToolLogger_WriteUserAndDebugInterleave(t *testing.T) {
 			tt.logCalls(logger)
 			assert.Equal(t, tt.expectedLogs, written.String())
 			if tt.expectedLogs == "" {
-				assert.Nil(t, logger.ReadOutputInfo().SerialOutputs,
+				assert.Nil(t, logger.read().SerialOutputs,
 					"Only append SerialLog when there were logs written.")
 			} else {
-				assert.Equal(t, []string{tt.expectedLogs}, logger.ReadOutputInfo().SerialOutputs,
+				assert.Equal(t, []string{tt.expectedLogs}, logger.read().SerialOutputs,
 					"Create a single SerialOutput member containing all debug and user logs.")
 			}
 		})
 	}
 }
 
-func Test_DefaultToolLogger_WriteMetric_MergesNestedStruct(t *testing.T) {
+func Test_DefaultToolLogger_Metric_MergesNestedStruct(t *testing.T) {
 	logger := NewToolLogger("[user]")
-	logger.WriteMetric(&pb.OutputInfo{IsUefiDetected: true})
-	logger.WriteMetric(&pb.OutputInfo{InspectionResults: &pb.InspectionResults{
+	logger.Metric(&pb.OutputInfo{IsUefiDetected: true})
+	logger.Metric(&pb.OutputInfo{InspectionResults: &pb.InspectionResults{
 		ErrorWhen: pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS}})
 	expected := &pb.OutputInfo{
 		IsUefiDetected: true,
@@ -178,49 +178,49 @@ func Test_DefaultToolLogger_WriteMetric_MergesNestedStruct(t *testing.T) {
 			ErrorWhen: pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS,
 		},
 	}
-	pbtesting.AssertEqual(t, expected, logger.ReadOutputInfo())
+	pbtesting.AssertEqual(t, expected, logger.read())
 }
 
-func Test_DefaultToolLogger_WriteMetric_AppendsSlices(t *testing.T) {
+func Test_DefaultToolLogger_Metric_AppendsSlices(t *testing.T) {
 	logger := NewToolLogger("[user]")
-	logger.WriteMetric(&pb.OutputInfo{InflationTimeMs: []int64{30}})
-	logger.WriteMetric(&pb.OutputInfo{InflationTimeMs: []int64{40}})
+	logger.Metric(&pb.OutputInfo{InflationTimeMs: []int64{30}})
+	logger.Metric(&pb.OutputInfo{InflationTimeMs: []int64{40}})
 	expected := &pb.OutputInfo{InflationTimeMs: []int64{30, 40}}
 
-	pbtesting.AssertEqual(t, expected, logger.ReadOutputInfo())
+	pbtesting.AssertEqual(t, expected, logger.read())
 }
 
-func Test_DefaultToolLogger_WriteMetric_DoesntClobberSingleValuesWithDefaultValues(t *testing.T) {
+func Test_DefaultToolLogger_Metric_DoesntClobberSingleValuesWithDefaultValues(t *testing.T) {
 	logger := NewToolLogger("[user]")
-	logger.WriteMetric(&pb.OutputInfo{IsUefiDetected: true})
-	logger.WriteMetric(&pb.OutputInfo{InflationType: "api"})
+	logger.Metric(&pb.OutputInfo{IsUefiDetected: true})
+	logger.Metric(&pb.OutputInfo{InflationType: "api"})
 	expected := &pb.OutputInfo{IsUefiDetected: true, InflationType: "api"}
-	pbtesting.AssertEqual(t, expected, logger.ReadOutputInfo())
+	pbtesting.AssertEqual(t, expected, logger.read())
 }
 
 func TestToolLogger_ReadOutputInfo_ClearsState(t *testing.T) {
 	logger, _ := setupTestLogger("[user]", dateTime)
 
 	// 1. Use the logger; on first read, OutputInfo should contain all buffered information.
-	logger.WriteMetric(&pb.OutputInfo{IsUefiDetected: true})
-	logger.WriteUser("hi")
-	logger.WriteTrace("trace")
-	firstRead := logger.ReadOutputInfo()
+	logger.Metric(&pb.OutputInfo{IsUefiDetected: true})
+	logger.User("hi")
+	logger.Trace("trace")
+	firstRead := logger.read()
 	pbtesting.AssertEqual(t, &pb.OutputInfo{
 		IsUefiDetected: true,
 		SerialOutputs:  []string{"[user]: 2009-11-10T23:10:15Z hi\n", "trace"},
 	}, firstRead)
 
 	// 2. On second read, the buffers should be cleared.
-	secondRead := logger.ReadOutputInfo()
+	secondRead := logger.read()
 	pbtesting.AssertEqual(t, &pb.OutputInfo{}, secondRead)
 
 	// 3. Use the logger again and verify that the new information is kept.
-	logger.WriteMetric(&pb.OutputInfo{InflationType: "daisy"})
-	logger.WriteUser("hi 1")
-	logger.WriteTrace("trace 1")
+	logger.Metric(&pb.OutputInfo{InflationType: "daisy"})
+	logger.User("hi 1")
+	logger.Trace("trace 1")
 
-	thirdRead := logger.ReadOutputInfo()
+	thirdRead := logger.read()
 	pbtesting.AssertEqual(t, &pb.OutputInfo{
 		InflationType: "daisy",
 		SerialOutputs: []string{"[user]: 2009-11-10T23:10:15Z hi 1\n", "trace 1"},

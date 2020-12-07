@@ -43,7 +43,7 @@ var (
 // used by image import features.
 type Client struct {
 	StorageClient *storage.Client
-	Logger        logging.LogWriter
+	Logger        logging.Logger
 	Ctx           context.Context
 	Oic           domain.ObjectIteratorCreatorInterface
 	Soc           domain.StorageObjectCreatorInterface
@@ -51,7 +51,7 @@ type Client struct {
 
 // NewStorageClient creates a Client
 func NewStorageClient(ctx context.Context,
-	logger logging.LogWriter, option ...option.ClientOption) (*Client, error) {
+	logger logging.Logger, option ...option.ClientOption) (*Client, error) {
 
 	client, err := storage.NewClient(ctx, option...)
 	if err != nil {
@@ -120,7 +120,7 @@ func (sc *Client) DeleteGcsPath(gcsPath string) error {
 		if err != nil {
 			return daisy.Errf("Error deleting Cloud Storage path `%v`: %v", gcsPath, err)
 		}
-		sc.Logger.WriteUser(fmt.Sprintf("Deleting gs://%v/%v", bucketName, attrs.Name))
+		sc.Logger.User(fmt.Sprintf("Deleting gs://%v/%v", bucketName, attrs.Name))
 
 		if err := sc.GetObject(bucketName, attrs.Name).Delete(); err != nil {
 			return daisy.Errf("Error deleting Cloud Storage object `%v` in bucket `%v`: %v", attrs.Name, bucketName, err)
@@ -173,7 +173,7 @@ func (sc *Client) FindGcsFileDepthLimited(gcsDirectoryPath string, fileExtension
 		if !strings.HasSuffix(attrs.Name, fileExtension) {
 			continue
 		}
-		sc.Logger.WriteUser(fmt.Sprintf("Found gs://%v/%v", bucketName, attrs.Name))
+		sc.Logger.User(fmt.Sprintf("Found gs://%v/%v", bucketName, attrs.Name))
 
 		return sc.GetBucket(bucketName).Object(attrs.Name), nil
 	}

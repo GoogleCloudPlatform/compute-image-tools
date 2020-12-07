@@ -75,7 +75,7 @@ type OVFImporter struct {
 	mgce                  domain.MetadataGCEInterface
 	ovfDescriptorLoader   ovfdomain.OvfDescriptorLoaderInterface
 	bucketIteratorCreator domain.BucketIteratorCreatorInterface
-	Logger                logging.LogWriter
+	Logger                logging.Logger
 	zoneValidator         domain.ZoneValidatorInterface
 	gcsPathToClean        string
 	workflowPath          string
@@ -279,7 +279,7 @@ func (oi *OVFImporter) getOvfGcsPath(tmpGcsPath string) (string, bool, error) {
 
 	if strings.HasSuffix(ovfOvaGcsPathLowered, ".ova") {
 		ovfGcsPath = pathutils.JoinURL(tmpGcsPath, "ovf")
-		oi.Logger.WriteUser(
+		oi.Logger.User(
 			fmt.Sprintf("Extracting %v OVA archive to %v", oi.params.OvfOvaGcsPath, ovfGcsPath))
 		err = oi.tarGcsExtractor.ExtractTarToGcs(oi.params.OvfOvaGcsPath, ovfGcsPath)
 		shouldCleanUp = true
@@ -314,7 +314,7 @@ func (oi *OVFImporter) createScratchBucketBucket(project string, region string) 
 		}
 	}
 
-	oi.Logger.WriteUser(fmt.Sprintf("Creating scratch bucket `%v` in %v region", bucket, region))
+	oi.Logger.User(fmt.Sprintf("Creating scratch bucket `%v` in %v region", bucket, region))
 	if err := oi.storageClient.CreateBucket(
 		bucket, project,
 		&storage.BucketAttrs{Name: bucket, Location: region}); err != nil {
@@ -432,7 +432,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 		if osIDValue, err = ovfutils.GetOSId(ovfDescriptor); err != nil {
 			return nil, err
 		}
-		oi.Logger.WriteUser(
+		oi.Logger.User(
 			fmt.Sprintf("Found valid OS info in OVF descriptor, importing VM with `%v` as OS.",
 				osIDValue))
 	} else if err = daisyutils.ValidateOS(oi.params.OsID); err != nil {
@@ -447,7 +447,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 		return nil, err
 	}
 
-	oi.Logger.WriteUser(fmt.Sprintf("Will create instance of `%v` machine type.", machineTypeStr))
+	oi.Logger.User(fmt.Sprintf("Will create instance of `%v` machine type.", machineTypeStr))
 
 	varMap := oi.buildDaisyVars(translateWorkflowPath, diskInfos[0].FilePath, machineTypeStr, region)
 
@@ -471,51 +471,51 @@ func validateReleaseTrack(releaseTrack string) error {
 
 // Import runs OVF import
 func (oi *OVFImporter) Import() (*daisy.Workflow, error) {
-	oi.Logger.WriteUser("Starting OVF import workflow.")
+	oi.Logger.User("Starting OVF import workflow.")
 	w, err := oi.setUpImportWorkflow()
 
 	go oi.handleTimeout(w)
 
 	if err != nil {
-		oi.Logger.WriteUser(err.Error())
+		oi.Logger.User(err.Error())
 		return w, err
 	}
 
 	if err := w.RunWithModifiers(oi.ctx, oi.modifyWorkflowPreValidate, oi.modifyWorkflowPostValidate); err != nil {
-		oi.Logger.WriteUser(err.Error())
+		oi.Logger.User(err.Error())
 		daisyutils.PostProcessDErrorForNetworkFlag("instance import", err, oi.params.Network, w)
 		return w, err
 	}
-	oi.Logger.WriteUser("OVF import workflow finished successfully.")
+	oi.Logger.User("OVF import workflow finished successfully.")
 	return w, nil
 }
 
 func (oi *OVFImporter) handleTimeout(w *daisy.Workflow) {
 	timeout, err := time.ParseDuration(oi.params.Timeout)
 	if err != nil {
-		oi.Logger.WriteUser(fmt.Sprintf("Error parsing timeout `%v`", oi.params.Timeout))
+		oi.Logger.User(fmt.Sprintf("Error parsing timeout `%v`", oi.params.Timeout))
 		return
 	}
 	time.Sleep(timeout)
-	oi.Logger.WriteUser(fmt.Sprintf("Timeout %v exceeded, stopping workflow %q", oi.params.Timeout, w.Name))
+	oi.Logger.User(fmt.Sprintf("Timeout %v exceeded, stopping workflow %q", oi.params.Timeout, w.Name))
 	w.CancelWithReason("timed-out")
 }
 
 // CleanUp performs clean up of any temporary resources or connections used for OVF import
 func (oi *OVFImporter) CleanUp() {
-	oi.Logger.WriteUser("Cleaning up.")
+	oi.Logger.User("Cleaning up.")
 	if oi.storageClient != nil {
 		if oi.gcsPathToClean != "" {
 			err := oi.storageClient.DeleteGcsPath(oi.gcsPathToClean)
 			if err != nil {
-				oi.Logger.WriteUser(
+				oi.Logger.User(
 					fmt.Sprintf("couldn't delete GCS path %v: %v", oi.gcsPathToClean, err.Error()))
 			}
 		}
 
 		err := oi.storageClient.Close()
 		if err != nil {
-			oi.Logger.WriteUser(fmt.Sprintf("couldn't close storage client: %v", err.Error()))
+			oi.Logger.User(fmt.Sprintf("couldn't close storage client: %v", err.Error()))
 		}
 	}
 }

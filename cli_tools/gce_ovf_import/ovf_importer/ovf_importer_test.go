@@ -746,8 +746,8 @@ func TestHandleTimeoutSuccess(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockLogger := mocks.NewMockLogWriter(mockCtrl)
-	mockLogger.EXPECT().WriteUser("Timeout 0s exceeded, stopping workflow \"wf\"")
+	mockLogger := mocks.NewMockLogger(mockCtrl)
+	mockLogger.EXPECT().User("Timeout 0s exceeded, stopping workflow \"wf\"")
 
 	params := getAllInstanceImportParams()
 	params.Timeout = "0s"
@@ -765,8 +765,8 @@ func TestHandleTimeoutInvalidTimeout(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockLogger := mocks.NewMockLogWriter(mockCtrl)
-	mockLogger.EXPECT().WriteUser("Error parsing timeout `not-a-timeout`")
+	mockLogger := mocks.NewMockLogger(mockCtrl)
+	mockLogger.EXPECT().User("Error parsing timeout `not-a-timeout`")
 
 	params := getAllInstanceImportParams()
 	params.Timeout = "not-a-timeout"

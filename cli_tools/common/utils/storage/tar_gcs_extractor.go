@@ -30,11 +30,11 @@ import (
 type TarGcsExtractor struct {
 	ctx           context.Context
 	storageClient domain.StorageClientInterface
-	logger        logging.LogWriter
+	logger        logging.Logger
 }
 
 // NewTarGcsExtractor creates new TarGcsExtractor
-func NewTarGcsExtractor(ctx context.Context, sc domain.StorageClientInterface, logger logging.LogWriter) *TarGcsExtractor {
+func NewTarGcsExtractor(ctx context.Context, sc domain.StorageClientInterface, logger logging.Logger) *TarGcsExtractor {
 	return &TarGcsExtractor{ctx: ctx, storageClient: sc, logger: logger}
 }
 
@@ -81,7 +81,7 @@ func (tge *TarGcsExtractor) ExtractTarToGcs(tarGcsPath string, destinationGcsPat
 
 		case tar.TypeReg:
 			destinationFilePath := path.Join(destinationPath, header.Name)
-			tge.logger.WriteUser(fmt.Sprintf("Extracting: %v to gs://%v", header.Name, path.Join(destinationBucketName, destinationFilePath)))
+			tge.logger.User(fmt.Sprintf("Extracting: %v to gs://%v", header.Name, path.Join(destinationBucketName, destinationFilePath)))
 
 			if err := tge.storageClient.WriteToGCS(destinationBucketName, destinationFilePath, tarReader); err != nil {
 				return err
