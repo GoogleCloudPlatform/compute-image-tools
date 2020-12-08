@@ -153,7 +153,7 @@ func (oe *OVFExporter) buildLoggable() service.Loggable {
 	exportedDisksTargetSizes := make([]int64, len(oe.exportedDisks))
 	for i, exportedDisk := range oe.exportedDisks {
 		exportedDisksSourceSizes[i] = exportedDisk.Disk.SizeGb
-		exportedDisksTargetSizes[i] = exportedDisk.GcsFileAttrs.Size / bytesPerGB
+		exportedDisksTargetSizes[i] = (exportedDisk.GcsFileAttrs.Size-1)/bytesPerGB + 1
 	}
 	return oe.loggableBuilder.SetDiskSizes(
 		exportedDisksSourceSizes,

@@ -45,7 +45,7 @@ var (
 		{
 			Disk:         &compute.Disk{Name: "datadisk2", SizeGb: 300},
 			AttachedDisk: &compute.AttachedDisk{Boot: false},
-			GcsFileAttrs: &storage.ObjectAttrs{Size: 90 * bytesPerGB},
+			GcsFileAttrs: &storage.ObjectAttrs{Size: 90*bytesPerGB + 1},
 		},
 	}
 )
@@ -124,7 +124,7 @@ func TestRun_HappyPath(t *testing.T) {
 	serialLogs := loggable.ReadSerialPortLogs()
 	assert.Equal(t, []string{"preparer trace log", "disk exporter trace log", "inspector trace log", "cleaner trace log"}, serialLogs)
 	assert.Equal(t, []int64{10, 20, 300}, loggable.GetValueAsInt64Slice("source-size-gb"))
-	assert.Equal(t, []int64{3, 7, 90}, loggable.GetValueAsInt64Slice("target-size-gb"))
+	assert.Equal(t, []int64{3, 7, 91}, loggable.GetValueAsInt64Slice("target-size-gb"))
 }
 
 func TestRun_DontRunDiskExporterIfPreparerTimedOut(t *testing.T) {
