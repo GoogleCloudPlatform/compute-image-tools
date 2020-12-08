@@ -87,7 +87,8 @@ func (p *defaultPlanner) plan(pd persistentDisk) (*processingPlan, error) {
 	}
 
 	if osID == "" {
-		return nil, errors.New("Could not detect operating system. Please re-import with the operating system specified")
+		return nil, errors.New("Could not detect operating system. Please re-import with the operating system specified. " +
+			"For more information, see https://cloud.google.com/compute/docs/import/importing-virtual-disks#bootable")
 	}
 
 	settings, err := daisy_utils.GetTranslationSettings(osID)
