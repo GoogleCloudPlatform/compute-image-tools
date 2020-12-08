@@ -17,9 +17,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"log"
-	"time"
-
 	"google.golang.org/api/option"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
@@ -32,8 +29,9 @@ import (
 
 // Main starts an image import.
 func Main(args []string) error {
-	log.SetFlags(0)
-	log.SetOutput(new(logWriter))
+	toolLogger := logging.NewToolLogger(fmt.Sprintf("[%s]", importer.LogPrefix))
+	logging.RedirectGlobalLogsToUser(toolLogger)
+
 	ctx := context.Background()
 
 	// 1. Parse the args without validating or populating. Splitting parsing and
@@ -47,7 +45,7 @@ func Main(args []string) error {
 
 	// 2. Setup dependencies.
 	storageClient, err := storage.NewStorageClient(
-		ctx, logging.NewDefaultLogger(), option.WithCredentialsFile(importArgs.Oauth))
+		ctx, toolLogger, option.WithCredentialsFile(importArgs.Oauth))
 	if err != nil {
 		logFailure(importArgs, err)
 		return err
@@ -89,13 +87,6 @@ func Main(args []string) error {
 		return err
 	}
 	return nil
-}
-
-type logWriter struct{}
-
-func (l *logWriter) Write(bytes []byte) (int, error) {
-	return fmt.Printf("[%s]: %v %v", importer.LogPrefix,
-		time.Now().UTC().Format("2006-01-02T15:04:05.999Z"), string(bytes))
 }
 
 // logFailure sends a message to the logging framework, and is expected to be

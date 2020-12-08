@@ -51,7 +51,7 @@ func TestExtractTarToGcs(t *testing.T) {
 
 	gomock.InOrder(first, second, third)
 
-	tge := TarGcsExtractor{ctx: ctx, storageClient: mockStorageClient, logger: logging.NewStdoutLogger("[import-ovf]")}
+	tge := TarGcsExtractor{ctx: ctx, storageClient: mockStorageClient, logger: logging.NewToolLogger("[import-ovf]")}
 	err := tge.ExtractTarToGcs("gs://sourcebucket/sourcepath/sometar.tar", "gs://destbucket/destpath/")
 
 	assert.Nil(t, err)
@@ -63,7 +63,7 @@ func TestExtractTarToGcsErrorWhenInvalidSourceGCSPath(t *testing.T) {
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
-	tge := TarGcsExtractor{ctx: context.Background(), storageClient: mockStorageClient, logger: logging.NewStdoutLogger("[import-ovf]")}
+	tge := TarGcsExtractor{ctx: context.Background(), storageClient: mockStorageClient, logger: logging.NewToolLogger("[import-ovf]")}
 	err := tge.ExtractTarToGcs("NOT_GCS_PATH", "gs://destbucket/destpath/")
 	assert.NotNil(t, err)
 }
@@ -80,7 +80,7 @@ func TestExtractTarToGcsErrorWhenNonExistentSourceGCSPath(t *testing.T) {
 		GetObject("sourcebucket", "sourcepath/sometar.tar").
 		Return(mockStorageObject)
 
-	tge := TarGcsExtractor{ctx: context.Background(), storageClient: mockStorageClient, logger: logging.NewStdoutLogger("[import-ovf]")}
+	tge := TarGcsExtractor{ctx: context.Background(), storageClient: mockStorageClient, logger: logging.NewToolLogger("[import-ovf]")}
 	err := tge.ExtractTarToGcs("gs://sourcebucket/sourcepath/sometar.tar", "gs://destbucket/destpath/")
 	assert.NotNil(t, err)
 }
@@ -100,7 +100,7 @@ func TestExtractTarToGcsErrorWhenInvalidDestinationPath(t *testing.T) {
 		GetObject("sourcebucket", "sourcepath/sometar.tar").
 		Return(mockStorageObject)
 
-	tge := TarGcsExtractor{ctx: context.Background(), storageClient: mockStorageClient, logger: logging.NewStdoutLogger("[import-ovf]")}
+	tge := TarGcsExtractor{ctx: context.Background(), storageClient: mockStorageClient, logger: logging.NewToolLogger("[import-ovf]")}
 	err := tge.ExtractTarToGcs("gs://sourcebucket/sourcepath/sometar.tar", "NOT_GCS_PATH")
 	assert.NotNil(t, err)
 }
@@ -127,7 +127,7 @@ func TestExtractTarToGcsErrorWhenWriteToGCSFailed(t *testing.T) {
 
 	gomock.InOrder(first, second)
 
-	tge := TarGcsExtractor{ctx: ctx, storageClient: mockStorageClient, logger: logging.NewStdoutLogger("[import-ovf]")}
+	tge := TarGcsExtractor{ctx: ctx, storageClient: mockStorageClient, logger: logging.NewToolLogger("[import-ovf]")}
 	err := tge.ExtractTarToGcs("gs://sourcebucket/sourcepath/sometar.tar", "gs://destbucket/destpath/")
 
 	assert.NotNil(t, err)
@@ -149,7 +149,7 @@ func TestExtractTarToGcsErrorWhenErrorReadingTarFile(t *testing.T) {
 		GetObject("sourcebucket", "sourcepath/sometar.tar").
 		Return(mockStorageObject)
 
-	tge := TarGcsExtractor{ctx: context.Background(), storageClient: mockStorageClient, logger: logging.NewStdoutLogger("[import-ovf]")}
+	tge := TarGcsExtractor{ctx: context.Background(), storageClient: mockStorageClient, logger: logging.NewToolLogger("[import-ovf]")}
 	err := tge.ExtractTarToGcs("gs://sourcebucket/sourcepath/sometar.tar", "gs://destbucket/destpath/")
 	assert.NotNil(t, err)
 }
@@ -170,7 +170,7 @@ func TestExtractTarToGcsErrorIfDirPresentInTar(t *testing.T) {
 		GetObject("sourcebucket", "sourcepath/sometar.tar").
 		Return(mockStorageObject)
 
-	tge := TarGcsExtractor{ctx: ctx, storageClient: mockStorageClient, logger: logging.NewStdoutLogger("[import-ovf]")}
+	tge := TarGcsExtractor{ctx: ctx, storageClient: mockStorageClient, logger: logging.NewToolLogger("[import-ovf]")}
 	err := tge.ExtractTarToGcs("gs://sourcebucket/sourcepath/sometar.tar", "gs://destbucket/destpath/")
 
 	assert.NotNil(t, err)

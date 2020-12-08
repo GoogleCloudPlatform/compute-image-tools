@@ -174,7 +174,7 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	ctx := context.Background()
 	metadataGCE := &compute.MetadataGCE{}
 	storageClient, err := storage.NewStorageClient(
-		ctx, logging.NewStdoutLogger(logPrefix), option.WithCredentialsFile(oauth))
+		ctx, logging.NewToolLogger(logPrefix), option.WithCredentialsFile(oauth))
 	if err != nil {
 		return nil, err
 	}
