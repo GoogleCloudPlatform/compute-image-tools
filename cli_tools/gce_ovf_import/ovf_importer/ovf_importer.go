@@ -441,7 +441,11 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 		osIDValue = oi.params.OsID
 	}
 
-	translateWorkflowPath := "../image_import/" + daisyutils.GetTranslateWorkflowPath(osIDValue)
+	settings, err := daisyutils.GetTranslationSettings(osIDValue)
+	if err != nil {
+		return nil, err
+	}
+	translateWorkflowPath := "../image_import/" + settings.WorkflowPath
 	machineTypeStr, err := oi.getMachineType(ovfDescriptor, project, zone)
 	if err != nil {
 		return nil, err

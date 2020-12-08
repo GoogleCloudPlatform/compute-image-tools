@@ -39,9 +39,9 @@ const (
 // TranslationSettings includes information that needs to be added to a disk or image after it is imported,
 // for a particular OS and version.
 type TranslationSettings struct {
-	// GcloudArg is the user-facing string corresponding to this OS, version, and licensing mode.
+	// GcloudOsFlag is the user-facing string corresponding to this OS, version, and licensing mode.
 	// It is passed as a value of the `--os` flag.
-	GcloudArg string
+	GcloudOsFlag string
 
 	// LicenseURI is the GCP Compute license corresponding to this OS, version, and licensing mode:
 	//  https://cloud.google.com/compute/docs/reference/rest/v1/licenses
@@ -56,175 +56,175 @@ var (
 	supportedOS = []TranslationSettings{
 		// Enterprise Linux
 		{
-			GcloudArg:    "centos-6",
+			GcloudOsFlag: "centos-6",
 			WorkflowPath: "enterprise_linux/translate_centos_6.wf.json",
 			LicenseURI:   "projects/centos-cloud/global/licenses/centos-6",
 		}, {
-			GcloudArg:    "centos-7",
+			GcloudOsFlag: "centos-7",
 			WorkflowPath: "enterprise_linux/translate_centos_7.wf.json",
 			LicenseURI:   "projects/centos-cloud/global/licenses/centos-7",
 		}, {
-			GcloudArg:    "centos-8",
+			GcloudOsFlag: "centos-8",
 			WorkflowPath: "enterprise_linux/translate_centos_8.wf.json",
 			LicenseURI:   "projects/centos-cloud/global/licenses/centos-8",
 		}, {
-			GcloudArg:    "rhel-6",
+			GcloudOsFlag: "rhel-6",
 			WorkflowPath: "enterprise_linux/translate_rhel_6_licensed.wf.json",
 			LicenseURI:   "projects/rhel-cloud/global/licenses/rhel-6-server",
 		}, {
-			GcloudArg:    "rhel-6-byol",
+			GcloudOsFlag: "rhel-6-byol",
 			WorkflowPath: "enterprise_linux/translate_rhel_6_byol.wf.json",
 			LicenseURI:   "projects/rhel-cloud/global/licenses/rhel-6-byol",
 		}, {
-			GcloudArg:    "rhel-7",
+			GcloudOsFlag: "rhel-7",
 			WorkflowPath: "enterprise_linux/translate_rhel_7_licensed.wf.json",
 			LicenseURI:   "projects/rhel-cloud/global/licenses/rhel-7-server",
 		}, {
-			GcloudArg:    "rhel-7-byol",
+			GcloudOsFlag: "rhel-7-byol",
 			WorkflowPath: "enterprise_linux/translate_rhel_7_byol.wf.json",
 			LicenseURI:   "projects/rhel-cloud/global/licenses/rhel-7-byol",
 		}, {
-			GcloudArg:    "rhel-8",
+			GcloudOsFlag: "rhel-8",
 			WorkflowPath: "enterprise_linux/translate_rhel_8_licensed.wf.json",
 			LicenseURI:   "projects/rhel-cloud/global/licenses/rhel-8-server",
 		}, {
-			GcloudArg:    "rhel-8-byol",
+			GcloudOsFlag: "rhel-8-byol",
 			WorkflowPath: "enterprise_linux/translate_rhel_8_byol.wf.json",
 			LicenseURI:   "projects/rhel-cloud/global/licenses/rhel-8-byos",
 		},
 
 		// SUSE
 		{
-			GcloudArg:    "opensuse-15",
+			GcloudOsFlag: "opensuse-15",
 			WorkflowPath: "suse/translate_opensuse_15.wf.json",
 			LicenseURI:   "projects/opensuse-cloud/global/licenses/opensuse-leap-42",
 		}, {
-			GcloudArg:    "sles-12",
+			GcloudOsFlag: "sles-12",
 			WorkflowPath: "suse/translate_sles_12.wf.json",
 			LicenseURI:   "projects/suse-cloud/global/licenses/sles-12",
 		}, {
-			GcloudArg:    "sles-12-byol",
+			GcloudOsFlag: "sles-12-byol",
 			WorkflowPath: "suse/translate_sles_12_byol.wf.json",
 			LicenseURI:   "projects/suse-byos-cloud/global/licenses/sles-12-byos",
 		}, {
-			GcloudArg:    "sles-sap-12",
+			GcloudOsFlag: "sles-sap-12",
 			WorkflowPath: "suse/translate_sles_sap_12.wf.json",
 			LicenseURI:   "projects/suse-sap-cloud/global/licenses/sles-sap-12",
 		}, {
-			GcloudArg:    "sles-sap-12-byol",
+			GcloudOsFlag: "sles-sap-12-byol",
 			WorkflowPath: "suse/translate_sles_sap_12_byol.wf.json",
 			LicenseURI:   "projects/suse-byos-cloud/global/licenses/sles-sap-12-byos",
 		}, {
-			GcloudArg:    "sles-15",
+			GcloudOsFlag: "sles-15",
 			WorkflowPath: "suse/translate_sles_15.wf.json",
 			LicenseURI:   "projects/suse-cloud/global/licenses/sles-15",
 		}, {
-			GcloudArg:    "sles-15-byol",
+			GcloudOsFlag: "sles-15-byol",
 			WorkflowPath: "suse/translate_sles_15_byol.wf.json",
 			LicenseURI:   "projects/suse-byos-cloud/global/licenses/sles-15-byos",
 		}, {
-			GcloudArg:    "sles-sap-15",
+			GcloudOsFlag: "sles-sap-15",
 			WorkflowPath: "suse/translate_sles_sap_15.wf.json",
 			LicenseURI:   "projects/suse-sap-cloud/global/licenses/sles-sap-15",
 		}, {
-			GcloudArg:    "sles-sap-15-byol",
+			GcloudOsFlag: "sles-sap-15-byol",
 			WorkflowPath: "suse/translate_sles_sap_15_byol.wf.json",
 			LicenseURI:   "projects/suse-byos-cloud/global/licenses/sles-sap-15-byos",
 		},
 
 		// Debian
 		{
-			GcloudArg:    "debian-8",
+			GcloudOsFlag: "debian-8",
 			WorkflowPath: "debian/translate_debian_8.wf.json",
 			LicenseURI:   "projects/debian-cloud/global/licenses/debian-8-jessie",
 		}, {
-			GcloudArg:    "debian-9",
+			GcloudOsFlag: "debian-9",
 			WorkflowPath: "debian/translate_debian_9.wf.json",
 			LicenseURI:   "projects/debian-cloud/global/licenses/debian-9-stretch",
 		},
 
 		// Ubuntu
 		{
-			GcloudArg:    "ubuntu-1404",
+			GcloudOsFlag: "ubuntu-1404",
 			WorkflowPath: "ubuntu/translate_ubuntu_1404.wf.json",
 			LicenseURI:   "projects/ubuntu-os-cloud/global/licenses/ubuntu-1404-trusty",
 		}, {
-			GcloudArg:    "ubuntu-1604",
+			GcloudOsFlag: "ubuntu-1604",
 			WorkflowPath: "ubuntu/translate_ubuntu_1604.wf.json",
 			LicenseURI:   "projects/ubuntu-os-cloud/global/licenses/ubuntu-1604-xenial",
 		}, {
-			GcloudArg:    "ubuntu-1804",
+			GcloudOsFlag: "ubuntu-1804",
 			WorkflowPath: "ubuntu/translate_ubuntu_1804.wf.json",
 			LicenseURI:   "projects/ubuntu-os-cloud/global/licenses/ubuntu-1804-lts",
 		}, {
-			GcloudArg:    "ubuntu-2004",
+			GcloudOsFlag: "ubuntu-2004",
 			WorkflowPath: "ubuntu/translate_ubuntu_2004.wf.json",
 			LicenseURI:   "projects/ubuntu-os-cloud/global/licenses/ubuntu-2004-lts",
 		},
 
 		// Windows
 		{
-			GcloudArg:    "windows-7-x64-byol",
+			GcloudOsFlag: "windows-7-x64-byol",
 			WorkflowPath: "windows/translate_windows_7_x64_byol.wf.json",
 			LicenseURI:   "projects/windows-cloud/global/licenses/windows-7-x64-byol",
 		}, {
-			GcloudArg:    "windows-7-x86-byol",
+			GcloudOsFlag: "windows-7-x86-byol",
 			WorkflowPath: "windows/translate_windows_7_x86_byol.wf.json",
 			LicenseURI:   "projects/windows-cloud/global/licenses/windows-7-x86-byol",
 		}, {
-			GcloudArg:    "windows-8-x64-byol",
+			GcloudOsFlag: "windows-8-x64-byol",
 			WorkflowPath: "windows/translate_windows_8_x64_byol.wf.json",
 			LicenseURI:   "projects/windows-cloud/global/licenses/windows-8-x64-byol",
 		}, {
-			GcloudArg:    "windows-8-x86-byol",
+			GcloudOsFlag: "windows-8-x86-byol",
 			WorkflowPath: "windows/translate_windows_8_x86_byol.wf.json",
 			LicenseURI:   "projects/windows-cloud/global/licenses/windows-8-x86-byol",
 		}, {
-			GcloudArg:    "windows-10-x64-byol",
+			GcloudOsFlag: "windows-10-x64-byol",
 			WorkflowPath: "windows/translate_windows_10_x64_byol.wf.json",
 			LicenseURI:   "projects/windows-cloud/global/licenses/windows-10-x64-byol",
 		}, {
-			GcloudArg:    "windows-10-x86-byol",
+			GcloudOsFlag: "windows-10-x86-byol",
 			WorkflowPath: "windows/translate_windows_10_x86_byol.wf.json",
 			LicenseURI:   "projects/windows-cloud/global/licenses/windows-10-x86-byol",
 		}, {
-			GcloudArg:    "windows-2008r2",
+			GcloudOsFlag: "windows-2008r2",
 			WorkflowPath: "windows/translate_windows_2008_r2.wf.json",
 			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2008-r2-dc",
 		}, {
-			GcloudArg:    "windows-2008r2-byol",
+			GcloudOsFlag: "windows-2008r2-byol",
 			WorkflowPath: "windows/translate_windows_2008_r2_byol.wf.json",
 			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2008-r2-byol",
 		}, {
-			GcloudArg:    "windows-2012",
+			GcloudOsFlag: "windows-2012",
 			WorkflowPath: "windows/translate_windows_2012.wf.json",
 			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2012-dc",
 		}, {
-			GcloudArg:    "windows-2012-byol",
+			GcloudOsFlag: "windows-2012-byol",
 			WorkflowPath: "windows/translate_windows_2012_byol.wf.json",
 			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2012-byol",
 		}, {
-			GcloudArg:    "windows-2012r2",
+			GcloudOsFlag: "windows-2012r2",
 			WorkflowPath: "windows/translate_windows_2012_r2.wf.json",
 			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2012-r2-dc",
 		}, {
-			GcloudArg:    "windows-2012r2-byol",
+			GcloudOsFlag: "windows-2012r2-byol",
 			WorkflowPath: "windows/translate_windows_2012_r2_byol.wf.json",
 			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2012-r2-byol",
 		}, {
-			GcloudArg:    "windows-2016",
+			GcloudOsFlag: "windows-2016",
 			WorkflowPath: "windows/translate_windows_2016.wf.json",
 			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2016-dc",
 		}, {
-			GcloudArg:    "windows-2016-byol",
+			GcloudOsFlag: "windows-2016-byol",
 			WorkflowPath: "windows/translate_windows_2016_byol.wf.json",
 			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2016-byol",
 		}, {
-			GcloudArg:    "windows-2019",
+			GcloudOsFlag: "windows-2019",
 			WorkflowPath: "windows/translate_windows_2019.wf.json",
 			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2019-dc",
 		}, {
-			GcloudArg:    "windows-2019-byol",
+			GcloudOsFlag: "windows-2019-byol",
 			WorkflowPath: "windows/translate_windows_2019_byol.wf.json",
 			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2019-byol",
 		},
@@ -247,7 +247,7 @@ var (
 func GetSortedOSIDs() []string {
 	choices := make([]string, 0, len(supportedOS))
 	for _, k := range supportedOS {
-		choices = append(choices, k.GcloudArg)
+		choices = append(choices, k.GcloudOsFlag)
 	}
 	sort.Strings(choices)
 	return choices
@@ -257,13 +257,6 @@ func GetSortedOSIDs() []string {
 func ValidateOS(osID string) error {
 	_, err := GetTranslationSettings(osID)
 	return err
-}
-
-// GetTranslateWorkflowPath returns the path to image translate workflow for the given osID.
-// An empty string is returned if the osID is not supported for import.
-func GetTranslateWorkflowPath(osID string) string {
-	settings, _ := GetTranslationSettings(osID)
-	return settings.WorkflowPath
 }
 
 // GetTranslationSettings returns parameters required for translating a particular OS, version,
@@ -279,7 +272,7 @@ func GetTranslationSettings(osID string) (spec TranslationSettings, err error) {
 		osID = replacement
 	}
 	for _, choice := range supportedOS {
-		if choice.GcloudArg == osID {
+		if choice.GcloudOsFlag == osID {
 			return choice, nil
 		}
 	}

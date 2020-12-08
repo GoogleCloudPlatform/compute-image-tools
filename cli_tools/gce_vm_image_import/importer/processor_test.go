@@ -18,7 +18,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,7 +42,7 @@ func Test_DefaultProcessorProvider_IncludesMetadataStepWhenMetadataChangesRequir
 		planner: mockProcessPlanner{
 			result: &processingPlan{
 				requiredLicenses:        []string{"url/license"},
-				translationWorkflowPath: daisy.GetTranslateWorkflowPath("ubuntu-1804"),
+				translationWorkflowPath: opensuse15workflow,
 			},
 		},
 	}
@@ -61,7 +60,7 @@ func Test_DefaultProcessorProvider_SkipsMetadataStepWhenNoChangesRequired(t *tes
 		},
 		planner: mockProcessPlanner{
 			result: &processingPlan{
-				translationWorkflowPath: daisy.GetTranslateWorkflowPath("ubuntu-1804"),
+				translationWorkflowPath: opensuse15workflow,
 			},
 		},
 	}

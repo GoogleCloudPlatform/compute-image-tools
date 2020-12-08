@@ -17,6 +17,7 @@ package importer
 import (
 	"errors"
 	"log"
+	"path"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
@@ -26,15 +27,14 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
-// processPlanner determines which actions need to be completed to during processing
+// processPlanner determines which actions need to be performed against a disk during processing
 // to ensure a disk is bootable on GCE.
 type processPlanner interface {
 	plan(pd persistentDisk) (*processingPlan, error)
 }
 
-// newProcessPlanner returns a processPlanner that uses disk.Inspector to backfill
-// information that is missing from the arguments (such as: which  OS is on the disk, or whether
-// UEFI is required to boot the disk).
+// newProcessPlanner returns a processPlanner that prioritizes information from ImportArguments,
+// but falls back to disk.Inspector results when required.
 func newProcessPlanner(args ImportArguments, diskInspector disk.Inspector) processPlanner {
 	return &defaultPlanner{args, diskInspector}
 }
@@ -69,7 +69,7 @@ func (p *defaultPlanner) plan(pd persistentDisk) (*processingPlan, error) {
 	osID := p.args.OS
 	requiresUEFI := p.args.UefiCompatible
 	if inspectionError == nil && inspectionResults != nil {
-		if osID == "" && inspectionResults.OsCount == 1 && inspectionResults.GetOsRelease() != nil {
+		if osID == "" && inspectionResults.GetOsCount() == 1 && inspectionResults.GetOsRelease() != nil {
 			osID = inspectionResults.GetOsRelease().CliFormatted
 			if p.args.BYOL {
 				osID += "-byol"
@@ -78,11 +78,11 @@ func (p *defaultPlanner) plan(pd persistentDisk) (*processingPlan, error) {
 
 		if !requiresUEFI {
 			hybridGPTBootable := inspectionResults.GetUefiBootable() && inspectionResults.GetBiosBootable()
-			if !p.args.UefiCompatible && hybridGPTBootable {
+			if hybridGPTBootable {
 				log.Printf("This disk can boot with either BIOS or a UEFI bootloader. The default setting for booting is BIOS. " +
 					"If you want to boot using UEFI, please see https://cloud.google.com/compute/docs/import/importing-virtual-disks#importing_a_virtual_disk_with_uefi_bootloader'.")
 			}
-			requiresUEFI = inspectionResults.UefiBootable && !hybridGPTBootable
+			requiresUEFI = inspectionResults.GetUefiBootable() && !hybridGPTBootable
 		}
 	}
 
@@ -106,7 +106,7 @@ func (p *defaultPlanner) plan(pd persistentDisk) (*processingPlan, error) {
 	return &processingPlan{
 		requiredLicenses:        []string{settings.LicenseURI},
 		requiredFeatures:        requiredGuestOSFeatures,
-		translationWorkflowPath: settings.WorkflowPath,
+		translationWorkflowPath: path.Join(p.args.WorkflowDir, "image_import", settings.WorkflowPath),
 	}, nil
 }
 

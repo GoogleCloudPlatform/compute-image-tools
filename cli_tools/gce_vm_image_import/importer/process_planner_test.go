@@ -50,12 +50,13 @@ func Test_DefaultPlanner_Plan_InspectionFailures(t *testing.T) {
 		{
 			name: "Succeed when inspection fails but OS is provided.",
 			args: ImportArguments{
-				OS:      "debian-8",
-				Inspect: true,
+				OS:          "debian-8",
+				Inspect:     true,
+				WorkflowDir: "workflowroot",
 			},
 			expectedResults: &processingPlan{
 				requiredLicenses:        []string{"projects/debian-cloud/global/licenses/debian-8-jessie"},
-				translationWorkflowPath: "debian/translate_debian_8.wf.json",
+				translationWorkflowPath: "workflowroot/image_import/debian/translate_debian_8.wf.json",
 			},
 		},
 		{
@@ -64,25 +65,28 @@ func Test_DefaultPlanner_Plan_InspectionFailures(t *testing.T) {
 				OS:             "windows-2012r2",
 				Inspect:        true,
 				UefiCompatible: true,
+				WorkflowDir:    "workflowroot",
 			},
 			expectedResults: &processingPlan{
 				requiredLicenses:        []string{"projects/windows-cloud/global/licenses/windows-server-2012-r2-dc"},
-				translationWorkflowPath: "windows/translate_windows_2012_r2.wf.json",
+				translationWorkflowPath: "workflowroot/image_import/windows/translate_windows_2012_r2.wf.json",
 				requiredFeatures:        []*compute.GuestOsFeature{{Type: "WINDOWS"}, {Type: "UEFI_COMPATIBLE"}},
 			},
 		},
 		{
 			name: "Fail when inspection fails and OS is not provided.",
 			args: ImportArguments{
-				Inspect: true,
+				Inspect:     true,
+				WorkflowDir: "workflowroot",
 			},
 			expectErrorToContain: "Please re-import with the operating system specified",
 		},
 		{
 			name: "Fail when inspection fails and specified OS is not supported",
 			args: ImportArguments{
-				OS:      "kali-rolling",
-				Inspect: true,
+				OS:          "kali-rolling",
+				Inspect:     true,
+				WorkflowDir: "workflowroot",
 			},
 			expectErrorToContain: "kali-rolling.*is invalid",
 		},
@@ -117,8 +121,9 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 		{
 			name: "Use provided OS, even when inspection passes.",
 			args: ImportArguments{
-				OS:      "debian-8",
-				Inspect: true,
+				OS:          "debian-8",
+				Inspect:     true,
+				WorkflowDir: "workflowroot",
 			},
 			inspectionResults: &pb.InspectionResults{
 				OsCount: 1,
@@ -128,14 +133,15 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 			},
 			expectedResults: &processingPlan{
 				requiredLicenses:        []string{"projects/debian-cloud/global/licenses/debian-8-jessie"},
-				translationWorkflowPath: "debian/translate_debian_8.wf.json",
+				translationWorkflowPath: "workflowroot/image_import/debian/translate_debian_8.wf.json",
 			},
 		},
 		{
 			name: "Support BYOL for inspection results",
 			args: ImportArguments{
-				Inspect: true,
-				BYOL:    true,
+				Inspect:     true,
+				BYOL:        true,
+				WorkflowDir: "workflowroot",
 			},
 			inspectionResults: &pb.InspectionResults{
 				OsCount: 1,
@@ -145,14 +151,15 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 			},
 			expectedResults: &processingPlan{
 				requiredLicenses:        []string{"projects/rhel-cloud/global/licenses/rhel-8-byos"},
-				translationWorkflowPath: "enterprise_linux/translate_rhel_8_byol.wf.json",
+				translationWorkflowPath: "workflowroot/image_import/enterprise_linux/translate_rhel_8_byol.wf.json",
 			},
 		},
 		{
 			name: "Fail when BYOL is specified, but detected OS doesn't support it.",
 			args: ImportArguments{
-				Inspect: true,
-				BYOL:    true,
+				Inspect:     true,
+				BYOL:        true,
+				WorkflowDir: "workflowroot",
 			},
 			inspectionResults: &pb.InspectionResults{
 				OsCount: 1,
@@ -165,7 +172,8 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 		{
 			name: "Fail when inspected OS is not supported",
 			args: ImportArguments{
-				Inspect: true,
+				Inspect:     true,
+				WorkflowDir: "workflowroot",
 			},
 			inspectionResults: &pb.InspectionResults{
 				OsCount: 1,
@@ -178,7 +186,8 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 		{
 			name: "Fail when inspection succeeds, but doesn't find an OS, and OS is not provided.",
 			args: ImportArguments{
-				Inspect: true,
+				Inspect:     true,
+				WorkflowDir: "workflowroot",
 			},
 			inspectionResults: &pb.InspectionResults{
 				OsCount: 0,
@@ -191,21 +200,23 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 				OS:             "debian-8",
 				Inspect:        true,
 				UefiCompatible: true,
+				WorkflowDir:    "workflowroot",
 			},
 			inspectionResults: &pb.InspectionResults{
 				UefiBootable: false,
 			},
 			expectedResults: &processingPlan{
 				requiredLicenses:        []string{"projects/debian-cloud/global/licenses/debian-8-jessie"},
-				translationWorkflowPath: "debian/translate_debian_8.wf.json",
+				translationWorkflowPath: "workflowroot/image_import/debian/translate_debian_8.wf.json",
 				requiredFeatures:        []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}},
 			},
 		},
 		{
 			name: "Don't use UEFI when disk is GPT and can boot with BIOS or UEFI.",
 			args: ImportArguments{
-				OS:      "debian-8",
-				Inspect: true,
+				OS:          "debian-8",
+				Inspect:     true,
+				WorkflowDir: "workflowroot",
 			},
 			inspectionResults: &pb.InspectionResults{
 				UefiBootable: true,
@@ -213,7 +224,7 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 			},
 			expectedResults: &processingPlan{
 				requiredLicenses:        []string{"projects/debian-cloud/global/licenses/debian-8-jessie"},
-				translationWorkflowPath: "debian/translate_debian_8.wf.json",
+				translationWorkflowPath: "workflowroot/image_import/debian/translate_debian_8.wf.json",
 			},
 		},
 	} {

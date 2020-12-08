@@ -90,7 +90,7 @@ func Test_GetTranslationSettings_ResolveSameWorkflowPathAsOldMap(t *testing.T) {
 
 func Test_GetTranslationSettings_ReturnsSameLicenseAsContainedInJSON(t *testing.T) {
 	// Originally, the JSON workflows in daisy_workflows/image_import were the source of truth
-	// for licensing info. This test verifies that the license returned by LookupImportableOS
+	// for licensing info. This test verifies that the license returned by GetTranslationSettings
 	// is the same as the JSON workflow.
 
 	workflowDir := "../../../../daisy_workflows/image_import"
@@ -110,7 +110,7 @@ func Test_GetTranslationSettings_ReturnsSameLicenseAsContainedInJSON(t *testing.
 				t.Fatal("Can't find", workflowPath)
 			}
 
-			// Ensure that the license from ImportableOS is specified in the
+			// Ensure that the license from TranslationSettings is specified in the
 			// JSON workflow.
 			var licensesInWorkflow []string
 			wf, err := daisy.NewFromFile(workflowPath)
@@ -153,24 +153,7 @@ func TestGetSortedOSIDs(t *testing.T) {
 	assert.Len(t, actual, len(supportedOS))
 	assert.True(t, sort.StringsAreSorted(actual))
 	for _, choice := range supportedOS {
-		assert.Contains(t, actual, choice.GcloudArg)
-	}
-}
-
-func TestGetTranslateWorkflowPathValid(t *testing.T) {
-	input := "ubuntu-1604"
-	result := GetTranslateWorkflowPath(input)
-	if result != "ubuntu/translate_ubuntu_1604.wf.json" {
-		t.Errorf("expected `%v`, got `%v`",
-			"ubuntu/translate_ubuntu_1604.wf.json", result)
-	}
-}
-
-func TestGetTranslateWorkflowPathInvalid(t *testing.T) {
-	input := "not-an-OS"
-	result := GetTranslateWorkflowPath(input)
-	if result != "" {
-		t.Errorf("expected empty result, got `%v`", result)
+		assert.Contains(t, actual, choice.GcloudOsFlag)
 	}
 }
 

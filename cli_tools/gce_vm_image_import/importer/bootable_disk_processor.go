@@ -17,7 +17,6 @@ package importer
 import (
 	"context"
 	"os"
-	"path"
 	"strconv"
 	"strings"
 
@@ -61,11 +60,6 @@ func (b *bootableDiskProcessor) traceLogs() []string {
 }
 
 func newBootableDiskProcessor(args ImportArguments, wfPath string) (processor, error) {
-	translateWorkflowPath, err := findWorkflowFile(wfPath, args.WorkflowDir)
-	if err != nil {
-		return nil, err
-	}
-
 	vars := map[string]string{
 		"image_name":           args.ImageName,
 		"install_gce_packages": strconv.FormatBool(!args.NoGuestEnvironment),
@@ -76,7 +70,7 @@ func newBootableDiskProcessor(args ImportArguments, wfPath string) (processor, e
 		"import_network":       args.Network,
 	}
 
-	workflow, err := daisycommon.ParseWorkflow(translateWorkflowPath, vars,
+	workflow, err := daisycommon.ParseWorkflow(wfPath, vars,
 		args.Project, args.Zone, args.ScratchBucketGcsPath, args.Oauth, args.Timeout.String(),
 		args.ComputeEndpoint, args.GcsLogsDisabled, args.CloudLogsDisabled, args.StdoutLogsDisabled)
 
@@ -92,20 +86,6 @@ func newBootableDiskProcessor(args ImportArguments, wfPath string) (processor, e
 		args:     args,
 		workflow: workflow,
 	}, err
-}
-
-func findWorkflowFile(wfPath string, daisyWorkflowDir string) (string, error) {
-	for _, p := range []string{
-		wfPath,
-		path.Join(daisyWorkflowDir, wfPath),
-		path.Join(daisyWorkflowDir, "image_import", wfPath),
-	} {
-		info, err := os.Stat(p)
-		if !os.IsNotExist(err) && !info.IsDir() {
-			return p, nil
-		}
-	}
-	return "", daisy.Errf("Workflow %s not found", wfPath)
 }
 
 func (b *bootableDiskProcessor) postValidateFunc() daisy.WorkflowModifier {

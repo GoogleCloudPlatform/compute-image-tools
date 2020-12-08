@@ -318,7 +318,3 @@ func (args ImportArguments) DaisyAttrs() daisycommon.WorkflowAttributes {
 		WorkflowDirectory: args.WorkflowDir,
 	}
 }
-
-func (args *ImportArguments) useDetectedOS() bool {
-	panic("TODO")
-}

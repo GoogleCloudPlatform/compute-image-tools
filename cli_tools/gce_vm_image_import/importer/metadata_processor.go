@@ -52,7 +52,7 @@ func (p *metadataProcessor) process(pd persistentDisk,
 	}
 
 	// Fast path 2: The current disk already has the requested modifications present.
-	changesRequired, newDisk, err := p.stageRequestForNewDisk(pd)
+	newDisk, changesRequired, err := p.stageRequestForNewDisk(pd)
 	if !changesRequired || err != nil {
 		return pd, err
 	}
@@ -77,12 +77,12 @@ func (p *metadataProcessor) process(pd persistentDisk,
 // struct that contains requested modifications.
 //
 // When false, `cloneRequired` signifies that the current disk satisfies all requested changes.
-func (p *metadataProcessor) stageRequestForNewDisk(pd persistentDisk) (cloneRequired bool, newDisk *compute.Disk, err error) {
+func (p *metadataProcessor) stageRequestForNewDisk(pd persistentDisk) (newDisk *compute.Disk, cloneRequired bool, err error) {
 
 	diskName := daisyUtils.GetResourceID(pd.uri)
 	currentDisk, err := p.computeDiskClient.GetDisk(p.project, p.zone, diskName)
 	if err != nil {
-		return false, nil, daisy.Errf("Failed to get disk: %v", err)
+		return nil, false, daisy.Errf("Failed to get disk: %v", err)
 	}
 
 	newDiskName := fmt.Sprintf("%v-1", diskName)
@@ -112,11 +112,11 @@ func (p *metadataProcessor) stageRequestForNewDisk(pd persistentDisk) (cloneRequ
 			cloneRequired = true
 		}
 	}
-	return cloneRequired, newDisk, nil
+	return newDisk, cloneRequired, nil
 }
 
-func hasLicense(oldDisk *compute.Disk, requestedLicense string) bool {
-	for _, foundLicense := range oldDisk.Licenses {
+func hasLicense(existingDisk *compute.Disk, requestedLicense string) bool {
+	for _, foundLicense := range existingDisk.Licenses {
 		// Licenses are expressed as [GCP resources](https://cloud.google.com/apis/design/resource_names),
 		// which can either be a full URL, or a path. Both of these are valid:
 		//   -  https://www.googleapis.com/compute/v1/projects/windows-cloud/global/licenses/windows-10-enterprise-byol
@@ -129,8 +129,8 @@ func hasLicense(oldDisk *compute.Disk, requestedLicense string) bool {
 	return false
 }
 
-func hasGuestOSFeature(oldDisk *compute.Disk, feature *compute.GuestOsFeature) bool {
-	for _, f := range oldDisk.GuestOsFeatures {
+func hasGuestOSFeature(existingDisk *compute.Disk, feature *compute.GuestOsFeature) bool {
+	for _, f := range existingDisk.GuestOsFeatures {
 		if f.Type == feature.Type {
 			return true
 		}
