@@ -7,10 +7,10 @@ To build Microsoft Windows images for use in Google Compute Engine, the followin
 
 The following resources are optional:
 
-* Windows Updates to sideload in the installation process
+* Windows Updates to slipstream install in the installation process
 * A Windows Server Update Services server.
 
-## Sideloading Windows Update (Optional)
+## Slipstreaming Windows Update (Optional)
 
 To reduce the time needed to build a Microsoft Windows image we can apply .msu
 based updated to the OS. This process is more beneficial for older operating systems.
