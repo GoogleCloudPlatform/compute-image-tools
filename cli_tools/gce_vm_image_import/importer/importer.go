@@ -53,17 +53,20 @@ func NewImporter(args ImportArguments, computeClient compute.Client, storageClie
 	if err != nil {
 		return nil, err
 	}
-
 	return &importer{
-		project:           args.Project,
-		zone:              args.Zone,
-		timeout:           args.Timeout,
-		preValidator:      newPreValidator(args, computeClient),
-		inflater:          inflater,
-		processorProvider: defaultProcessorProvider{args, computeClient, inspector},
-		traceLogs:         []string{},
-		diskClient:        computeClient,
-		loggableBuilder:   loggableBuilder,
+		project:      args.Project,
+		zone:         args.Zone,
+		timeout:      args.Timeout,
+		preValidator: newPreValidator(args, computeClient),
+		inflater:     inflater,
+		processorProvider: defaultProcessorProvider{
+			args,
+			computeClient,
+			newProcessPlanner(args, inspector),
+		},
+		traceLogs:       []string{},
+		diskClient:      computeClient,
+		loggableBuilder: loggableBuilder,
 	}, nil
 }
 

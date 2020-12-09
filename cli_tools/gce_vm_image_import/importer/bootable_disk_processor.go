@@ -17,7 +17,6 @@ package importer
 import (
 	"context"
 	"os"
-	"path"
 	"strconv"
 	"strings"
 
@@ -60,15 +59,7 @@ func (b *bootableDiskProcessor) traceLogs() []string {
 	return []string{}
 }
 
-func newBootableDiskProcessor(args ImportArguments) (processor, error) {
-	var translateWorkflowPath string
-	if args.CustomWorkflow != "" {
-		translateWorkflowPath = args.CustomWorkflow
-	} else {
-		relPath := daisy_utils.GetTranslateWorkflowPath(args.OS)
-		translateWorkflowPath = path.Join(args.WorkflowDir, "image_import", relPath)
-	}
-
+func newBootableDiskProcessor(args ImportArguments, wfPath string) (processor, error) {
 	vars := map[string]string{
 		"image_name":           args.ImageName,
 		"install_gce_packages": strconv.FormatBool(!args.NoGuestEnvironment),
@@ -79,7 +70,7 @@ func newBootableDiskProcessor(args ImportArguments) (processor, error) {
 		"import_network":       args.Network,
 	}
 
-	workflow, err := daisycommon.ParseWorkflow(translateWorkflowPath, vars,
+	workflow, err := daisycommon.ParseWorkflow(wfPath, vars,
 		args.Project, args.Zone, args.ScratchBucketGcsPath, args.Oauth, args.Timeout.String(),
 		args.ComputeEndpoint, args.GcsLogsDisabled, args.CloudLogsDisabled, args.StdoutLogsDisabled)
 

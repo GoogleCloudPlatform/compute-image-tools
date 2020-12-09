@@ -333,9 +333,25 @@ func TestNoGuestEnvironmentSettable(t *testing.T) {
 	assert.True(t, parseAndValidate(t, "-data_disk").DataDisk)
 }
 
-func TestRequireDataOSOrWorkflow(t *testing.T) {
-	assert.Contains(t, expectFailedValidation(t, "-client_id=c", "-image_name=i").Error(),
-		"-data_disk, -os, or -custom_translate_workflow has to be specified")
+func TestBYOLDefaultsToFalse(t *testing.T) {
+	assert.False(t, parseAndValidate(t).BYOL)
+}
+
+func TestBYOLIsSettable(t *testing.T) {
+	assert.True(t, parseAndValidate(t, "-byol").BYOL)
+}
+
+func TestBYOLCanOnlyBeSpecifiedWhenDetectionEnabled(t *testing.T) {
+	expectedError := "when -byol is specified, -data_disk, -os, and -custom_translate_workflow have to be empty"
+	assert.Contains(t,
+		expectFailedValidation(t, "-image_name=i", "-client_id=test", "-data_disk", "-byol").Error(),
+		expectedError)
+	assert.Contains(t,
+		expectFailedValidation(t, "-image_name=i", "-client_id=test", "-os=ubuntu-1804", "-byol").Error(),
+		expectedError)
+	assert.Contains(t,
+		expectFailedValidation(t, "-image_name=i", "-client_id=test", "-custom_translate_workflow=workflow.json", "-byol").Error(),
+		expectedError)
 }
 
 func TestDurationHasDefaultValue(t *testing.T) {
@@ -478,16 +494,12 @@ func parseAndValidate(t *testing.T, args ...string) ImportArguments {
 }
 
 func parse(t *testing.T, args ...string) ImportArguments {
-	var hasClientID, hasImageName, hasTranslationType bool
+	var hasClientID, hasImageName bool
 	for _, arg := range args {
 		if strings.HasPrefix(arg, "-client_id") {
 			hasClientID = true
 		} else if strings.HasPrefix(arg, "-image_name") {
 			hasImageName = true
-		} else if strings.HasPrefix(arg, "-os") ||
-			strings.HasPrefix(arg, "-data_disk") ||
-			strings.HasPrefix(arg, "-custom_translate_workflow") {
-			hasTranslationType = true
 		}
 	}
 
@@ -497,10 +509,6 @@ func parse(t *testing.T, args ...string) ImportArguments {
 
 	if !hasImageName {
 		args = append(args, "-image_name=name")
-	}
-
-	if !hasTranslationType {
-		args = append(args, "-data_disk")
 	}
 
 	actual, err := NewImportArguments(args)

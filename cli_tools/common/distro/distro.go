@@ -245,7 +245,10 @@ func (w windowsRelease) AsGcloudArg() string {
 	if w.minor == r2 {
 		arg += r2
 	}
-	if w.architecture != "" {
+	// Architecture is only included for desktop versions (eg: 7, 8, 10);
+	// Server versions are assumed to be x64, so that's not included in the
+	// osID.
+	if w.architecture != "" && len(w.major) <= 2 {
 		arg += "-" + w.architecture
 	}
 	return arg
