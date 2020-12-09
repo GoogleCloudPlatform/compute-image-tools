@@ -1,0 +1,93 @@
+{
+  "Name": "windows-2019-dc-uefi",
+  "Vars": {
+    "install_disk": "install-disk",
+    "media": {
+      "Required": true,
+      "Description": "GCS or local path to Windows Server ISO."
+    },
+    "description": {
+      "Value": "Microsoft, Windows Server, 2019 Datacenter, Server with Desktop Experience, x64 built on ${TIMESTAMP}, supports Shielded VM features"
+    },
+    "family": {
+      "Value": "windows-2016",
+      "Description": "Desired image family of the output image."
+    },
+    "googet_repo": {
+      "Value": "stable",
+      "Description": "Googet repo to retrieve packages from during the build."
+    },
+    "name": {
+      "Value": "windows-server-2019-dc-v${TIMESTAMP}",
+      "Description": "The name of the output image."
+    },
+    "project": {
+      "Value": "${PROJECT}",
+      "Description": "The GCP project to create and store the image in."
+    },
+    "updates": {
+      "Value": "",
+      "Description": "GCS or local filesystem location containing Windows update files."
+    },
+    "workflow_root": {
+      "Value": "/workflows",
+      "Description": "Root of github workflows, defaults to /workflows in the container."
+    }
+  },
+  "Steps": {
+    "windows-build": {
+      "Timeout": "3h",
+      "IncludeWorkflow": {
+        "Path": "./windows-build.wf.json",
+        "Vars": {
+          "install_disk": "${install_disk}",
+          "install_disk_size": "50",
+          "updates": "${updates}",
+          "drivers_bucket": "gs://gce-windows-drivers-public/release/win6.3/",
+          "edition": "Windows Server 2019 SERVERDATACENTER",
+          "media": "${media}",
+          "cloud_sdk": "gs://gce-image-build-resources/windows/GoogleCloudSDKInstaller.exe",
+          "product_key": "WMDGN-G9PQG-XVVXX-R3X43-63DFG",
+          "uefi_build": "true",
+          "googet_repo": "${googet_repo}",
+          "workflow_root": "${workflow_root}"
+        }
+      }
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Project": "${project}",
+          "SourceDisk": "${install_disk}",
+          "Name": "${name}",
+          "Family": "${family}",
+          "Description": "${description}",
+          "Licenses": [
+            "projects/windows-cloud/global/licenses/windows-server-2016-dc"
+          ],
+          "GuestOsFeatures": [
+            {
+              "Type": "VIRTIO_SCSI_MULTIQUEUE"
+            },
+            {
+              "Type": "WINDOWS"
+            },
+            {
+              "Type": "MULTI_IP_SUBNET"
+            },
+            {
+              "Type": "UEFI_COMPATIBLE"
+            }
+          ],
+          "NoCleanup": true,
+          "ExactName": true
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-image": [
+      "windows-build"
+    ]
+  }
+}
