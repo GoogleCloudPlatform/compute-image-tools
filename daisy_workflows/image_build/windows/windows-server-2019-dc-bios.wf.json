@@ -6,6 +6,10 @@
       "Required": true,
       "Description": "GCS or local path to Windows Server ISO."
     },
+    "pwsh": {
+      "Required": true,
+      "Description": "GCS or local path to PowerShell v7+ installer"
+    },
     "description": {
       "Value": "Microsoft, Windows Server, 2019 Datacenter, Server with Desktop Experience, x64 built on ${TIMESTAMP}"
     },

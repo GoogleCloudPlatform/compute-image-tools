@@ -6,6 +6,10 @@
       "Required": true,
       "Description": "GCS or local path to Windows Server ISO."
     },
+    "pwsh": {
+      "Required": true,
+      "Description": "GCS or local path to PowerShell v7+ installer"
+    },
     "description": {
       "Value": "Microsoft, Windows Server, 2016 Datacenter, Server with Desktop Experience, x64 built on ${TIMESTAMP}"
     },
@@ -13,9 +17,9 @@
       "Value": "windows-2016",
       "Description": "Desired image family of the output image."
     },
-    "googet_repo": {
+    "google_cloud_repo": {
       "Value": "stable",
-      "Description": "Googet repo to retrieve packages from during the build."
+      "Description": "Google Cloud repo to retrieve packages from during the build."
     },
     "name": {
       "Value": "windows-server-2016-dc-v${TIMESTAMP}",
@@ -49,7 +53,7 @@
           "cloud_sdk": "gs://gce-image-build-resources/windows/GoogleCloudSDKInstaller.exe",
           "product_key": "CB7KF-BWN84-R7R2Y-793K2-8XDDG",
           "uefi_build": "false",
-          "googet_repo": "${googet_repo}",
+          "google_cloud_repo": "${google_cloud_repo}",
           "workflow_root": "${workflow_root}"
         }
       }

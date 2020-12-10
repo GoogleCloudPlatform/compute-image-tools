@@ -6,6 +6,10 @@
       "Required": true,
       "Description": "GCS or local path to Windows Server ISO."
     },
+    "pwsh": {
+      "Required": true,
+      "Description": "GCS or local path to PowerShell v7+ installer"
+    },
     "description": {
       "Value": "Microsoft, Windows Server, 2019 Datacenter, Server with Desktop Experience, x64 built on ${TIMESTAMP}, supports Shielded VM features"
     },
@@ -13,9 +17,9 @@
       "Value": "windows-2016",
       "Description": "Desired image family of the output image."
     },
-    "googet_repo": {
+    "google_cloud_repo": {
       "Value": "stable",
-      "Description": "Googet repo to retrieve packages from during the build."
+      "Description": "Google Cloud repo to retrieve packages from during the build."
     },
     "name": {
       "Value": "windows-server-2019-dc-v${TIMESTAMP}",
@@ -49,7 +53,7 @@
           "cloud_sdk": "gs://gce-image-build-resources/windows/GoogleCloudSDKInstaller.exe",
           "product_key": "WMDGN-G9PQG-XVVXX-R3X43-63DFG",
           "uefi_build": "true",
-          "googet_repo": "${googet_repo}",
+          "google_cloud_repo": "${google_cloud_repo}",
           "workflow_root": "${workflow_root}"
         }
       }
