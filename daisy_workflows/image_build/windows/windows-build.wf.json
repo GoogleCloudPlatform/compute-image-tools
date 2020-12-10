@@ -46,7 +46,7 @@
       "Description": "Source image to use for the install disk (usually should be left blank)"
     },
     "bootstrap_source_image": {
-      "Value": "projects/google.com:windows-internal/global/images/family/windows-2019-core-internal",
+      "Value": "projects/windows-cloud/global/images/family/windows-2019-core",
       "Description": "Source image to use for the bootstrap disk"
     },
     "bginfo": {
