@@ -114,7 +114,7 @@ func runDaisyInflate(t *testing.T, fileURI string) string {
 	expectedDiskName := "disk-" + namespace
 
 	ctx := context.Background()
-	storageClient, err := storage.NewStorageClient(ctx, logging.NewDefaultLogger())
+	storageClient, err := storage.NewStorageClient(ctx, logging.NewToolLogger("[user]"))
 	if err != nil {
 		t.Fatal(err)
 	}

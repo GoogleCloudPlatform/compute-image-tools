@@ -397,8 +397,10 @@ func (t *testCase) verifyImage(ctx context.Context, junit *junitxml.TestCase, lo
 	logger.Printf("Image '%v' exists! Import finished.", t.imageName)
 
 	e2e.GuestOSFeatures(t.requiredGuestOsFeatures, t.notAllowedGuestOsFeatures, image.GuestOsFeatures, junit, logger)
-	e2e.ContainsAll(image.Licenses, []string{t.expectLicense}, junit, logger,
-		fmt.Sprintf("Expected license %s. Actual licenses %v", t.expectLicense, image.Licenses))
+	if t.expectLicense != "" {
+		e2e.ContainsAll(image.Licenses, []string{t.expectLicense}, junit, logger,
+			fmt.Sprintf("Expected license %s. Actual licenses %v", t.expectLicense, image.Licenses))
+	}
 }
 
 // createTestScopedLogger returns a new logger that is prefixed with the name of the test.
