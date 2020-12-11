@@ -34,7 +34,6 @@ func Test_GetTranslationSettings_ResolveSameWorkflowPathAsOldMap(t *testing.T) {
 	osChoices := map[string]string{
 		"debian-8":            "debian/translate_debian_8.wf.json",
 		"debian-9":            "debian/translate_debian_9.wf.json",
-		"centos-6":            "enterprise_linux/translate_centos_6.wf.json",
 		"centos-7":            "enterprise_linux/translate_centos_7.wf.json",
 		"centos-8":            "enterprise_linux/translate_centos_8.wf.json",
 		"opensuse-15":         "suse/translate_opensuse_15.wf.json",

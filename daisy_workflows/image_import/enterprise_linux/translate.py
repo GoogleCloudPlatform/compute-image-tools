@@ -195,10 +195,6 @@ def DistroSpecific(spec: TranslateSpec):
                     'ca-certificates. Success expected only '
                     'if epel repo is installed. Result={}'.format(p))
 
-      if spec.distro == Distro.CENTOS:
-        logging.info('Installing CentOS SCL.')
-        g.command(['rm', '-f', '/etc/yum.repos.d/CentOS-SCL.repo'])
-        yum_install(g, 'centos-release-scl')
       # Install Google Cloud SDK from the upstream tar and create links for the
       # python27 SCL environment.
       logging.info('Installing python27 from SCL.')

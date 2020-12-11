@@ -258,9 +258,9 @@ var basicCases = []*testCase{
 	}, {
 		// Fail when a package isn't found, and alert user with useful message.
 		caseName:      "el-package-not-found",
-		source:        "projects/compute-image-tools-test/global/images/centos-6-missing-base-repo",
-		os:            "centos-6",
-		expectedError: "No package centos-release-scl available",
+		source:        "projects/compute-image-tools-test/global/images/centos-7-missing-repo",
+		os:            "centos-7",
+		expectedError: "There are no enabled repos",
 	}, {
 		// Fail when yum has an unreachable repo.
 		caseName:      "el-unreachable-repos",
@@ -280,13 +280,6 @@ var basicCases = []*testCase{
 		source:        "projects/compute-image-tools-test/global/images/manjaro",
 		os:            "centos-8",
 		expectedError: "Verify the disk's OS: `yum` not found.",
-	},
-	{
-		// If an admin adds epel to an older version of EL 6 without updating ca-certificates,
-		// then yum operations will fail. For more info: https://stackoverflow.com/questions/26734777
-		caseName: "don't fail when stale CA certificates and epel repo is present",
-		source:   "projects/compute-image-tools-test/global/images/centos-6-epel",
-		os:       "centos-6",
 	},
 
 	// Windows
