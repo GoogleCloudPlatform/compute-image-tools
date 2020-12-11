@@ -74,19 +74,27 @@ func (w *Workflow) imageExists(project, family, image string) (bool, DError) {
 		return w.ComputeClient.ListImages(project)
 	}, project, image)
 	if err != nil {
-		return false, err
+		ic, err := w.ComputeClient.GetImage(project, image)
+		if err != nil {
+			return false, typedErr(apiError, "error getting resource for project", err)
+		}
+		return true, errIfDeprecatedOrDeleted(ic, image)
 	}
 
 	for _, i := range w.imageCache.exists[project] {
 		if ic, ok := i.(*compute.Image); ok && image == ic.Name {
-			if ic.Deprecated != nil && (ic.Deprecated.State == "OBSOLETE" || ic.Deprecated.State == "DELETED") {
-				return true, typedErrf(imageObsoleteDeletedError, "image %q in state %q", image, ic.Deprecated.State)
-			}
-			return true, nil
+			return true, errIfDeprecatedOrDeleted(ic, image)
 		}
 	}
 
 	return false, nil
+}
+
+func errIfDeprecatedOrDeleted(ic *compute.Image, image string) DError {
+	if ic.Deprecated != nil && (ic.Deprecated.State == "OBSOLETE" || ic.Deprecated.State == "DELETED") {
+		return typedErrf(imageObsoleteDeletedError, "image %q in state %q", image, ic.Deprecated.State)
+	}
+	return nil
 }
 
 //ImageInterface represent abstract Image across different API stages (Alpha, Beta, API)
