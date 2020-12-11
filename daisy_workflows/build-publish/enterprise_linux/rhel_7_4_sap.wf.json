@@ -16,7 +16,7 @@
       "Value": "/workflows",
       "Description": "Root of github workflows, defaults to /workflows in the container."
     },
-    "gcs-url": {
+    "gcs_url": {
       "Required": true,
       "Description": "The GCS path that image raw file exported to."
     },
@@ -44,7 +44,7 @@
       "IncludeWorkflow": {
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
-          "destination": "${gcs-url}",
+          "destination": "${gcs_url}",
           "source_disk": "disk-rhel-7"
         }
       }
