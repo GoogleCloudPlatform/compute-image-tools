@@ -20,9 +20,9 @@ REM Check for .NET 4.8
 REM https://support.microsoft.com/en-us/help/4503548/microsoft-net-framework-4-8-offline-installer-for-windows
 reg query "HKLM\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full" /f 4.8
 if NOT %ERRORLEVEL%==0 (
-  if exist D:\builder\components\ndp48-x86-x64-enu_0885a72554ca76d2cd3ad76f98878f22b6a1d0b2.exe (
+  if exist D:\builder\components\dotnet48-offline-installer.exe (
     echo Installing .NET 4.8. > COM1:
-    D:\builder\components\ndp48-x86-x64-enu_0885a72554ca76d2cd3ad76f98878f22b6a1d0b2.exe /quiet /norestart > COM1:
+    D:\builder\components\dotnet48-offline-installer.exe /quiet /norestart > COM1:
     echo .NET install exited with code %ERRORLEVEL%. > COM1:
     echo Exiting for reboot. > COM1:
     shutdown /r /t 00

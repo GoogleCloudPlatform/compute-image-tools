@@ -4,6 +4,7 @@ To build Microsoft Windows images for use in Google Compute Engine, the followin
 
 * Microsoft OS Volume license media in ISO format
 * [PowerShell 7.0 or greater MSI installer](https://github.com/PowerShell/PowerShell#get-powershell)
+* [Microsoft .NET Framework 4.8 offline installer for Windows](https://support.microsoft.com/en-us/help/4503548/microsoft-net-framework-4-8-offline-installer-for-windows)
 
 The following resources are optional:
 
@@ -45,10 +46,44 @@ any required variable will need to be provided when calling daisy using the -var
 | --- | --- |
 | project | Project to allocate resources from during build [Project docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects) |
 | zone | Zone to use for GCE build instance [Zone docs](https://cloud.google.com/compute/docs/regions-zones/) |
-| media | Absolute path to or GCS resource name of ISO file |
-| pwsh | Absolute path to or GCS resource name of PowerShell 7+ installer |
+| media | Absolute path to or GCS resource name of the ISO file |
+| pwsh | Absolute path to or GCS resource name of the PowerShell 7+ installer |
+| dotnet48 | Absolute path to or GCS resource name of the Microsoft .NET Framework 4.8 offline installer |
 | updates | (Optional) Directory or GCS location containing updates to be included in install |
 | product_key | (Optional) Windows product key to use. Volume license media by default include the Generic Volume License Key. |
+
+### Selecting a pre-built workflow
+
+We have provided multiple workflows files per operating system to provide
+that meet some different needs that cannot be changed using a workflow variable.
+
+The workflow files use the following naming convention.
+
+OperatingSystem-OperatingSystemEdition-BootType-LicenseType.wf.json
+
+* OperatingSystem: The operating system name and version
+* OperatingSystemEdition: The edition of the operating system
+* BootType: bios or uefi
+  * bios: BIOS boot with an MBR formatted boot disk.
+  * uefi: UEFI boot with an GPT formatted boot disk. Supports Shielded VM features.
+* LicenseType: byol or payg
+  * byol - [bring your own license](https://cloud.google.com/compute/docs/nodes/bringing-your-own-licenses)
+  * payg - [on-demand Windows Server license](https://cloud.google.com/compute/docs/instances/windows/ms-licensing#on-demand)
+
+Here are some example of what each filename means:
+* windows-server-2019-dc-uefi-payg.wf.json
+  * Windows Server 2019 Data Center using UEFI with an GPT formatted boot disk that is
+    using an [on-demand Windows Server license](https://cloud.google.com/compute/docs/instances/windows/ms-licensing#on-demand)
+* windows-server-2019-dc-uefi-byol.wf.json
+  * Windows Server 2019 Data Center using UEFI with an GPT formatted boot disk that is
+    using a [bring your own license](https://cloud.google.com/compute/docs/nodes/bringing-your-own-licenses)
+* windows-server-2019-dc-bios-byol.wf.json
+  * Windows Server 2019 Data Center using BIOS with an MBR formatted boot disk that is
+    using a [bring your own license](https://cloud.google.com/compute/docs/nodes/bringing-your-own-licenses)
+* windows-server-2019-dc-bios-payg.wf.json
+  * Windows Server 2019 Data Center using BIOS with an MBR formatted boot disk that is
+    using an [on-demand Windows Server license](https://cloud.google.com/compute/docs/instances/windows/ms-licensing#on-demand)
+
 
 ### Starting a build workflow
 
@@ -57,26 +92,30 @@ Below are some example of how to call daisy using the provided workflows and req
 #### Build a Windows Server 2016 Data Center edition with UEFI Support using local files
 * The windows media will be in the same directory and is named WindowServer2016_DataCenter.ISO.
 * The PowerShell 7+ installer will be in the same directory and is named PowerShell-7.0.3-win-x64.msi.
+* The Microsoft .NET Framework 4.8 offline installer will be in the same directory and is named ndp48-x86-x64-allos-enu.exe.
 * The windows updates for Windows Server 2016 are located in a subfolder called Updates.
 
 ```shell
 $ daisy -project my_project -zone us-west1-c \
--var:media="WindowServer2016_DataCenter.ISO" \
+-var:media="WindowServer2016.ISO" \
 -var:updates=updates/ \
 -var:pwsh=PowerShell-7.0.3-win-x64.msi \
+-var:dotnet48=ndp48-x86-x64-allos-enu.exe \
 windows-server-2016-dc-uefi.wf.json
 ```
 
 #### Build a Windows Server 2019 Data Center edition with UEFI Support using files in a GCS bucket
 * The windows media is stores in a GCS.
 * The PowerShell 7+ installer is stores in a GCS.
+* The Microsoft .NET Framework 4.8 offline installer is stores in a GCS.
 * The windows updates for Windows Server 2019 are stores in a GCS.
 
 ```shell
 $ daisy -project my_project -zone us-west1-c \
--var:media="gs://example-build-resources/2019/WindowServer2019_DataCenter.ISO" \
+-var:media="gs://example-build-resources/2019/WindowServer2019.ISO" \
 -var:updates="gs://example-build-resources/2019/updates" \
 -var:pwsh="gs://example-build-resources/PowerShell-7.0.3-win-x64.msi" \
+-var:dotnet48="gs://example-build-resources/ndp48-x86-x64-allos-enu.exe" \
 windows-server-2019-dc-uefi.wf.json
 ```
 

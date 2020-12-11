@@ -27,7 +27,9 @@ function Get-MetadataValue {
   try {
     $client = New-Object Net.WebClient
     $client.Headers.Add('Metadata-Flavor', 'Google')
-    return ($client.DownloadString($url)).Trim()
+    $value = ($client.DownloadString($url)).Trim()
+    Write-Host "Retrieved metadata for key $key with value $value."
+    return $value
   }
   catch [System.Net.WebException] {
     if ($default) {
@@ -78,16 +80,16 @@ function Format-InstallDiskUEFI {
     .SYNOPSIS
       Clears and initializes disk 1 as GPT. Formats the install disk as D: and system partition as S: for UEFI boot.
   #>
-  Write-Output 'Formatting install disk for UEFI.'
+  Write-Host 'Formatting install disk for UEFI.'
   Set-Disk -Number 1 -IsOffline $false
   Clear-Disk -Number 1 -RemoveData -Confirm:$false -ErrorAction SilentlyContinue
   Initialize-Disk -Number 1 -PartitionStyle GPT
 
-  Write-Output 'Creating FAT32 system partition of 100MB and assigning volume drive S.'
+  Write-Host 'Creating FAT32 system partition of 100MB and assigning volume drive S.'
   New-Partition -DiskNumber 1 -Size 100MB -DriveLetter S | Format-Volume -FileSystem 'FAT32' -Confirm:$false
-  Write-Output 'Creating NTFS Windows partition and assigning volume drive D.'
+  Write-Host 'Creating NTFS Windows partition and assigning volume drive D.'
   New-Partition -DiskNumber 1 -UseMaximumSize -DriveLetter D | Format-Volume -FileSystem 'NTFS' -Confirm:$false
-  Write-Output 'Formatting UEFI install disk complete.'
+  Write-Host 'Formatting UEFI install disk complete.'
 }
 
 function Format-InstallDiskMBR {
@@ -95,13 +97,13 @@ function Format-InstallDiskMBR {
     .SYNOPSIS
       Clears and initializes disk 1 as MBR. Formats disk as NFTS and assigns as D: for MBR boot.
   #>
-  Write-Output 'Formatting install disk for MBR.'
+  Write-Host 'Formatting install disk for MBR.'
   Set-Disk -Number 1 -IsOffline $false
   Clear-Disk -Number 1 -RemoveData -Confirm:$false -ErrorAction SilentlyContinue
   Initialize-Disk -Number 1 -PartitionStyle MBR
-  Write-Output 'Creating NTFS Windows partition and assigning volume drive D.'
+  Write-Host 'Creating NTFS Windows partition and assigning volume drive D.'
   New-Partition -DiskNumber 1 -UseMaximumSize -DriveLetter D -IsActive | Format-Volume -FileSystem 'NTFS' -Confirm:$false
-  Write-Output 'Formatting MBR install disk complete.'
+  Write-Host 'Formatting MBR install disk complete.'
 }
 
 function Get-Wim {

@@ -52,7 +52,9 @@ function Get-MetadataValue {
   try {
     $client = New-Object Net.WebClient
     $client.Headers.Add('Metadata-Flavor', 'Google')
-    return ($client.DownloadString($url)).Trim()
+    $value = ($client.DownloadString($url)).Trim()
+    Write-Host "Retrieved metadata for key $key with value $value."
+    return $value
   }
   catch [System.Net.WebException] {
     if ($default) {

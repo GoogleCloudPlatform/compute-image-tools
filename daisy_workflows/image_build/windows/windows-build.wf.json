@@ -24,6 +24,10 @@
       "Required": true,
       "Description": "GCS or local path to PowerShell v7+ installer"
     },
+    "dotnet48": {
+      "Required": true,
+      "Description": "GCS or local path to Microsoft .NET Framework 4.8 offline installer"
+    },
     "workflow_root": {
       "Required": true,
       "Description": "Root of github workflows, defaults to /workflows in the container."
@@ -76,7 +80,8 @@
     "components/GoogleCloudSDKInstaller.exe": "${cloud_sdk}",
     "drivers/": "${drivers_bucket}",
     "components/Bginfo.exe": "${bginfo}",
-    "components/PowerShell.msi": "${pwsh}"
+    "components/PowerShell.msi": "${pwsh}",
+    "components/dotnet48-offline-installer.exe": "${dotnet48}"
   },
   "Steps": {
     "setup-disks": {
@@ -161,7 +166,7 @@
       ]
     },
     "wait-for-install": {
-      "Timeout": "3h",
+      "Timeout": "5h",
       "WaitForInstancesSignal": [
         {
           "Name": "install",
