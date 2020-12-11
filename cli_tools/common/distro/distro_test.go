@@ -140,7 +140,8 @@ func TestDistroFromComponents_HappyCasesWindows(t *testing.T) {
 	}{
 		{"8", "", "x86", "windows-8-x86"},
 		{"8", "1", "x86", "windows-8-x86"},
-		{"2008", "r2", "x86", "windows-2008r2-x86"},
+		{"2008", "r2", "x64", "windows-2008r2"},
+		{"2019", "", "x64", "windows-2019"},
 	}
 	for _, tt := range cases {
 		t.Run(fmt.Sprintf("%s-%s-%s", tt.major, tt.minor, tt.arch), func(t *testing.T) {

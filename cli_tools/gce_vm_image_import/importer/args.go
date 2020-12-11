@@ -34,6 +34,7 @@ import (
 const (
 	imageFlag          = "image_name"
 	clientFlag         = "client_id"
+	byolFlag           = "byol"
 	dataDiskFlag       = "data_disk"
 	osFlag             = "os"
 	customWorkflowFlag = "custom_translate_workflow"
@@ -61,6 +62,7 @@ type ImportArguments struct {
 	NoExternalIP         bool
 	NoGuestEnvironment   bool
 	Oauth                string
+	BYOL                 bool
 	OS                   string
 	Project              string
 	Region               string
@@ -144,9 +146,9 @@ func (args ImportArguments) validate() error {
 	if args.ImageName == "" {
 		return fmt.Errorf("-%s has to be specified", imageFlag)
 	}
-	if !args.DataDisk && args.OS == "" && args.CustomWorkflow == "" {
-		return fmt.Errorf("-%s, -%s, or -%s has to be specified",
-			dataDiskFlag, osFlag, customWorkflowFlag)
+	if args.BYOL && (args.DataDisk || args.OS != "" || args.CustomWorkflow != "") {
+		return fmt.Errorf("when -%s is specified, -%s, -%s, and -%s have to be empty",
+			byolFlag, dataDiskFlag, osFlag, customWorkflowFlag)
 	}
 	if args.DataDisk && (args.OS != "" || args.CustomWorkflow != "") {
 		return fmt.Errorf("when -%s is specified, -%s and -%s should be empty",
@@ -268,6 +270,9 @@ func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
 
 	flagSet.Var((*flags.TrimmedString)(&args.SourceImage), "source_image",
 		"An existing Compute Engine image from which to import.")
+
+	flagSet.BoolVar(&args.BYOL, byolFlag, false,
+		"Specifies that a BYOL license should be applied.")
 
 	flagSet.BoolVar(&args.DataDisk, dataDiskFlag, false,
 		"Specifies that the disk has no bootable OS installed on it. "+

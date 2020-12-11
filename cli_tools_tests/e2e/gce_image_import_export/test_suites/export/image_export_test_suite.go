@@ -35,9 +35,15 @@ const (
 	testSuiteName = "ImageExportTests"
 )
 
+var (
+	argMap map[string]string
+)
+
 // TestSuite is image export test suite.
 func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
-	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp, testProjectConfig *testconfig.Project) {
+	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp, testProjectConfig *testconfig.Project, argMapInput map[string]string) {
+
+	argMap = argMapInput
 
 	testTypes := []e2e.CLITestType{
 		e2e.Wrapper,
@@ -69,6 +75,14 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 		testsMap[testType][imageExportWithDifferentNetworkParamStyles] = runImageExportWithDifferentNetworkParamStyles
 		testsMap[testType][imageExportWithSubnetWithoutNetworkTestCase] = runImageExportWithSubnetWithoutNetworkParamsTest
 	}
+
+	// Only test service account scenario for wrapper, until gcloud support it.
+	imageExportRawWithoutDefaultServiceAccountTestCase := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", e2e.Wrapper, "Export Raw without default service account"))
+	imageExportVMDKDefaultServiceAccountWithMissingPermissionsTestCase := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", e2e.Wrapper, "Export VMDK without default service account permission"))
+	testsMap[e2e.Wrapper][imageExportRawWithoutDefaultServiceAccountTestCase] = runImageExportRawWithoutDefaultServiceAccountTest
+	testsMap[e2e.Wrapper][imageExportVMDKDefaultServiceAccountWithMissingPermissionsTestCase] = runImageExportVMDKDefaultServiceAccountWithMissingPermissionsTest
 
 	e2e.CLITestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex, testProjectConfig, testSuiteName, testsMap)
 }
@@ -259,6 +273,94 @@ func runImageExportWithSubnetWithoutNetworkParamsTest(ctx context.Context, testC
 				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
 			"--image=e2e-test-image-10g",
 			fmt.Sprintf("--destination-uri=%v", fileURI), fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		},
+	}
+
+	runExportTest(ctx, argsMap[testType], testType, logger, testCase, bucketName, objectName)
+}
+
+func runImageExportRawWithoutDefaultServiceAccountTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+
+	testVariables, ok := e2e.GetServiceAccountTestVariables(argMap, true)
+	if !ok {
+		e2e.Failure(testCase, logger, fmt.Sprintln("Failed to get service account test args"))
+		return
+	}
+
+	suffix := path.RandString(5)
+	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
+	objectName := fmt.Sprintf("e2e-export-raw-test-%v", suffix)
+	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
+
+	argsMap := map[e2e.CLITestType][]string{
+		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testVariables.ProjectID),
+			fmt.Sprintf("-source_image=projects/%v/global/images/e2e-test-image-10g", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-destination_uri=%v", fileURI),
+			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("-compute_service_account=%v", testVariables.ComputeServiceAccount),
+		},
+		e2e.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "export", "--quiet",
+			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--image=projects/%v/global/images/e2e-test-image-10g", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--destination-uri=%v", fileURI), fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute-service-account=%v", testVariables.ComputeServiceAccount),
+		},
+		e2e.GcloudBetaLatestWrapperLatest: {"beta", "compute", "images", "export", "--quiet",
+			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--image=projects/%v/global/images/e2e-test-image-10g", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--destination-uri=%v", fileURI), fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute-service-account=%v", testVariables.ComputeServiceAccount),
+		},
+		e2e.GcloudGaLatestWrapperRelease: {"compute", "images", "export", "--quiet",
+			fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--image=projects/%v/global/images/e2e-test-image-10g", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--destination-uri=%v", fileURI), fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute-service-account=%v", testVariables.ComputeServiceAccount),
+		},
+	}
+
+	runExportTest(ctx, argsMap[testType], testType, logger, testCase, bucketName, objectName)
+}
+
+func runImageExportVMDKDefaultServiceAccountWithMissingPermissionsTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+
+	testVariables, ok := e2e.GetServiceAccountTestVariables(argMap, false)
+	if !ok {
+		e2e.Failure(testCase, logger, fmt.Sprintln("Failed to get service account test args"))
+		return
+	}
+
+	suffix := path.RandString(5)
+	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
+	objectName := fmt.Sprintf("e2e-export-vmdk-test-%v", suffix)
+	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
+
+	argsMap := map[e2e.CLITestType][]string{
+		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testVariables.ProjectID),
+			fmt.Sprintf("-source_image=projects/%v/global/images/e2e-test-image-10g", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-destination_uri=%v", fileURI), "-format=vmdk",
+			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("-compute_service_account=%v", testVariables.ComputeServiceAccount),
+		},
+		e2e.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "export", "--quiet",
+			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--image=projects/%v/global/images/e2e-test-image-10g", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--destination-uri=%v", fileURI), "--export-format=vmdk", fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute-service-account=%v", testVariables.ComputeServiceAccount),
+		},
+		e2e.GcloudBetaLatestWrapperLatest: {"beta", "compute", "images", "export", "--quiet",
+			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--image=projects/%v/global/images/e2e-test-image-10g", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--destination-uri=%v", fileURI), "--export-format=vmdk", fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute-service-account=%v", testVariables.ComputeServiceAccount),
+		},
+		e2e.GcloudGaLatestWrapperRelease: {"compute", "images", "export", "--quiet",
+			fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--image=projects/%v/global/images/e2e-test-image-10g", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--destination-uri=%v", fileURI), "--export-format=vmdk", fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute-service-account=%v", testVariables.ComputeServiceAccount),
 		},
 	}
 

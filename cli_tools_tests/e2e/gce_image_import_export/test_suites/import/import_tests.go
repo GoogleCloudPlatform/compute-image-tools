@@ -67,11 +67,10 @@ type testCase struct {
 	// Expect to see all given strings in guestOsFeatures
 	requiredGuestOsFeatures []string
 
+	expectLicense string
+
 	// Expect to see none of given strings in guestOsFeatures
 	notAllowedGuestOsFeatures []string
-
-	// Whether to add "inspect" arg
-	inspect bool
 
 	// Additional information to show on failure to assist with debugging.
 	tip string
@@ -84,7 +83,6 @@ var basicCases = []*testCase{
 		source:        "projects/compute-image-tools-test/global/images/debian-9-translate",
 		os:            "opensuse-15",
 		expectedError: "\"debian-9\" was detected on your disk, but \"opensuse-15\" was specified",
-		inspect:       true,
 	},
 	{
 		caseName:      "SLES import with no OS on disk",
@@ -98,7 +96,6 @@ var basicCases = []*testCase{
 		caseName: "debian-9",
 		source:   "projects/compute-image-tools-test/global/images/debian-9-translate",
 		os:       "debian-9",
-		inspect:  true,
 	},
 
 	// Ubuntu
@@ -107,31 +104,26 @@ var basicCases = []*testCase{
 		source:               "projects/compute-image-tools-test/global/images/ubuntu-1404-img-import",
 		os:                   "ubuntu-1404",
 		osConfigNotSupported: true,
-		inspect:              true,
 	}, {
 		caseName:             "ubuntu-1604",
 		source:               "projects/compute-image-tools-test/global/images/ubuntu-1604-vmware-import",
 		os:                   "ubuntu-1604",
 		osConfigNotSupported: true,
-		inspect:              true,
 	}, {
 		caseName:             "ubuntu-1804",
 		source:               "gs://compute-image-tools-test-resources/ubuntu-1804-vmware.vmdk",
 		os:                   "ubuntu-1804",
 		osConfigNotSupported: true,
-		inspect:              true,
 	}, {
 		caseName:             "ubuntu-2004",
 		source:               "projects/compute-image-tools-test/global/images/ubuntu-2004",
 		os:                   "ubuntu-2004",
 		osConfigNotSupported: true,
-		inspect:              true,
 	}, {
 		caseName:             "ubuntu-2004-aws",
 		source:               "projects/compute-image-tools-test/global/images/ubuntu-2004-aws",
 		os:                   "ubuntu-2004",
 		osConfigNotSupported: true,
-		inspect:              true,
 	},
 
 	// OpenSUSE
@@ -140,41 +132,36 @@ var basicCases = []*testCase{
 		source:               "projects/compute-image-tools-test/global/images/opensuse-15-1",
 		os:                   "opensuse-15",
 		osConfigNotSupported: true,
-		inspect:              true,
 	},
 	{
 		caseName:             "opensuse-15-2",
 		source:               "projects/compute-image-tools-test/global/images/opensuse-15-2",
 		os:                   "opensuse-15",
 		osConfigNotSupported: true,
-		inspect:              true,
 	},
 
 	// SLES: BYOL
 	{
 		caseName:             "sles-12-5-byol",
 		source:               "projects/compute-image-tools-test/global/images/sles-12-5-registered",
-		os:                   "sles-12-byol",
+		expectLicense:        "https://www.googleapis.com/compute/v1/projects/suse-byos-cloud/global/licenses/sles-12-byos",
+		extraArgs:            []string{"-byol"},
 		osConfigNotSupported: true,
-		inspect:              true,
 	}, {
 		caseName:             "sles-sap-12-5-byol",
 		source:               "projects/compute-image-tools-test/global/images/sles-sap-12-5-registered",
 		os:                   "sles-sap-12-byol",
 		osConfigNotSupported: true,
-		inspect:              true,
 	}, {
 		caseName:             "sles-15-2-byol",
 		source:               "projects/compute-image-tools-test/global/images/sles-15-2-registered",
 		os:                   "sles-15-byol",
 		osConfigNotSupported: true,
-		inspect:              true,
 	}, {
 		caseName:             "sles-sap-15-2-byol",
 		source:               "projects/compute-image-tools-test/global/images/sles-sap-15-2-registered",
 		os:                   "sles-sap-15-byol",
 		osConfigNotSupported: true,
-		inspect:              true,
 	},
 
 	// SLES: On-demand
@@ -183,56 +170,48 @@ var basicCases = []*testCase{
 		source:               "projects/compute-image-tools-test/global/images/sles-12-4-unregistered",
 		os:                   "sles-12",
 		osConfigNotSupported: true,
-		inspect:              true,
 		tip:                  slesOnDemandTip,
 	}, {
 		caseName:             "sles-12-5-on-demand",
 		source:               "projects/compute-image-tools-test/global/images/sles-12-5-unregistered",
 		os:                   "sles-12",
 		osConfigNotSupported: true,
-		inspect:              true,
 		tip:                  slesOnDemandTip,
 	}, {
 		caseName:             "sles-sap-12-4-on-demand",
 		source:               "projects/compute-image-tools-test/global/images/sles-sap-12-4-unregistered",
 		os:                   "sles-sap-12",
 		osConfigNotSupported: true,
-		inspect:              true,
 		tip:                  slesOnDemandTip,
 	}, {
 		caseName:             "sles-sap-12-5-on-demand",
 		source:               "projects/compute-image-tools-test/global/images/sles-sap-12-5-unregistered",
 		os:                   "sles-sap-12",
 		osConfigNotSupported: true,
-		inspect:              true,
 		tip:                  slesOnDemandTip,
 	}, {
 		caseName:             "sles-15-1-on-demand",
 		source:               "projects/compute-image-tools-test/global/images/sles-15-1-unregistered",
 		os:                   "sles-15",
 		osConfigNotSupported: true,
-		inspect:              true,
 		tip:                  slesOnDemandTip,
 	}, {
 		caseName:             "sles-15-2-on-demand",
 		source:               "projects/compute-image-tools-test/global/images/sles-15-2-unregistered",
 		os:                   "sles-15",
 		osConfigNotSupported: true,
-		inspect:              true,
 		tip:                  slesOnDemandTip,
 	}, {
 		caseName:             "sles-sap-15-1-on-demand",
 		source:               "projects/compute-image-tools-test/global/images/sles-sap-15-1-unregistered",
 		os:                   "sles-sap-15",
 		osConfigNotSupported: true,
-		inspect:              true,
 		tip:                  slesOnDemandTip,
 	}, {
 		caseName:             "sles-sap-15-2-on-demand",
 		source:               "projects/compute-image-tools-test/global/images/sles-sap-15-2-unregistered",
 		os:                   "sles-sap-15",
 		osConfigNotSupported: true,
-		inspect:              true,
 		tip:                  slesOnDemandTip,
 	},
 
@@ -241,38 +220,31 @@ var basicCases = []*testCase{
 		caseName: "el-centos-7-8",
 		source:   "projects/compute-image-tools-test/global/images/centos-7-8",
 		os:       "centos-7",
-		inspect:  true,
 	}, {
 		caseName: "el-centos-8-0",
 		source:   "projects/compute-image-tools-test/global/images/centos-8-import",
 		os:       "centos-8",
-		inspect:  true,
 	}, {
 		caseName: "el-centos-8-2",
 		source:   "projects/compute-image-tools-test/global/images/centos-8-2",
 		os:       "centos-8",
-		inspect:  true,
 	}, {
 		caseName:  "el-rhel-7-uefi",
 		source:    "projects/compute-image-tools-test/global/images/linux-uefi-no-guestosfeature-rhel7",
 		os:        "rhel-7",
 		extraArgs: []string{"-uefi_compatible=true"},
-		inspect:   true,
 	}, {
 		caseName: "el-rhel-7-8",
 		source:   "projects/compute-image-tools-test/global/images/rhel-7-8",
 		os:       "rhel-7",
-		inspect:  true,
 	}, {
 		caseName: "el-rhel-8-0",
 		source:   "projects/compute-image-tools-test/global/images/rhel-8-0",
 		os:       "rhel-8",
-		inspect:  true,
 	}, {
 		caseName: "el-rhel-8-2",
 		source:   "projects/compute-image-tools-test/global/images/rhel-8-2",
 		os:       "rhel-8",
-		inspect:  true,
 	},
 
 	// EL - Error cases
@@ -283,21 +255,18 @@ var basicCases = []*testCase{
 		caseName: "el-allow-extra-dirs-in-lib-modules",
 		source:   "projects/compute-image-tools-test/global/images/el-depmod-extra-lib-modules",
 		os:       "centos-8",
-		inspect:  true,
 	}, {
 		// Fail when a package isn't found, and alert user with useful message.
 		caseName:      "el-package-not-found",
 		source:        "projects/compute-image-tools-test/global/images/centos-6-missing-base-repo",
 		os:            "centos-6",
 		expectedError: "No package centos-release-scl available",
-		inspect:       true,
 	}, {
 		// Fail when yum has an unreachable repo.
 		caseName:      "el-unreachable-repos",
 		source:        "projects/compute-image-tools-test/global/images/centos-8-cdrom-repo",
 		os:            "centos-8",
 		expectedError: "Ensure all configured repos are reachable",
-		inspect:       true,
 	}, {
 		// Fail when imported as RHEL BYOL, but image does not have valid subscription.
 		caseName: "rhel-byol-without-subscription",
@@ -305,14 +274,12 @@ var basicCases = []*testCase{
 		os:       "rhel-8-byol",
 		expectedError: "subscription-manager did not find an active subscription.*" +
 			"Omit `-byol` to register with on-demand licensing.",
-		inspect: true,
 	}, {
 		// Fail when `yum` not found.
 		caseName:      "el-yum-not-found",
 		source:        "projects/compute-image-tools-test/global/images/manjaro",
 		os:            "centos-8",
 		expectedError: "Verify the disk's OS: `yum` not found.",
-		inspect:       true,
 	},
 	{
 		// If an admin adds epel to an older version of EL 6 without updating ca-certificates,
@@ -320,21 +287,18 @@ var basicCases = []*testCase{
 		caseName: "don't fail when stale CA certificates and epel repo is present",
 		source:   "projects/compute-image-tools-test/global/images/centos-6-epel",
 		os:       "centos-6",
-		inspect:  true,
 	},
 
 	// Windows
 	{
-		caseName:  "windows-2019-uefi",
-		source:    "projects/compute-image-tools-test/global/images/windows-2019-uefi-nodrivers",
-		os:        "windows-2019",
-		extraArgs: []string{"-uefi_compatible=true"},
-		inspect:   true,
+		caseName:                "windows-2019-uefi",
+		source:                  "projects/compute-image-tools-test/global/images/windows-2019-uefi-nodrivers",
+		expectLicense:           "https://www.googleapis.com/compute/v1/projects/windows-cloud/global/licenses/windows-server-2019-dc",
+		requiredGuestOsFeatures: []string{"WINDOWS"},
 	}, {
 		caseName: "windows-10-x86-byol",
 		source:   "projects/compute-image-tools-test/global/images/windows-10-1909-ent-x86-nodrivers",
 		os:       "windows-10-x86-byol",
-		inspect:  true,
 	},
 }
 
@@ -433,6 +397,10 @@ func (t *testCase) verifyImage(ctx context.Context, junit *junitxml.TestCase, lo
 	logger.Printf("Image '%v' exists! Import finished.", t.imageName)
 
 	e2e.GuestOSFeatures(t.requiredGuestOsFeatures, t.notAllowedGuestOsFeatures, image.GuestOsFeatures, junit, logger)
+	if t.expectLicense != "" {
+		e2e.ContainsAll(image.Licenses, []string{t.expectLicense}, junit, logger,
+			fmt.Sprintf("Expected license %s. Actual licenses %v", t.expectLicense, image.Licenses))
+	}
 }
 
 // createTestScopedLogger returns a new logger that is prefixed with the name of the test.
@@ -445,13 +413,12 @@ func (t testCase) runImport(junit *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, imageName string) (*bytes.Buffer, error) {
 	args := []string{
 		"-client_id", "e2e",
-		"-os", t.os,
 		"-project", testProjectConfig.TestProjectID,
 		"-zone", testProjectConfig.TestZone,
 		"-image_name", imageName,
 	}
-	if t.inspect {
-		args = append(args, "-inspect")
+	if t.os != "" {
+		args = append(args, "-os", t.os)
 	}
 	if strings.Contains(t.source, "gs://") {
 		args = append(args, "-source_file", t.source)
@@ -519,7 +486,9 @@ func (t testCase) runPostTranslateTest(ctx context.Context, imagePath string,
 }
 
 func (t testCase) testScript() string {
-	if strings.Contains(t.os, "windows") {
+	if strings.Contains(t.os, "windows") ||
+		strings.Contains(t.imageName, "windows") ||
+		strings.Contains(t.caseName, "windows") {
 		return "post_translate_test.ps1"
 	}
 	return "post_translate_test.sh"

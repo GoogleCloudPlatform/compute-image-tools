@@ -86,8 +86,8 @@ func TestSuite(
 	for _, testType := range testTypes {
 		instanceImportUbuntu3DisksTestCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Ubuntu 3 disks, one data disk larger than 10GB"))
-		instanceImportCentos68 := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Centos 6.8"))
+		instanceImportCentos82 := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Centos 8.2"))
 		instanceImportWindows2012R2TwoDisks := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Windows 2012 R2 two disks"))
 		instanceImportWindows2016 := junitxml.NewTestCase(
@@ -108,7 +108,7 @@ func TestSuite(
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, e2e.CLITestType){}
 		testsMap[testType][instanceImportUbuntu3DisksTestCase] = runOVFInstanceImportUbuntu3Disks
-		testsMap[testType][instanceImportCentos68] = runOVFInstanceImportCentos68
+		testsMap[testType][instanceImportCentos82] = runOVFInstanceImportCentos82
 		testsMap[testType][instanceImportWindows2012R2TwoDisks] = runOVFInstanceImportWindows2012R2TwoDisks
 		testsMap[testType][instanceImportWindows2016] = runOVFInstanceImportWindows2016
 		testsMap[testType][instanceImportWindows2008R2FourNICs] = runOVFInstanceImportWindows2008R2FourNICs
@@ -142,19 +142,19 @@ func runOVFInstanceImportUbuntu3Disks(ctx context.Context, testCase *junitxml.Te
 	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
-func runOVFInstanceImportCentos68(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runOVFInstanceImportCentos82(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	suffix := path.RandString(5)
 	props := &ovfInstanceImportTestProperties{
-		instanceName: fmt.Sprintf("test-instance-centos-6-%v", suffix),
+		instanceName: fmt.Sprintf("test-instance-centos-8-%v", suffix),
 		verificationStartupScript: loadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All tests passed!",
 		failureMatches:        []string{"FAILED:", "TestFailed:"},
-		sourceURI:             fmt.Sprintf("gs://%v/", ovaBucket),
-		os:                    "centos-6",
+		sourceURI:             fmt.Sprintf("gs://%v/ova/centos-8/", ovaBucket),
+		os:                    "centos-8",
 		machineType:           "n1-standard-4",
 	}
 
@@ -284,8 +284,8 @@ func runOVFInstanceImportNetworkSettingsName(ctx context.Context, testCase *juni
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All tests passed!",
 		failureMatches:        []string{"FAILED:", "TestFailed:"},
-		sourceURI:             fmt.Sprintf("gs://%v/", ovaBucket),
-		os:                    "centos-6",
+		sourceURI:             fmt.Sprintf("gs://%v/ova/centos-8/", ovaBucket),
+		os:                    "centos-8",
 		machineType:           "n1-standard-4",
 		network:               fmt.Sprintf("%v-vpc-1", testProjectConfig.TestProjectID),
 		subnet:                fmt.Sprintf("%v-subnet-1", testProjectConfig.TestProjectID),
@@ -306,8 +306,8 @@ func runOVFInstanceImportNetworkSettingsPath(ctx context.Context, testCase *juni
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All tests passed!",
 		failureMatches:        []string{"FAILED:", "TestFailed:"},
-		sourceURI:             fmt.Sprintf("gs://%v/", ovaBucket),
-		os:                    "centos-6",
+		sourceURI:             fmt.Sprintf("gs://%v/ova/centos-8/", ovaBucket),
+		os:                    "centos-8",
 		machineType:           "n1-standard-4",
 		network:               fmt.Sprintf("global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
 		subnet:                fmt.Sprintf("projects/%v/regions/%v/subnetworks/%v-subnet-1", testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
