@@ -132,7 +132,7 @@ func WaitForSerialOutput(successMatch string, failureMatches []string, port int6
 			for _, ln := range strings.Split(resp.Contents, "\n") {
 				if len(failureMatches) > 0 {
 					for _, failureMatch := range failureMatches {
-						if i := strings.Index(strings.ToLower(ln), strings.ToLower(failureMatch)); i != -1 {
+						if i := strings.Index(ln, failureMatch); i != -1 {
 							errMsg := strings.TrimSpace(ln[i:])
 							format := "WaitForSerialOutput FailureMatch found for %q: %q"
 							return fmt.Errorf(format, instanceName, errMsg)
