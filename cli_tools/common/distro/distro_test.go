@@ -297,10 +297,6 @@ func TestImportCompatible(t *testing.T) {
 		fromComponents("sles", "15"),
 		fromComponents("sles", "15", "1"),
 	}, {
-		fromID("centos-6"),
-		fromComponents("centos", "6"),
-		fromComponents("centos", "6", "1"),
-	}, {
 		fromID("centos-7"),
 		fromComponents("centos", "7"),
 		fromComponents("centos", "7", "1"),

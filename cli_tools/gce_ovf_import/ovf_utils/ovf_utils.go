@@ -169,7 +169,7 @@ var ovfOSIDToImporterOSID = map[int16]osInfo{
 	104: {description: "VMware ESXi", importerOSIDs: []string{}},
 	105: {description: "Microsoft Windows 7", importerOSIDs: []string{"windows-7-x64-byol", "windows-7-x86-byol"}},
 	106: {description: "CentOS 32-bit", importerOSIDs: []string{}},
-	107: {description: "CentOS 64-bit", importerOSIDs: []string{"centos-6", "centos-7", "centos-8"}},
+	107: {description: "CentOS 64-bit", importerOSIDs: []string{"centos-7", "centos-8"}},
 	108: {description: "Oracle Linux 32-bit", importerOSIDs: []string{}},
 	109: {description: "Oracle Linux 64-bit", importerOSIDs: []string{}},
 	110: {description: "eComStation 32-bitx", importerOSIDs: []string{}},
@@ -194,7 +194,6 @@ var ovfOSIDToImporterOSID = map[int16]osInfo{
 var ovfOSTypeToOSID = map[string]osInfo{
 	"debian8_64Guest":       osInfo{importerOSIDs: []string{"debian-8"}},
 	"debian9_64Guest":       osInfo{importerOSIDs: []string{"debian-9"}},
-	"centos6_64Guest":       osInfo{importerOSIDs: []string{"centos-6"}},
 	"centos7_64Guest":       osInfo{importerOSIDs: []string{"centos-7"}},
 	"centos8_64Guest":       osInfo{importerOSIDs: []string{"centos-8"}},
 	"rhel6_64Guest":         osInfo{importerOSIDs: []string{"rhel-6"}},

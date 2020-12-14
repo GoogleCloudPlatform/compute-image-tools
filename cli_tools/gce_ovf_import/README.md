@@ -60,11 +60,8 @@ Exactly one of these must be specified:
   IPs.
 + `-no-restart-on-failure` the instance will not be restarted if it’s terminated by Compute Engine.
   This does not affect terminations performed by the user.
-+ `-os=OS` Specifies the OS of the image being imported. 
-  OS must be one of: centos-6, centos-7, debian-8, debian-9, rhel-6, rhel-6-byol, rhel-7, 
-  rhel-7-byol, ubuntu-1404, ubuntu-1604, ubuntu-1804, ubuntu-2004, windows-10-byol, windows-2008r2, windows-2008r2-byol,
-  windows-2012, windows-2012-byol, windows-2012r2, windows-2012r2-byol, windows-2016,
-  windows-2016-byol, windows-7-byol, windows-2019, windows-2019-byol, windows-8-1-x64-byol.
++ `-os=OS` Specifies the OS of the image being imported. Execute the tool with `-help` to
+  see the list of currently-supported operating systems.
 + `-shielded-integrity-monitoring` Enables monitoring and attestation of the boot integrity of the
   instance. The attestation is performed against the integrity policy baseline. This baseline is
   initially derived from the implicitly trusted boot image when the instance is created. This

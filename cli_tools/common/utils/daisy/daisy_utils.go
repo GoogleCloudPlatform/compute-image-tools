@@ -56,10 +56,6 @@ var (
 	supportedOS = []TranslationSettings{
 		// Enterprise Linux
 		{
-			GcloudOsFlag: "centos-6",
-			WorkflowPath: "enterprise_linux/translate_centos_6.wf.json",
-			LicenseURI:   "projects/centos-cloud/global/licenses/centos-6",
-		}, {
 			GcloudOsFlag: "centos-7",
 			WorkflowPath: "enterprise_linux/translate_centos_7.wf.json",
 			LicenseURI:   "projects/centos-cloud/global/licenses/centos-7",

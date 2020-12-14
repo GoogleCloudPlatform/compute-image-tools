@@ -659,8 +659,8 @@ func TestGetOSIdNilOSIdInDescriptor(t *testing.T) {
 }
 
 func TestGetOSIdDeterministic(t *testing.T) {
-	osID, err := GetOSId(createOVFDescriptorWithOS("centos6_64Guest", 107))
-	assert.Equal(t, "centos-6", osID)
+	osID, err := GetOSId(createOVFDescriptorWithOS("centos7_64Guest", 107))
+	assert.Equal(t, "centos-7", osID)
 	assert.Nil(t, err)
 }
 

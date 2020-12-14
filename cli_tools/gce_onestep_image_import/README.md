@@ -20,12 +20,8 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_onestep_
 + `-image_name=IMAGE_NAME` Name of the disk image to create.
 + `-client_id=CLIENT_ID` Identifies the client of the importer. For example: `gcloud` or
   `pantheon`.
-+ `-os=OS` Specifies the OS of the image being imported.
-  This must be specified if cloud provider is specified.
-  OS must be one of: centos-6, centos-7, debian-8, debian-9, rhel-6, rhel-6-byol, rhel-7, 
-  rhel-7-byol, ubuntu-1404, ubuntu-1604, ubuntu-1804, ubuntu-2004, windows-10-byol, windows-2008r2, windows-2008r2-byol,
-  windows-2012, windows-2012-byol, windows-2012r2, windows-2012r2-byol, windows-2016,
-  windows-2016-byol, windows-7-byol.
++ `-os=OS` Specifies the OS of the image being imported. Execute the tool with `-help` to
+  see the list of currently-supported operating systems.
   
 To import from AWS, all of these must be specified:
 + `-aws_access_key_id=AWS_ACCESS_KEY_ID` The access key ID for a temporary AWS credential.
