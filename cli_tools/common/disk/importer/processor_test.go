@@ -37,7 +37,7 @@ func Test_DefaultProcessorProvider_SkipsPlanningForDataDisk(t *testing.T) {
 func Test_DefaultProcessorProvider_IncludesMetadataStepWhenMetadataChangesRequired(t *testing.T) {
 	processorProvider := defaultProcessorProvider{
 		ImportArguments: ImportArguments{
-			WorkflowDir: "../../../daisy_workflows",
+			WorkflowDir: "../../../../daisy_workflows",
 		},
 		planner: mockProcessPlanner{
 			result: &processingPlan{
@@ -56,7 +56,7 @@ func Test_DefaultProcessorProvider_IncludesMetadataStepWhenMetadataChangesRequir
 func Test_DefaultProcessorProvider_SkipsMetadataStepWhenNoChangesRequired(t *testing.T) {
 	processorProvider := defaultProcessorProvider{
 		ImportArguments: ImportArguments{
-			WorkflowDir: "../../../daisy_workflows",
+			WorkflowDir: "../../../../daisy_workflows",
 		},
 		planner: mockProcessPlanner{
 			result: &processingPlan{

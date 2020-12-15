@@ -33,7 +33,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	opensuse15workflow = path.Join("../../../daisy_workflows/image_import", settings.WorkflowPath)
+	opensuse15workflow = path.Join("../../../../daisy_workflows/image_import", settings.WorkflowPath)
 }
 
 func TestBootableDiskProcessor_Process_WritesSourceDiskVar(t *testing.T) {

@@ -27,7 +27,7 @@ import (
 	"google.golang.org/api/googleapi"
 )
 
-const daisyWorkflows = "../../../daisy_workflows"
+const daisyWorkflows = "../../../../daisy_workflows"
 
 func TestCreateInflater_File(t *testing.T) {
 	inflater, err := newInflater(ImportArguments{
