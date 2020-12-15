@@ -41,8 +41,8 @@ func NewPopulator(
 	}
 }
 
-func (populator *ovfExportParamPopulatorImpl) Populate(params *ovfexportdomain.OVFExportParams) error {
-	if err := populator.PopulateMissingParameters(params.Project, params.ClientID, &params.Zone,
+func (populator *ovfExportParamPopulatorImpl) Populate(params *ovfexportdomain.OVFExportArgs) error {
+	if err := populator.PopulateMissingParameters(&params.Project, params.ClientID, &params.Zone,
 		&params.Region, &params.ScratchBucketGcsPath, params.DestinationURI, nil); err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func (populator *ovfExportParamPopulatorImpl) Populate(params *ovfexportdomain.O
 	return nil
 }
 
-func (populator *ovfExportParamPopulatorImpl) populateNetwork(params *ovfexportdomain.OVFExportParams) {
+func (populator *ovfExportParamPopulatorImpl) populateNetwork(params *ovfexportdomain.OVFExportArgs) {
 	if params.Network == "" && params.Subnet == "" {
 		params.Network = "default"
 	}
@@ -65,7 +65,7 @@ func (populator *ovfExportParamPopulatorImpl) populateNetwork(params *ovfexportd
 	}
 }
 
-func (populator *ovfExportParamPopulatorImpl) populateBuildID(params *ovfexportdomain.OVFExportParams) {
+func (populator *ovfExportParamPopulatorImpl) populateBuildID(params *ovfexportdomain.OVFExportArgs) {
 	if params != nil && params.BuildID != "" {
 		return
 	}
@@ -75,7 +75,7 @@ func (populator *ovfExportParamPopulatorImpl) populateBuildID(params *ovfexportd
 	}
 }
 
-func (populator *ovfExportParamPopulatorImpl) populateDestinationURI(params *ovfexportdomain.OVFExportParams) {
+func (populator *ovfExportParamPopulatorImpl) populateDestinationURI(params *ovfexportdomain.OVFExportArgs) {
 	params.DestinationURI = strings.ToLower(params.DestinationURI)
 	if !strings.HasSuffix(params.DestinationURI, ".ova") {
 		params.DestinationURI = pathutils.ToDirectoryURL(params.DestinationURI)
@@ -85,7 +85,7 @@ func (populator *ovfExportParamPopulatorImpl) populateDestinationURI(params *ovf
 // populateNamespacedScratchDirectory updates ScratchBucketGcsPath to include a directory
 // that is specific to this export, formulated using the start timestamp and the execution ID.
 // This ensures all logs and artifacts are contained in a single directory.
-func (populator *ovfExportParamPopulatorImpl) populateNamespacedScratchDirectory(params *ovfexportdomain.OVFExportParams) {
+func (populator *ovfExportParamPopulatorImpl) populateNamespacedScratchDirectory(params *ovfexportdomain.OVFExportArgs) {
 	if !strings.HasSuffix(params.ScratchBucketGcsPath, "/") {
 		params.ScratchBucketGcsPath += "/"
 	}

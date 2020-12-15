@@ -31,11 +31,11 @@ func TestDiskExporter_HappyPath(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.Oauth = ""
 	params.WorkflowDir = "../../../daisy_workflows/"
 
-	project := *params.Project
+	project := params.Project
 	region := "us-central1"
 
 	instance := &compute.Instance{

@@ -22,20 +22,20 @@ import (
 )
 
 func TestIsInstanceExport(t *testing.T) {
-	assert.True(t, GetAllInstanceExportParams().IsInstanceExport())
-	assert.False(t, GetAllMachineImageExportParams().IsInstanceExport())
+	assert.True(t, GetAllInstanceExportArgs().IsInstanceExport())
+	assert.False(t, GetAllMachineImageExportArgs().IsInstanceExport())
 }
 
 func TestIsMachineImageExport(t *testing.T) {
-	assert.False(t, GetAllInstanceExportParams().IsMachineImageExport())
-	assert.True(t, GetAllMachineImageExportParams().IsMachineImageExport())
+	assert.False(t, GetAllInstanceExportArgs().IsMachineImageExport())
+	assert.True(t, GetAllMachineImageExportArgs().IsMachineImageExport())
 }
 
 func TestDaisyAttrs(t *testing.T) {
-	params := GetAllInstanceExportParams()
+	params := GetAllInstanceExportArgs()
 	assert.Equal(t,
 		daisycommon.WorkflowAttributes{
-			Project: *params.Project, Zone: params.Zone, GCSPath: params.ScratchBucketGcsPath,
+			Project: params.Project, Zone: params.Zone, GCSPath: params.ScratchBucketGcsPath,
 			OAuth: params.Oauth, Timeout: params.Timeout.String(), ComputeEndpoint: params.Ce,
 			WorkflowDirectory: params.WorkflowDir, DisableGCSLogs: params.GcsLogsDisabled,
 			DisableCloudLogs: params.CloudLogsDisabled, DisableStdoutLogs: params.StdoutLogsDisabled,

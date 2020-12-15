@@ -29,7 +29,7 @@ var validReleaseTracks = []string{"ga", "beta", "alpha"}
 func TestInstanceNameAndMachineImageNameProvidedAtTheSameTime(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.MachineImageName = "machine-image-name"
 	assertErrorOnValidate(t, params, createDefaultParamValidator(mockCtrl, false))
 }
@@ -37,7 +37,7 @@ func TestInstanceNameAndMachineImageNameProvidedAtTheSameTime(t *testing.T) {
 func TestInstanceExportFlagsInstanceNameNotProvided(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.InstanceName = ""
 	assertErrorOnValidate(t, params, createDefaultParamValidator(mockCtrl, false))
 }
@@ -45,7 +45,7 @@ func TestInstanceExportFlagsInstanceNameNotProvided(t *testing.T) {
 func TestInstanceExportFlagsOvfGcsPathFlagKeyNotProvided(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.DestinationURI = ""
 	assertErrorOnValidate(t, params, createDefaultParamValidator(mockCtrl, false))
 }
@@ -53,7 +53,7 @@ func TestInstanceExportFlagsOvfGcsPathFlagKeyNotProvided(t *testing.T) {
 func TestInstanceExportFlagsOvfGcsPathFlagNotValid(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.DestinationURI = "NOT_GCS_PATH"
 	assertErrorOnValidate(t, params, createDefaultParamValidator(mockCtrl, false))
 }
@@ -62,7 +62,7 @@ func TestInstanceExportZoneInvalid(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.Zone = "not-a-zone"
 
 	mockZoneValidator := mocks.NewMockZoneValidatorInterface(mockCtrl)
@@ -79,7 +79,7 @@ func TestInstanceExportZoneInvalid(t *testing.T) {
 func TestInstanceExportFlagsClientIdNotProvided(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.ClientID = ""
 	assertErrorOnValidate(t, params, createDefaultParamValidator(mockCtrl, false))
 }
@@ -87,7 +87,7 @@ func TestInstanceExportFlagsClientIdNotProvided(t *testing.T) {
 func TestInstanceExportFlagsInvalidReleaseTrack(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.ReleaseTrack = "not-a-release-track"
 	assertErrorOnValidate(t, params, createDefaultParamValidator(mockCtrl, false))
 }
@@ -97,7 +97,7 @@ func TestInstanceExportFlagsAllValid(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	validator := createDefaultParamValidator(mockCtrl, true)
-	assert.Nil(t, validator.ValidateAndParseParams(ovfexportdomain.GetAllInstanceExportParams()))
+	assert.Nil(t, validator.ValidateAndParseParams(ovfexportdomain.GetAllInstanceExportArgs()))
 }
 
 func TestInstanceExportFlagsAllValidBucketOnlyPathTrailingSlash(t *testing.T) {
@@ -106,9 +106,9 @@ func TestInstanceExportFlagsAllValidBucketOnlyPathTrailingSlash(t *testing.T) {
 
 	validator := createDefaultParamValidator(mockCtrl, true)
 
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.DestinationURI = "gs://bucket_name/"
-	assert.Nil(t, validator.ValidateAndParseParams(ovfexportdomain.GetAllInstanceExportParams()))
+	assert.Nil(t, validator.ValidateAndParseParams(ovfexportdomain.GetAllInstanceExportArgs()))
 }
 
 func TestInstanceExportFlagsAllValidBucketOnlyPathNoTrailingSlash(t *testing.T) {
@@ -117,16 +117,16 @@ func TestInstanceExportFlagsAllValidBucketOnlyPathNoTrailingSlash(t *testing.T) 
 
 	validator := createDefaultParamValidator(mockCtrl, true)
 
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.DestinationURI = "gs://bucket_name"
-	assert.Nil(t, validator.ValidateAndParseParams(ovfexportdomain.GetAllInstanceExportParams()))
+	assert.Nil(t, validator.ValidateAndParseParams(ovfexportdomain.GetAllInstanceExportArgs()))
 }
 
 func TestInstanceExportFlagsInvalidOvfFormat(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	validator := createDefaultParamValidator(mockCtrl, false)
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.OvfFormat = "zip"
 	assertErrorOnValidate(t, params, validator)
 }
@@ -135,14 +135,14 @@ func TestMachineImageExportFlagsAllValid(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	validator := createDefaultParamValidator(mockCtrl, true)
-	assert.Nil(t, validator.ValidateAndParseParams(ovfexportdomain.GetAllMachineImageExportParams()))
+	assert.Nil(t, validator.ValidateAndParseParams(ovfexportdomain.GetAllMachineImageExportArgs()))
 }
 
 func TestMachineImageExportFlagsMachineImageNameNotProvided(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	validator := createDefaultParamValidator(mockCtrl, false)
-	params := ovfexportdomain.GetAllMachineImageExportParams()
+	params := ovfexportdomain.GetAllMachineImageExportArgs()
 	params.MachineImageName = ""
 	assertErrorOnValidate(t, params, validator)
 }
@@ -151,7 +151,7 @@ func TestMachineImageExportFlagsOvfGcsPathFlagKeyNotProvided(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	validator := createDefaultParamValidator(mockCtrl, false)
-	params := ovfexportdomain.GetAllMachineImageExportParams()
+	params := ovfexportdomain.GetAllMachineImageExportArgs()
 	params.DestinationURI = ""
 	assertErrorOnValidate(t, params, validator)
 }
@@ -160,7 +160,7 @@ func TestMachineImageExportFlagsOvfGcsPathFlagNotValid(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	validator := createDefaultParamValidator(mockCtrl, false)
-	params := ovfexportdomain.GetAllMachineImageExportParams()
+	params := ovfexportdomain.GetAllMachineImageExportArgs()
 	params.DestinationURI = "NOT_GCS_PATH"
 	assertErrorOnValidate(t, params, validator)
 }
@@ -169,7 +169,7 @@ func TestMachineImageExportFlagsClientIdNotProvided(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	validator := createDefaultParamValidator(mockCtrl, false)
-	params := ovfexportdomain.GetAllMachineImageExportParams()
+	params := ovfexportdomain.GetAllMachineImageExportArgs()
 	params.ClientID = ""
 	assertErrorOnValidate(t, params, validator)
 }
@@ -178,21 +178,21 @@ func TestMachineImageExportFlagsAllValidBucketOnlyPathTrailingSlash(t *testing.T
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	validator := createDefaultParamValidator(mockCtrl, true)
-	params := ovfexportdomain.GetAllMachineImageExportParams()
+	params := ovfexportdomain.GetAllMachineImageExportArgs()
 	params.DestinationURI = "gs://bucket_name/"
-	assert.Nil(t, validator.ValidateAndParseParams(ovfexportdomain.GetAllMachineImageExportParams()))
+	assert.Nil(t, validator.ValidateAndParseParams(ovfexportdomain.GetAllMachineImageExportArgs()))
 }
 
 func TestMachineImageExportFlagsAllValidBucketOnlyPathNoTrailingSlash(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	validator := createDefaultParamValidator(mockCtrl, true)
-	params := ovfexportdomain.GetAllMachineImageExportParams()
+	params := ovfexportdomain.GetAllMachineImageExportArgs()
 	params.DestinationURI = "gs://bucket_name"
-	assert.Nil(t, validator.ValidateAndParseParams(ovfexportdomain.GetAllMachineImageExportParams()))
+	assert.Nil(t, validator.ValidateAndParseParams(ovfexportdomain.GetAllMachineImageExportArgs()))
 }
 
-func assertErrorOnValidate(t *testing.T, params *ovfexportdomain.OVFExportParams, validator *ovfExportParamValidatorImpl) {
+func assertErrorOnValidate(t *testing.T, params *ovfexportdomain.OVFExportArgs, validator *ovfExportParamValidatorImpl) {
 	assert.NotNil(t, validator.ValidateAndParseParams(params))
 }
 
@@ -200,7 +200,7 @@ func TestMachineImageExportFlagsInvalidOvfFormat(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	validator := createDefaultParamValidator(mockCtrl, false)
-	params := ovfexportdomain.GetAllMachineImageExportParams()
+	params := ovfexportdomain.GetAllMachineImageExportArgs()
 	params.OvfFormat = "zip"
 	assertErrorOnValidate(t, params, validator)
 }

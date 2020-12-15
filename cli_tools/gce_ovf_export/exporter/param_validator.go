@@ -34,15 +34,15 @@ type ovfExportParamValidatorImpl struct {
 // NewOvfExportParamValidator creates a new OVF export params validator
 func NewOvfExportParamValidator(computeClient daisycompute.Client) ovfexportdomain.OvfExportParamValidator {
 	return &ovfExportParamValidatorImpl{
-		validReleaseTracks: []string{GA, Beta, Alpha},
+		validReleaseTracks: []string{ovfexportdomain.GA, ovfexportdomain.Beta, ovfexportdomain.Alpha},
 		zoneValidator:      &computeutils.ZoneValidator{ComputeClient: computeClient},
 	}
 }
 
-// ValidateAndParseParams validates and parses OVFExportParams. It returns an
+// ValidateAndParseParams validates and parses OVFExportArgs. It returns an
 // error if params are invalid. If params are valid, additional fields in
-// OVFExportParams will be populated with parsed values
-func (validator *ovfExportParamValidatorImpl) ValidateAndParseParams(params *ovfexportdomain.OVFExportParams) error {
+// OVFExportArgs will be populated with parsed values
+func (validator *ovfExportParamValidatorImpl) ValidateAndParseParams(params *ovfexportdomain.OVFExportArgs) error {
 	if params.InstanceName == "" && params.MachineImageName == "" {
 		return daisy.Errf("Either the flag -%v or -%v must be provided", ovfexportdomain.InstanceNameFlagKey, ovfexportdomain.MachineImageNameFlagKey)
 	}
@@ -83,7 +83,7 @@ func (validator *ovfExportParamValidatorImpl) ValidateAndParseParams(params *ovf
 		}
 	}
 
-	if err := validator.zoneValidator.ZoneValid(*params.Project, params.Zone); err != nil {
+	if err := validator.zoneValidator.ZoneValid(params.Project, params.Zone); err != nil {
 		return err
 	}
 

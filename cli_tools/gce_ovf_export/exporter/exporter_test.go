@@ -54,7 +54,7 @@ func TestRun_HappyPath(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	instance := &compute.Instance{}
 
 	inspectionResults := &pb.InspectionResults{
@@ -66,14 +66,14 @@ func TestRun_HappyPath(t *testing.T) {
 		},
 	}
 
-	mockLogger := mocks.NewMockLoggerInterface(mockCtrl)
-	mockLogger.EXPECT().Log(gomock.Any()).AnyTimes()
+	mockLogger := mocks.NewMockLogger(mockCtrl)
+	mockLogger.EXPECT().User(gomock.Any()).AnyTimes()
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
 
-	mockComputeClient.EXPECT().GetInstance(*params.Project, params.Zone, params.InstanceName).Return(instance, nil)
+	mockComputeClient.EXPECT().GetInstance(params.Project, params.Zone, params.InstanceName).Return(instance, nil)
 
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
@@ -88,7 +88,7 @@ func TestRun_HappyPath(t *testing.T) {
 
 	mockInspector := mocks.NewMockInspector(mockCtrl)
 	mockInspector.EXPECT().Inspect(
-		fmt.Sprintf("projects/%v/zones/%v/disks/%v", *params.Project, params.Zone, "bootdisk"), true).Return(inspectionResults, nil)
+		fmt.Sprintf("projects/%v/zones/%v/disks/%v", params.Project, params.Zone, "bootdisk"), true).Return(inspectionResults, nil)
 	mockInspector.EXPECT().TraceLogs().Return([]string{"inspector trace log"})
 
 	mockOvfDescriptorGenerator := mocks.NewMockOvfDescriptorGenerator(mockCtrl)
@@ -131,26 +131,26 @@ func TestRun_DontRunDiskExporterIfPreparerTimedOut(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.Timeout = 100 * time.Millisecond
 	instance := &compute.Instance{}
 
-	mockLogger := mocks.NewMockLoggerInterface(mockCtrl)
-	mockLogger.EXPECT().Log(gomock.Any()).AnyTimes()
+	mockLogger := mocks.NewMockLogger(mockCtrl)
+	mockLogger.EXPECT().User(gomock.Any()).AnyTimes()
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().Close().Return(nil)
 
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
 
-	mockComputeClient.EXPECT().GetInstance(*params.Project, params.Zone, params.InstanceName).Return(instance, nil)
+	mockComputeClient.EXPECT().GetInstance(params.Project, params.Zone, params.InstanceName).Return(instance, nil)
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 
 	preparerCancelChan := make(chan bool)
 	mockInstanceExportPreparer := mocks.NewMockInstanceExportPreparer(mockCtrl)
 	mockInstanceExportPreparer.EXPECT().Prepare(instance, params).Do(
-		func(instance *compute.Instance, params *ovfexportdomain.OVFExportParams) {
+		func(instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) {
 			sleepStep(preparerCancelChan)
 		}).Return(nil)
 	mockInstanceExportPreparer.EXPECT().Cancel("timed-out").Do(func(_ string) { preparerCancelChan <- true }).Return(true)
@@ -188,19 +188,19 @@ func TestRun_DontRunInspectorIfDiskExporterTimedOut(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.Timeout = 100 * time.Millisecond
 	instance := &compute.Instance{}
 
-	mockLogger := mocks.NewMockLoggerInterface(mockCtrl)
-	mockLogger.EXPECT().Log(gomock.Any()).AnyTimes()
+	mockLogger := mocks.NewMockLogger(mockCtrl)
+	mockLogger.EXPECT().User(gomock.Any()).AnyTimes()
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().Close().Return(nil)
 
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
 
-	mockComputeClient.EXPECT().GetInstance(*params.Project, params.Zone, params.InstanceName).Return(instance, nil)
+	mockComputeClient.EXPECT().GetInstance(params.Project, params.Zone, params.InstanceName).Return(instance, nil)
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 
@@ -211,7 +211,7 @@ func TestRun_DontRunInspectorIfDiskExporterTimedOut(t *testing.T) {
 	diskExporterCancelChan := make(chan bool)
 	mockInstanceDisksExporter := mocks.NewMockInstanceDisksExporter(mockCtrl)
 	mockInstanceDisksExporter.EXPECT().Export(instance, params).Do(
-		func(instance *compute.Instance, params *ovfexportdomain.OVFExportParams) {
+		func(instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) {
 			sleepStep(diskExporterCancelChan)
 		}).Return(nil, nil)
 	mockInstanceDisksExporter.EXPECT().Cancel("timed-out").Do(func(_ string) { diskExporterCancelChan <- true }).Return(true)
@@ -247,19 +247,19 @@ func TestRun_DontRunDescriptorGeneratorIfInspectorTimedOut(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.Timeout = 100 * time.Millisecond
 	instance := &compute.Instance{}
 
-	mockLogger := mocks.NewMockLoggerInterface(mockCtrl)
-	mockLogger.EXPECT().Log(gomock.Any()).AnyTimes()
+	mockLogger := mocks.NewMockLogger(mockCtrl)
+	mockLogger.EXPECT().User(gomock.Any()).AnyTimes()
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().Close().Return(nil)
 
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
 
-	mockComputeClient.EXPECT().GetInstance(*params.Project, params.Zone, params.InstanceName).Return(instance, nil)
+	mockComputeClient.EXPECT().GetInstance(params.Project, params.Zone, params.InstanceName).Return(instance, nil)
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 
@@ -274,7 +274,7 @@ func TestRun_DontRunDescriptorGeneratorIfInspectorTimedOut(t *testing.T) {
 	inspectorCancelChan := make(chan bool)
 	mockInspector := mocks.NewMockInspector(mockCtrl)
 	mockInspector.EXPECT().Inspect(
-		fmt.Sprintf("projects/%v/zones/%v/disks/%v", *params.Project, params.Zone, "bootdisk"), true).Do(func(reference string, inspectOS bool) { sleepStep(inspectorCancelChan) }).Return(&pb.InspectionResults{}, nil)
+		fmt.Sprintf("projects/%v/zones/%v/disks/%v", params.Project, params.Zone, "bootdisk"), true).Do(func(reference string, inspectOS bool) { sleepStep(inspectorCancelChan) }).Return(&pb.InspectionResults{}, nil)
 	mockInspector.EXPECT().Cancel("timed-out").Do(func(_ string) { inspectorCancelChan <- true }).Return(true)
 	mockInspector.EXPECT().TraceLogs().Return([]string{"inspector trace log"})
 
@@ -307,7 +307,7 @@ func TestRun_DontRunManifestGeneratorIfDescriptorGeneratorTimedOut(t *testing.T)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.Timeout = 100 * time.Millisecond
 	instance := &compute.Instance{}
 	inspectionResults := &pb.InspectionResults{
@@ -318,15 +318,15 @@ func TestRun_DontRunManifestGeneratorIfDescriptorGeneratorTimedOut(t *testing.T)
 			MinorVersion: "4",
 		},
 	}
-	mockLogger := mocks.NewMockLoggerInterface(mockCtrl)
-	mockLogger.EXPECT().Log(gomock.Any()).AnyTimes()
+	mockLogger := mocks.NewMockLogger(mockCtrl)
+	mockLogger.EXPECT().User(gomock.Any()).AnyTimes()
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().Close().Return(nil)
 
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
 
-	mockComputeClient.EXPECT().GetInstance(*params.Project, params.Zone, params.InstanceName).Return(instance, nil)
+	mockComputeClient.EXPECT().GetInstance(params.Project, params.Zone, params.InstanceName).Return(instance, nil)
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 
@@ -340,7 +340,7 @@ func TestRun_DontRunManifestGeneratorIfDescriptorGeneratorTimedOut(t *testing.T)
 
 	mockInspector := mocks.NewMockInspector(mockCtrl)
 	mockInspector.EXPECT().Inspect(
-		fmt.Sprintf("projects/%v/zones/%v/disks/%v", *params.Project, params.Zone, "bootdisk"), true).Return(inspectionResults, nil)
+		fmt.Sprintf("projects/%v/zones/%v/disks/%v", params.Project, params.Zone, "bootdisk"), true).Return(inspectionResults, nil)
 	mockInspector.EXPECT().TraceLogs().Return([]string{"inspector trace log"})
 
 	descriptorGeneratorCancelChan := make(chan bool)
@@ -380,7 +380,7 @@ func TestRun_TimeOutOnManifestGeneratorTimingOut(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.Timeout = 100 * time.Millisecond
 	instance := &compute.Instance{}
 	inspectionResults := &pb.InspectionResults{
@@ -391,15 +391,15 @@ func TestRun_TimeOutOnManifestGeneratorTimingOut(t *testing.T) {
 			MinorVersion: "4",
 		},
 	}
-	mockLogger := mocks.NewMockLoggerInterface(mockCtrl)
-	mockLogger.EXPECT().Log(gomock.Any()).AnyTimes()
+	mockLogger := mocks.NewMockLogger(mockCtrl)
+	mockLogger.EXPECT().User(gomock.Any()).AnyTimes()
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().Close().Return(nil)
 
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
 
-	mockComputeClient.EXPECT().GetInstance(*params.Project, params.Zone, params.InstanceName).Return(instance, nil)
+	mockComputeClient.EXPECT().GetInstance(params.Project, params.Zone, params.InstanceName).Return(instance, nil)
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 
@@ -413,7 +413,7 @@ func TestRun_TimeOutOnManifestGeneratorTimingOut(t *testing.T) {
 
 	mockInspector := mocks.NewMockInspector(mockCtrl)
 	mockInspector.EXPECT().Inspect(
-		fmt.Sprintf("projects/%v/zones/%v/disks/%v", *params.Project, params.Zone, "bootdisk"), true).Return(inspectionResults, nil)
+		fmt.Sprintf("projects/%v/zones/%v/disks/%v", params.Project, params.Zone, "bootdisk"), true).Return(inspectionResults, nil)
 	mockInspector.EXPECT().TraceLogs().Return([]string{"inspector trace log"})
 
 	mockOvfDescriptorGenerator := mocks.NewMockOvfDescriptorGenerator(mockCtrl)
@@ -473,12 +473,12 @@ func TestValidateAndPopulateParams(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	paramValidator := mocks.NewMockOvfExportParamValidator(mockCtrl)
 	paramValidator.EXPECT().ValidateAndParseParams(params).Return(nil)
 	paramPopulator := mocks.NewMockOvfExportParamPopulator(mockCtrl)
 	paramPopulator.EXPECT().Populate(params).Return(nil)
-	err := ValidateAndPopulateParams(params, paramValidator, paramPopulator)
+	err := validateAndPopulateParams(params, paramValidator, paramPopulator)
 	assert.Nil(t, err)
 }
 
@@ -486,11 +486,11 @@ func TestValidateAndPopulateParams_ErrorOnValidate(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.MachineImageName = "also-machine-image-name-which-is-invalid"
 	paramValidator := mocks.NewMockOvfExportParamValidator(mockCtrl)
 	paramValidator.EXPECT().ValidateAndParseParams(params).Return(fmt.Errorf("validation error"))
-	err := ValidateAndPopulateParams(params, paramValidator, nil)
+	err := validateAndPopulateParams(params, paramValidator, nil)
 	assert.NotNil(t, err)
 }
 
@@ -498,7 +498,7 @@ func TestValidateAndPopulateParams_ErrorOnPopulate(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	paramValidator := mocks.NewMockOvfExportParamValidator(mockCtrl)
 	paramValidator.EXPECT().ValidateAndParseParams(params).Return(nil)
 
@@ -506,6 +506,6 @@ func TestValidateAndPopulateParams_ErrorOnPopulate(t *testing.T) {
 	paramPopulator := mocks.NewMockOvfExportParamPopulator(mockCtrl)
 	paramPopulator.EXPECT().Populate(params).Return(populatorError)
 
-	err := ValidateAndPopulateParams(params, paramValidator, paramPopulator)
+	err := validateAndPopulateParams(params, paramValidator, paramPopulator)
 	assert.Equal(t, populatorError, err)
 }

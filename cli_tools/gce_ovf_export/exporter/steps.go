@@ -31,14 +31,14 @@ type populateStepsFunc func(*daisy.Workflow) error
 
 func (oe *OVFExporter) prepare(ctx context.Context, instance *compute.Instance) error {
 	return oe.runStep(ctx, func() error {
-		oe.Logger.Log(fmt.Sprintf("Stopping '%v' instance and detaching the disks.", instance.Name))
+		oe.Logger.User(fmt.Sprintf("Stopping '%v' instance and detaching the disks.", instance.Name))
 		return oe.instanceExportPreparer.Prepare(instance, oe.params)
 	}, oe.instanceExportPreparer.Cancel, oe.instanceExportPreparer.TraceLogs)
 }
 
 func (oe *OVFExporter) exportDisks(ctx context.Context, instance *compute.Instance) error {
 	return oe.runStep(ctx, func() error {
-		oe.Logger.Log("Exporting the disks.")
+		oe.Logger.User("Exporting the disks.")
 		var err error
 		oe.exportedDisks, err = oe.instanceDisksExporter.Export(instance, oe.params)
 		return err
@@ -47,18 +47,18 @@ func (oe *OVFExporter) exportDisks(ctx context.Context, instance *compute.Instan
 
 func (oe *OVFExporter) inspectBootDisk(ctx context.Context) error {
 	return oe.runStep(ctx, func() error {
-		oe.Logger.Log("Inspecting the boot disk.")
+		oe.Logger.User("Inspecting the boot disk.")
 		bootDisk := getBootDisk(oe.exportedDisks)
 		if bootDisk == nil {
 			return nil
 		}
 		var err error
 		oe.bootDiskInspectionResults, err = oe.inspector.Inspect(
-			daisyutils.GetDiskURI(*oe.params.Project, oe.params.Zone, bootDisk.Disk.Name), true)
+			daisyutils.GetDiskURI(oe.params.Project, oe.params.Zone, bootDisk.Disk.Name), true)
 		if err != nil {
-			oe.Logger.Log(fmt.Sprintf("WARNING: Could not detect operating system on the boot disk: %v", err))
+			oe.Logger.User(fmt.Sprintf("WARNING: Could not detect operating system on the boot disk: %v", err))
 		}
-		oe.Logger.Log(fmt.Sprintf("Disk inspection results: %v", oe.bootDiskInspectionResults))
+		oe.Logger.User(fmt.Sprintf("Disk inspection results: %v", oe.bootDiskInspectionResults))
 		// don't return error if inspection fails, just log it, since it's not a show-stopper.
 		return nil
 	}, oe.inspector.Cancel, oe.inspector.TraceLogs)
@@ -66,7 +66,7 @@ func (oe *OVFExporter) inspectBootDisk(ctx context.Context) error {
 
 func (oe *OVFExporter) generateDescriptor(ctx context.Context, instance *compute.Instance) error {
 	return oe.runStep(ctx, func() error {
-		oe.Logger.Log("Generating OVF descriptor.")
+		oe.Logger.User("Generating OVF descriptor.")
 		bucketName, gcsDirectoryPath, err := storageutils.GetGCSObjectPathElements(oe.params.DestinationURI)
 		if err != nil {
 			return err
@@ -77,7 +77,7 @@ func (oe *OVFExporter) generateDescriptor(ctx context.Context, instance *compute
 
 func (oe *OVFExporter) generateManifest(ctx context.Context) error {
 	return oe.runStep(ctx, func() error {
-		oe.Logger.Log("Generating manifest.")
+		oe.Logger.User("Generating manifest.")
 		return oe.manifestFileGenerator.GenerateAndWriteToGCS(oe.params.DestinationURI, oe.params.InstanceName)
 	}, oe.manifestFileGenerator.Cancel, func() []string { return nil })
 }
@@ -85,12 +85,12 @@ func (oe *OVFExporter) generateManifest(ctx context.Context) error {
 func (oe *OVFExporter) cleanup(instance *compute.Instance, exportError error) error {
 	// cleanup shouldn't react to time out as it's necessary to perform this step.
 	// Otherwise, instance being exported would be left shut down and disks detached.
-	oe.Logger.Log("Cleaning up.")
+	oe.Logger.User("Cleaning up.")
 	if err := oe.instanceExportCleaner.Clean(instance, oe.params); err != nil {
 		return err
 	}
 	if exportError == nil {
-		oe.Logger.Log("OVF export finished successfully.")
+		oe.Logger.User("OVF export finished successfully.")
 	}
 	if oe.storageClient != nil {
 		err := oe.storageClient.Close()
@@ -103,7 +103,7 @@ func (oe *OVFExporter) cleanup(instance *compute.Instance, exportError error) er
 }
 
 func generateWorkflowWithSteps(workflowName, timeout string, populateStepsFunc populateStepsFunc,
-	params *ovfexportdomain.OVFExportParams) (*daisy.Workflow, error) {
+	params *ovfexportdomain.OVFExportArgs) (*daisy.Workflow, error) {
 
 	w := daisy.New()
 	w.Name = workflowName
@@ -123,7 +123,7 @@ func generateWorkflowWithSteps(workflowName, timeout string, populateStepsFunc p
 	return w, nil
 }
 
-func postValidateWorkflowModifier(w *daisy.Workflow, params *ovfexportdomain.OVFExportParams) {
+func postValidateWorkflowModifier(w *daisy.Workflow, params *ovfexportdomain.OVFExportArgs) {
 	rl := &daisyutils.ResourceLabeler{
 		BuildID:         params.BuildID,
 		BuildIDLabelKey: "gce-ovf-export-build-id",
@@ -170,7 +170,7 @@ func (oe *OVFExporter) runStep(ctx context.Context, step func() error, cancel fu
 	case <-ctx.Done():
 		if cancel("timed-out") {
 			//Only return timeout error if step was able to cancel on time-out.
-			//Otherwise, step has finished and import succeeded even though it timed out
+			//Otherwise, step has finished and export succeeded even though it timed out
 			err = oe.getCtxError(ctx)
 		}
 		wg.Wait()

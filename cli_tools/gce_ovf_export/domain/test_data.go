@@ -34,10 +34,10 @@ var TestNetwork = fmt.Sprintf("projects/%v/global/networks/%v", TestProject, "a-
 // TestSubnet is a test value for subnet path
 var TestSubnet = fmt.Sprintf("projects/%v/regions/%v/subnetworks/%v", TestProject, TestRegion, "a-subnet")
 
-// GetAllInstanceExportParams returns a new OVFExportParams reference for instance export with default values
-func GetAllInstanceExportParams() *OVFExportParams {
+// GetAllInstanceExportArgs returns a new OVFExportArgs reference for instance export with default values
+func GetAllInstanceExportArgs() *OVFExportArgs {
 	var project = TestProject
-	return &OVFExportParams{
+	return &OVFExportArgs{
 		InstanceName:         "instance1",
 		ClientID:             "aClient",
 		DestinationURI:       "gs://ovfbucket/OVFpath/",
@@ -46,7 +46,7 @@ func GetAllInstanceExportParams() *OVFExportParams {
 		Zone:                 TestZone,
 		OsID:                 "ubuntu-1404",
 		Timeout:              3 * time.Hour,
-		Project:              &project,
+		Project:              project,
 		ScratchBucketGcsPath: "gs://bucket/folder/",
 		Oauth:                "oAuthFilePath",
 		Ce:                   "us-east1-c",
@@ -59,11 +59,11 @@ func GetAllInstanceExportParams() *OVFExportParams {
 	}
 }
 
-// GetAllMachineImageExportParams returns a new OVFExportParams reference for machine image export with default values
-func GetAllMachineImageExportParams() *OVFExportParams {
+// GetAllMachineImageExportArgs returns a new OVFExportArgs reference for machine image export with default values
+func GetAllMachineImageExportArgs() *OVFExportArgs {
 	project := TestProject
 
-	return &OVFExportParams{
+	return &OVFExportArgs{
 		MachineImageName:     "machine-image1",
 		ClientID:             "aClient",
 		DestinationURI:       "gs://ovfbucket/OVFpath",
@@ -72,7 +72,7 @@ func GetAllMachineImageExportParams() *OVFExportParams {
 		Zone:                 TestZone,
 		OsID:                 "ubuntu-1404",
 		Timeout:              3 * time.Hour,
-		Project:              &project,
+		Project:              project,
 		ScratchBucketGcsPath: "gs://bucket/folder",
 		Oauth:                "oAuthFilePath",
 		Ce:                   "us-east1-c",

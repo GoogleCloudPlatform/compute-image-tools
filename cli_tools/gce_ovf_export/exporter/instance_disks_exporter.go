@@ -47,7 +47,7 @@ func NewInstanceDisksExporter(computeClient daisycompute.Client, storageClient d
 	}
 }
 
-func (ide *instanceDisksExporterImpl) Export(instance *compute.Instance, params *ovfexportdomain.OVFExportParams) ([]*ovfexportdomain.ExportedDisk, error) {
+func (ide *instanceDisksExporterImpl) Export(instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) ([]*ovfexportdomain.ExportedDisk, error) {
 	var err error
 	if ide.wf, err = generateWorkflowWithSteps("ovf-export-disk-export", params.Timeout.String(),
 		func(w *daisy.Workflow) error { return ide.populateExportDisksSteps(w, instance, params) }, params); err != nil {
@@ -56,13 +56,10 @@ func (ide *instanceDisksExporterImpl) Export(instance *compute.Instance, params 
 	if ide.wfPreRunCallback != nil {
 		ide.wfPreRunCallback(ide.wf)
 	}
-	if err := daisyutils.RunWorkflowWithCancelSignal(context.Background(), ide.wf); err != nil {
-		return nil, err
-	}
 	// have to use post-validate modifiers due to the use of included workflows
-	//err = ide.wf.RunWithModifiers(context.Background(), nil, func(w *daisy.Workflow) {
-	//	postValidateWorkflowModifier(w, params)
-	//})
+	err = ide.wf.RunWithModifiers(context.Background(), nil, func(w *daisy.Workflow) {
+		postValidateWorkflowModifier(w, params)
+	})
 	if ide.wf.Logger != nil {
 		ide.serialLogs = ide.wf.Logger.ReadSerialPortLogs()
 	}
@@ -72,11 +69,11 @@ func (ide *instanceDisksExporterImpl) Export(instance *compute.Instance, params 
 	return ide.exportedDisks, err
 }
 
-func (ide *instanceDisksExporterImpl) populateExportedDisksMetadata(params *ovfexportdomain.OVFExportParams) error {
+func (ide *instanceDisksExporterImpl) populateExportedDisksMetadata(params *ovfexportdomain.OVFExportArgs) error {
 	// populate exported disks with compute.Disk references and storage object attributes
 	for _, exportedDisk := range ide.exportedDisks {
 		// populate compute.Disk for each exported disk
-		if disk, err := ide.computeClient.GetDisk(*params.Project, params.Zone, daisyutils.GetResourceID(exportedDisk.AttachedDisk.Source)); err == nil {
+		if disk, err := ide.computeClient.GetDisk(params.Project, params.Zone, daisyutils.GetResourceID(exportedDisk.AttachedDisk.Source)); err == nil {
 			exportedDisk.Disk = disk
 		} else {
 			return err
@@ -95,7 +92,7 @@ func (ide *instanceDisksExporterImpl) populateExportedDisksMetadata(params *ovfe
 	return nil
 }
 
-func (ide *instanceDisksExporterImpl) populateExportDisksSteps(w *daisy.Workflow, instance *compute.Instance, params *ovfexportdomain.OVFExportParams) error {
+func (ide *instanceDisksExporterImpl) populateExportDisksSteps(w *daisy.Workflow, instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) error {
 	var err error
 	ide.exportedDisks, err = ide.addExportDisksSteps(w, instance, params)
 	if err != nil {
@@ -106,7 +103,7 @@ func (ide *instanceDisksExporterImpl) populateExportDisksSteps(w *daisy.Workflow
 
 // addExportDisksSteps adds Daisy steps to OVF export workflow to export disks.
 // It returns an array of GCS paths of exported disks in the same order as Instance.Disks.
-func (ide *instanceDisksExporterImpl) addExportDisksSteps(w *daisy.Workflow, instance *compute.Instance, params *ovfexportdomain.OVFExportParams) ([]*ovfexportdomain.ExportedDisk, error) {
+func (ide *instanceDisksExporterImpl) addExportDisksSteps(w *daisy.Workflow, instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) ([]*ovfexportdomain.ExportedDisk, error) {
 	if instance == nil || len(instance.Disks) == 0 {
 		return nil, daisy.Errf("No attachedDisks found in the Instance to export")
 	}

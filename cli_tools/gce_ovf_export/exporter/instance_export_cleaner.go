@@ -34,12 +34,12 @@ type instanceExportCleanerImpl struct {
 }
 
 // NewInstanceExportCleaner creates a new instance export cleaner which is
-// responsible for bringing the exported VM back to it's pre-export state
+// responsible for bringing the exported VM back to its pre-export state
 func NewInstanceExportCleaner() ovfexportdomain.InstanceExportCleaner {
 	return &instanceExportCleanerImpl{}
 }
 
-func (iec *instanceExportCleanerImpl) init(instance *compute.Instance, params *ovfexportdomain.OVFExportParams) error {
+func (iec *instanceExportCleanerImpl) init(instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) error {
 	// don't use default timeout as it might not be long enough for cleanup,
 	// e.g. if it's very short (e.g. 10s)
 	wfTimeout := "10m"
@@ -78,21 +78,21 @@ func (iec *instanceExportCleanerImpl) init(instance *compute.Instance, params *o
 }
 
 func (iec *instanceExportCleanerImpl) addStartInstanceStep(w *daisy.Workflow,
-	instance *compute.Instance, params *ovfexportdomain.OVFExportParams) {
+	instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) {
 	stepName := "start-instance"
 	startInstanceStep := daisy.NewStepDefaultTimeout(stepName, w)
-	startInstanceStep.StartInstances = &daisy.StartInstances{Instances: []string{getInstancePath(instance, *params.Project)}}
+	startInstanceStep.StartInstances = &daisy.StartInstances{Instances: []string{getInstancePath(instance, params.Project)}}
 	w.Steps[stepName] = startInstanceStep
 }
 
 func (iec *instanceExportCleanerImpl) addAttachDiskStepStep(w *daisy.Workflow,
-	instance *compute.Instance, params *ovfexportdomain.OVFExportParams, attachedDisk *compute.AttachedDisk) {
+	instance *compute.Instance, params *ovfexportdomain.OVFExportArgs, attachedDisk *compute.AttachedDisk) {
 	diskPath := attachedDisk.Source[strings.Index(attachedDisk.Source, "projects/"):]
 	attachDiskStepName := "attach-disk"
 	attachDiskStep := daisy.NewStepDefaultTimeout(attachDiskStepName, w)
 	attachDiskStep.AttachDisks = &daisy.AttachDisks{
 		{
-			Instance: getInstancePath(instance, *params.Project),
+			Instance: getInstancePath(instance, params.Project),
 			AttachedDisk: compute.AttachedDisk{
 				Mode:       attachedDisk.Mode,
 				Source:     diskPath,
@@ -104,7 +104,7 @@ func (iec *instanceExportCleanerImpl) addAttachDiskStepStep(w *daisy.Workflow,
 	w.Steps[attachDiskStepName] = attachDiskStep
 }
 
-func (iec *instanceExportCleanerImpl) Clean(instance *compute.Instance, params *ovfexportdomain.OVFExportParams) error {
+func (iec *instanceExportCleanerImpl) Clean(instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) error {
 	err := iec.init(instance, params)
 	if err != nil {
 		return err

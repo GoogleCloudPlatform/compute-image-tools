@@ -5,9 +5,9 @@
 package mocks
 
 import (
-	domain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
+	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	gomock "github.com/golang/mock/gomock"
-	v1 "google.golang.org/api/compute/v1"
+	compute "google.golang.org/api/compute/v1"
 	reflect "reflect"
 )
 
@@ -49,7 +49,7 @@ func (mr *MockInstanceExportCleanerMockRecorder) Cancel(arg0 interface{}) *gomoc
 }
 
 // Clean mocks base method
-func (m *MockInstanceExportCleaner) Clean(arg0 *v1.Instance, arg1 *domain.OVFExportParams) error {
+func (m *MockInstanceExportCleaner) Clean(arg0 *compute.Instance, arg1 *ovfexportdomain.OVFExportArgs) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Clean", arg0, arg1)
 	ret0, _ := ret[0].(error)

@@ -39,28 +39,17 @@ const (
 	bytesPerGB = int64(1024 * 1024 * 1024)
 )
 
-const (
-	//Alpha represents alpha release track
-	Alpha = "alpha"
-
-	//Beta represents beta release track
-	Beta = "beta"
-
-	//GA represents GA release track
-	GA = "ga"
-)
-
 // OVFExporter is responsible for exporting GCE VMs/GMIs to OVF/OVA
 type OVFExporter struct {
 	storageClient          domain.StorageClientInterface
 	computeClient          daisycompute.Client
 	mgce                   domain.MetadataGCEInterface
 	bucketIteratorCreator  domain.BucketIteratorCreatorInterface
-	Logger                 logging.LoggerInterface
+	Logger                 logging.Logger
 	instanceDisksExporter  ovfexportdomain.InstanceDisksExporter
 	instanceExportPreparer ovfexportdomain.InstanceExportPreparer
 	instanceExportCleaner  ovfexportdomain.InstanceExportCleaner
-	params                 *ovfexportdomain.OVFExportParams
+	params                 *ovfexportdomain.OVFExportArgs
 
 	// BuildID is ID of Cloud Build in which this OVF export runs in
 	BuildID string
@@ -76,10 +65,10 @@ type OVFExporter struct {
 
 // NewOVFExporter creates an OVF exporter, including automatically populating dependencies,
 // such as compute/storage clients.
-func NewOVFExporter(params *ovfexportdomain.OVFExportParams) (*OVFExporter, error) {
+func NewOVFExporter(params *ovfexportdomain.OVFExportArgs) (*OVFExporter, error) {
 	ctx := context.Background()
 	log.SetPrefix(logPrefix + " ")
-	logger := logging.NewStdoutLogger(logPrefix)
+	logger := logging.NewToolLogger(logPrefix)
 	storageClient, err := storageutils.NewStorageClient(ctx, logger)
 	if err != nil {
 		return nil, err
@@ -95,7 +84,7 @@ func NewOVFExporter(params *ovfexportdomain.OVFExportParams) (*OVFExporter, erro
 		storageutils.NewResourceLocationRetriever(metadataGCE, computeClient),
 		storageutils.NewScratchBucketCreator(ctx, storageClient),
 	)
-	if err := ValidateAndPopulateParams(params, paramValidator, paramPopulator); err != nil {
+	if err := validateAndPopulateParams(params, paramValidator, paramPopulator); err != nil {
 		return nil, err
 	}
 	inspector, err := commondisk.NewInspector(params.DaisyAttrs(), params.Network, params.Subnet)
@@ -110,7 +99,7 @@ func NewOVFExporter(params *ovfexportdomain.OVFExportParams) (*OVFExporter, erro
 		Logger:                 logger,
 		params:                 params,
 		loggableBuilder:        service.NewOvfExportLoggableBuilder(),
-		ovfDescriptorGenerator: NewOvfDescriptorGenerator(computeClient, storageClient, *params.Project, params.Zone),
+		ovfDescriptorGenerator: NewOvfDescriptorGenerator(computeClient, storageClient, params.Project, params.Zone),
 		manifestFileGenerator:  NewManifestFileGenerator(storageClient),
 		inspector:              inspector,
 		instanceDisksExporter:  NewInstanceDisksExporter(computeClient, storageClient),
@@ -119,8 +108,8 @@ func NewOVFExporter(params *ovfexportdomain.OVFExportParams) (*OVFExporter, erro
 	}, nil
 }
 
-// ValidateAndPopulateParams validate and populate OVF export params
-func ValidateAndPopulateParams(params *ovfexportdomain.OVFExportParams,
+// validateAndPopulateParams validate and populate OVF export params
+func validateAndPopulateParams(params *ovfexportdomain.OVFExportArgs,
 	paramValidator ovfexportdomain.OvfExportParamValidator,
 	paramPopulator ovfexportdomain.OvfExportParamPopulator) error {
 	if err := paramValidator.ValidateAndParseParams(params); err != nil {
@@ -134,7 +123,7 @@ func ValidateAndPopulateParams(params *ovfexportdomain.OVFExportParams,
 
 // creates a new Daisy Compute client
 //TODO: consolidate with ovf_importer.createComputeClient
-func createComputeClient(ctx *context.Context, params *ovfexportdomain.OVFExportParams) (daisycompute.Client, error) {
+func createComputeClient(ctx *context.Context, params *ovfexportdomain.OVFExportArgs) (daisycompute.Client, error) {
 	computeOptions := []option.ClientOption{option.WithCredentialsFile(params.Oauth)}
 	if params.Ce != "" {
 		computeOptions = append(computeOptions, option.WithEndpoint(params.Ce))
@@ -168,7 +157,7 @@ func getInstancePath(instance *compute.Instance, project string) string {
 
 // Export runs OVF export
 func (oe *OVFExporter) run(ctx context.Context) error {
-	oe.Logger.Log("Starting OVF export.")
+	oe.Logger.User("Starting OVF export.")
 	if oe.params.Timeout.Nanoseconds() > 0 {
 		var cancel func()
 		ctx, cancel = context.WithTimeout(ctx, oe.params.Timeout)
@@ -177,7 +166,7 @@ func (oe *OVFExporter) run(ctx context.Context) error {
 
 	//TODO: if machine image export, create instance from machine image and add it to cleanup
 
-	instance, err := oe.computeClient.GetInstance(*oe.params.Project, oe.params.Zone, oe.params.InstanceName)
+	instance, err := oe.computeClient.GetInstance(oe.params.Project, oe.params.Zone, oe.params.InstanceName)
 	if err != nil {
 		return daisy.Errf("Error retrieving instance `%v`: %v", oe.params.InstanceName, err)
 	}

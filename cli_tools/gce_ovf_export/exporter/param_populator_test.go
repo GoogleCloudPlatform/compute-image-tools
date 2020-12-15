@@ -30,7 +30,7 @@ func TestPopulate(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.Started = time.Date(2020, time.October, 28, 23, 24, 0, 0, time.UTC)
 	params.BuildID = "abc"
 	params.Network = "a-network"
@@ -48,7 +48,7 @@ func TestPopulate_BuildIDPopulated(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.Started = time.Date(2020, time.October, 28, 23, 24, 0, 0, time.UTC)
 
 	err := runPopulateParams(params, mockCtrl)
@@ -60,7 +60,7 @@ func TestPopulate_BuildIDPopulated(t *testing.T) {
 func TestPopulate_DefaultNetworkPopulated(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.Network = ""
 	params.Subnet = ""
 	err := runPopulateParams(params, mockCtrl)
@@ -71,19 +71,19 @@ func TestPopulate_DefaultNetworkPopulated(t *testing.T) {
 func TestPopulate_ErrorOnSuperPopulatorError(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	params := ovfexportdomain.GetAllInstanceExportParams()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
 	superPopulatorErr := fmt.Errorf("super populator error")
 	paramPopulator := mocks.NewMockPopulator(mockCtrl)
-	paramPopulator.EXPECT().PopulateMissingParameters(params.Project, params.ClientID, &params.Zone,
+	paramPopulator.EXPECT().PopulateMissingParameters(&params.Project, params.ClientID, &params.Zone,
 		&params.Region, &params.ScratchBucketGcsPath, params.DestinationURI, nil).Return(superPopulatorErr)
 	ovfExporParamPopulator := ovfExportParamPopulatorImpl{Populator: paramPopulator}
 	err := ovfExporParamPopulator.Populate(params)
 	assert.Equal(t, superPopulatorErr, err)
 }
 
-func runPopulateParams(params *ovfexportdomain.OVFExportParams, mockCtrl *gomock.Controller) error {
+func runPopulateParams(params *ovfexportdomain.OVFExportArgs, mockCtrl *gomock.Controller) error {
 	paramPopulator := mocks.NewMockPopulator(mockCtrl)
-	paramPopulator.EXPECT().PopulateMissingParameters(params.Project, params.ClientID, &params.Zone,
+	paramPopulator.EXPECT().PopulateMissingParameters(&params.Project, params.ClientID, &params.Zone,
 		&params.Region, &params.ScratchBucketGcsPath, params.DestinationURI, nil).Return(nil)
 	ovfExporParamPopulator := ovfExportParamPopulatorImpl{Populator: paramPopulator}
 	return ovfExporParamPopulator.Populate(params)

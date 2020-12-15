@@ -36,7 +36,7 @@ func NewInstanceExportPreparer() ovfexportdomain.InstanceExportPreparer {
 	return &instanceExportPreparerImpl{}
 }
 
-func (iep *instanceExportPreparerImpl) Prepare(instance *compute.Instance, params *ovfexportdomain.OVFExportParams) error {
+func (iep *instanceExportPreparerImpl) Prepare(instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) error {
 	iep.instance = instance
 	var err error
 	iep.wf, err = generateWorkflowWithSteps("ovf-export-prepare", "30m",
@@ -54,7 +54,7 @@ func (iep *instanceExportPreparerImpl) Prepare(instance *compute.Instance, param
 	return err
 }
 
-func (iep *instanceExportPreparerImpl) populatePrepareSteps(w *daisy.Workflow, instance *compute.Instance, params *ovfexportdomain.OVFExportParams) error {
+func (iep *instanceExportPreparerImpl) populatePrepareSteps(w *daisy.Workflow, instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) error {
 	var previousStepName string
 	if isInstanceRunning(iep.instance) {
 		previousStepName = "stop-instance"
@@ -67,7 +67,7 @@ func (iep *instanceExportPreparerImpl) populatePrepareSteps(w *daisy.Workflow, i
 }
 
 // addDetachDisksSteps adds Daisy steps to OVF export workflow to detach instance disks.
-func (iep *instanceExportPreparerImpl) addDetachDisksSteps(w *daisy.Workflow, instance *compute.Instance, previousStepName string, params *ovfexportdomain.OVFExportParams) error {
+func (iep *instanceExportPreparerImpl) addDetachDisksSteps(w *daisy.Workflow, instance *compute.Instance, previousStepName string, params *ovfexportdomain.OVFExportArgs) error {
 	if instance == nil || len(instance.Disks) == 0 {
 		return daisy.Errf("No attachedDisks found in the Instance to export")
 	}
@@ -77,8 +77,8 @@ func (iep *instanceExportPreparerImpl) addDetachDisksSteps(w *daisy.Workflow, in
 		detachDiskStep := daisy.NewStepDefaultTimeout(detachDiskStepName, w)
 		detachDiskStep.DetachDisks = &daisy.DetachDisks{
 			&daisy.DetachDisk{
-				Instance:   getInstancePath(instance, *params.Project),
-				DeviceName: daisyutils.GetDeviceURI(*params.Project, params.Zone, attachedDisk.DeviceName),
+				Instance:   getInstancePath(instance, params.Project),
+				DeviceName: daisyutils.GetDeviceURI(params.Project, params.Zone, attachedDisk.DeviceName),
 			},
 		}
 
@@ -104,10 +104,10 @@ func (iep *instanceExportPreparerImpl) Cancel(reason string) bool {
 
 // addStopInstanceStep adds a StopInstance step to a workflow
 func (iep *instanceExportPreparerImpl) addStopInstanceStep(w *daisy.Workflow,
-	instance *compute.Instance, stopInstanceStepName string, params *ovfexportdomain.OVFExportParams) {
+	instance *compute.Instance, stopInstanceStepName string, params *ovfexportdomain.OVFExportArgs) {
 	stopInstanceStep := daisy.NewStepDefaultTimeout(stopInstanceStepName, w)
 	stopInstanceStep.StopInstances = &daisy.StopInstances{
-		Instances: []string{getInstancePath(instance, *params.Project)},
+		Instances: []string{getInstancePath(instance, params.Project)},
 	}
 	w.Steps[stopInstanceStepName] = stopInstanceStep
 }
