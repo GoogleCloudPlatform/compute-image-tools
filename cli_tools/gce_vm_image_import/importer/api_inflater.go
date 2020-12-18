@@ -171,6 +171,10 @@ func (inflater *apiInflater) calculateChecksum(ctx context.Context, diskURI stri
 	w := daisy.New()
 	w.Name = "shadow-disk-checksum"
 	checksumScript := checksumScriptConst
+	computeServiceAccount := inflater.args.ComputeServiceAccount
+	if computeServiceAccount == "" {
+		computeServiceAccount = "default"
+	}
 	w.Steps = map[string]*daisy.Step{
 		"create-disks": {
 			CreateDisks: &daisy.CreateDisks{
@@ -206,6 +210,12 @@ func (inflater *apiInflater) calculateChecksum(ctx context.Context, diskURI stri
 							NetworkInterfaces: []*compute.NetworkInterface{
 								{
 									AccessConfigs: []*compute.AccessConfig{},
+								},
+							},
+							ServiceAccounts: []*compute.ServiceAccount{
+								{
+									Email:  computeServiceAccount,
+									Scopes: []string{"https://www.googleapis.com/auth/devstorage.read_write"},
 								},
 							},
 						},

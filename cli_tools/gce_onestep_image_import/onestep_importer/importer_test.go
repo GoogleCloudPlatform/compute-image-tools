@@ -133,6 +133,11 @@ func TestTrimComputeEndpoint(t *testing.T) {
 		expectSuccessfulParse(t, "-compute_endpoint_override=   http://endpoint  ").ComputeEndpoint)
 }
 
+func TestTrimComputeServiceAccount(t *testing.T) {
+	assert.Equal(t, "default",
+		expectSuccessfulParse(t, "-compute_service_account=   default  ").ComputeServiceAccount)
+}
+
 func TestTrimCustomWorkflow(t *testing.T) {
 	assert.Equal(t, "workflow.json", expectSuccessfulParse(t, "-custom_translate_workflow=  workflow.json  ").CustomWorkflow)
 }

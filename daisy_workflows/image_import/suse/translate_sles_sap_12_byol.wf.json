@@ -38,6 +38,10 @@
     },
     "subscription_model": {
       "Value": "byol"
+    },
+    "compute_service_account": {
+      "Value": "default",
+      "Description": "Compute service account to run as"
     }
   },
   "Steps": {
@@ -50,7 +54,8 @@
           "import_network": "${import_network}",
           "import_subnet": "${import_subnet}",
           "license": "${license}",
-          "subscription_model": "${subscription_model}"
+          "subscription_model": "${subscription_model}",
+          "compute_service_account": "${compute_service_account}"
         }
       }
     },

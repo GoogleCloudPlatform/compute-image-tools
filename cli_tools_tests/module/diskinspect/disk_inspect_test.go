@@ -328,7 +328,7 @@ func TestInspectDisk(t *testing.T) {
 				Project:           project,
 				Zone:              zone,
 				WorkflowDirectory: workflowDir,
-			}, defaultNetwork, defaultSubnet)
+			}, defaultNetwork, defaultSubnet, "")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -397,7 +397,7 @@ func TestInspectionWorksWithNonDefaultNetwork(t *testing.T) {
 				Project:           "compute-image-test-custom-vpc",
 				Zone:              zone,
 				WorkflowDirectory: workflowDir,
-			}, currentTest.network, currentTest.subnet)
+			}, currentTest.network, currentTest.subnet, "")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -464,7 +464,7 @@ func makeClientAndInspector(t *testing.T, project string) (daisycompute.Client, 
 		Project:           project,
 		Zone:              zone,
 		WorkflowDirectory: workflowDir,
-	}, defaultNetwork, defaultSubnet)
+	}, defaultNetwork, defaultSubnet, "")
 	if err != nil {
 		t.Fatal(err)
 	}

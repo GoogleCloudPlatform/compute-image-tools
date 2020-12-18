@@ -115,6 +115,7 @@ func runImageImport(args *OneStepImportArguments) error {
 		fmt.Sprintf("-scratch_bucket_gcs_path=%v", args.ScratchBucketGcsPath),
 		fmt.Sprintf("-oauth=%v", args.Oauth),
 		fmt.Sprintf("-compute_endpoint_override=%v", args.ComputeEndpoint),
+		fmt.Sprintf("-compute_service_account=%v", args.ComputeServiceAccount),
 		fmt.Sprintf("-disable_gcs_logging=%v", args.GcsLogsDisabled),
 		fmt.Sprintf("-disable_cloud_logging=%v", args.CloudLogsDisabled),
 		fmt.Sprintf("-disable_stdout_logging=%v", args.StdoutLogsDisabled),

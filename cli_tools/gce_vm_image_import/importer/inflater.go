@@ -318,6 +318,10 @@ func createDaisyVarsForFile(args ImportArguments,
 		"disk_name":        diskName,
 	}
 
+	if args.ComputeServiceAccount != "" {
+		vars["compute_service_account"] = args.ComputeServiceAccount
+	}
+
 	// To reduce the runtime permissions used on the inflation worker, we pre-allocate
 	// disks sufficient to hold the disk file and the inflated disk. If inspection fails,
 	// then the default values in the daisy workflow will be used. The scratch disk gets

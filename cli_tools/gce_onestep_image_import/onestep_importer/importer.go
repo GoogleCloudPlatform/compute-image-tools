@@ -163,6 +163,9 @@ func (args *OneStepImportArguments) registerFlags(flagSet *flag.FlagSet) {
 	flagSet.Var((*flags.TrimmedString)(&args.ComputeEndpoint), "compute_endpoint_override",
 		"API endpoint to override default.")
 
+	flagSet.Var((*flags.TrimmedString)(&args.ComputeServiceAccount), "compute_service_account",
+		"Compute service account to be used by importer Virtual Machine. When empty, the Compute Engine default service account is used.")
+
 	flagSet.BoolVar(&args.GcsLogsDisabled, "disable_gcs_logging", false,
 		"Do not store logs in GCS.")
 

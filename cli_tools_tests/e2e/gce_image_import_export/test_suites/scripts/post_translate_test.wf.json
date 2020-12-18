@@ -15,6 +15,10 @@
     "osconfig_not_supported": {
       "Description": "Whether to skip OS config check.",
       "Value": "false"
+    },
+    "compute_service_account": {
+      "Value": "default",
+      "Description": "Compute service account to run as"
     }
   },
   "Steps": {
@@ -33,7 +37,15 @@
           "StartupScript": "${path_to_post_translate_test}",
           "Metadata": {
             "osconfig_not_supported": "${osconfig_not_supported}"
-          }
+          },
+          "ServiceAccounts": [
+            {
+              "Email": "${compute_service_account}",
+              "Scopes": [
+                "https://www.googleapis.com/auth/devstorage.read_write"
+              ]
+            }
+          ]
         }
       ]
     },

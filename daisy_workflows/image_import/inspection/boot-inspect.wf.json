@@ -16,6 +16,10 @@
     },
     "is_inspect_os": {
       "Description": "Whether to inspect OS."
+    },
+    "compute_service_account": {
+      "Value": "default",
+      "Description": "Compute service account to run as"
     }
   },
   "Sources": {
@@ -50,6 +54,12 @@
             {
               "network": "${network}",
               "subnetwork": "${subnet}"
+            }
+          ],
+          "ServiceAccounts": [
+            {
+              "Email": "${compute_service_account}",
+              "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"]
             }
           ]
         }

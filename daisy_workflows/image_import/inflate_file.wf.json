@@ -38,6 +38,10 @@
     "import_license": {
       "Value": "projects/compute-image-tools/global/licenses/virtual-disk-import",
       "Description": "Import License used for tracking migration workflow use."
+    },
+    "compute_service_account": {
+      "Value": "default",
+      "Description": "Compute service account to run as"
     }
   },
   "Sources": {
@@ -99,9 +103,14 @@
               "subnetwork": "${import_subnet}"
             }
           ],
-          "Scopes": [
-            "https://www.googleapis.com/auth/devstorage.read_write",
-            "https://www.googleapis.com/auth/compute"
+          "ServiceAccounts": [
+            {
+              "Email": "${compute_service_account}",
+              "Scopes": [
+                "https://www.googleapis.com/auth/devstorage.read_write",
+                "https://www.googleapis.com/auth/compute"
+              ]
+            }
           ]
         }
       ]

@@ -37,6 +37,10 @@ const (
 	testSuiteName = "ImageImportCLI"
 )
 
+var (
+	argMap map[string]string
+)
+
 var cmds = map[e2e.CLITestType]string{
 	e2e.Wrapper:                       "./gce_vm_image_import",
 	e2e.GcloudBetaProdWrapperLatest:   "gcloud",
@@ -48,7 +52,9 @@ var cmds = map[e2e.CLITestType]string{
 func CLITestSuite(
 	ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
 	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp,
-	testProjectConfig *testconfig.Project) {
+	testProjectConfig *testconfig.Project, argMapInput map[string]string) {
+
+	argMap = argMapInput
 
 	testTypes := []e2e.CLITestType{
 		e2e.Wrapper,
@@ -86,6 +92,15 @@ func CLITestSuite(
 		testsMap[testType][imageImportWithSubnetWithoutNetworkSpecifiedTestCase] = runImageImportWithSubnetWithoutNetworkSpecified
 		testsMap[testType][imageImportShadowDiskCleanedUpWhenMainInflaterFails] = runImageImportShadowDiskCleanedUpWhenMainInflaterFails
 	}
+
+	// Only test service account scenario for wrapper, till gcloud support it.
+	imageImportOSWithoutDefaultServiceAccountTestCase := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Import OS without default service account"))
+	imageImportOSDefaultServiceAccountWithMissingPermissionsTestCase := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Import OS without permission on default service account"))
+	testsMap[e2e.Wrapper][imageImportOSWithoutDefaultServiceAccountTestCase] = runImageImportOSWithoutDefaultServiceAccountTest
+	testsMap[e2e.Wrapper][imageImportOSDefaultServiceAccountWithMissingPermissionsTestCase] = runImageImportOSDefaultServiceAccountWithMissingPermissionsTest
+
 	e2e.CLITestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
 		testProjectConfig, testSuiteName, testsMap)
 }
@@ -119,7 +134,7 @@ func runImageImportDataDiskTest(ctx context.Context, testCase *junitxml.TestCase
 		},
 	}
 
-	runImportTest(ctx, argsMap[testType], testType, testProjectConfig, imageName, logger, testCase)
+	runImportTest(ctx, argsMap[testType], testType, testProjectConfig.TestProjectID, imageName, logger, testCase)
 }
 
 func runImageImportOSTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
@@ -151,7 +166,7 @@ func runImageImportOSTest(ctx context.Context, testCase *junitxml.TestCase, logg
 		},
 	}
 
-	runImportTest(ctx, argsMap[testType], testType, testProjectConfig, imageName, logger, testCase)
+	runImportTest(ctx, argsMap[testType], testType, testProjectConfig.TestProjectID, imageName, logger, testCase)
 }
 
 func runImageImportOSFromImageTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
@@ -182,7 +197,7 @@ func runImageImportOSFromImageTest(ctx context.Context, testCase *junitxml.TestC
 		},
 	}
 
-	runImportTest(ctx, argsMap[testType], testType, testProjectConfig, imageName, logger, testCase)
+	runImportTest(ctx, argsMap[testType], testType, testProjectConfig.TestProjectID, imageName, logger, testCase)
 }
 
 // Test most of params except -oauth, -compute_endpoint_override, and -scratch_bucket_gcs_path
@@ -233,7 +248,7 @@ func runImageImportWithRichParamsTest(ctx context.Context, testCase *junitxml.Te
 		},
 	}
 
-	runImportTestWithExtraParams(ctx, argsMap[testType], testType, testProjectConfig, imageName,
+	runImportTestWithExtraParams(ctx, argsMap[testType], testType, testProjectConfig.TestProjectID, imageName,
 		logger, testCase, family, description, labels)
 }
 
@@ -279,7 +294,7 @@ func runImageImportWithDifferentNetworkParamStyles(ctx context.Context, testCase
 		},
 	}
 
-	runImportTest(ctx, argsMap[testType], testType, testProjectConfig, imageName, logger, testCase)
+	runImportTest(ctx, argsMap[testType], testType, testProjectConfig.TestProjectID, imageName, logger, testCase)
 }
 
 func runImageImportWithSubnetWithoutNetworkSpecified(ctx context.Context, testCase *junitxml.TestCase,
@@ -320,7 +335,7 @@ func runImageImportWithSubnetWithoutNetworkSpecified(ctx context.Context, testCa
 		},
 	}
 
-	runImportTest(ctx, argsMap[testType], testType, testProjectConfig, imageName, logger, testCase)
+	runImportTest(ctx, argsMap[testType], testType, testProjectConfig.TestProjectID, imageName, logger, testCase)
 }
 
 func runImageImportShadowDiskCleanedUpWhenMainInflaterFails(ctx context.Context, testCase *junitxml.TestCase,
@@ -364,14 +379,96 @@ func runImageImportShadowDiskCleanedUpWhenMainInflaterFails(ctx context.Context,
 	}
 }
 
-func runImportTest(ctx context.Context, args []string, testType e2e.CLITestType,
-	testProjectConfig *testconfig.Project, imageName string, logger *log.Logger, testCase *junitxml.TestCase) {
+func runImageImportOSDefaultServiceAccountWithMissingPermissionsTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
-	runImportTestWithExtraParams(ctx, args, testType, testProjectConfig, imageName, logger, testCase, "", "", nil)
+	testVariables, ok := e2e.GetServiceAccountTestVariables(argMap, false)
+	if !ok {
+		e2e.Failure(testCase, logger, fmt.Sprintln("Failed to get service account test args"))
+		return
+	}
+
+	suffix := path.RandString(5)
+	imageName := "e2e-test-import-missing-permission-" + suffix
+
+	argsMap := map[e2e.CLITestType][]string{
+		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testVariables.ProjectID),
+			fmt.Sprintf("-image_name=%v", imageName), "-inspect", "-os=debian-9",
+			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("-compute_service_account=%v", testVariables.ComputeServiceAccount),
+		},
+		e2e.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
+			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute_service_account=%v", testVariables.ComputeServiceAccount),
+		},
+		e2e.GcloudBetaLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
+			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute_service_account=%v", testVariables.ComputeServiceAccount),
+		},
+		e2e.GcloudGaLatestWrapperRelease: {"compute", "images", "import", imageName, "--quiet",
+			"--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		},
+	}
+
+	runImportTest(ctx, argsMap[testType], testType, testVariables.ProjectID, imageName, logger, testCase)
+}
+
+func runImageImportOSWithoutDefaultServiceAccountTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+
+	testVariables, ok := e2e.GetServiceAccountTestVariables(argMap, true)
+	if !ok {
+		e2e.Failure(testCase, logger, fmt.Sprintln("Failed to get service account test args"))
+		return
+	}
+
+	suffix := path.RandString(5)
+	imageName := "e2e-test-import-without-service-account-" + suffix
+
+	argsMap := map[e2e.CLITestType][]string{
+		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testVariables.ProjectID),
+			fmt.Sprintf("-image_name=%v", imageName), "-inspect", "-os=debian-9",
+			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("-compute_service_account=%v", testVariables.ComputeServiceAccount),
+		},
+		e2e.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
+			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute_service_account=%v", testVariables.ComputeServiceAccount),
+		},
+		e2e.GcloudBetaLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
+			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute_service_account=%v", testVariables.ComputeServiceAccount),
+		},
+		e2e.GcloudGaLatestWrapperRelease: {"compute", "images", "import", imageName, "--quiet",
+			"--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		},
+	}
+
+	runImportTest(ctx, argsMap[testType], testType, testVariables.ProjectID, imageName, logger, testCase)
+}
+
+func runImportTest(ctx context.Context, args []string, testType e2e.CLITestType,
+	projectID string, imageName string, logger *log.Logger, testCase *junitxml.TestCase) {
+
+	runImportTestWithExtraParams(ctx, args, testType, projectID, imageName, logger, testCase, "", "", nil)
 }
 
 func runImportTestWithExtraParams(ctx context.Context, args []string, testType e2e.CLITestType,
-	testProjectConfig *testconfig.Project, imageName string, logger *log.Logger, testCase *junitxml.TestCase,
+	projectID string, imageName string, logger *log.Logger, testCase *junitxml.TestCase,
 	expectedFamily string, expectedDescription string, expectedLabels []string) {
 
 	// "family", "description" and "labels" hasn't been supported by gcloud
@@ -382,17 +479,17 @@ func runImportTestWithExtraParams(ctx context.Context, args []string, testType e
 	}
 
 	if e2e.RunTestForTestType(cmds[testType], args, testType, logger, testCase) {
-		verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger, expectedFamily,
+		verifyImportedImage(ctx, testCase, projectID, imageName, logger, expectedFamily,
 			expectedDescription, expectedLabels)
 	}
 }
 
 func verifyImportedImage(ctx context.Context, testCase *junitxml.TestCase,
-	testProjectConfig *testconfig.Project, imageName string, logger *log.Logger,
+	projectID string, imageName string, logger *log.Logger,
 	expectedFamily string, expectedDescription string, expectedLabels []string) {
 
 	logger.Printf("Verifying imported image...")
-	image, err := gcp.CreateImageObject(ctx, testProjectConfig.TestProjectID, imageName)
+	image, err := gcp.CreateImageObject(ctx, projectID, imageName)
 	if err != nil {
 		testCase.WriteFailure("Image '%v' doesn't exist after import: %v", imageName, err)
 		logger.Printf("Image '%v' doesn't exist after import: %v", imageName, err)

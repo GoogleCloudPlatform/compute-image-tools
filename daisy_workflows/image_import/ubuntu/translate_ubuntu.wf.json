@@ -20,6 +20,10 @@
     "import_subnet": {
       "Value": "",
       "Description": "SubNetwork to use for the import instance"
+    },
+    "compute_service_account": {
+      "Value": "default",
+      "Description": "Compute service account to run as"
     }
   },
   "Sources": {
@@ -64,7 +68,13 @@
               "subnetwork": "${import_subnet}"
             }
           ],
-          "StartupScript": "startup_script"
+          "StartupScript": "startup_script",
+          "ServiceAccounts": [
+            {
+              "Email": "${compute_service_account}",
+              "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"]
+            }
+          ]
         }
       ]
     },

@@ -46,6 +46,10 @@
     "import_subnet": {
       "Value": "",
       "Description": "SubNetwork to use for the import."
+    },
+    "compute_service_account": {
+      "Value": "default",
+      "Description": "Compute service account to run as"
     }
   },
   "Sources": {
@@ -95,7 +99,13 @@
               "subnetwork": "${import_subnet}"
             }
           ],
-          "StartupScript": "translate_bootstrap.ps1"
+          "StartupScript": "translate_bootstrap.ps1",
+          "ServiceAccounts": [
+            {
+              "Email": "${compute_service_account}",
+              "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"]
+            }
+          ]
         }
       ]
     },
@@ -139,7 +149,13 @@
               "subnetwork": "${import_subnet}"
             }
           ],
-          "StartupScript": "translate.ps1"
+          "StartupScript": "translate.ps1",
+          "ServiceAccounts": [
+            {
+              "Email": "${compute_service_account}",
+              "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"]
+            }
+          ]
         }
       ]
     },
