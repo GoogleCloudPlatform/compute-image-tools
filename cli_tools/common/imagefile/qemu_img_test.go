@@ -121,6 +121,16 @@ func TestGetInfo_PropagateQemuImgError(t *testing.T) {
 	assert.Contains(t, err.Error(), "qemu-img: Could not open '/tmp': A regular file")
 }
 
+func TestGetInfo_PropagateContextCancellation(t *testing.T) {
+	skipIfQemuImgNotInstalled(t)
+	client := NewInfoClient()
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	cancelFunc()
+	_, err := client.GetInfo(ctx, "/tmp")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "inspection failure: context canceled")
+}
+
 func TestGetInfo_InspectionClassifiesCompressedAsRaw(t *testing.T) {
 	skipIfQemuImgNotInstalled(t)
 	tempFile, err := ioutil.TempFile("", "")
