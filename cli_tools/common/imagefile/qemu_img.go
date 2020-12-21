@@ -17,6 +17,7 @@ package imagefile
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -59,8 +60,12 @@ func (client defaultInfoClient) GetInfo(ctx context.Context, filename string) (i
 	cmd := exec.CommandContext(ctx, "qemu-img", "info", "--output=json", filename)
 	out, err := cmd.Output()
 	if err != nil {
-		return info, fmt.Errorf("inspection failure: %v, stderr: %s", err,
-			err.(*exec.ExitError).Stderr)
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) {
+			return info, fmt.Errorf("inspection failure: %w, stderr: %s", err,
+				exitError.Stderr)
+		}
+		return info, fmt.Errorf("inspection failure: %w", err)
 	}
 	jsonTemplate := struct {
 		Filename         string `json:"filename"`
