@@ -18,13 +18,15 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/googleapi"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 )
 
 const daisyWorkflows = "../../../daisy_workflows"
@@ -84,7 +86,7 @@ func TestCreateAPIInflater_IncludesUEFIGuestOSFeature(t *testing.T) {
 	args := ImportArguments{
 		UefiCompatible: true,
 	}
-	realInflater, _ := createAPIInflater(args, nil, storage.Client{}).(*apiInflater)
+	realInflater, _ := createAPIInflater(args, nil, storage.Client{}, logging.NewToolLogger(t.Name())).(*apiInflater)
 	assert.Contains(t, realInflater.guestOsFeatures,
 		&computeBeta.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
 }
@@ -96,6 +98,9 @@ func TestAPIInflater_Inflate_CreateDiskFailed_CancelWithoutDeleteDisk(t *testing
 	mockComputeClient.EXPECT().CreateDiskBeta(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("failed to create disk"))
 	mockComputeClient.EXPECT().GetDisk(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, &googleapi.Error{Code: 404})
 
+	mockLogger := mocks.NewMockLogger(mockCtrl)
+	mockLogger.EXPECT().Debug("apiInflater.inflate is canceled: cancel")
+
 	inflater := createAPIInflater(ImportArguments{
 		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:       "projects/subnet/subnet",
@@ -104,9 +109,7 @@ func TestAPIInflater_Inflate_CreateDiskFailed_CancelWithoutDeleteDisk(t *testing
 		ExecutionID:  "1234",
 		NoExternalIP: false,
 		WorkflowDir:  daisyWorkflows,
-	},
-		mockComputeClient,
-		storage.Client{})
+	}, mockComputeClient, storage.Client{}, mockLogger)
 
 	apiInflater, ok := inflater.(*apiInflater)
 	assert.True(t, ok)
@@ -116,7 +119,6 @@ func TestAPIInflater_Inflate_CreateDiskFailed_CancelWithoutDeleteDisk(t *testing
 	assert.True(t, cancelResult)
 
 	_, _, err := apiInflater.Inflate()
-	assert.Equal(t, "apiInflater.inflate is canceled: cancel", apiInflater.serialLogs[0])
 	assert.Error(t, err)
 }
 
@@ -128,6 +130,9 @@ func TestAPIInflater_Inflate_CreateDiskSuccess_CancelWithDeleteDisk(t *testing.T
 	mockComputeClient.EXPECT().DeleteDisk(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 	mockComputeClient.EXPECT().GetDisk(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, &googleapi.Error{Code: 404})
 
+	mockLogger := mocks.NewMockLogger(mockCtrl)
+	mockLogger.EXPECT().Debug("apiInflater.inflate is canceled: cancel")
+
 	inflater := createAPIInflater(ImportArguments{
 		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:       "projects/subnet/subnet",
@@ -136,9 +141,7 @@ func TestAPIInflater_Inflate_CreateDiskSuccess_CancelWithDeleteDisk(t *testing.T
 		ExecutionID:  "1234",
 		NoExternalIP: false,
 		WorkflowDir:  daisyWorkflows,
-	},
-		mockComputeClient,
-		storage.Client{})
+	}, mockComputeClient, storage.Client{}, mockLogger)
 
 	apiInflater, ok := inflater.(*apiInflater)
 	assert.True(t, ok)
@@ -148,7 +151,6 @@ func TestAPIInflater_Inflate_CreateDiskSuccess_CancelWithDeleteDisk(t *testing.T
 	assert.True(t, cancelResult)
 
 	_, _, err := apiInflater.Inflate()
-	assert.Equal(t, "apiInflater.inflate is canceled: cancel", apiInflater.serialLogs[0])
 	assert.NoError(t, err)
 }
 
@@ -158,6 +160,9 @@ func TestAPIInflater_Inflate_Cancel_CleanupFailedToVerify(t *testing.T) {
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
 	mockComputeClient.EXPECT().GetDisk(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("unknown"))
 
+	mockLogger := mocks.NewMockLogger(mockCtrl)
+	mockLogger.EXPECT().Debug("apiInflater.inflate is canceled, cleanup failed to verify: cancel")
+
 	inflater := createAPIInflater(ImportArguments{
 		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:       "projects/subnet/subnet",
@@ -166,16 +171,13 @@ func TestAPIInflater_Inflate_Cancel_CleanupFailedToVerify(t *testing.T) {
 		ExecutionID:  "1234",
 		NoExternalIP: false,
 		WorkflowDir:  daisyWorkflows,
-	},
-		mockComputeClient,
-		storage.Client{})
+	}, mockComputeClient, storage.Client{}, mockLogger)
 
 	apiInflater, ok := inflater.(*apiInflater)
 	assert.True(t, ok)
 
 	cancelResult := apiInflater.Cancel("cancel")
 	assert.False(t, cancelResult)
-	assert.Equal(t, "apiInflater.inflate is canceled, cleanup failed to verify: cancel", apiInflater.serialLogs[0])
 }
 
 func TestAPIInflater_Inflate_Cancel_CleanupFailed(t *testing.T) {
@@ -184,6 +186,9 @@ func TestAPIInflater_Inflate_Cancel_CleanupFailed(t *testing.T) {
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
 	mockComputeClient.EXPECT().GetDisk(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 
+	mockLogger := mocks.NewMockLogger(mockCtrl)
+	mockLogger.EXPECT().Debug("apiInflater.inflate is canceled, cleanup is failed: cancel")
+
 	inflater := createAPIInflater(ImportArguments{
 		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:       "projects/subnet/subnet",
@@ -192,16 +197,13 @@ func TestAPIInflater_Inflate_Cancel_CleanupFailed(t *testing.T) {
 		ExecutionID:  "1234",
 		NoExternalIP: false,
 		WorkflowDir:  daisyWorkflows,
-	},
-		mockComputeClient,
-		storage.Client{})
+	}, mockComputeClient, storage.Client{}, mockLogger)
 
 	apiInflater, ok := inflater.(*apiInflater)
 	assert.True(t, ok)
 
 	cancelResult := apiInflater.Cancel("cancel")
 	assert.False(t, cancelResult)
-	assert.Equal(t, "apiInflater.inflate is canceled, cleanup is failed: cancel", apiInflater.serialLogs[0])
 }
 
 func TestAPIInflater_getCalculateChecksumWorkflow(t *testing.T) {
@@ -213,9 +215,7 @@ func TestAPIInflater_getCalculateChecksumWorkflow(t *testing.T) {
 		ExecutionID:  "1234",
 		NoExternalIP: false,
 		WorkflowDir:  daisyWorkflows,
-	},
-		nil,
-		storage.Client{})
+	}, nil, storage.Client{}, logging.NewToolLogger(t.Name()))
 
 	apiInflater, ok := inflater.(*apiInflater)
 	assert.True(t, ok)

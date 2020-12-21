@@ -18,10 +18,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 )
 
 func Test_MetadataProcessor_RecreateDiskWhenRequestedAttributesNotFound(t *testing.T) {
@@ -114,7 +115,7 @@ func Test_MetadataProcessor_RecreateDiskWhenRequestedAttributesNotFound(t *testi
 			processor := newMetadataProcessor(project, zone, mockComputeClient)
 			processor.requiredLicenses = tt.requiredLicenses
 			processor.requiredFeatures = tt.requiredFeatures
-			returnedPD, err := processor.process(tt.argPD, nil)
+			returnedPD, err := processor.process(tt.argPD)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectedReturnPD, returnedPD)
 		})
@@ -126,7 +127,7 @@ func Test_MetadataProcessor_ReturnEarlyWhenNoChangesRequested(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	originalPD := persistentDisk{}
-	returnedPD, err := newMetadataProcessor("project", "zone", mockComputeClient).process(originalPD, nil)
+	returnedPD, err := newMetadataProcessor("project", "zone", mockComputeClient).process(originalPD)
 
 	assert.NoError(t, err)
 	assert.Equal(t, originalPD, returnedPD)
@@ -178,7 +179,7 @@ func Test_MetadataProcessor_DontModifyDisk_IfChangesAlreadyPresent(t *testing.T)
 			processor := newMetadataProcessor(project, zone, mockComputeClient)
 			processor.requiredLicenses = tt.requiredLicenses
 			processor.requiredFeatures = tt.requiredFeatures
-			returnedPD, err := processor.process(tt.argPD, nil)
+			returnedPD, err := processor.process(tt.argPD)
 
 			assert.NoError(t, err)
 			assert.Equal(t, tt.argPD, returnedPD)
@@ -194,7 +195,7 @@ func Test_MetadataProcessor_DontModifyOriginalDisk_IfGetFails(t *testing.T) {
 	argPD := persistentDisk{sizeGb: 10}
 	processor := newMetadataProcessor("project", "zone", mockComputeClient)
 	processor.requiredLicenses = []string{"new/license"}
-	returnedPD, err := processor.process(argPD, nil)
+	returnedPD, err := processor.process(argPD)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Failed to get disk")
@@ -210,7 +211,7 @@ func Test_MetadataProcessor_DontDeleteOriginalDisk_IfCreateFails(t *testing.T) {
 	argPD := persistentDisk{sizeGb: 10}
 	processor := newMetadataProcessor("project", "zone", mockComputeClient)
 	processor.requiredLicenses = []string{"new/license"}
-	returnedPD, err := processor.process(argPD, nil)
+	returnedPD, err := processor.process(argPD)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Failed to create UEFI disk")
@@ -228,7 +229,7 @@ func Test_MetadataProcessor_SilentlyPassesIfDeleteFails(t *testing.T) {
 	expectedReturnPD := persistentDisk{uri: "zones/test-zone/disks/disk-name-1"}
 	processor := newMetadataProcessor("project", "test-zone", mockComputeClient)
 	processor.requiredLicenses = []string{"license/uri"}
-	returnedPD, err := processor.process(argPD, nil)
+	returnedPD, err := processor.process(argPD)
 
 	assert.NoError(t, err)
 	assert.Equal(t, expectedReturnPD, returnedPD)

@@ -18,8 +18,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -38,7 +36,6 @@ const (
 	dataDiskFlag       = "data_disk"
 	osFlag             = "os"
 	customWorkflowFlag = "custom_translate_workflow"
-	workflowDir        = "daisy_workflows"
 )
 
 // ImportArguments holds the structured results of parsing CLI arguments,
@@ -83,14 +80,14 @@ type ImportArguments struct {
 
 // NewImportArguments parses args to create an ImportArguments instance.
 // No validation occurs; to validate, use ValidateAndPopulate.
-func NewImportArguments(args []string) (ImportArguments, error) {
+func NewImportArguments(args []string, workflowDir string) (ImportArguments, error) {
 	flagSet := flag.NewFlagSet("image-import", flag.ContinueOnError)
 	// Don't write parse errors to stdout, instead propagate them via an
 	// exception since we use flag.ContinueOnError.
 	flagSet.SetOutput(ioutil.Discard)
 
 	parsed := ImportArguments{
-		WorkflowDir: filepath.Join(filepath.Dir(os.Args[0]), workflowDir),
+		WorkflowDir: workflowDir,
 		Started:     time.Now(),
 	}
 

@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/testing/protocmp"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
@@ -42,6 +43,7 @@ func TestBootInspector_Inspect_PassesVarsWhenInvokingWorkflow(t *testing.T) {
 	} {
 		caseName := fmt.Sprintf("%d inspectOS=%v, reference=%v", caseNumber, tt.inspectOS, tt.reference)
 		t.Run(caseName, func(t *testing.T) {
+			logger := logging.NewToolLogger(t.Name())
 			expected := &pb.InspectionResults{
 				UefiBootable: true,
 			}
@@ -53,12 +55,13 @@ func TestBootInspector_Inspect_PassesVarsWhenInvokingWorkflow(t *testing.T) {
 				"pd_uri":        tt.reference,
 				"is_inspect_os": strconv.FormatBool(tt.inspectOS),
 			}).Return(encodeToBase64(expected), nil)
-			inspector := bootInspector{worker: worker}
+			inspector := bootInspector{worker, logger}
 
 			actual, err := inspector.Inspect(tt.reference, tt.inspectOS)
 			assert.NoError(t, err)
+			assertLogsContainResults(t, expected, logger)
 			actual.ElapsedTimeMs = 0
-			if diff := cmp.Diff(&pb.InspectionResults{UefiBootable: true}, actual, protocmp.Transform()); diff != "" {
+			if diff := cmp.Diff(expected, actual, protocmp.Transform()); diff != "" {
 				t.Errorf("unexpected difference:\n%v", diff)
 			}
 		})
@@ -104,7 +107,7 @@ func TestBootInspector_Inspect_WorkerAndTransitErrors(t *testing.T) {
 				"pd_uri":        "reference",
 				"is_inspect_os": "true",
 			}).Return(tt.base64FromInspection, tt.errorFromInspection)
-			inspector := bootInspector{worker: worker}
+			inspector := bootInspector{worker, logging.NewToolLogger(t.Name())}
 			actual, err := inspector.Inspect("reference", true)
 			if err == nil {
 				t.Fatal("err must be non-nil")
@@ -264,6 +267,7 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 		},
 	} {
 		t.Run(tt.caseName, func(t *testing.T) {
+			logger := logging.NewToolLogger(t.Name())
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 			worker := mocks.NewMockDaisyWorker(mockCtrl)
@@ -271,37 +275,19 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 				"pd_uri":        "reference",
 				"is_inspect_os": "true",
 			}).Return(encodeToBase64(tt.responseFromInspection), nil)
-			worker.EXPECT().TraceLogs().Return(nil)
-			inspector := bootInspector{worker: worker}
+			inspector := bootInspector{worker, logger}
 			results, err := inspector.Inspect("reference", true)
 			if err == nil {
 				t.Fatal("err must be non-nil")
 			}
 			assert.Contains(t, err.Error(), tt.expectErrorToContain)
-			assertLogsContainResults(t, inspector, tt.responseFromInspection)
+			assertLogsContainResults(t, tt.responseFromInspection, logger)
 			results.ElapsedTimeMs = 0
 			if diff := cmp.Diff(tt.expectResults, results, protocmp.Transform()); diff != "" {
 				t.Errorf("unexpected difference:\n%v", diff)
 			}
 		})
 	}
-}
-
-func TestBootInspector_IncludesRemoteAndWorkerLogs(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	worker := mocks.NewMockDaisyWorker(mockCtrl)
-	worker.EXPECT().TraceLogs().Return([]string{"serial console1", "serial console2"})
-
-	inspector := bootInspector{worker: worker}
-	inspector.tracef("log %s %v", "A", false)
-	inspector.tracef("log %s", "B")
-
-	actual := inspector.TraceLogs()
-	assert.Contains(t, actual, "serial console1")
-	assert.Contains(t, actual, "serial console2")
-	assert.Contains(t, actual, "log A false")
-	assert.Contains(t, actual, "log B")
 }
 
 func TestBootInspector_ForwardsCancelToWorkflow(t *testing.T) {
@@ -318,7 +304,7 @@ func TestBootInspector_ForwardsCancelToWorkflow(t *testing.T) {
 			defer mockCtrl.Finish()
 			worker := mocks.NewMockDaisyWorker(mockCtrl)
 			worker.EXPECT().Cancel(tt.reason).Return(tt.cancelled)
-			inspector := bootInspector{worker: worker}
+			inspector := bootInspector{worker, logging.NewToolLogger(t.Name())}
 			assert.Equal(t, tt.cancelled, inspector.Cancel(tt.reason))
 		})
 	}
@@ -335,9 +321,9 @@ func encodeToBase64(results *pb.InspectionResults) string {
 	return base64.StdEncoding.EncodeToString(bytes)
 }
 
-func assertLogsContainResults(t *testing.T, inspector bootInspector, results *pb.InspectionResults) {
+func assertLogsContainResults(t *testing.T, results *pb.InspectionResults, logger logging.ToolLogger) {
 	var traceIncludesResults bool
-	logs := inspector.TraceLogs()
+	logs := logger.ReadOutputInfo().SerialOutputs
 	resultString := results.String()
 	for _, log := range logs {
 		if strings.Contains(log, resultString) {

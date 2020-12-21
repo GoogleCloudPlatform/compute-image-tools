@@ -17,6 +17,7 @@ package daisycommon
 import (
 	"context"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -27,18 +28,18 @@ import (
 type DaisyWorker interface {
 	RunAndReadSerialValue(key string, vars map[string]string) (string, error)
 	Cancel(reason string) bool
-	TraceLogs() []string
 }
 
 // NewDaisyWorker returns an implementation of DaisyWorker. The returned value is
 // designed to be run once and discarded. In other words, don't run RunAndReadSerialValue
 // twice on the same instance.
-func NewDaisyWorker(wf *daisy.Workflow) DaisyWorker {
-	return &defaultDaisyWorker{wf}
+func NewDaisyWorker(wf *daisy.Workflow, logger logging.Logger) DaisyWorker {
+	return &defaultDaisyWorker{wf, logger}
 }
 
 type defaultDaisyWorker struct {
-	wf *daisy.Workflow
+	wf     *daisy.Workflow
+	logger logging.Logger
 }
 
 // runAndReadSerialValue runs the daisy workflow with the supplied vars, and returns the serial
@@ -48,6 +49,11 @@ func (w *defaultDaisyWorker) RunAndReadSerialValue(key string, vars map[string]s
 		w.wf.AddVar(k, v)
 	}
 	err := w.wf.Run(context.Background())
+	if w.wf.Logger != nil {
+		for _, trace := range w.wf.Logger.ReadSerialPortLogs() {
+			w.logger.Trace(trace)
+		}
+	}
 	if err != nil {
 		return "", err
 	}
@@ -62,11 +68,4 @@ func (w *defaultDaisyWorker) Cancel(reason string) bool {
 
 	//indicate cancel was not performed
 	return false
-}
-
-func (w *defaultDaisyWorker) TraceLogs() []string {
-	if w.wf != nil && w.wf.Logger != nil {
-		return w.wf.Logger.ReadSerialPortLogs()
-	}
-	return []string{}
 }

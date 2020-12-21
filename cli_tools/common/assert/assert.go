@@ -14,7 +14,11 @@
 
 package assert
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/files"
+)
 
 // GreaterThanOrEqualTo asserts that value is greater than or equal to limit.
 func GreaterThanOrEqualTo(value int, limit int) {
@@ -31,4 +35,11 @@ func Contains(element string, arr []string) {
 		}
 	}
 	panic(fmt.Sprintf("%s is not a member of %v", element, arr))
+}
+
+// DirectoryExists asserts that a directory is on the current filesystem.
+func DirectoryExists(dir string) {
+	if !files.DirectoryExists(dir) {
+		panic(fmt.Sprintf("%s: Directory not found", dir))
+	}
 }

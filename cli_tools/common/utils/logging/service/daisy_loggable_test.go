@@ -18,8 +18,9 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 func TestNewLoggableFromWorkflow_ReturnsNilWhenWorkflowNil(t *testing.T) {

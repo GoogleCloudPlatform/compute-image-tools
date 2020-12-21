@@ -20,9 +20,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	logging2 "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 )
@@ -293,7 +296,7 @@ func TestCreateDaisyInflater_File_NotUEFI(t *testing.T) {
 func createDaisyInflaterSafe(t *testing.T, args ImportArguments,
 	inspector imagefile.Inspector) *daisyInflater {
 	args.WorkflowDir = "../../../daisy_workflows"
-	inflater, err := NewDaisyInflater(args, inspector)
+	inflater, err := NewDaisyInflater(args, inspector, logging2.NewToolLogger("TODO"))
 	assert.NoError(t, err)
 	realInflater, ok := inflater.(*daisyInflater)
 	assert.True(t, ok)
