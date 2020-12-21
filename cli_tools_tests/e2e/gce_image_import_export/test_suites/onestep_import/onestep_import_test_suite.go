@@ -74,12 +74,12 @@ func OnestepImageImportSuite(
 	}
 
 	// Only test service account scenario for wrapper, till gcloud support it.
-	onestepImageImportWithoutDefaultServiceAccount := junitxml.NewTestCase(
+	onestepImageImportWithDisabledDefaultServiceAccountSuccess := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[%v][OnestepImageImport] %v", e2e.Wrapper, "Onestep import without default service account"))
-	onestepImageImportDefaultServiceAccountWithMissingPermissions := junitxml.NewTestCase(
+	onestepImageImportDefaultServiceAccountWithMissingPermissionsSuccess := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[%v][OnestepImageImport] %v", e2e.Wrapper, "Onestep import without default service account"))
-	testsMap[e2e.Wrapper][onestepImageImportWithoutDefaultServiceAccount] = runOnestepImageImportWithoutDefaultServiceAccount
-	testsMap[e2e.Wrapper][onestepImageImportDefaultServiceAccountWithMissingPermissions] = runOnestepImageImportDefaultServiceAccountWithMissingPermissions
+	testsMap[e2e.Wrapper][onestepImageImportWithDisabledDefaultServiceAccountSuccess] = runOnestepImageImportWithDisabledDefaultServiceAccountSuccess
+	testsMap[e2e.Wrapper][onestepImageImportDefaultServiceAccountWithMissingPermissionsSuccess] = runOnestepImageImportDefaultServiceAccountWithMissingPermissionsSuccess
 
 	if !e2e.GcloudAuth(logger, nil) {
 		logger.Printf("Failed to run gcloud auth.")
@@ -171,7 +171,8 @@ func runOnestepImageImportFromAWSWindowsVMDK(ctx context.Context, testCase *juni
 	runOnestepImportTest(ctx, props, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testType, logger, testCase)
 }
 
-func runOnestepImageImportWithoutDefaultServiceAccount(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+// With a disabled default service account, import success by specifying a custom account.
+func runOnestepImageImportWithDisabledDefaultServiceAccountSuccess(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	serviceAccountTestVariables, ok := e2e.GetServiceAccountTestVariables(argMap, true)
@@ -194,7 +195,8 @@ func runOnestepImageImportWithoutDefaultServiceAccount(ctx context.Context, test
 	runOnestepImportTest(ctx, props, serviceAccountTestVariables.ProjectID, testProjectConfig.TestZone, testType, logger, testCase)
 }
 
-func runOnestepImageImportDefaultServiceAccountWithMissingPermissions(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+// With insufficient permissions on default service account, import success by specifying a custom account.
+func runOnestepImageImportDefaultServiceAccountWithMissingPermissionsSuccess(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	serviceAccountTestVariables, ok := e2e.GetServiceAccountTestVariables(argMap, false)
