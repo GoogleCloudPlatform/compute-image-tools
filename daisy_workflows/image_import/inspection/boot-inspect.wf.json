@@ -19,7 +19,7 @@
     },
     "compute_service_account": {
       "Value": "default",
-      "Description": "Compute service account to run as"
+      "Description": "Service account that will be used by the created worker instance"
     }
   },
   "Sources": {
@@ -72,7 +72,7 @@
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "Success:",
-            "FailureMatch": "Failed:",
+            "FailureMatch": ["Failed:", "WARNING Failed to download metadata script", "Failed to download GCS path"],
             "StatusMatch": "Status:"
           }
         }

@@ -45,7 +45,7 @@
     },
     "compute_service_account": {
       "Value": "default",
-      "Description": "Compute service account to run as"
+      "Description": "Service account that will be used by the created worker instance"
     }
   },
   "Sources": {
@@ -104,7 +104,7 @@
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "Translate bootstrap complete",
-            "FailureMatch": "TranslateFailed:",
+            "FailureMatch": ["TranslateFailed:", "Failed to download GCS path"],
             "StatusMatch": "TranslateBootstrap:"
           }
         }
@@ -155,7 +155,7 @@
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "Translate complete",
-            "FailureMatch": "TranslateFailed:",
+            "FailureMatch": ["TranslateFailed:", "Failed to download GCS path"],
             "StatusMatch": "Translate:"
           }
         }

@@ -183,8 +183,8 @@ func TestTrimComputeEndpoint(t *testing.T) {
 func TestTrimComputeServiceAccount(t *testing.T) {
 	assert.Equal(t, "",
 		parseAndValidate(t, "-compute_service_account", " 	").ComputeServiceAccount)
-	assert.Equal(t, "default",
-		parseAndValidate(t, "-compute_service_account", " default	").ComputeServiceAccount)
+	assert.Equal(t, "email",
+		parseAndValidate(t, "-compute_service_account", " email	").ComputeServiceAccount)
 }
 
 func TestGcsLogsDisabled(t *testing.T) {

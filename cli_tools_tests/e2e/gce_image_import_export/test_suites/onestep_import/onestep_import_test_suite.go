@@ -36,6 +36,7 @@ const (
 )
 
 var (
+	// argMap stores test args from e2e test CLI.
 	argMap map[string]string
 )
 

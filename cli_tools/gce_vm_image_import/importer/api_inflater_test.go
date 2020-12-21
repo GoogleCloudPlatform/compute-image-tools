@@ -203,3 +203,28 @@ func TestAPIInflater_Inflate_Cancel_CleanupFailed(t *testing.T) {
 	assert.False(t, cancelResult)
 	assert.Equal(t, "apiInflater.inflate is canceled, cleanup is failed: cancel", apiInflater.serialLogs[0])
 }
+
+func TestAPIInflater_getCalculateChecksumWorkflow(t *testing.T) {
+	inflater := createAPIInflater(ImportArguments{
+		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
+		Subnet:       "projects/subnet/subnet",
+		Network:      "projects/network/network",
+		Zone:         "us-west1-c",
+		ExecutionID:  "1234",
+		NoExternalIP: false,
+		WorkflowDir:  daisyWorkflows,
+	},
+		nil,
+		storage.Client{})
+
+	apiInflater, ok := inflater.(*apiInflater)
+	assert.True(t, ok)
+
+	w := apiInflater.getCalculateChecksumWorkflow("")
+	_, ok = w.Vars["compute_service_account"]
+	assert.False(t, ok)
+
+	apiInflater.args.ComputeServiceAccount = "email"
+	w = apiInflater.getCalculateChecksumWorkflow("")
+	assert.Equal(t, "email", w.Vars["compute_service_account"].Value)
+}

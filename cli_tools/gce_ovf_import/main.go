@@ -69,7 +69,6 @@ var (
 	hostname                    = flag.String(ovfimportparams.HostnameFlagKey, "", "Specify the hostname of the instance to be created. The specified hostname must be RFC1035 compliant.")
 	machineImageStorageLocation = flag.String(ovfimportparams.MachineImageStorageLocationFlagKey, "", "GCS bucket storage location of the machine image being imported (regional or multi-regional)")
 	buildID                     = flag.String("build-id", "", "Cloud Build ID override. This flag should be used if auto-generated or build ID provided by Cloud Build is not appropriate. For example, if running multiple imports in parallel in a single Cloud Build run, sharing build ID could cause premature temporary resource clean-up resulting in import failures.")
-	computeServiceAccount       = flag.String("compute_service_account", "", "Compute service account to be used by importer. When empty, the Compute Engine default service account is used.")
 
 	nodeAffinityLabelsFlag flags.StringArrayFlag
 	currentExecutablePath  string
@@ -165,7 +164,6 @@ func createInstanceImportInputParams() service.InputParams {
 			HasBootDiskKmsProject:       *bootDiskKmsProject != "",
 			NoGuestEnvironment:          *noGuestEnvironment,
 			NodeAffinityLabel:           nodeAffinityLabelsFlag.String(),
-			ComputeServiceAccount:       *computeServiceAccount,
 		},
 	}
 }

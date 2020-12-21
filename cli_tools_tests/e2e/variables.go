@@ -28,9 +28,9 @@ type ServiceAccountTestVariables struct {
 }
 
 // GetServiceAccountTestVariables extract extra test variables related to service account from input variable map.
-func GetServiceAccountTestVariables(argMap map[string]string, isDefaultServiceAccountDeleted bool) (v ServiceAccountTestVariables, ok bool) {
+func GetServiceAccountTestVariables(argMap map[string]string, isDefaultServiceAccountDisabled bool) (v ServiceAccountTestVariables, ok bool) {
 	for key, val := range argMap {
-		if isDefaultServiceAccountDeleted {
+		if isDefaultServiceAccountDisabled {
 			switch key {
 			case projectIDWithoutDefaultServiceAccountFlag:
 				v.ProjectID = val

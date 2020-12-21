@@ -87,6 +87,23 @@ func Test_GetTranslationSettings_ResolveSameWorkflowPathAsOldMap(t *testing.T) {
 	}
 }
 
+func Test_ComputeServiceAccountVar_SupportedByAllOSes(t *testing.T) {
+	workflowDir := "../../../../daisy_workflows/image_import"
+	for _, o := range supportedOS {
+		t.Run(o.GcloudOsFlag, func(t *testing.T) {
+			workflowPath := path.Join(workflowDir, o.WorkflowPath)
+			if _, err := os.Stat(workflowPath); os.IsNotExist(err) {
+				t.Fatal("Can't find", workflowPath)
+			}
+
+			wf, err := daisy.NewFromFile(workflowPath)
+			assert.NoError(t, err)
+			_, ok := wf.Vars["compute_service_account"]
+			assert.True(t, ok, "compute_service_account not supported by %s", o.WorkflowPath)
+		})
+	}
+}
+
 func Test_GetTranslationSettings_ReturnsSameLicenseAsContainedInJSON(t *testing.T) {
 	// Originally, the JSON workflows in daisy_workflows/image_import were the source of truth
 	// for licensing info. This test verifies that the license returned by GetTranslationSettings

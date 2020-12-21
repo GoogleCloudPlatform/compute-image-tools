@@ -168,13 +168,18 @@ func (inflater *apiInflater) Cancel(reason string) bool {
 
 // run a workflow to calculate checksum
 func (inflater *apiInflater) calculateChecksum(ctx context.Context, diskURI string) (string, error) {
+	w := inflater.getCalculateChecksumWorkflow(diskURI)
+	err := daisyUtils.RunWorkflowWithCancelSignal(ctx, w)
+	if err != nil {
+		return "", err
+	}
+	return w.GetSerialConsoleOutputValue("disk-checksum"), nil
+}
+
+func (inflater *apiInflater) getCalculateChecksumWorkflow(diskURI string) *daisy.Workflow {
 	w := daisy.New()
 	w.Name = "shadow-disk-checksum"
 	checksumScript := checksumScriptConst
-	computeServiceAccount := inflater.args.ComputeServiceAccount
-	if computeServiceAccount == "" {
-		computeServiceAccount = "default"
-	}
 	w.Steps = map[string]*daisy.Step{
 		"create-disks": {
 			CreateDisks: &daisy.CreateDisks{
@@ -214,7 +219,7 @@ func (inflater *apiInflater) calculateChecksum(ctx context.Context, diskURI stri
 							},
 							ServiceAccounts: []*compute.ServiceAccount{
 								{
-									Email:  computeServiceAccount,
+									Email:  "${compute_service_account}",
 									Scopes: []string{"https://www.googleapis.com/auth/devstorage.read_write"},
 								},
 							},
@@ -253,11 +258,10 @@ func (inflater *apiInflater) calculateChecksum(ctx context.Context, diskURI stri
 		DisableCloudLogs:  inflater.args.CloudLogsDisabled,
 		DisableStdoutLogs: inflater.args.StdoutLogsDisabled,
 	})
-	err := daisyUtils.RunWorkflowWithCancelSignal(ctx, w)
-	if err != nil {
-		return "", err
+	if inflater.args.ComputeServiceAccount != "" {
+		w.AddVar("compute_service_account", inflater.args.ComputeServiceAccount)
 	}
-	return w.GetSerialConsoleOutputValue("disk-checksum"), nil
+	return w
 }
 
 // Dup logic in import_image.sh. If change anything here, please change in both places.

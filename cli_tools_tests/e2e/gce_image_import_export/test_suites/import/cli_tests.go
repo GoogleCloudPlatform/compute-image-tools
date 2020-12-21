@@ -38,6 +38,7 @@ const (
 )
 
 var (
+	// argMap stores test args from e2e test CLI.
 	argMap map[string]string
 )
 
@@ -94,12 +95,18 @@ func CLITestSuite(
 	}
 
 	// Only test service account scenario for wrapper, till gcloud support it.
-	imageImportOSWithoutDefaultServiceAccountTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Import OS without default service account"))
-	imageImportOSDefaultServiceAccountWithMissingPermissionsTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Import OS without permission on default service account"))
-	testsMap[e2e.Wrapper][imageImportOSWithoutDefaultServiceAccountTestCase] = runImageImportOSWithoutDefaultServiceAccountTest
-	testsMap[e2e.Wrapper][imageImportOSDefaultServiceAccountWithMissingPermissionsTestCase] = runImageImportOSDefaultServiceAccountWithMissingPermissionsTest
+	imageImportOSWithDisabledDefaultServiceAccountSuccessTestCase := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Import OS without default service account, success by specifying a custom account"))
+	imageImportOSDefaultServiceAccountWithMissingPermissionsSuccessTestCase := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Import OS without permission on default service account, success by specifying a custom account"))
+	imageImportOSWithDisabledDefaultServiceAccountFailTestCase := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Import OS without default service account failed"))
+	imageImportOSDefaultServiceAccountWithMissingPermissionsFailTestCase := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Import OS without permission on default service account failed"))
+	testsMap[e2e.Wrapper][imageImportOSWithDisabledDefaultServiceAccountSuccessTestCase] = runImageImportOSWithDisabledDefaultServiceAccountServiceSuccessTest
+	testsMap[e2e.Wrapper][imageImportOSDefaultServiceAccountWithMissingPermissionsSuccessTestCase] = runImageImportOSDefaultServiceAccountWithMissingPermissionsSuccessTest
+	testsMap[e2e.Wrapper][imageImportOSWithDisabledDefaultServiceAccountFailTestCase] = runImageImportOSWithDisabledDefaultServiceAccountServiceFailTest
+	testsMap[e2e.Wrapper][imageImportOSDefaultServiceAccountWithMissingPermissionsFailTestCase] = runImageImportOSDefaultServiceAccountWithMissingPermissionsFailTest
 
 	e2e.CLITestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
 		testProjectConfig, testSuiteName, testsMap)
@@ -379,48 +386,8 @@ func runImageImportShadowDiskCleanedUpWhenMainInflaterFails(ctx context.Context,
 	}
 }
 
-func runImageImportOSDefaultServiceAccountWithMissingPermissionsTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
-
-	testVariables, ok := e2e.GetServiceAccountTestVariables(argMap, false)
-	if !ok {
-		e2e.Failure(testCase, logger, fmt.Sprintln("Failed to get service account test args"))
-		return
-	}
-
-	suffix := path.RandString(5)
-	imageName := "e2e-test-import-missing-permission-" + suffix
-
-	argsMap := map[e2e.CLITestType][]string{
-		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testVariables.ProjectID),
-			fmt.Sprintf("-image_name=%v", imageName), "-inspect", "-os=debian-9",
-			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
-			fmt.Sprintf("-compute_service_account=%v", testVariables.ComputeServiceAccount),
-		},
-		e2e.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
-			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
-			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
-			fmt.Sprintf("--compute_service_account=%v", testVariables.ComputeServiceAccount),
-		},
-		e2e.GcloudBetaLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
-			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
-			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
-			fmt.Sprintf("--compute_service_account=%v", testVariables.ComputeServiceAccount),
-		},
-		e2e.GcloudGaLatestWrapperRelease: {"compute", "images", "import", imageName, "--quiet",
-			"--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
-			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
-		},
-	}
-
-	runImportTest(ctx, argsMap[testType], testType, testVariables.ProjectID, imageName, logger, testCase)
-}
-
-func runImageImportOSWithoutDefaultServiceAccountTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+// With a disabled default service account, import success by specifying a custom account.
+func runImageImportOSWithDisabledDefaultServiceAccountServiceSuccessTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	testVariables, ok := e2e.GetServiceAccountTestVariables(argMap, true)
@@ -455,10 +422,142 @@ func runImageImportOSWithoutDefaultServiceAccountTest(ctx context.Context, testC
 			"--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
 			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
 			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute_service_account=%v", testVariables.ComputeServiceAccount),
 		},
 	}
 
 	runImportTest(ctx, argsMap[testType], testType, testVariables.ProjectID, imageName, logger, testCase)
+}
+
+// With insufficient permissions on default service account, import success by specifying a custom account.
+func runImageImportOSDefaultServiceAccountWithMissingPermissionsSuccessTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+
+	testVariables, ok := e2e.GetServiceAccountTestVariables(argMap, false)
+	if !ok {
+		e2e.Failure(testCase, logger, fmt.Sprintln("Failed to get service account test args"))
+		return
+	}
+
+	suffix := path.RandString(5)
+	imageName := "e2e-test-import-missing-permission-" + suffix
+
+	argsMap := map[e2e.CLITestType][]string{
+		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testVariables.ProjectID),
+			fmt.Sprintf("-image_name=%v", imageName), "-inspect", "-os=debian-9",
+			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("-compute_service_account=%v", testVariables.ComputeServiceAccount),
+		},
+		e2e.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
+			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute_service_account=%v", testVariables.ComputeServiceAccount),
+		},
+		e2e.GcloudBetaLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
+			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute_service_account=%v", testVariables.ComputeServiceAccount),
+		},
+		e2e.GcloudGaLatestWrapperRelease: {"compute", "images", "import", imageName, "--quiet",
+			"--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute_service_account=%v", testVariables.ComputeServiceAccount),
+		},
+	}
+
+	runImportTest(ctx, argsMap[testType], testType, testVariables.ProjectID, imageName, logger, testCase)
+}
+
+// With a disabled default service account, import failed.
+func runImageImportOSWithDisabledDefaultServiceAccountServiceFailTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+
+	testVariables, ok := e2e.GetServiceAccountTestVariables(argMap, true)
+	if !ok {
+		e2e.Failure(testCase, logger, fmt.Sprintln("Failed to get service account test args"))
+		return
+	}
+
+	suffix := path.RandString(5)
+	imageName := "e2e-test-import-without-service-account-fail-" + suffix
+	defaultAccount := "default"
+
+	argsMap := map[e2e.CLITestType][]string{
+		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testVariables.ProjectID),
+			fmt.Sprintf("-image_name=%v", imageName), "-inspect", "-os=debian-9",
+			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("-compute_service_account=%v", defaultAccount),
+		},
+		e2e.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
+			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute_service_account=%v", defaultAccount),
+		},
+		e2e.GcloudBetaLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
+			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute_service_account=%v", defaultAccount),
+		},
+		e2e.GcloudGaLatestWrapperRelease: {"compute", "images", "import", imageName, "--quiet",
+			"--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute_service_account=%v", defaultAccount),
+		},
+	}
+
+	e2e.RunTestCommandAssertErrorMessage(cmds[testType], argsMap[testType], "ImportFailed: Failed to download image to worker instance", logger, testCase)
+}
+
+// With insufficient permissions on default service account, import failed.
+func runImageImportOSDefaultServiceAccountWithMissingPermissionsFailTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+
+	testVariables, ok := e2e.GetServiceAccountTestVariables(argMap, false)
+	if !ok {
+		e2e.Failure(testCase, logger, fmt.Sprintln("Failed to get service account test args"))
+		return
+	}
+
+	suffix := path.RandString(5)
+	imageName := "e2e-test-missing-permission-fail-" + suffix
+	defaultAccount := "default"
+
+	argsMap := map[e2e.CLITestType][]string{
+		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testVariables.ProjectID),
+			fmt.Sprintf("-image_name=%v", imageName), "-inspect", "-os=debian-9",
+			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("-compute_service_account=%v", defaultAccount),
+		},
+		e2e.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
+			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute_service_account=%v", defaultAccount),
+		},
+		e2e.GcloudBetaLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
+			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute_service_account=%v", defaultAccount),
+		},
+		e2e.GcloudGaLatestWrapperRelease: {"compute", "images", "import", imageName, "--quiet",
+			"--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
+			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--compute_service_account=%v", defaultAccount),
+		},
+	}
+
+	e2e.RunTestCommandAssertErrorMessage(cmds[testType], argsMap[testType], "ImportFailed: Failed to download GCS path", logger, testCase)
 }
 
 func runImportTest(ctx context.Context, args []string, testType e2e.CLITestType,
