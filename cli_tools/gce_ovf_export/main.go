@@ -92,14 +92,15 @@ func logFailure(allArgs ovfexportdomain.OVFExportArgs, cause error) {
 }
 
 func runExport(args []string) error {
-	exportArgs, err := ovfexportdomain.NewOVFExportArgs(args)
+	exportArgs := ovfexportdomain.NewOVFExportArgs(args)
+	err := ovfexporter.RegisterFlags(exportArgs, args)
 	if err != nil {
-		logFailure(exportArgs, err)
+		logFailure(*exportArgs, err)
 		return err
 	}
 
 	var oe *ovfexporter.OVFExporter
-	if oe, err = ovfexporter.NewOVFExporter(&exportArgs); err != nil {
+	if oe, err = ovfexporter.NewOVFExporter(exportArgs); err != nil {
 		return err
 	}
 	ctx := context.Background()
