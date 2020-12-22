@@ -23,14 +23,15 @@ import (
 	"strings"
 	"sync"
 
+	"google.golang.org/api/googleapi"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e"
 	"github.com/GoogleCloudPlatform/compute-image-tools/common/gcp"
 	computeApi "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
-	"google.golang.org/api/googleapi"
+	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 )
 
 const (
@@ -120,7 +121,7 @@ func runImageImportDataDiskTest(ctx context.Context, testCase *junitxml.TestCase
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-image_name=%s", imageName), "-inspect", "-data_disk",
+			fmt.Sprintf("-image_name=%s", imageName), "-data_disk",
 			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
 			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
 		},
@@ -152,7 +153,7 @@ func runImageImportOSTest(ctx context.Context, testCase *junitxml.TestCase, logg
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-image_name=%v", imageName), "-inspect", "-os=debian-9",
+			fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9",
 			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
 			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
 		},
@@ -184,7 +185,7 @@ func runImageImportOSFromImageTest(ctx context.Context, testCase *junitxml.TestC
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-image_name=%v", imageName), "-inspect", "-os=debian-9", "-source_image=e2e-test-image-10g",
+			fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9", "-source_image=e2e-test-image-10g",
 			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
 		},
 		e2e.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
@@ -220,7 +221,7 @@ func runImageImportWithRichParamsTest(ctx context.Context, testCase *junitxml.Te
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-image_name=%s", imageName), "-inspect", "-data_disk",
+			fmt.Sprintf("-image_name=%s", imageName), "-data_disk",
 			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
 			"-no_guest_environment", fmt.Sprintf("-family=%v", family), fmt.Sprintf("-description=%v", description),
 			fmt.Sprintf("-network=%v-vpc-1", testProjectConfig.TestProjectID),
@@ -268,7 +269,7 @@ func runImageImportWithDifferentNetworkParamStyles(ctx context.Context, testCase
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-image_name=%s", imageName), "-inspect", "-data_disk",
+			fmt.Sprintf("-image_name=%s", imageName), "-data_disk",
 			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
 			fmt.Sprintf("-network=global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
 			fmt.Sprintf("-subnet=projects/%v/regions/%v/subnetworks/%v-subnet-1",
@@ -313,7 +314,7 @@ func runImageImportWithSubnetWithoutNetworkSpecified(ctx context.Context, testCa
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-image_name=%s", imageName), "-inspect", "-data_disk",
+			fmt.Sprintf("-image_name=%s", imageName), "-data_disk",
 			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
 			fmt.Sprintf("-subnet=https://www.googleapis.com/compute/v1/projects/%v/regions/%v/subnetworks/%v-subnet-1",
 				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
@@ -401,7 +402,7 @@ func runImageImportOSWithDisabledDefaultServiceAccountServiceSuccessTest(ctx con
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testVariables.ProjectID),
-			fmt.Sprintf("-image_name=%v", imageName), "-inspect", "-os=debian-9",
+			fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9",
 			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
 			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
 			fmt.Sprintf("-compute_service_account=%v", testVariables.ComputeServiceAccount),
@@ -444,7 +445,7 @@ func runImageImportOSDefaultServiceAccountWithMissingPermissionsSuccessTest(ctx 
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testVariables.ProjectID),
-			fmt.Sprintf("-image_name=%v", imageName), "-inspect", "-os=debian-9",
+			fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9",
 			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
 			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
 			fmt.Sprintf("-compute_service_account=%v", testVariables.ComputeServiceAccount),
@@ -488,7 +489,7 @@ func runImageImportOSWithDisabledDefaultServiceAccountServiceFailTest(ctx contex
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testVariables.ProjectID),
-			fmt.Sprintf("-image_name=%v", imageName), "-inspect", "-os=debian-9",
+			fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9",
 			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
 			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
 			fmt.Sprintf("-compute_service_account=%v", defaultAccount),
@@ -532,7 +533,7 @@ func runImageImportOSDefaultServiceAccountWithMissingPermissionsFailTest(ctx con
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testVariables.ProjectID),
-			fmt.Sprintf("-image_name=%v", imageName), "-inspect", "-os=debian-9",
+			fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9",
 			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
 			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
 			fmt.Sprintf("-compute_service_account=%v", defaultAccount),

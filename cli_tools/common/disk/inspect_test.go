@@ -18,7 +18,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -35,13 +34,12 @@ import (
 
 func TestBootInspector_Inspect_PassesVarsWhenInvokingWorkflow(t *testing.T) {
 	for caseNumber, tt := range []struct {
-		inspectOS bool
 		reference string
 	}{
-		{inspectOS: true, reference: "uri/for/pd"},
-		{inspectOS: false, reference: "uri/for/pd"},
+		{reference: "uri/for/pd"},
+		{reference: "uri/for/pd"},
 	} {
-		caseName := fmt.Sprintf("%d inspectOS=%v, reference=%v", caseNumber, tt.inspectOS, tt.reference)
+		caseName := fmt.Sprintf("%d reference=%v", caseNumber, tt.reference)
 		t.Run(caseName, func(t *testing.T) {
 			logger := logging.NewToolLogger(t.Name())
 			expected := &pb.InspectionResults{
@@ -52,12 +50,11 @@ func TestBootInspector_Inspect_PassesVarsWhenInvokingWorkflow(t *testing.T) {
 			defer mockCtrl.Finish()
 			worker := mocks.NewMockDaisyWorker(mockCtrl)
 			worker.EXPECT().RunAndReadSerialValue("inspect_pb", map[string]string{
-				"pd_uri":        tt.reference,
-				"is_inspect_os": strconv.FormatBool(tt.inspectOS),
+				"pd_uri": tt.reference,
 			}).Return(encodeToBase64(expected), nil)
 			inspector := bootInspector{worker, logger}
 
-			actual, err := inspector.Inspect(tt.reference, tt.inspectOS)
+			actual, err := inspector.Inspect(tt.reference)
 			assert.NoError(t, err)
 			assertLogsContainResults(t, expected, logger)
 			actual.ElapsedTimeMs = 0
@@ -104,11 +101,10 @@ func TestBootInspector_Inspect_WorkerAndTransitErrors(t *testing.T) {
 			defer mockCtrl.Finish()
 			worker := mocks.NewMockDaisyWorker(mockCtrl)
 			worker.EXPECT().RunAndReadSerialValue("inspect_pb", map[string]string{
-				"pd_uri":        "reference",
-				"is_inspect_os": "true",
+				"pd_uri": "reference",
 			}).Return(tt.base64FromInspection, tt.errorFromInspection)
 			inspector := bootInspector{worker, logging.NewToolLogger(t.Name())}
-			actual, err := inspector.Inspect("reference", true)
+			actual, err := inspector.Inspect("reference")
 			if err == nil {
 				t.Fatal("err must be non-nil")
 			}
@@ -272,11 +268,10 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 			defer mockCtrl.Finish()
 			worker := mocks.NewMockDaisyWorker(mockCtrl)
 			worker.EXPECT().RunAndReadSerialValue("inspect_pb", map[string]string{
-				"pd_uri":        "reference",
-				"is_inspect_os": "true",
+				"pd_uri": "reference",
 			}).Return(encodeToBase64(tt.responseFromInspection), nil)
 			inspector := bootInspector{worker, logger}
-			results, err := inspector.Inspect("reference", true)
+			results, err := inspector.Inspect("reference")
 			if err == nil {
 				t.Fatal("err must be non-nil")
 			}

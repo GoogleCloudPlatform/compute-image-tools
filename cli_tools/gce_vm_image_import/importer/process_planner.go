@@ -20,11 +20,12 @@ import (
 	"path"
 	"strings"
 
+	"google.golang.org/api/compute/v1"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
-	"google.golang.org/api/compute/v1"
 )
 
 // processPlanner determines which actions need to be performed against a disk during processing
@@ -113,7 +114,7 @@ func (p *defaultPlanner) plan(pd persistentDisk) (*processingPlan, error) {
 
 func (p *defaultPlanner) inspectDisk(uri string) (*pb.InspectionResults, error) {
 	log.Printf("Running disk inspections on %v.", uri)
-	ir, err := p.diskInspector.Inspect(uri, p.args.Inspect)
+	ir, err := p.diskInspector.Inspect(uri)
 	if err != nil {
 		log.Printf("Disk inspection error=%v", err)
 		return ir, daisy.Errf("Disk inspection error: %v", err)

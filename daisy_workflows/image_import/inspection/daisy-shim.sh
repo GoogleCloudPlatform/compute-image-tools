@@ -22,18 +22,11 @@ set -eufx -o pipefail
 
 ROOT="/tmp/build-root-$RANDOM"
 SOURCE=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/daisy-sources-path" -H "Metadata-Flavor: Google")
-INSPECT_OS=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/attributes/is-inspect-os" -H "Metadata-Flavor: Google")
 mkdir -p "$ROOT" && cd "$ROOT"
 gsutil cp -R "$SOURCE/*" .
 pip3 install ./compute_image_tools_proto ./boot_inspect
 
-if [[ "$INSPECT_OS" == "true" ]]; then
-    cmd="boot-inspect --format=daisy --inspect-os /dev/sdb"
-else
-    cmd="boot-inspect --format=daisy /dev/sdb"
-fi
-
-if bash -c "$cmd"; then
+if boot-inspect --format=daisy /dev/sdb; then
   echo "Success:"
 else
   echo "Failed:"
