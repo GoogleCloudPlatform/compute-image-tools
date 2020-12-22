@@ -35,7 +35,7 @@
     },
     "compute_service_account": {
       "Value": "default",
-      "Description": "Compute service account to run as"
+      "Description": "Service account that will be used by the created worker instance"
     }
   },
   "Steps": {

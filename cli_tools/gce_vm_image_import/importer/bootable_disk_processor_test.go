@@ -65,31 +65,34 @@ func TestBootableDiskProcessor_PopulatesWorkflowVarsUsingArgs(t *testing.T) {
 	imageSpec.NoGuestEnvironment = true
 	imageSpec.Region = "us-central"
 	imageSpec.SysprepWindows = true
+	imageSpec.ComputeServiceAccount = "csa@email.com"
 
 	actual := asMap(createAndRunPrePostFunctions(t, imageSpec).workflow.Vars)
 	assert.Equal(t, map[string]string{
-		"source_disk":          "", // source_disk is written in process, since a previous processor may create a new disk
-		"description":          "Fedora 12 customized",
-		"family":               "fedora",
-		"image_name":           "fedora-12-imported",
-		"import_network":       "network-copied-verbatum",
-		"import_subnet":        "subnet-copied-verbatum",
-		"install_gce_packages": "false",
-		"sysprep":              "true"},
+		"source_disk":             "", // source_disk is written in process, since a previous processor may create a new disk
+		"description":             "Fedora 12 customized",
+		"family":                  "fedora",
+		"image_name":              "fedora-12-imported",
+		"import_network":          "network-copied-verbatum",
+		"import_subnet":           "subnet-copied-verbatum",
+		"install_gce_packages":    "false",
+		"sysprep":                 "true",
+		"compute_service_account": "csa@email.com"},
 		actual)
 }
 
 func TestBootableDiskProcessor_SupportsWorkflowDefaultVars(t *testing.T) {
 	actual := asMap(createAndRunPrePostFunctions(t, defaultImportArgs()).workflow.Vars)
 	assert.Equal(t, map[string]string{
-		"source_disk":          "",
-		"description":          "",
-		"family":               "",
-		"image_name":           "",
-		"import_network":       "",
-		"import_subnet":        "",
-		"install_gce_packages": "true",
-		"sysprep":              "false"}, actual)
+		"source_disk":             "",
+		"description":             "",
+		"family":                  "",
+		"image_name":              "",
+		"import_network":          "",
+		"import_subnet":           "",
+		"install_gce_packages":    "true",
+		"sysprep":                 "false",
+		"compute_service_account": "default"}, actual)
 }
 
 func TestBootableDiskProcessor_SetsWorkerDiskTrackingValues(t *testing.T) {

@@ -116,9 +116,25 @@ func TestCreateDaisyInflater_File_HappyCase(t *testing.T) {
 	assert.Equal(t, "gs://bucket/vmdk", inflater.wf.Vars["source_disk_file"].Value)
 	assert.Equal(t, "projects/subnet/subnet", inflater.wf.Vars["import_subnet"].Value)
 	assert.Equal(t, "projects/network/network", inflater.wf.Vars["import_network"].Value)
+	assert.Equal(t, "default", inflater.wf.Vars["compute_service_account"].Value)
 
 	network := getWorkerNetwork(t, inflater.wf)
 	assert.Nil(t, network.AccessConfigs, "AccessConfigs must be nil to allow ExternalIP to be allocated.")
+}
+
+func TestCreateDaisyInflater_File_ComputeServiceAcount(t *testing.T) {
+	source := fileSource{gcsPath: "gs://bucket/vmdk"}
+	inflater := createDaisyInflaterSafe(t, ImportArguments{
+		Source:                source,
+		ComputeServiceAccount: "csa",
+	}, mockInspector{
+		t:                 t,
+		expectedReference: source.gcsPath,
+		errorToReturn:     nil,
+		metaToReturn:      imagefile.Metadata{},
+	})
+
+	assert.Equal(t, "csa", inflater.wf.Vars["compute_service_account"].Value)
 }
 
 func TestCreateDaisyInflater_File_NoExternalIP(t *testing.T) {

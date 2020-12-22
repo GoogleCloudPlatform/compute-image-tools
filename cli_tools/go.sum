@@ -81,6 +81,8 @@ github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200901185527-c
 github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200901185527-c0181782adcc/go.mod h1:OMlTSl6FloIMDs+kZxW4B5fVlj4RudzYDvKEQ+sH15U=
 github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200914170536-737b13cffca0 h1:meelF7iUOl8sVEFp3Wz3ZPK5BAUQbVUa+adX6roRhdU=
 github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200914170536-737b13cffca0/go.mod h1:OMlTSl6FloIMDs+kZxW4B5fVlj4RudzYDvKEQ+sH15U=
+github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20201214200241-d4736a0b5477 h1:o4Mxz0Sbz76X8Ba3l1s3FBnD6hfPExNc98IKWUxizHc=
+github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20201214200241-d4736a0b5477/go.mod h1:OMlTSl6FloIMDs+kZxW4B5fVlj4RudzYDvKEQ+sH15U=
 github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils v0.0.0-20200114232830-6d2d59acb179/go.mod h1:2hxlZPfWalIdOXnzbPATwW+Rs7FMMNWD5QnHDE49QZA=
 github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils v0.0.0-20200128181915-c0775e429077/go.mod h1:2hxlZPfWalIdOXnzbPATwW+Rs7FMMNWD5QnHDE49QZA=
 github.com/GoogleCloudPlatform/compute-image-tools/mocks v0.0.0-20200206014411-426b6301f679/go.mod h1:zDumkSJOQQ31fB0OWcg5h5zlVhU92LvYNXkpGQh2jz8=

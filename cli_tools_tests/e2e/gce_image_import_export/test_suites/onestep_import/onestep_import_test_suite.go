@@ -35,11 +35,18 @@ const (
 	testSuiteName = "OnestepImageImportTests"
 )
 
+var (
+	// argMap stores test args from e2e test CLI.
+	argMap map[string]string
+)
+
 // OnestepImageImportSuite contains implementations of the e2e tests.
 func OnestepImageImportSuite(
 	ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
 	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp,
-	testProjectConfig *testconfig.Project, argMap map[string]string) {
+	testProjectConfig *testconfig.Project, argMapInput map[string]string) {
+
+	argMap = argMapInput
 
 	testTypes := []e2e.CLITestType{
 		e2e.Wrapper,
@@ -66,6 +73,14 @@ func OnestepImageImportSuite(
 		testsMap[testType][onestepImageImportFromAWSWindowsVMDK] = runOnestepImageImportFromAWSWindowsVMDK
 	}
 
+	// Only test service account scenario for wrapper, till gcloud support it.
+	onestepImageImportWithDisabledDefaultServiceAccountSuccess := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][OnestepImageImport] %v", e2e.Wrapper, "Onestep import without default service account"))
+	onestepImageImportDefaultServiceAccountWithMissingPermissionsSuccess := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][OnestepImageImport] %v", e2e.Wrapper, "Onestep import without default service account"))
+	testsMap[e2e.Wrapper][onestepImageImportWithDisabledDefaultServiceAccountSuccess] = runOnestepImageImportWithDisabledDefaultServiceAccountSuccess
+	testsMap[e2e.Wrapper][onestepImageImportDefaultServiceAccountWithMissingPermissionsSuccess] = runOnestepImageImportDefaultServiceAccountWithMissingPermissionsSuccess
+
 	if !e2e.GcloudAuth(logger, nil) {
 		logger.Printf("Failed to run gcloud auth.")
 		testSuite := junitxml.NewTestSuite(testSuiteName)
@@ -75,7 +90,7 @@ func OnestepImageImportSuite(
 		return
 	}
 
-	if !getAWSTestArgs(argMap) {
+	if !getAWSTestArgs() {
 		e2e.Failure(nil, logger, fmt.Sprintln("Failed to get aws test args"))
 		testSuite := junitxml.NewTestSuite(testSuiteName)
 		testSuite.Failures = 1
@@ -109,7 +124,7 @@ func runOnestepImageImportFromAWSLinuxAMI(ctx context.Context, testCase *junitxm
 		skipOSConfig:  "true",
 	}
 
-	runOnestepImportTest(ctx, props, testProjectConfig, testType, logger, testCase)
+	runOnestepImportTest(ctx, props, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testType, logger, testCase)
 }
 
 func runOnestepImageImportFromAWSLinuxVMDK(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
@@ -124,7 +139,7 @@ func runOnestepImageImportFromAWSLinuxVMDK(ctx context.Context, testCase *junitx
 		skipOSConfig:      "true",
 	}
 
-	runOnestepImportTest(ctx, props, testProjectConfig, testType, logger, testCase)
+	runOnestepImportTest(ctx, props, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testType, logger, testCase)
 }
 
 func runOnestepImageImportFromAWSWindowsAMI(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
@@ -139,7 +154,7 @@ func runOnestepImageImportFromAWSWindowsAMI(ctx context.Context, testCase *junit
 		startupScript: "post_translate_test.ps1",
 	}
 
-	runOnestepImportTest(ctx, props, testProjectConfig, testType, logger, testCase)
+	runOnestepImportTest(ctx, props, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testType, logger, testCase)
 }
 
 func runOnestepImageImportFromAWSWindowsVMDK(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
@@ -153,12 +168,60 @@ func runOnestepImageImportFromAWSWindowsVMDK(ctx context.Context, testCase *juni
 		startupScript:     "post_translate_test.ps1",
 	}
 
-	runOnestepImportTest(ctx, props, testProjectConfig, testType, logger, testCase)
+	runOnestepImportTest(ctx, props, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testType, logger, testCase)
 }
 
-func runOnestepImportTest(ctx context.Context, props *onestepImportAWSTestProperties, testConfig *testconfig.Project, testType e2e.CLITestType,
+// With a disabled default service account, import success by specifying a custom account.
+func runOnestepImageImportWithDisabledDefaultServiceAccountSuccess(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+
+	serviceAccountTestVariables, ok := e2e.GetServiceAccountTestVariables(argMap, true)
+	if !ok {
+		e2e.Failure(testCase, logger, fmt.Sprintln("Failed to get service account test args"))
+		return
+	}
+
+	imageName := "e2e-onestep-no-default-service-account-" + path.RandString(5)
+
+	props := &onestepImportAWSTestProperties{
+		imageName:             imageName,
+		sourceAMIFilePath:     ubuntuVMDKFilePath,
+		os:                    "ubuntu-1804",
+		startupScript:         "post_translate_test.sh",
+		skipOSConfig:          "true",
+		computeServiceAccount: serviceAccountTestVariables.ComputeServiceAccount,
+	}
+
+	runOnestepImportTest(ctx, props, serviceAccountTestVariables.ProjectID, testProjectConfig.TestZone, testType, logger, testCase)
+}
+
+// With insufficient permissions on default service account, import success by specifying a custom account.
+func runOnestepImageImportDefaultServiceAccountWithMissingPermissionsSuccess(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+
+	serviceAccountTestVariables, ok := e2e.GetServiceAccountTestVariables(argMap, false)
+	if !ok {
+		e2e.Failure(testCase, logger, fmt.Sprintln("Failed to get service account test args"))
+		return
+	}
+
+	imageName := "e2e-onestep-no-account-permission-" + path.RandString(5)
+
+	props := &onestepImportAWSTestProperties{
+		imageName:             imageName,
+		sourceAMIFilePath:     ubuntuVMDKFilePath,
+		os:                    "ubuntu-1804",
+		startupScript:         "post_translate_test.sh",
+		skipOSConfig:          "true",
+		computeServiceAccount: serviceAccountTestVariables.ComputeServiceAccount,
+	}
+
+	runOnestepImportTest(ctx, props, serviceAccountTestVariables.ProjectID, testProjectConfig.TestZone, testType, logger, testCase)
+}
+
+func runOnestepImportTest(ctx context.Context, props *onestepImportAWSTestProperties, testProjectID string, testZone string, testType e2e.CLITestType,
 	logger *log.Logger, testCase *junitxml.TestCase) {
-	args := buildTestArgs(props, testConfig)[testType]
+	args := buildTestArgs(props, testProjectID, testZone)[testType]
 
 	cmds := map[e2e.CLITestType]string{
 		e2e.Wrapper:                       "./gce_onestep_image_import",
@@ -167,34 +230,36 @@ func runOnestepImportTest(ctx context.Context, props *onestepImportAWSTestProper
 	}
 
 	if e2e.RunTestForTestType(cmds[testType], args, testType, logger, testCase) {
-		verifyImportedImageFile(ctx, testCase, props, testConfig, logger)
+		verifyImportedImageFile(ctx, testCase, props, testProjectID, testZone, logger)
 	}
 }
 
 // buildTestArgs build args for tests.
-func buildTestArgs(props *onestepImportAWSTestProperties, testProjectConfig *testconfig.Project) map[e2e.CLITestType][]string {
+func buildTestArgs(props *onestepImportAWSTestProperties, testProjectID string, testZone string) map[e2e.CLITestType][]string {
 	gcloudArgs := []string{
 		"beta", "compute", "images", "import", "--quiet",
 		"--docker-image-tag=latest", props.imageName,
-		fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-		fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		fmt.Sprintf("--project=%v", testProjectID),
+		fmt.Sprintf("--zone=%v", testZone),
 		fmt.Sprintf("--aws-access-key-id=%v", awsAccessKeyID),
 		fmt.Sprintf("--aws-secret-access-key=%v", awsSecretAccessKey),
 		fmt.Sprintf("--aws-session-token=%v", awsSessionToken),
 		fmt.Sprintf("--aws-region=%v", awsRegion),
 		fmt.Sprintf("--os=%v", props.os),
+		fmt.Sprintf("--compute-service-account=%v", props.computeServiceAccount),
 	}
 
 	wrapperArgs := []string{
 		"-client_id=e2e",
 		fmt.Sprintf("-image_name=%v", props.imageName),
-		fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-		fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+		fmt.Sprintf("-project=%v", testProjectID),
+		fmt.Sprintf("-zone=%v", testZone),
 		fmt.Sprintf("-aws_access_key_id=%v", awsAccessKeyID),
 		fmt.Sprintf("-aws_secret_access_key=%v", awsSecretAccessKey),
 		fmt.Sprintf("-aws_session_token=%v", awsSessionToken),
 		fmt.Sprintf("-aws_region=%v", awsRegion),
 		fmt.Sprintf("-os=%v", props.os),
+		fmt.Sprintf("-compute_service_account=%v", props.computeServiceAccount),
 	}
 
 	if props.amiID != "" {
@@ -221,14 +286,14 @@ func buildTestArgs(props *onestepImportAWSTestProperties, testProjectConfig *tes
 }
 
 // verifyImportedImageFile boots the instance and executes a startup script containing tests.
-func verifyImportedImageFile(ctx context.Context, testCase *junitxml.TestCase, props *onestepImportAWSTestProperties, testProjectConfig *testconfig.Project, logger *log.Logger) {
+func verifyImportedImageFile(ctx context.Context, testCase *junitxml.TestCase, props *onestepImportAWSTestProperties, testProjectID string, testZone string, logger *log.Logger) {
 	wf, err := daisy.NewFromFile("post_translate_test.wf.json")
 	if err != nil {
 		e2e.Failure(testCase, logger, fmt.Sprintf("Failed post translate test: %v\n", err))
 		return
 	}
 
-	imagePath := fmt.Sprintf("projects/%s/global/images/%s", testProjectConfig.TestProjectID, props.imageName)
+	imagePath := fmt.Sprintf("projects/%s/global/images/%s", testProjectID, props.imageName)
 
 	wf.Vars = map[string]daisy.Var{
 		"image_under_test": {
@@ -240,11 +305,14 @@ func verifyImportedImageFile(ctx context.Context, testCase *junitxml.TestCase, p
 		"osconfig_not_supported": {
 			Value: props.skipOSConfig,
 		},
+		"compute_service_account": {
+			Value: props.computeServiceAccount,
+		},
 	}
 
 	wf.Logger = logging.AsDaisyLogger(logger)
-	wf.Project = testProjectConfig.TestProjectID
-	wf.Zone = testProjectConfig.TestZone
+	wf.Project = testProjectID
+	wf.Zone = testZone
 	err = wf.Run(ctx)
 	if err != nil {
 		e2e.Failure(testCase, logger, fmt.Sprintf("Failed post translate test: %v\n", err))

@@ -32,6 +32,10 @@
     "import_subnet": {
       "Value": "",
       "Description": "SubNetwork to use for the import instance"
+    },
+    "compute_service_account": {
+      "Value": "default",
+      "Description": "Service account that will be used by the created worker instance"
     }
   },
   "Sources": {
@@ -74,7 +78,13 @@
               "subnetwork": "${import_subnet}"
             }
           ],
-          "StartupScript": "startup_script"
+          "StartupScript": "startup_script",
+          "ServiceAccounts": [
+            {
+              "Email": "${compute_service_account}",
+              "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"]
+            }
+          ]
         }
       ]
     },
@@ -85,7 +95,7 @@
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "TranslateSuccess:",
-            "FailureMatch": "TranslateFailed:",
+            "FailureMatch": ["TranslateFailed:", "Failed to download GCS path"],
             "StatusMatch": "TranslateStatus:"
           }
         }

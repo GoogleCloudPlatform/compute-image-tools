@@ -135,7 +135,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 				SerialOutput: &daisy.SerialOutput{
 					Port:         1,
 					SuccessMatch: "ImportSuccess:",
-					FailureMatch: []string{"ImportFailed:", "WARNING Failed to download metadata script"},
+					FailureMatch: []string{"ImportFailed:", "WARNING Failed to download metadata script", "Failed to download GCS path"},
 					StatusMatch:  "Import:",
 				},
 			},

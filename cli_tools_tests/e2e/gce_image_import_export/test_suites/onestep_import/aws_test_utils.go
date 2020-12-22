@@ -47,13 +47,14 @@ var (
 )
 
 type onestepImportAWSTestProperties struct {
-	imageName         string
-	amiID             string
-	sourceAMIFilePath string
-	os                string
-	timeout           string
-	startupScript     string
-	skipOSConfig      string
+	imageName             string
+	amiID                 string
+	sourceAMIFilePath     string
+	os                    string
+	timeout               string
+	startupScript         string
+	skipOSConfig          string
+	computeServiceAccount string
 }
 
 // setAWSAuth downloads AWS credentials and sets access keys.
@@ -90,7 +91,7 @@ func getAWSTemporaryCredentials() error {
 }
 
 // getAWSTestArgs assigns aws test variables from input variable map.
-func getAWSTestArgs(argMap map[string]string) bool {
+func getAWSTestArgs() bool {
 	for key, val := range argMap {
 		switch key {
 		case awsCredFlag:

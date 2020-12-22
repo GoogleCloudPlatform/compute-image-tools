@@ -70,6 +70,10 @@ func newBootableDiskProcessor(args ImportArguments, wfPath string) (processor, e
 		"import_network":       args.Network,
 	}
 
+	if args.ComputeServiceAccount != "" {
+		vars["compute_service_account"] = args.ComputeServiceAccount
+	}
+
 	workflow, err := daisycommon.ParseWorkflow(wfPath, vars,
 		args.Project, args.Zone, args.ScratchBucketGcsPath, args.Oauth, args.Timeout.String(),
 		args.ComputeEndpoint, args.GcsLogsDisabled, args.CloudLogsDisabled, args.StdoutLogsDisabled)

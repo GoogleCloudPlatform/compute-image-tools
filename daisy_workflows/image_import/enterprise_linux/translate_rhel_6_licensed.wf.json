@@ -32,6 +32,10 @@
     "import_subnet": {
       "Value": "",
       "Description": "SubNetwork to use for the import instance"
+    },
+    "compute_service_account": {
+      "Value": "default",
+      "Description": "Service account that will be used by the created worker instance"
     }
   },
   "Steps": {
@@ -56,7 +60,8 @@
           "imported_disk": "${source_disk}",
           "use_rhel_gce_license": "true",
           "import_network": "${import_network}",
-          "import_subnet": "${import_subnet}"
+          "import_subnet": "${import_subnet}",
+          "compute_service_account": "${compute_service_account}"
         }
       }
     },

@@ -31,35 +31,36 @@ import (
 // OneStepImportArguments holds the structured results of parsing CLI arguments,
 // and optionally allows for validating and populating the arguments.
 type OneStepImportArguments struct {
-	ClientID             string
-	ClientVersion        string
-	CloudLogsDisabled    bool
-	ComputeEndpoint      string
-	CustomWorkflow       string
-	DataDisk             bool
-	Description          string
-	ExecutablePath       string
-	Family               string
-	GcsLogsDisabled      bool
-	ImageName            string
-	Labels               map[string]string
-	Network              string
-	NoExternalIP         bool
-	NoGuestEnvironment   bool
-	Oauth                string
-	OS                   string
-	ProjectPtr           *string
-	Region               string
-	ScratchBucketGcsPath string
-	SourceFile           string
-	StdoutLogsDisabled   bool
-	StorageLocation      string
-	Subnet               string
-	SysprepWindows       bool
-	Timeout              time.Duration
-	TimeoutChan          chan struct{}
-	UefiCompatible       bool
-	Zone                 string
+	ClientID              string
+	ClientVersion         string
+	CloudLogsDisabled     bool
+	ComputeEndpoint       string
+	ComputeServiceAccount string
+	CustomWorkflow        string
+	DataDisk              bool
+	Description           string
+	ExecutablePath        string
+	Family                string
+	GcsLogsDisabled       bool
+	ImageName             string
+	Labels                map[string]string
+	Network               string
+	NoExternalIP          bool
+	NoGuestEnvironment    bool
+	Oauth                 string
+	OS                    string
+	ProjectPtr            *string
+	Region                string
+	ScratchBucketGcsPath  string
+	SourceFile            string
+	StdoutLogsDisabled    bool
+	StorageLocation       string
+	Subnet                string
+	SysprepWindows        bool
+	Timeout               time.Duration
+	TimeoutChan           chan struct{}
+	UefiCompatible        bool
+	Zone                  string
 
 	AWSAccessKeyID       string
 	AWSSecretAccessKey   string
@@ -161,6 +162,9 @@ func (args *OneStepImportArguments) registerFlags(flagSet *flag.FlagSet) {
 
 	flagSet.Var((*flags.TrimmedString)(&args.ComputeEndpoint), "compute_endpoint_override",
 		"API endpoint to override default.")
+
+	flagSet.Var((*flags.TrimmedString)(&args.ComputeServiceAccount), "compute_service_account",
+		"Compute service account to be used by importer Virtual Machine. When empty, the Compute Engine default service account is used.")
 
 	flagSet.BoolVar(&args.GcsLogsDisabled, "disable_gcs_logging", false,
 		"Do not store logs in GCS.")

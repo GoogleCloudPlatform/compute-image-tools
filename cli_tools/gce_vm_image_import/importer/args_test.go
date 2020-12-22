@@ -180,6 +180,13 @@ func TestTrimComputeEndpoint(t *testing.T) {
 		parseAndValidate(t, "-compute_endpoint_override", "  http://endpoint ").ComputeEndpoint)
 }
 
+func TestTrimComputeServiceAccount(t *testing.T) {
+	assert.Equal(t, "",
+		parseAndValidate(t, "-compute_service_account", " 	").ComputeServiceAccount)
+	assert.Equal(t, "email",
+		parseAndValidate(t, "-compute_service_account", " email	").ComputeServiceAccount)
+}
+
 func TestGcsLogsDisabled(t *testing.T) {
 	assert.False(t, parseAndValidate(t, "-disable_gcs_logging=false").GcsLogsDisabled)
 	assert.True(t, parseAndValidate(t, "-disable_gcs_logging=true").GcsLogsDisabled)
