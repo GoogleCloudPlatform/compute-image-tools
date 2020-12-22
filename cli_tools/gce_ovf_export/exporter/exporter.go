@@ -17,7 +17,6 @@ package ovfexporter
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
 	commondisk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
@@ -67,8 +66,8 @@ type OVFExporter struct {
 // such as compute/storage clients.
 func NewOVFExporter(params *ovfexportdomain.OVFExportArgs) (*OVFExporter, error) {
 	ctx := context.Background()
-	log.SetPrefix(logPrefix + " ")
 	logger := logging.NewToolLogger(logPrefix)
+	logging.RedirectGlobalLogsToUser(logger)
 	storageClient, err := storageutils.NewStorageClient(ctx, logger)
 	if err != nil {
 		return nil, err

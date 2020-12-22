@@ -17,6 +17,7 @@ package ovfexporter
 import (
 	"context"
 	"fmt"
+	"path"
 	"strconv"
 	"strings"
 
@@ -145,7 +146,7 @@ func (ide *instanceDisksExporterImpl) addExportDisksSteps(w *daisy.Workflow, ins
 			varMap["compute_service_account"] = params.ComputeServiceAccount
 		}
 		exportDiskStep.IncludeWorkflow = &daisy.IncludeWorkflow{
-			Path: params.WorkflowDir + "/export/disk_export_ext.wf.json",
+			Path: path.Join(params.WorkflowDir, "/export/disk_export_ext.wf.json"),
 			Vars: varMap,
 		}
 		w.Steps[exportDiskStepName] = exportDiskStep

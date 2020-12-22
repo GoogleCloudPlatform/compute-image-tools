@@ -53,7 +53,7 @@ func GetAllInstanceExportArgs() *OVFExportArgs {
 		GcsLogsDisabled:      true,
 		CloudLogsDisabled:    true,
 		StdoutLogsDisabled:   true,
-		ReleaseTrack:         "ga",
+		ReleaseTrack:         GA,
 		DiskExportFormat:     "vmdk",
 		Region:               TestRegion,
 	}
@@ -79,7 +79,7 @@ func GetAllMachineImageExportArgs() *OVFExportArgs {
 		GcsLogsDisabled:      true,
 		CloudLogsDisabled:    true,
 		StdoutLogsDisabled:   true,
-		ReleaseTrack:         "ga",
+		ReleaseTrack:         GA,
 		DiskExportFormat:     "vmdk",
 		OvfFormat:            "ovf",
 		Region:               TestRegion,
