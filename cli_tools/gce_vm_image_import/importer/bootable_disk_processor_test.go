@@ -20,10 +20,11 @@ import (
 	"path"
 	"testing"
 
-	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/stretchr/testify/assert"
+
+	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 var opensuse15workflow string
@@ -40,9 +41,9 @@ func TestBootableDiskProcessor_Process_WritesSourceDiskVar(t *testing.T) {
 	args := ImportArguments{
 		OS: "opensuse-15",
 	}
-	p, err := newBootableDiskProcessor(args, opensuse15workflow)
+	p, err := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()))
 	assert.NoError(t, err)
-	_, err = p.process(persistentDisk{uri: "uri"}, service.NewSingleImageImportLoggableBuilder())
+	_, err = p.process(persistentDisk{uri: "uri"})
 	assert.Equal(t, "uri", p.(*bootableDiskProcessor).workflow.Vars["source_disk"].Value)
 }
 
@@ -50,7 +51,7 @@ func TestBootableDiskProcessor_Process_WritesSourceDiskVar(t *testing.T) {
 // constructs the log prefix using the workflow's name.
 func TestBootableDiskProcessor_SetsWorkflowNameToGcloudPrefix(t *testing.T) {
 	args := defaultImportArgs()
-	processor, e := newBootableDiskProcessor(args, opensuse15workflow)
+	processor, e := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()))
 	assert.NoError(t, e)
 	assert.Equal(t, (processor.(*bootableDiskProcessor)).workflow.Name, "import-image")
 }
@@ -162,21 +163,9 @@ func TestBootableDiskProcessor_PermitsUnsetStorageLocation(t *testing.T) {
 	assert.Empty(t, image.StorageLocations)
 }
 
-func TestBootableDiskProcessor_SupportsSerialLogs(t *testing.T) {
-	expected := []string{"serials"}
-	args := defaultImportArgs()
-	translator, e := newBootableDiskProcessor(args, opensuse15workflow)
-	realTranslator := translator.(*bootableDiskProcessor)
-	realTranslator.workflow.Logger = daisyLogger{
-		serials: expected,
-	}
-	assert.NoError(t, e)
-	assert.Equal(t, expected, translator.traceLogs())
-}
-
 func TestBootableDiskProcessor_SupportsCancel(t *testing.T) {
 	args := defaultImportArgs()
-	processor, e := newBootableDiskProcessor(args, opensuse15workflow)
+	processor, e := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()))
 	assert.NoError(t, e)
 
 	realProcessor := processor.(*bootableDiskProcessor)
@@ -186,7 +175,7 @@ func TestBootableDiskProcessor_SupportsCancel(t *testing.T) {
 }
 
 func createAndRunPrePostFunctions(t *testing.T, args ImportArguments) *bootableDiskProcessor {
-	translator, e := newBootableDiskProcessor(args, opensuse15workflow)
+	translator, e := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()))
 	assert.NoError(t, e)
 	realTranslator := translator.(*bootableDiskProcessor)
 	// A concrete logger is required since the import/export logging framework writes a log entry

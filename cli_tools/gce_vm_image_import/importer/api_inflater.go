@@ -19,14 +19,16 @@ import (
 	"sync"
 	"time"
 
+	computeBeta "google.golang.org/api/compute/v0.beta"
+	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
+
 	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	computeBeta "google.golang.org/api/compute/v0.beta"
-	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func isCausedByUnsupportedFormat(err error) bool {
@@ -45,35 +47,27 @@ func isCausedByAlphaAPIAccess(err error) bool {
 
 // apiInflater implements `importer.inflater` using the Compute Engine API
 type apiInflater struct {
-	serialLogs      []string
 	args            ImportArguments
 	computeClient   daisyCompute.Client
 	storageClient   storage.Client
 	guestOsFeatures []*computeBeta.GuestOsFeature
 	wg              sync.WaitGroup
 	cancelChan      chan string
+	logger          logging.Logger
 }
 
-func createAPIInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client) Inflater {
+func createAPIInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client, logger logging.Logger) Inflater {
 	inflater := apiInflater{
-		serialLogs:    []string{},
 		args:          args,
 		computeClient: computeClient,
 		storageClient: storageClient,
 		cancelChan:    make(chan string, 1),
+		logger:        logger,
 	}
 	if args.UefiCompatible {
 		inflater.guestOsFeatures = []*computeBeta.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}}
 	}
 	return &inflater
-}
-
-func (inflater *apiInflater) TraceLogs() []string {
-	return inflater.serialLogs
-}
-
-func (inflater *apiInflater) addTraceLog(l string) {
-	inflater.serialLogs = append(inflater.serialLogs, l)
 }
 
 func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error) {
@@ -132,7 +126,7 @@ func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error)
 	}
 
 	// Calculate checksum by daisy workflow
-	inflater.addTraceLog("Started checksum calculation.")
+	inflater.logger.Debug("Started checksum calculation.")
 	ii.checksum, err = inflater.calculateChecksum(ctx, diskURI)
 	if err != nil {
 		err = daisy.Errf("Failed to calculate checksum: %v", err)
@@ -156,13 +150,13 @@ func (inflater *apiInflater) Cancel(reason string) bool {
 	_, err := inflater.computeClient.GetDisk(inflater.args.Project, inflater.args.Zone, inflater.getShadowDiskName())
 	if apiErr, ok := err.(*googleapi.Error); !ok || apiErr.Code != 404 {
 		if err == nil {
-			inflater.addTraceLog(fmt.Sprintf("apiInflater.inflate is canceled, cleanup is failed: %v", reason))
+			inflater.logger.Debug(fmt.Sprintf("apiInflater.inflate is canceled, cleanup is failed: %v", reason))
 		} else {
-			inflater.addTraceLog(fmt.Sprintf("apiInflater.inflate is canceled, cleanup failed to verify: %v", reason))
+			inflater.logger.Debug(fmt.Sprintf("apiInflater.inflate is canceled, cleanup failed to verify: %v", reason))
 		}
 		return false
 	}
-	inflater.addTraceLog(fmt.Sprintf("apiInflater.inflate is canceled: %v", reason))
+	inflater.logger.Debug(fmt.Sprintf("apiInflater.inflate is canceled: %v", reason))
 	return true
 }
 

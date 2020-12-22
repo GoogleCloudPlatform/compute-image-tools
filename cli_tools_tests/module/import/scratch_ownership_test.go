@@ -34,6 +34,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/googleapi"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/cli"
 )
 
@@ -118,7 +119,7 @@ func Test_DeleteSourceFile_WhenScratchOwnedByDifferentProject(t *testing.T) {
 				"-scratch_bucket_gcs_path", tt.scratch.toURI(),
 				"-project", project,
 				"-zone", zone,
-			})
+			}, logging.NewToolLogger(t.Name()), "")
 
 			// The import should always fail if the scratch bucket
 			// is owned by a different project.
@@ -197,7 +198,7 @@ func Test_DontRecursivelyDelete(t *testing.T) {
 				"-scratch_bucket_gcs_path", "gs://" + sharedBucket,
 				"-project", project,
 				"-zone", zone,
-			})
+			}, logging.NewToolLogger(t.Name()), "")
 
 			// The import should always fail if the scratch bucket
 			// is owned by a different project.
@@ -232,7 +233,7 @@ func Test_DeleteSourceFile_WhenAnotherFileHasSamePrefix(t *testing.T) {
 		"-scratch_bucket_gcs_path", scratch.toURI(),
 		"-project", project,
 		"-zone", zone,
-	})
+	}, logging.NewToolLogger(t.Name()), "")
 
 	assert.Error(t, err)
 

@@ -15,7 +15,7 @@
 package importer
 
 import (
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
@@ -26,8 +26,7 @@ import (
 // Implementers can expose detailed logs using the traceLogs() method.
 type processor interface {
 	// Returns a pd with updated values. It can be a different pd with different URI.
-	process(persistentDisk, *service.SingleImageImportLoggableBuilder) (persistentDisk, error)
-	traceLogs() []string
+	process(persistentDisk) (persistentDisk, error)
 	cancel(reason string) bool
 }
 
@@ -40,6 +39,7 @@ type defaultProcessorProvider struct {
 	ImportArguments
 	computeClient daisyCompute.Client
 	planner       processPlanner
+	logger        logging.Logger
 }
 
 func (d defaultProcessorProvider) provide(pd persistentDisk) ([]processor, error) {
@@ -64,7 +64,7 @@ func (d defaultProcessorProvider) provide(pd persistentDisk) ([]processor, error
 		processors = append(processors, p)
 	}
 
-	bootableDiskProcessor, err := newBootableDiskProcessor(d.ImportArguments, plan.translationWorkflowPath)
+	bootableDiskProcessor, err := newBootableDiskProcessor(d.ImportArguments, plan.translationWorkflowPath, d.logger)
 	if err != nil {
 		return nil, err
 	}

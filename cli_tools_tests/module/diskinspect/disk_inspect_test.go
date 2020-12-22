@@ -17,22 +17,22 @@ package diskinspect
 import (
 	"context"
 	"fmt"
-	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
-	"github.com/google/go-cmp/cmp"
-	"google.golang.org/protobuf/testing/protocmp"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
-
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
-	"github.com/GoogleCloudPlatform/compute-image-tools/common/runtime"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
+	"github.com/GoogleCloudPlatform/compute-image-tools/common/runtime"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
 
 const (
@@ -328,7 +328,7 @@ func TestInspectDisk(t *testing.T) {
 				Project:           project,
 				Zone:              zone,
 				WorkflowDirectory: workflowDir,
-			}, defaultNetwork, defaultSubnet, "")
+			}, defaultNetwork, defaultSubnet, "", logging.NewToolLogger(t.Name()))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -397,7 +397,7 @@ func TestInspectionWorksWithNonDefaultNetwork(t *testing.T) {
 				Project:           "compute-image-test-custom-vpc",
 				Zone:              zone,
 				WorkflowDirectory: workflowDir,
-			}, currentTest.network, currentTest.subnet, "")
+			}, currentTest.network, currentTest.subnet, "", logging.NewToolLogger(t.Name()))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -464,7 +464,7 @@ func makeClientAndInspector(t *testing.T, project string) (daisycompute.Client, 
 		Project:           project,
 		Zone:              zone,
 		WorkflowDirectory: workflowDir,
-	}, defaultNetwork, defaultSubnet, "")
+	}, defaultNetwork, defaultSubnet, "", logging.NewToolLogger(t.Name()))
 	if err != nil {
 		t.Fatal(err)
 	}

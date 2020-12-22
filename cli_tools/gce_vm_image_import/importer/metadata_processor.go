@@ -19,11 +19,11 @@ import (
 	"log"
 	"strings"
 
+	"google.golang.org/api/compute/v1"
+
 	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"google.golang.org/api/compute/v1"
 )
 
 // metadataProcessor ensures metadata is present on a GCP disk. If
@@ -43,8 +43,7 @@ func newMetadataProcessor(
 	return &metadataProcessor{project: project, zone: zone, computeDiskClient: computeDiskClient}
 }
 
-func (p *metadataProcessor) process(pd persistentDisk,
-	loggableBuilder *service.SingleImageImportLoggableBuilder) (persistentDisk, error) {
+func (p *metadataProcessor) process(pd persistentDisk) (persistentDisk, error) {
 
 	// Fast path 1: No modification requested.
 	if len(p.requiredFeatures) == 0 && len(p.requiredLicenses) == 0 {
@@ -141,8 +140,4 @@ func hasGuestOSFeature(existingDisk *compute.Disk, feature *compute.GuestOsFeatu
 func (p *metadataProcessor) cancel(reason string) bool {
 	// Cancel is not performed since there is only one critical API call - CreateDisk
 	return false
-}
-
-func (p *metadataProcessor) traceLogs() []string {
-	return []string{}
 }

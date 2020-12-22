@@ -17,7 +17,10 @@ package cli
 import (
 	"context"
 	"fmt"
+
 	"google.golang.org/api/option"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/files"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
@@ -28,8 +31,7 @@ import (
 )
 
 // Main starts an image import.
-func Main(args []string) error {
-	toolLogger := logging.NewToolLogger(fmt.Sprintf("[%s]", importer.LogPrefix))
+func Main(args []string, toolLogger logging.ToolLogger, workflowDir string) error {
 	logging.RedirectGlobalLogsToUser(toolLogger)
 
 	ctx := context.Background()
@@ -37,7 +39,7 @@ func Main(args []string) error {
 	// 1. Parse the args without validating or populating. Splitting parsing and
 	// validation allows us to log the intermediate, non-validated values, if
 	// there's an error setting up dependencies.
-	importArgs, err := importer.NewImportArguments(args)
+	importArgs, err := importer.NewImportArguments(args, files.MakeAbsolute(workflowDir))
 	if err != nil {
 		logFailure(importArgs, err)
 		return err
@@ -71,14 +73,15 @@ func Main(args []string) error {
 		return err
 	}
 
-	importRunner, err := importer.NewImporter(importArgs, computeClient, *storageClient)
+	importRunner, err := importer.NewImporter(importArgs, computeClient, *storageClient, toolLogger)
 	if err != nil {
 		logFailure(importArgs, err)
 		return err
 	}
 
 	importClosure := func() (service.Loggable, error) {
-		return importRunner.Run(ctx)
+		err := importRunner.Run(ctx)
+		return service.NewOutputInfoLoggable(toolLogger.ReadOutputInfo()), err
 	}
 
 	project := importArgs.Project

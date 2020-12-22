@@ -15,11 +15,33 @@
 package files
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 )
 
-// Exists returns where filename references an existing file.
-func Exists(filename string) bool {
-	_, err := os.Stat(filename)
+// DirectoryExists returns whether dir references an existing directory.
+func DirectoryExists(dir string) bool {
+	stat, err := os.Stat(dir)
+	return !os.IsNotExist(err) && stat.IsDir()
+}
+
+// Exists returns whether path references an existing file or directory.
+func Exists(path string) bool {
+	_, err := os.Stat(path)
 	return !os.IsNotExist(err)
+}
+
+// MakeAbsolute converts path to absolute, relative to the process's current working directory.
+// Panics if path isn't found.
+func MakeAbsolute(path string) string {
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	abs := filepath.Join(wd, path)
+	if !Exists(abs) {
+		panic(fmt.Sprintf("%s: File not found", path))
+	}
+	return abs
 }

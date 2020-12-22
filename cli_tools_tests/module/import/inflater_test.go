@@ -32,10 +32,6 @@ import (
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
-const (
-	workflowDir = "../../../daisy_workflows"
-)
-
 func TestDaisyInflater_SupportsImages_LargerThanDefaultDiskSize(t *testing.T) {
 	// The default GCE disk is 10 GB. This test ensures the following:
 	//  1. The worker resizes the destination disk to fit the image's virtual size.
@@ -132,7 +128,7 @@ func runDaisyInflate(t *testing.T, fileURI string) string {
 		Timeout:     time.Hour,
 		Zone:        zone,
 	}
-	inflater, err := importer.NewDaisyInflater(args, imagefile.NewGCSInspector())
+	inflater, err := importer.NewDaisyInflater(args, imagefile.NewGCSInspector(), logging.NewToolLogger("TODO"))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -21,8 +21,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 	"github.com/golang/protobuf/proto"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
 
 // Logger is a logger for CLI tools. It supports
@@ -68,7 +69,7 @@ func (l redirectShim) Write(p []byte) (n int, err error) {
 
 // OutputInfoReader exposes pb.OutputInfo to a consumer.
 type OutputInfoReader interface {
-	read() *pb.OutputInfo
+	ReadOutputInfo() *pb.OutputInfo
 }
 
 // ToolLogger implements Logger and OutputInfoReader. Create an instance at the
@@ -158,7 +159,7 @@ func (l *defaultToolLogger) Metric(metric *pb.OutputInfo) {
 //     member of OutputInfo.SerialLogs; each trace log is a separate member.
 // All buffers are cleared when this is called. In other words, a subsequent call to
 // ReadOutputInfo will return an empty object.
-func (l *defaultToolLogger) read() *pb.OutputInfo {
+func (l *defaultToolLogger) ReadOutputInfo() *pb.OutputInfo {
 	// Locking since ReadOutputInfo has a side effect of clearing the internal state.
 	l.mutationLock.Lock()
 	defer l.mutationLock.Unlock()

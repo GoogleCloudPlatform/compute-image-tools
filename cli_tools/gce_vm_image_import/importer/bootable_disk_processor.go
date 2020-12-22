@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
@@ -29,10 +29,10 @@ import (
 type bootableDiskProcessor struct {
 	args     ImportArguments
 	workflow *daisy.Workflow
+	logger   logging.Logger
 }
 
-func (b *bootableDiskProcessor) process(pd persistentDisk,
-	loggableBuilder *service.SingleImageImportLoggableBuilder) (persistentDisk, error) {
+func (b *bootableDiskProcessor) process(pd persistentDisk) (persistentDisk, error) {
 
 	b.workflow.AddVar("source_disk", pd.uri)
 	var err error
@@ -44,6 +44,11 @@ func (b *bootableDiskProcessor) process(pd persistentDisk,
 			b.workflow.GetSerialConsoleOutputValue("detected_major_version"),
 			b.workflow.GetSerialConsoleOutputValue("detected_minor_version"), err)
 	}
+	if b.workflow.Logger != nil {
+		for _, trace := range b.workflow.Logger.ReadSerialPortLogs() {
+			b.logger.Trace(trace)
+		}
+	}
 	return pd, err
 }
 
@@ -52,14 +57,7 @@ func (b *bootableDiskProcessor) cancel(reason string) bool {
 	return true
 }
 
-func (b *bootableDiskProcessor) traceLogs() []string {
-	if b.workflow.Logger != nil {
-		return b.workflow.Logger.ReadSerialPortLogs()
-	}
-	return []string{}
-}
-
-func newBootableDiskProcessor(args ImportArguments, wfPath string) (processor, error) {
+func newBootableDiskProcessor(args ImportArguments, wfPath string, logger logging.Logger) (processor, error) {
 	vars := map[string]string{
 		"image_name":           args.ImageName,
 		"install_gce_packages": strconv.FormatBool(!args.NoGuestEnvironment),
@@ -89,6 +87,7 @@ func newBootableDiskProcessor(args ImportArguments, wfPath string) (processor, e
 	return &bootableDiskProcessor{
 		args:     args,
 		workflow: workflow,
+		logger:   logger,
 	}, err
 }
 

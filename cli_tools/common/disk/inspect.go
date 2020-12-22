@@ -26,6 +26,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
@@ -41,15 +42,13 @@ type Inspector interface {
 	// returns an InspectionResult. The reference is implementation specific.
 	Inspect(reference string, inspectOS bool) (*pb.InspectionResults, error)
 	Cancel(reason string) bool
-	TraceLogs() []string
 }
 
 // NewInspector creates an Inspector that can inspect GCP disks.
 // A GCE instance runs the inspection; network and subnet are used
 // for its network interface.
 func NewInspector(wfAttributes daisycommon.WorkflowAttributes, network string, subnet string,
-	computeServiceAccount string) (Inspector, error) {
-
+	computeServiceAccount string, logger logging.Logger) (Inspector, error) {
 	wf, err := daisy.NewFromFile(path.Join(wfAttributes.WorkflowDirectory, workflowFile))
 	if err != nil {
 		return nil, err
@@ -60,26 +59,19 @@ func NewInspector(wfAttributes daisycommon.WorkflowAttributes, network string, s
 	if computeServiceAccount != "" {
 		wf.AddVar("compute_service_account", computeServiceAccount)
 	}
-	return &bootInspector{[]string{}, daisycommon.NewDaisyWorker(wf)}, nil
+	return &bootInspector{daisycommon.NewDaisyWorker(wf, logger), logger}, nil
 }
 
 // bootInspector implements disk.Inspector using the Python boot-inspect package,
 // executed on a worker VM using Daisy.
 type bootInspector struct {
-	traceLogs []string
-	worker    daisycommon.DaisyWorker
+	worker daisycommon.DaisyWorker
+	logger logging.Logger
 }
 
 func (i *bootInspector) Cancel(reason string) bool {
-	i.tracef("Canceling with reason: %q", reason)
+	i.logger.Debug(fmt.Sprintf("Canceling inspection with reason: %q", reason))
 	return i.worker.Cancel(reason)
-}
-
-func (i *bootInspector) TraceLogs() []string {
-	var combined []string
-	combined = append(combined, i.traceLogs...)
-	combined = append(combined, i.worker.TraceLogs()...)
-	return combined
 }
 
 // Inspect finds partition and boot-related properties for a GCP persistent disk, and
@@ -108,7 +100,7 @@ func (i *bootInspector) Inspect(reference string, inspectOS bool) (*pb.Inspectio
 	if err != nil {
 		return i.assembleErrors(reference, results, pb.InspectionResults_DECODING_WORKER_RESPONSE, err, startTime)
 	}
-	i.tracef("Detection results: %s", results.String())
+	i.logger.Debug(fmt.Sprintf("Detection results: %s", results.String()))
 
 	// Validate the results.
 	if err = i.validate(results); err != nil {
@@ -120,12 +112,8 @@ func (i *bootInspector) Inspect(reference string, inspectOS bool) (*pb.Inspectio
 	}
 
 	results.ElapsedTimeMs = time.Now().Sub(startTime).Milliseconds()
+	i.logger.Metric(&pb.OutputInfo{InspectionResults: results})
 	return results, nil
-}
-
-// tracef formats according to a format specifier and appends the results to the trace logs.
-func (i *bootInspector) tracef(format string, a ...interface{}) {
-	i.traceLogs = append(i.traceLogs, fmt.Sprintf(format, a...))
 }
 
 // assembleErrors sets the errorWhen field, and generates an error object.
@@ -194,8 +182,9 @@ func (i *bootInspector) populate(results *pb.InspectionResults) error {
 		version, err := distro.FromComponents(distroName, major, minor,
 			results.OsRelease.Architecture.String())
 		if err != nil {
-			i.tracef("Failed to interpret version distro=%q, major=%q, minor=%q: %v",
-				distroEnum, major, minor, err)
+			i.logger.Trace(
+				fmt.Sprintf("Failed to interpret version distro=%q, major=%q, minor=%q: %v",
+					distroEnum, major, minor, err))
 		} else {
 			results.OsRelease.CliFormatted = version.AsGcloudArg()
 		}

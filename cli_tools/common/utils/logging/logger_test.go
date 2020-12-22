@@ -22,12 +22,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pbtesting"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -157,10 +158,10 @@ func Test_DefaultToolLogger_UserAndDebugInterleave(t *testing.T) {
 			tt.logCalls(logger)
 			assert.Equal(t, tt.expectedLogs, written.String())
 			if tt.expectedLogs == "" {
-				assert.Nil(t, logger.read().SerialOutputs,
+				assert.Nil(t, logger.ReadOutputInfo().SerialOutputs,
 					"Only append SerialLog when there were logs written.")
 			} else {
-				assert.Equal(t, []string{tt.expectedLogs}, logger.read().SerialOutputs,
+				assert.Equal(t, []string{tt.expectedLogs}, logger.ReadOutputInfo().SerialOutputs,
 					"Create a single SerialOutput member containing all debug and user logs.")
 			}
 		})
@@ -178,7 +179,7 @@ func Test_DefaultToolLogger_Metric_MergesNestedStruct(t *testing.T) {
 			ErrorWhen: pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS,
 		},
 	}
-	pbtesting.AssertEqual(t, expected, logger.read())
+	pbtesting.AssertEqual(t, expected, logger.ReadOutputInfo())
 }
 
 func Test_DefaultToolLogger_Metric_AppendsSlices(t *testing.T) {
@@ -187,7 +188,7 @@ func Test_DefaultToolLogger_Metric_AppendsSlices(t *testing.T) {
 	logger.Metric(&pb.OutputInfo{InflationTimeMs: []int64{40}})
 	expected := &pb.OutputInfo{InflationTimeMs: []int64{30, 40}}
 
-	pbtesting.AssertEqual(t, expected, logger.read())
+	pbtesting.AssertEqual(t, expected, logger.ReadOutputInfo())
 }
 
 func Test_DefaultToolLogger_Metric_DoesntClobberSingleValuesWithDefaultValues(t *testing.T) {
@@ -195,7 +196,7 @@ func Test_DefaultToolLogger_Metric_DoesntClobberSingleValuesWithDefaultValues(t 
 	logger.Metric(&pb.OutputInfo{IsUefiDetected: true})
 	logger.Metric(&pb.OutputInfo{InflationType: "api"})
 	expected := &pb.OutputInfo{IsUefiDetected: true, InflationType: "api"}
-	pbtesting.AssertEqual(t, expected, logger.read())
+	pbtesting.AssertEqual(t, expected, logger.ReadOutputInfo())
 }
 
 func TestToolLogger_ReadOutputInfo_ClearsState(t *testing.T) {
@@ -205,14 +206,14 @@ func TestToolLogger_ReadOutputInfo_ClearsState(t *testing.T) {
 	logger.Metric(&pb.OutputInfo{IsUefiDetected: true})
 	logger.User("hi")
 	logger.Trace("trace")
-	firstRead := logger.read()
+	firstRead := logger.ReadOutputInfo()
 	pbtesting.AssertEqual(t, &pb.OutputInfo{
 		IsUefiDetected: true,
 		SerialOutputs:  []string{"[user]: 2009-11-10T23:10:15Z hi\n", "trace"},
 	}, firstRead)
 
 	// 2. On second read, the buffers should be cleared.
-	secondRead := logger.read()
+	secondRead := logger.ReadOutputInfo()
 	pbtesting.AssertEqual(t, &pb.OutputInfo{}, secondRead)
 
 	// 3. Use the logger again and verify that the new information is kept.
@@ -220,7 +221,7 @@ func TestToolLogger_ReadOutputInfo_ClearsState(t *testing.T) {
 	logger.User("hi 1")
 	logger.Trace("trace 1")
 
-	thirdRead := logger.read()
+	thirdRead := logger.ReadOutputInfo()
 	pbtesting.AssertEqual(t, &pb.OutputInfo{
 		InflationType: "daisy",
 		SerialOutputs: []string{"[user]: 2009-11-10T23:10:15Z hi 1\n", "trace 1"},

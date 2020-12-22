@@ -16,6 +16,8 @@ package assert
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -95,6 +97,45 @@ func TestContains(t *testing.T) {
 				})
 			} else {
 				Contains(tt.element, tt.arr)
+			}
+		})
+	}
+}
+
+func TestDirectoryExists(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("", "")
+	assert.NoError(t, err)
+	tmpFileObj, err := ioutil.TempFile("", "*.txt")
+	assert.NoError(t, err)
+	tmpFile := tmpFileObj.Name()
+	tests := []struct {
+		name        string
+		dir         string
+		expectPanic string
+	}{
+		{
+			name: "Don't panic when directory exists",
+			dir:  tmpDir,
+		},
+		{
+			name:        "Panic when dir doesn't exist",
+			dir:         path.Join(tmpDir, "dir-doesn't-exist"),
+			expectPanic: fmt.Sprintf("%s/dir-doesn't-exist: Directory not found", tmpDir),
+		},
+		{
+			name:        "Panic when dir is a file",
+			dir:         tmpFile,
+			expectPanic: fmt.Sprintf("%v: Directory not found", tmpFile),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.expectPanic != "" {
+				assert.PanicsWithValue(t, tt.expectPanic, func() {
+					DirectoryExists(tt.dir)
+				})
+			} else {
+				DirectoryExists(tt.dir)
 			}
 		})
 	}

@@ -16,17 +16,120 @@ package files
 
 import (
 	"io/ioutil"
+	"os"
+	"path"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestExists_FileFound(t *testing.T) {
-	f, err := ioutil.TempFile("", "")
-	assert.NoError(t, err)
-	assert.True(t, Exists(f.Name()))
+func TestExists(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		expected bool
+	}{
+		{
+			name:     "Return true when directory exists",
+			path:     makeTempDir(t),
+			expected: true,
+		},
+		{
+			name:     "Return true when file exists",
+			path:     makeTempFile(t),
+			expected: true,
+		},
+		{
+			name: "Return false when file not found",
+			path: makeNotExistantFile(t),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, Exists(tt.path))
+		})
+	}
 }
 
-func TestExists_FileNotFound(t *testing.T) {
-	assert.False(t, Exists("/z/zzzzzzzzzzzz"))
+func TestDirectoryExists(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		expected bool
+	}{
+		{
+			name:     "Return true when directory exists",
+			path:     makeTempDir(t),
+			expected: true,
+		},
+		{
+			name: "Return true when path is a file",
+			path: makeTempFile(t),
+		},
+		{
+			name: "Return false when path not found",
+			path: makeNotExistantFile(t),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, DirectoryExists(tt.path))
+		})
+	}
+}
+
+func TestAbsolute_HappyCase(t *testing.T) {
+	// Return to the test directory after running the test.
+	curr, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(curr)
+
+	// Change to a temporary directory, and write a file.
+	tmpDir := makeTempDir(t)
+	err = os.Chdir(tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = os.Create("tmp.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := path.Join(tmpDir, "tmp.txt")
+	actual := MakeAbsolute("tmp.txt")
+	assert.Equal(t, expected, actual)
+}
+
+func TestAbsolute_PanicWhenTargetDoesntExist(t *testing.T) {
+	assert.Panics(t, func() {
+		MakeAbsolute(makeNotExistantFile(t))
+	})
+}
+
+// makeNotExistantFile returns a filesystem path that is guaranteed to *not* point to a file.
+func makeNotExistantFile(t *testing.T) string {
+	notAFile := uuid.New().String()
+	_, err := os.Stat(notAFile)
+	if !os.IsNotExist(err) {
+		t.Fatalf("Expected %s to not exist", notAFile)
+	}
+	return notAFile
+}
+
+// makeTempFile returns the path to a new file in a temporary directory.
+func makeTempFile(t *testing.T) string {
+	tmpFileObj, err := ioutil.TempFile("", "*.txt")
+	assert.NoError(t, err)
+	tmpFile := tmpFileObj.Name()
+	return tmpFile
+}
+
+// makeTempDir returns the path to a new temporary directory.
+func makeTempDir(t *testing.T) string {
+	tmpDir, err := ioutil.TempDir("", "")
+	assert.NoError(t, err)
+	return tmpDir
 }

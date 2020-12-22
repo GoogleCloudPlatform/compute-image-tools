@@ -20,3 +20,7 @@ var (
 	project = runtime.GetConfig("GOOGLE_CLOUD_PROJECT", "project")
 	zone    = runtime.GetConfig("GOOGLE_CLOUD_ZONE", "compute/zone")
 )
+
+const (
+	workflowDir = "../../../daisy_workflows"
+)

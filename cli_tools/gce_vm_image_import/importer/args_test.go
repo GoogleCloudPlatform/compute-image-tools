@@ -53,7 +53,7 @@ func TestFailOnLabelSyntaxError(t *testing.T) {
 
 func TestPopulateStorageLocationIfMissing(t *testing.T) {
 	args := []string{"-image_name=i", "-client_id=c", "-data_disk"}
-	actual, err := NewImportArguments(args)
+	actual, err := NewImportArguments(args, "")
 	assert.NoError(t, err)
 	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:            "us-west2-a",
@@ -66,10 +66,6 @@ func TestPopulateStorageLocationIfMissing(t *testing.T) {
 
 func TestTrimAndLowerStorageLocation(t *testing.T) {
 	assert.Equal(t, "eu", parseAndValidate(t, "-storage_location", "  EU  ").StorageLocation)
-}
-
-func TestPopulateWorkflowDir(t *testing.T) {
-	assert.Regexp(t, ".*/daisy_workflows", parseAndValidate(t).WorkflowDir)
 }
 
 func TestFailWhenClientIdMissing(t *testing.T) {
@@ -90,7 +86,7 @@ func TestTrimProject(t *testing.T) {
 
 func TestPopulateProjectIfMissing(t *testing.T) {
 	args := []string{"-image_name=i", "-client_id=c", "-data_disk"}
-	actual, err := NewImportArguments(args)
+	actual, err := NewImportArguments(args, "")
 	assert.NoError(t, err)
 	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:    "us-west2-a",
@@ -115,7 +111,7 @@ func TestTrimAndLowerZone(t *testing.T) {
 
 func TestPopulateZoneIfMissing(t *testing.T) {
 	args := []string{"-image_name=i", "-client_id=c", "-data_disk"}
-	actual, err := NewImportArguments(args)
+	actual, err := NewImportArguments(args, "")
 	assert.NoError(t, err)
 	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:   "us-west2-a",
@@ -127,7 +123,7 @@ func TestPopulateZoneIfMissing(t *testing.T) {
 
 func TestPopulateRegion(t *testing.T) {
 	args := []string{"-image_name=i", "-client_id=c", "-data_disk"}
-	actual, err := NewImportArguments(args)
+	actual, err := NewImportArguments(args, "")
 	assert.NoError(t, err)
 	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:   "us-west2-a",
@@ -268,7 +264,7 @@ func TestTrimSourceImage(t *testing.T) {
 
 func TestSourceObjectFromSourceImage(t *testing.T) {
 	args := []string{"-source_image", "path/source-image", "-image_name=i", "-client_id=c", "-data_disk"}
-	actual, err := NewImportArguments(args)
+	actual, err := NewImportArguments(args, "")
 	assert.NoError(t, err)
 	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:          "us-west2-a",
@@ -285,7 +281,7 @@ func TestSourceObjectFromSourceImage(t *testing.T) {
 
 func TestSourceObjectFromSourceFile(t *testing.T) {
 	args := []string{"-source_file", "gs://path/file", "-image_name=i", "-client_id=c", "-data_disk"}
-	actual, err := NewImportArguments(args)
+	actual, err := NewImportArguments(args, "")
 	assert.NoError(t, err)
 	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:          "us-west2-a",
@@ -302,7 +298,7 @@ func TestSourceObjectFromSourceFile(t *testing.T) {
 
 func TestErrorWhenSourceValidationFails(t *testing.T) {
 	args := []string{"-image_name=i", "-client_id=c", "-data_disk"}
-	actual, err := NewImportArguments(args)
+	actual, err := NewImportArguments(args, "")
 	assert.NoError(t, err)
 	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:          "us-west2-a",
@@ -518,19 +514,19 @@ func parse(t *testing.T, args ...string) ImportArguments {
 		args = append(args, "-image_name=name")
 	}
 
-	actual, err := NewImportArguments(args)
+	actual, err := NewImportArguments(args, "")
 	assert.NoError(t, err)
 	return actual
 }
 
 func expectFailedParse(t *testing.T, args ...string) error {
-	_, err := NewImportArguments(args)
+	_, err := NewImportArguments(args, "")
 	assert.Error(t, err)
 	return err
 }
 
 func expectFailedValidation(t *testing.T, args ...string) error {
-	actual, err := NewImportArguments(args)
+	actual, err := NewImportArguments(args, "")
 	assert.NoError(t, err)
 	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:   "us-west2-a",
