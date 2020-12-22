@@ -73,5 +73,6 @@ func RegisterFlags(ovfExportArgs *ovfexportdomain.OVFExportArgs, args []string) 
 		fmt.Sprintf("Release track of OVF export. One of: %s, %s or %s. Impacts which compute API release track is used by the export tool.", ovfexportdomain.Alpha, ovfexportdomain.Beta, ovfexportdomain.GA))
 	flagSet.Var((*flags.TrimmedString)(&ovfExportArgs.BuildID), "build-id",
 		"Cloud Build ID override. This flag should be used if auto-generated or build ID provided by Cloud Build is not appropriate. For example, if running multiple exports in parallel in a single Cloud Build run, sharing build ID could cause premature temporary resource clean-up resulting in export failures.")
+	flagSet.Var((*flags.TrimmedString)(&ovfExportArgs.ComputeServiceAccount), "compute-service-account", "Compute service account to be used by exporter Virtual Machine. When empty, the Compute Engine default service account is used.")
 	return flagSet.Parse(args)
 }

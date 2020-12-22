@@ -87,7 +87,7 @@ func NewOVFExporter(params *ovfexportdomain.OVFExportArgs) (*OVFExporter, error)
 	if err := validateAndPopulateParams(params, paramValidator, paramPopulator); err != nil {
 		return nil, err
 	}
-	inspector, err := commondisk.NewInspector(params.DaisyAttrs(), params.Network, params.Subnet)
+	inspector, err := commondisk.NewInspector(params.DaisyAttrs(), params.Network, params.Subnet, params.ComputeServiceAccount)
 	if err != nil {
 		return nil, daisy.Errf("Error creating disk inspector: %v", err)
 	}

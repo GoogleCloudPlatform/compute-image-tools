@@ -65,26 +65,27 @@ type OVFExportArgs struct {
 	MachineImageName string
 
 	// Common args
-	ClientID             string
-	ClientVersion        string
-	DestinationURI       string
-	OvfFormat            string
-	DiskExportFormat     string
-	OsID                 string
-	Network              string
-	Subnet               string
-	NoExternalIP         bool
-	Zone                 string
-	Timeout              time.Duration
-	Project              string
-	ScratchBucketGcsPath string
-	Oauth                string
-	Ce                   string
-	GcsLogsDisabled      bool
-	CloudLogsDisabled    bool
-	StdoutLogsDisabled   bool
-	ReleaseTrack         string
-	BuildID              string
+	ClientID              string
+	ClientVersion         string
+	DestinationURI        string
+	OvfFormat             string
+	DiskExportFormat      string
+	OsID                  string
+	Network               string
+	Subnet                string
+	NoExternalIP          bool
+	Zone                  string
+	Timeout               time.Duration
+	Project               string
+	ScratchBucketGcsPath  string
+	Oauth                 string
+	Ce                    string
+	GcsLogsDisabled       bool
+	CloudLogsDisabled     bool
+	StdoutLogsDisabled    bool
+	ReleaseTrack          string
+	BuildID               string
+	ComputeServiceAccount string
 
 	// Non-args
 	WorkflowDir string

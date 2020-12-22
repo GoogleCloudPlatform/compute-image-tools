@@ -128,20 +128,25 @@ func (ide *instanceDisksExporterImpl) addExportDisksSteps(w *daisy.Workflow, ins
 		)
 		exportDiskStepName = strings.Trim(exportDiskStepName, "-")
 		exportDiskStep := daisy.NewStepDefaultTimeout(exportDiskStepName, w)
+
+		varMap := map[string]string{
+			"source_disk":                diskPath,
+			"destination":                exportedDiskGCSPath,
+			"format":                     params.DiskExportFormat,
+			"export_instance_disk_image": "projects/compute-image-tools/global/images/family/debian-9-worker",
+			"export_instance_disk_size":  "200",
+			"export_instance_disk_type":  "pd-ssd",
+			"export_network":             params.Network,
+			"export_subnet":              params.Subnet,
+			"export_disk_ext.sh":         "../export/export_disk_ext.sh",
+			"disk_resizing_mon.sh":       "../export/disk_resizing_mon.sh",
+		}
+		if params.ComputeServiceAccount != "" {
+			varMap["compute_service_account"] = params.ComputeServiceAccount
+		}
 		exportDiskStep.IncludeWorkflow = &daisy.IncludeWorkflow{
 			Path: params.WorkflowDir + "/export/disk_export_ext.wf.json",
-			Vars: map[string]string{
-				"source_disk":                diskPath,
-				"destination":                exportedDiskGCSPath,
-				"format":                     params.DiskExportFormat,
-				"export_instance_disk_image": "projects/compute-image-tools/global/images/family/debian-9-worker",
-				"export_instance_disk_size":  "200",
-				"export_instance_disk_type":  "pd-ssd",
-				"export_network":             params.Network,
-				"export_subnet":              params.Subnet,
-				"export_disk_ext.sh":         "../export/export_disk_ext.sh",
-				"disk_resizing_mon.sh":       "../export/disk_resizing_mon.sh",
-			},
+			Vars: varMap,
 		}
 		w.Steps[exportDiskStepName] = exportDiskStep
 	}
