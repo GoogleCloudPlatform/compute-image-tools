@@ -20,7 +20,8 @@ import (
 	"strings"
 
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
-	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
 )
@@ -29,14 +30,14 @@ type instanceExportCleanerImpl struct {
 	wf               *daisy.Workflow
 	attachDiskWfs    []*daisy.Workflow
 	startInstanceWf  *daisy.Workflow
-	serialLogs       []string
+	logger           logging.Logger
 	wfPreRunCallback wfCallback
 }
 
 // NewInstanceExportCleaner creates a new instance export cleaner which is
 // responsible for bringing the exported VM back to its pre-export state
-func NewInstanceExportCleaner() ovfexportdomain.InstanceExportCleaner {
-	return &instanceExportCleanerImpl{}
+func NewInstanceExportCleaner(logger logging.Logger) ovfexportdomain.InstanceExportCleaner {
+	return &instanceExportCleanerImpl{logger: logger}
 }
 
 func (iec *instanceExportCleanerImpl) init(instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) error {
@@ -116,7 +117,9 @@ func (iec *instanceExportCleanerImpl) Clean(instance *compute.Instance, params *
 		// ignore errors as these will be due to instance being already started or disks already attached
 		_ = daisyutils.RunWorkflowWithCancelSignal(context.Background(), attachDiskWf)
 		if attachDiskWf.Logger != nil {
-			iec.serialLogs = append(iec.serialLogs, attachDiskWf.Logger.ReadSerialPortLogs()...)
+			for _, trace := range attachDiskWf.Logger.ReadSerialPortLogs() {
+				iec.logger.Trace(trace)
+			}
 		}
 	}
 	if iec.startInstanceWf != nil {
@@ -125,14 +128,12 @@ func (iec *instanceExportCleanerImpl) Clean(instance *compute.Instance, params *
 		}
 		err = daisyutils.RunWorkflowWithCancelSignal(context.Background(), iec.startInstanceWf)
 		if iec.startInstanceWf.Logger != nil {
-			iec.serialLogs = append(iec.serialLogs, iec.startInstanceWf.Logger.ReadSerialPortLogs()...)
+			for _, trace := range iec.startInstanceWf.Logger.ReadSerialPortLogs() {
+				iec.logger.Trace(trace)
+			}
 		}
 	}
 	return err
-}
-
-func (iec *instanceExportCleanerImpl) TraceLogs() []string {
-	return iec.serialLogs
 }
 
 func (iec *instanceExportCleanerImpl) Cancel(reason string) bool {

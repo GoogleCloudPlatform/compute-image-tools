@@ -61,6 +61,7 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/GoogleCloudPlatform/compute-image-tools v0.0.0-20200721213208-00ba2b996712 h1:HETnxhAjXUpM5fBclFfw/zNTXIwOHVQ2Jibw0DqrOqI=
 github.com/GoogleCloudPlatform/compute-image-tools v0.0.0-20201214200241-d4736a0b5477 h1:/JNjD2WQeROlDnnmEllUbpGplXnhqZac8GFt0r53J9o=
+github.com/GoogleCloudPlatform/compute-image-tools v0.0.0-20201222163737-d5ce407a6d98 h1:VFzqgtS8NQoqtFJIE9mxSJvWivD2YJOSCZ9RE5uViMA=
 github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0-20200114193945-760dc9647411/go.mod h1:928Ttg3SXjfF1mOI37hjnFUahdU4R234SpDcgcBO0I8=
 github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0-20200406182414-bf9021434372/go.mod h1:zkxkF+fdCQyagLcSSWbQeDcvShTFro3HbulNmXzbBJg=
 github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200111002017-35d3756114c9/go.mod h1:F+pk+WYiOJPq6m9oQkFZ3Vyw2l4nYJUgDyl4UW58+Q4=

@@ -20,6 +20,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/exporter"
@@ -92,26 +93,27 @@ func logFailure(allArgs ovfexportdomain.OVFExportArgs, cause error) {
 }
 
 func runExport(args []string) error {
-	exportArgs := ovfexportdomain.NewOVFExportArgs(args)
-	err := ovfexporter.RegisterFlags(exportArgs, args)
+	logger := logging.NewToolLogger(ovfexporter.LogPrefix)
+	logging.RedirectGlobalLogsToUser(logger)
+
+	exportArgs, err := ovfexportdomain.NewOVFExportArgs(args)
 	if err != nil {
 		logFailure(*exportArgs, err)
 		return err
 	}
 
 	var oe *ovfexporter.OVFExporter
-	if oe, err = ovfexporter.NewOVFExporter(exportArgs); err != nil {
+	if oe, err = ovfexporter.NewOVFExporter(exportArgs, logger); err != nil {
 		return err
 	}
 	ctx := context.Background()
 
 	exporterClosure := func() (service.Loggable, error) {
-		return oe.Run(ctx)
+		err := oe.Run(ctx)
+		return service.NewOutputInfoLoggable(logger.ReadOutputInfo()), err
 	}
-	var paramLog service.InputParams
-	var action string
-
-	if err := service.RunWithServerLogging(action, paramLog, &exportArgs.Project, exporterClosure); err != nil {
+	action, inputParams := createInputParams(*exportArgs)
+	if err := service.RunWithServerLogging(action, inputParams, &exportArgs.Project, exporterClosure); err != nil {
 		return err
 	}
 	return nil

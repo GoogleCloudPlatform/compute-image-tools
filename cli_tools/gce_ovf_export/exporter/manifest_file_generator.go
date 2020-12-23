@@ -65,17 +65,14 @@ func (g *ovfManifestGeneratorImpl) generateAndWriteToGCS(gcsPath, manifestFileNa
 	manifestFileContent, err := g.generate(bucketName, directoryPath)
 	if err != nil {
 		return err
-
 	}
 	if err := g.storageClient.WriteToGCS(
 		bucketName,
 		storageutils.ConcatGCSPath(directoryPath, fmt.Sprintf("%v.mf", manifestFileName)),
 		strings.NewReader(manifestFileContent)); err != nil {
 		return err
-
 	}
 	return nil
-
 }
 
 func (g *ovfManifestGeneratorImpl) generate(bucketName, directoryPath string) (string, error) {

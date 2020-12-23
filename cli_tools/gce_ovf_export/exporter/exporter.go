@@ -25,7 +25,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
-	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	logPrefix  = "[ovf-export]"
+	LogPrefix  = "[ovf-export]"
 	bytesPerGB = int64(1024 * 1024 * 1024)
 )
 
@@ -58,16 +58,14 @@ type OVFExporter struct {
 	manifestFileGenerator     ovfexportdomain.OvfManifestGenerator
 	exportedDisks             []*ovfexportdomain.ExportedDisk
 	bootDiskInspectionResults *pb.InspectionResults
-	traceLogs                 []string
 	loggableBuilder           *service.OvfExportLoggableBuilder
 }
 
 // NewOVFExporter creates an OVF exporter, including automatically populating dependencies,
 // such as compute/storage clients.
-func NewOVFExporter(params *ovfexportdomain.OVFExportArgs) (*OVFExporter, error) {
+func NewOVFExporter(params *ovfexportdomain.OVFExportArgs, logger logging.ToolLogger) (*OVFExporter, error) {
 	ctx := context.Background()
-	logger := logging.NewToolLogger(logPrefix)
-	logging.RedirectGlobalLogsToUser(logger)
+
 	storageClient, err := storageutils.NewStorageClient(ctx, logger)
 	if err != nil {
 		return nil, err
@@ -86,7 +84,12 @@ func NewOVFExporter(params *ovfexportdomain.OVFExportArgs) (*OVFExporter, error)
 	if err := validateAndPopulateParams(params, paramValidator, paramPopulator); err != nil {
 		return nil, err
 	}
-	inspector, err := commondisk.NewInspector(params.DaisyAttrs(), params.Network, params.Subnet, params.ComputeServiceAccount)
+	inspector, err := commondisk.NewInspector(
+		params.DaisyAttrs(),
+		params.Network,
+		params.Subnet,
+		params.ComputeServiceAccount,
+		logger)
 	if err != nil {
 		return nil, daisy.Errf("Error creating disk inspector: %v", err)
 	}
@@ -101,9 +104,9 @@ func NewOVFExporter(params *ovfexportdomain.OVFExportArgs) (*OVFExporter, error)
 		ovfDescriptorGenerator: NewOvfDescriptorGenerator(computeClient, storageClient, params.Project, params.Zone),
 		manifestFileGenerator:  NewManifestFileGenerator(storageClient),
 		inspector:              inspector,
-		instanceDisksExporter:  NewInstanceDisksExporter(computeClient, storageClient),
-		instanceExportPreparer: NewInstanceExportPreparer(),
-		instanceExportCleaner:  NewInstanceExportCleaner(),
+		instanceDisksExporter:  NewInstanceDisksExporter(computeClient, storageClient, logger),
+		instanceExportPreparer: NewInstanceExportPreparer(logger),
+		instanceExportCleaner:  NewInstanceExportCleaner(logger),
 	}, nil
 }
 
@@ -133,21 +136,6 @@ func createComputeClient(ctx *context.Context, params *ovfexportdomain.OVFExport
 		return nil, err
 	}
 	return computeClient, nil
-}
-
-func (oe *OVFExporter) buildLoggable() service.Loggable {
-
-	exportedDisksSourceSizes := make([]int64, len(oe.exportedDisks))
-	exportedDisksTargetSizes := make([]int64, len(oe.exportedDisks))
-	for i, exportedDisk := range oe.exportedDisks {
-		exportedDisksSourceSizes[i] = exportedDisk.Disk.SizeGb
-		exportedDisksTargetSizes[i] = (exportedDisk.GcsFileAttrs.Size-1)/bytesPerGB + 1
-	}
-	return oe.loggableBuilder.SetDiskSizes(
-		exportedDisksSourceSizes,
-		exportedDisksTargetSizes).
-		AppendTraceLogs(oe.traceLogs).
-		Build()
 }
 
 func getInstancePath(instance *compute.Instance, project string) string {
@@ -191,8 +179,8 @@ func (oe *OVFExporter) run(ctx context.Context) error {
 }
 
 // Run runs OVF export.
-func (oe *OVFExporter) Run(ctx context.Context) (service.Loggable, error) {
+func (oe *OVFExporter) Run(ctx context.Context) error {
 	var err error
 	err = oe.run(ctx)
-	return oe.buildLoggable(), err
+	return err
 }

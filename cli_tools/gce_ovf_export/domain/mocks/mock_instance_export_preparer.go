@@ -61,17 +61,3 @@ func (mr *MockInstanceExportPreparerMockRecorder) Prepare(arg0, arg1 interface{}
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Prepare", reflect.TypeOf((*MockInstanceExportPreparer)(nil).Prepare), arg0, arg1)
 }
-
-// TraceLogs mocks base method
-func (m *MockInstanceExportPreparer) TraceLogs() []string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TraceLogs")
-	ret0, _ := ret[0].([]string)
-	return ret0
-}
-
-// TraceLogs indicates an expected call of TraceLogs
-func (mr *MockInstanceExportPreparerMockRecorder) TraceLogs() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TraceLogs", reflect.TypeOf((*MockInstanceExportPreparer)(nil).TraceLogs))
-}

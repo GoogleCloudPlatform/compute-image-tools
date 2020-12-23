@@ -33,7 +33,7 @@ func (oe *OVFExporter) prepare(ctx context.Context, instance *compute.Instance) 
 	return oe.runStep(ctx, func() error {
 		oe.Logger.User(fmt.Sprintf("Stopping '%v' instance and detaching the disks.", instance.Name))
 		return oe.instanceExportPreparer.Prepare(instance, oe.params)
-	}, oe.instanceExportPreparer.Cancel, oe.instanceExportPreparer.TraceLogs)
+	}, oe.instanceExportPreparer.Cancel)
 }
 
 func (oe *OVFExporter) exportDisks(ctx context.Context, instance *compute.Instance) error {
@@ -42,7 +42,7 @@ func (oe *OVFExporter) exportDisks(ctx context.Context, instance *compute.Instan
 		var err error
 		oe.exportedDisks, err = oe.instanceDisksExporter.Export(instance, oe.params)
 		return err
-	}, oe.instanceDisksExporter.Cancel, oe.instanceDisksExporter.TraceLogs)
+	}, oe.instanceDisksExporter.Cancel)
 }
 
 func (oe *OVFExporter) inspectBootDisk(ctx context.Context) error {
@@ -61,7 +61,7 @@ func (oe *OVFExporter) inspectBootDisk(ctx context.Context) error {
 		oe.Logger.User(fmt.Sprintf("Disk inspection results: %v", oe.bootDiskInspectionResults))
 		// don't return error if inspection fails, just log it, since it's not a show-stopper.
 		return nil
-	}, oe.inspector.Cancel, oe.inspector.TraceLogs)
+	}, oe.inspector.Cancel)
 }
 
 func (oe *OVFExporter) generateDescriptor(ctx context.Context, instance *compute.Instance) error {
@@ -72,14 +72,14 @@ func (oe *OVFExporter) generateDescriptor(ctx context.Context, instance *compute
 			return err
 		}
 		return oe.ovfDescriptorGenerator.GenerateAndWriteOVFDescriptor(instance, oe.exportedDisks, bucketName, gcsDirectoryPath, oe.bootDiskInspectionResults)
-	}, oe.ovfDescriptorGenerator.Cancel, func() []string { return nil })
+	}, oe.ovfDescriptorGenerator.Cancel)
 }
 
 func (oe *OVFExporter) generateManifest(ctx context.Context) error {
 	return oe.runStep(ctx, func() error {
 		oe.Logger.User("Generating manifest.")
 		return oe.manifestFileGenerator.GenerateAndWriteToGCS(oe.params.DestinationURI, oe.params.InstanceName)
-	}, oe.manifestFileGenerator.Cancel, func() []string { return nil })
+	}, oe.manifestFileGenerator.Cancel)
 }
 
 func (oe *OVFExporter) cleanup(instance *compute.Instance, exportError error) error {
@@ -98,7 +98,6 @@ func (oe *OVFExporter) cleanup(instance *compute.Instance, exportError error) er
 			return err
 		}
 	}
-	oe.appendTraceLogs(oe.instanceExportCleaner.TraceLogs())
 	return nil
 }
 
@@ -141,7 +140,7 @@ func postValidateWorkflowModifier(w *daisy.Workflow, params *ovfexportdomain.OVF
 }
 
 //TODO: consolidate with gce_vm_image_import.runStep()
-func (oe *OVFExporter) runStep(ctx context.Context, step func() error, cancel func(string) bool, getTraceLogs func() []string) (err error) {
+func (oe *OVFExporter) runStep(ctx context.Context, step func() error, cancel func(string) bool) (err error) {
 	e := make(chan error)
 	var wg sync.WaitGroup
 	go func() {
@@ -177,14 +176,7 @@ func (oe *OVFExporter) runStep(ctx context.Context, step func() error, cancel fu
 	case stepErr := <-e:
 		err = stepErr
 	}
-	oe.traceLogs = append(oe.traceLogs, getTraceLogs()...)
 	return err
-}
-
-func (oe *OVFExporter) appendTraceLogs(traceLogs []string) {
-	if traceLogs != nil && len(traceLogs) > 0 {
-		oe.traceLogs = append(oe.traceLogs, traceLogs...)
-	}
 }
 
 //TODO: consolidate with gce_vm_image_import.getCtxError()

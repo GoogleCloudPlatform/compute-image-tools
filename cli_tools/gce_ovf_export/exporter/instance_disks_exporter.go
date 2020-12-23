@@ -23,9 +23,10 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	stringutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
-	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
@@ -36,15 +37,16 @@ type instanceDisksExporterImpl struct {
 	computeClient    daisycompute.Client
 	storageClient    domain.StorageClientInterface
 	exportedDisks    []*ovfexportdomain.ExportedDisk
-	serialLogs       []string
+	logger           logging.Logger
 	wfPreRunCallback wfCallback
 }
 
 // NewInstanceDisksExporter creates a new instance disk exporter
-func NewInstanceDisksExporter(computeClient daisycompute.Client, storageClient domain.StorageClientInterface) ovfexportdomain.InstanceDisksExporter {
+func NewInstanceDisksExporter(computeClient daisycompute.Client, storageClient domain.StorageClientInterface, logger logging.Logger) ovfexportdomain.InstanceDisksExporter {
 	return &instanceDisksExporterImpl{
 		computeClient: computeClient,
 		storageClient: storageClient,
+		logger:        logger,
 	}
 }
 
@@ -62,7 +64,9 @@ func (ide *instanceDisksExporterImpl) Export(instance *compute.Instance, params 
 		postValidateWorkflowModifier(w, params)
 	})
 	if ide.wf.Logger != nil {
-		ide.serialLogs = ide.wf.Logger.ReadSerialPortLogs()
+		for _, trace := range ide.wf.Logger.ReadSerialPortLogs() {
+			ide.logger.Trace(trace)
+		}
 	}
 	if err := ide.populateExportedDisksMetadata(params); err != nil {
 		return nil, err
@@ -152,10 +156,6 @@ func (ide *instanceDisksExporterImpl) addExportDisksSteps(w *daisy.Workflow, ins
 		w.Steps[exportDiskStepName] = exportDiskStep
 	}
 	return exportedDisks, nil
-}
-
-func (ide *instanceDisksExporterImpl) TraceLogs() []string {
-	return ide.serialLogs
 }
 
 func (ide *instanceDisksExporterImpl) Cancel(reason string) bool {

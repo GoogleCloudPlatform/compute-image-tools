@@ -19,7 +19,8 @@ import (
 	"fmt"
 
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
-	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
 )
@@ -27,13 +28,13 @@ import (
 type instanceExportPreparerImpl struct {
 	wf               *daisy.Workflow
 	instance         *compute.Instance
-	serialLogs       []string
+	logger           logging.Logger
 	wfPreRunCallback wfCallback
 }
 
 // NewInstanceExportPreparer creates a new instance export preparer
-func NewInstanceExportPreparer() ovfexportdomain.InstanceExportPreparer {
-	return &instanceExportPreparerImpl{}
+func NewInstanceExportPreparer(logger logging.Logger) ovfexportdomain.InstanceExportPreparer {
+	return &instanceExportPreparerImpl{logger: logger}
 }
 
 func (iep *instanceExportPreparerImpl) Prepare(instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) error {
@@ -49,7 +50,9 @@ func (iep *instanceExportPreparerImpl) Prepare(instance *compute.Instance, param
 	}
 	err = daisyutils.RunWorkflowWithCancelSignal(context.Background(), iep.wf)
 	if iep.wf.Logger != nil {
-		iep.serialLogs = iep.wf.Logger.ReadSerialPortLogs()
+		for _, trace := range iep.wf.Logger.ReadSerialPortLogs() {
+			iep.logger.Trace(trace)
+		}
 	}
 	return err
 }
@@ -67,7 +70,8 @@ func (iep *instanceExportPreparerImpl) populatePrepareSteps(w *daisy.Workflow, i
 }
 
 // addDetachDisksSteps adds Daisy steps to OVF export workflow to detach instance disks.
-func (iep *instanceExportPreparerImpl) addDetachDisksSteps(w *daisy.Workflow, instance *compute.Instance, previousStepName string, params *ovfexportdomain.OVFExportArgs) error {
+func (iep *instanceExportPreparerImpl) addDetachDisksSteps(w *daisy.Workflow,
+	instance *compute.Instance, previousStepName string, params *ovfexportdomain.OVFExportArgs) error {
 	if instance == nil || len(instance.Disks) == 0 {
 		return daisy.Errf("No attachedDisks found in the Instance to export")
 	}
@@ -88,10 +92,6 @@ func (iep *instanceExportPreparerImpl) addDetachDisksSteps(w *daisy.Workflow, in
 		}
 	}
 	return nil
-}
-
-func (iep *instanceExportPreparerImpl) TraceLogs() []string {
-	return iep.serialLogs
 }
 
 func (iep *instanceExportPreparerImpl) Cancel(reason string) bool {

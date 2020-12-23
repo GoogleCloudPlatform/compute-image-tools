@@ -23,6 +23,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
+	ovfexportmocks "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain/mocks"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 	"github.com/golang/mock/gomock"
@@ -78,28 +79,24 @@ func TestRun_HappyPath(t *testing.T) {
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 
-	mockInstanceExportPreparer := mocks.NewMockInstanceExportPreparer(mockCtrl)
+	mockInstanceExportPreparer := ovfexportmocks.NewMockInstanceExportPreparer(mockCtrl)
 	mockInstanceExportPreparer.EXPECT().Prepare(instance, params).Return(nil)
-	mockInstanceExportPreparer.EXPECT().TraceLogs().Return([]string{"preparer trace log"})
 
-	mockInstanceDisksExporter := mocks.NewMockInstanceDisksExporter(mockCtrl)
+	mockInstanceDisksExporter := ovfexportmocks.NewMockInstanceDisksExporter(mockCtrl)
 	mockInstanceDisksExporter.EXPECT().Export(instance, params).Return(exportedDisks, nil)
-	mockInstanceDisksExporter.EXPECT().TraceLogs().Return([]string{"disk exporter trace log"})
 
 	mockInspector := mocks.NewMockInspector(mockCtrl)
 	mockInspector.EXPECT().Inspect(
 		fmt.Sprintf("projects/%v/zones/%v/disks/%v", params.Project, params.Zone, "bootdisk"), true).Return(inspectionResults, nil)
-	mockInspector.EXPECT().TraceLogs().Return([]string{"inspector trace log"})
 
-	mockOvfDescriptorGenerator := mocks.NewMockOvfDescriptorGenerator(mockCtrl)
+	mockOvfDescriptorGenerator := ovfexportmocks.NewMockOvfDescriptorGenerator(mockCtrl)
 	mockOvfDescriptorGenerator.EXPECT().GenerateAndWriteOVFDescriptor(instance, exportedDisks, "ovfbucket", "OVFpath/", inspectionResults).Return(nil)
 
-	mockOvfManifestGenerator := mocks.NewMockOvfManifestGenerator(mockCtrl)
+	mockOvfManifestGenerator := ovfexportmocks.NewMockOvfManifestGenerator(mockCtrl)
 	mockOvfManifestGenerator.EXPECT().GenerateAndWriteToGCS(params.DestinationURI, params.InstanceName).Return(nil)
 
-	mockInstanceExportCleaner := mocks.NewMockInstanceExportCleaner(mockCtrl)
+	mockInstanceExportCleaner := ovfexportmocks.NewMockInstanceExportCleaner(mockCtrl)
 	mockInstanceExportCleaner.EXPECT().Clean(instance, params).Return(nil)
-	mockInstanceExportCleaner.EXPECT().TraceLogs().Return([]string{"cleaner trace log"})
 	mockStorageClient.EXPECT().Close().Return(nil)
 
 	exporter := &OVFExporter{
@@ -117,14 +114,8 @@ func TestRun_HappyPath(t *testing.T) {
 		instanceExportPreparer: mockInstanceExportPreparer,
 		instanceExportCleaner:  mockInstanceExportCleaner,
 	}
-	loggable, err := exporter.Run(context.Background())
+	err := exporter.Run(context.Background())
 	assert.Nil(t, err)
-	assert.NotNil(t, loggable)
-
-	serialLogs := loggable.ReadSerialPortLogs()
-	assert.Equal(t, []string{"preparer trace log", "disk exporter trace log", "inspector trace log", "cleaner trace log"}, serialLogs)
-	assert.Equal(t, []int64{10, 20, 300}, loggable.GetValueAsInt64Slice("source-size-gb"))
-	assert.Equal(t, []int64{3, 7, 91}, loggable.GetValueAsInt64Slice("target-size-gb"))
 }
 
 func TestRun_DontRunDiskExporterIfPreparerTimedOut(t *testing.T) {
@@ -148,22 +139,20 @@ func TestRun_DontRunDiskExporterIfPreparerTimedOut(t *testing.T) {
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 
 	preparerCancelChan := make(chan bool)
-	mockInstanceExportPreparer := mocks.NewMockInstanceExportPreparer(mockCtrl)
+	mockInstanceExportPreparer := ovfexportmocks.NewMockInstanceExportPreparer(mockCtrl)
 	mockInstanceExportPreparer.EXPECT().Prepare(instance, params).Do(
 		func(instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) {
 			sleepStep(preparerCancelChan)
 		}).Return(nil)
 	mockInstanceExportPreparer.EXPECT().Cancel("timed-out").Do(func(_ string) { preparerCancelChan <- true }).Return(true)
-	mockInstanceExportPreparer.EXPECT().TraceLogs().Return([]string{"preparer trace log"})
 
-	mockInstanceDisksExporter := mocks.NewMockInstanceDisksExporter(mockCtrl)
+	mockInstanceDisksExporter := ovfexportmocks.NewMockInstanceDisksExporter(mockCtrl)
 	mockInspector := mocks.NewMockInspector(mockCtrl)
-	mockOvfDescriptorGenerator := mocks.NewMockOvfDescriptorGenerator(mockCtrl)
-	mockOvfManifestGenerator := mocks.NewMockOvfManifestGenerator(mockCtrl)
+	mockOvfDescriptorGenerator := ovfexportmocks.NewMockOvfDescriptorGenerator(mockCtrl)
+	mockOvfManifestGenerator := ovfexportmocks.NewMockOvfManifestGenerator(mockCtrl)
 
-	mockInstanceExportCleaner := mocks.NewMockInstanceExportCleaner(mockCtrl)
+	mockInstanceExportCleaner := ovfexportmocks.NewMockInstanceExportCleaner(mockCtrl)
 	mockInstanceExportCleaner.EXPECT().Clean(instance, params).Return(nil)
-	mockInstanceExportCleaner.EXPECT().TraceLogs().Return([]string{"cleaner trace log"})
 
 	exporter := &OVFExporter{
 		storageClient:          mockStorageClient,
@@ -204,26 +193,23 @@ func TestRun_DontRunInspectorIfDiskExporterTimedOut(t *testing.T) {
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 
-	mockInstanceExportPreparer := mocks.NewMockInstanceExportPreparer(mockCtrl)
+	mockInstanceExportPreparer := ovfexportmocks.NewMockInstanceExportPreparer(mockCtrl)
 	mockInstanceExportPreparer.EXPECT().Prepare(instance, params).Return(nil)
-	mockInstanceExportPreparer.EXPECT().TraceLogs().Return([]string{"preparer trace log"})
 
 	diskExporterCancelChan := make(chan bool)
-	mockInstanceDisksExporter := mocks.NewMockInstanceDisksExporter(mockCtrl)
+	mockInstanceDisksExporter := ovfexportmocks.NewMockInstanceDisksExporter(mockCtrl)
 	mockInstanceDisksExporter.EXPECT().Export(instance, params).Do(
 		func(instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) {
 			sleepStep(diskExporterCancelChan)
 		}).Return(nil, nil)
 	mockInstanceDisksExporter.EXPECT().Cancel("timed-out").Do(func(_ string) { diskExporterCancelChan <- true }).Return(true)
-	mockInstanceDisksExporter.EXPECT().TraceLogs().Return([]string{"disk exporter trace log"})
 
 	mockInspector := mocks.NewMockInspector(mockCtrl)
-	mockOvfDescriptorGenerator := mocks.NewMockOvfDescriptorGenerator(mockCtrl)
-	mockOvfManifestGenerator := mocks.NewMockOvfManifestGenerator(mockCtrl)
+	mockOvfDescriptorGenerator := ovfexportmocks.NewMockOvfDescriptorGenerator(mockCtrl)
+	mockOvfManifestGenerator := ovfexportmocks.NewMockOvfManifestGenerator(mockCtrl)
 
-	mockInstanceExportCleaner := mocks.NewMockInstanceExportCleaner(mockCtrl)
+	mockInstanceExportCleaner := ovfexportmocks.NewMockInstanceExportCleaner(mockCtrl)
 	mockInstanceExportCleaner.EXPECT().Clean(instance, params).Return(nil)
-	mockInstanceExportCleaner.EXPECT().TraceLogs().Return([]string{"cleaner trace log"})
 
 	exporter := &OVFExporter{
 		storageClient:          mockStorageClient,
@@ -263,27 +249,23 @@ func TestRun_DontRunDescriptorGeneratorIfInspectorTimedOut(t *testing.T) {
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 
-	mockInstanceExportPreparer := mocks.NewMockInstanceExportPreparer(mockCtrl)
+	mockInstanceExportPreparer := ovfexportmocks.NewMockInstanceExportPreparer(mockCtrl)
 	mockInstanceExportPreparer.EXPECT().Prepare(instance, params).Return(nil)
-	mockInstanceExportPreparer.EXPECT().TraceLogs().Return([]string{"preparer trace log"})
 
-	mockInstanceDisksExporter := mocks.NewMockInstanceDisksExporter(mockCtrl)
+	mockInstanceDisksExporter := ovfexportmocks.NewMockInstanceDisksExporter(mockCtrl)
 	mockInstanceDisksExporter.EXPECT().Export(instance, params).Return(exportedDisks, nil)
-	mockInstanceDisksExporter.EXPECT().TraceLogs().Return([]string{"disk exporter trace log"})
 
 	inspectorCancelChan := make(chan bool)
 	mockInspector := mocks.NewMockInspector(mockCtrl)
 	mockInspector.EXPECT().Inspect(
 		fmt.Sprintf("projects/%v/zones/%v/disks/%v", params.Project, params.Zone, "bootdisk"), true).Do(func(reference string, inspectOS bool) { sleepStep(inspectorCancelChan) }).Return(&pb.InspectionResults{}, nil)
 	mockInspector.EXPECT().Cancel("timed-out").Do(func(_ string) { inspectorCancelChan <- true }).Return(true)
-	mockInspector.EXPECT().TraceLogs().Return([]string{"inspector trace log"})
 
-	mockOvfDescriptorGenerator := mocks.NewMockOvfDescriptorGenerator(mockCtrl)
-	mockOvfManifestGenerator := mocks.NewMockOvfManifestGenerator(mockCtrl)
+	mockOvfDescriptorGenerator := ovfexportmocks.NewMockOvfDescriptorGenerator(mockCtrl)
+	mockOvfManifestGenerator := ovfexportmocks.NewMockOvfManifestGenerator(mockCtrl)
 
-	mockInstanceExportCleaner := mocks.NewMockInstanceExportCleaner(mockCtrl)
+	mockInstanceExportCleaner := ovfexportmocks.NewMockInstanceExportCleaner(mockCtrl)
 	mockInstanceExportCleaner.EXPECT().Clean(instance, params).Return(nil)
-	mockInstanceExportCleaner.EXPECT().TraceLogs().Return([]string{"cleaner trace log"})
 
 	exporter := &OVFExporter{
 		storageClient:          mockStorageClient,
@@ -330,21 +312,18 @@ func TestRun_DontRunManifestGeneratorIfDescriptorGeneratorTimedOut(t *testing.T)
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 
-	mockInstanceExportPreparer := mocks.NewMockInstanceExportPreparer(mockCtrl)
+	mockInstanceExportPreparer := ovfexportmocks.NewMockInstanceExportPreparer(mockCtrl)
 	mockInstanceExportPreparer.EXPECT().Prepare(instance, params).Return(nil)
-	mockInstanceExportPreparer.EXPECT().TraceLogs().Return([]string{"preparer trace log"})
 
-	mockInstanceDisksExporter := mocks.NewMockInstanceDisksExporter(mockCtrl)
+	mockInstanceDisksExporter := ovfexportmocks.NewMockInstanceDisksExporter(mockCtrl)
 	mockInstanceDisksExporter.EXPECT().Export(instance, params).Return(exportedDisks, nil)
-	mockInstanceDisksExporter.EXPECT().TraceLogs().Return([]string{"disk exporter trace log"})
 
 	mockInspector := mocks.NewMockInspector(mockCtrl)
 	mockInspector.EXPECT().Inspect(
 		fmt.Sprintf("projects/%v/zones/%v/disks/%v", params.Project, params.Zone, "bootdisk"), true).Return(inspectionResults, nil)
-	mockInspector.EXPECT().TraceLogs().Return([]string{"inspector trace log"})
 
 	descriptorGeneratorCancelChan := make(chan bool)
-	mockOvfDescriptorGenerator := mocks.NewMockOvfDescriptorGenerator(mockCtrl)
+	mockOvfDescriptorGenerator := ovfexportmocks.NewMockOvfDescriptorGenerator(mockCtrl)
 	mockOvfDescriptorGenerator.EXPECT().GenerateAndWriteOVFDescriptor(
 		instance, exportedDisks, "ovfbucket", "OVFpath/", inspectionResults).Do(
 		func(_ *compute.Instance, _ []*ovfexportdomain.ExportedDisk, _, _ string, _ *pb.InspectionResults) {
@@ -352,11 +331,10 @@ func TestRun_DontRunManifestGeneratorIfDescriptorGeneratorTimedOut(t *testing.T)
 		}).Return(nil)
 	mockOvfDescriptorGenerator.EXPECT().Cancel("timed-out").Do(func(_ string) { descriptorGeneratorCancelChan <- true }).Return(true)
 
-	mockOvfManifestGenerator := mocks.NewMockOvfManifestGenerator(mockCtrl)
+	mockOvfManifestGenerator := ovfexportmocks.NewMockOvfManifestGenerator(mockCtrl)
 
-	mockInstanceExportCleaner := mocks.NewMockInstanceExportCleaner(mockCtrl)
+	mockInstanceExportCleaner := ovfexportmocks.NewMockInstanceExportCleaner(mockCtrl)
 	mockInstanceExportCleaner.EXPECT().Clean(instance, params).Return(nil)
-	mockInstanceExportCleaner.EXPECT().TraceLogs().Return([]string{"cleaner trace log"})
 
 	exporter := &OVFExporter{
 		storageClient:          mockStorageClient,
@@ -403,33 +381,29 @@ func TestRun_TimeOutOnManifestGeneratorTimingOut(t *testing.T) {
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 
-	mockInstanceExportPreparer := mocks.NewMockInstanceExportPreparer(mockCtrl)
+	mockInstanceExportPreparer := ovfexportmocks.NewMockInstanceExportPreparer(mockCtrl)
 	mockInstanceExportPreparer.EXPECT().Prepare(instance, params).Return(nil)
-	mockInstanceExportPreparer.EXPECT().TraceLogs().Return([]string{"preparer trace log"})
 
-	mockInstanceDisksExporter := mocks.NewMockInstanceDisksExporter(mockCtrl)
+	mockInstanceDisksExporter := ovfexportmocks.NewMockInstanceDisksExporter(mockCtrl)
 	mockInstanceDisksExporter.EXPECT().Export(instance, params).Return(exportedDisks, nil)
-	mockInstanceDisksExporter.EXPECT().TraceLogs().Return([]string{"disk exporter trace log"})
 
 	mockInspector := mocks.NewMockInspector(mockCtrl)
 	mockInspector.EXPECT().Inspect(
 		fmt.Sprintf("projects/%v/zones/%v/disks/%v", params.Project, params.Zone, "bootdisk"), true).Return(inspectionResults, nil)
-	mockInspector.EXPECT().TraceLogs().Return([]string{"inspector trace log"})
 
-	mockOvfDescriptorGenerator := mocks.NewMockOvfDescriptorGenerator(mockCtrl)
+	mockOvfDescriptorGenerator := ovfexportmocks.NewMockOvfDescriptorGenerator(mockCtrl)
 	mockOvfDescriptorGenerator.EXPECT().GenerateAndWriteOVFDescriptor(
 		instance, exportedDisks, "ovfbucket", "OVFpath/", inspectionResults).Return(nil)
 
 	manifestGeneratorCancelChan := make(chan bool)
-	mockOvfManifestGenerator := mocks.NewMockOvfManifestGenerator(mockCtrl)
+	mockOvfManifestGenerator := ovfexportmocks.NewMockOvfManifestGenerator(mockCtrl)
 	mockOvfManifestGenerator.EXPECT().GenerateAndWriteToGCS(params.DestinationURI, params.InstanceName).Do(
 		func(_, _ string) { sleepStep(manifestGeneratorCancelChan) }).Return(nil)
 	mockOvfManifestGenerator.EXPECT().Cancel("timed-out").Do(
 		func(_ string) { manifestGeneratorCancelChan <- true }).Return(true)
 
-	mockInstanceExportCleaner := mocks.NewMockInstanceExportCleaner(mockCtrl)
+	mockInstanceExportCleaner := ovfexportmocks.NewMockInstanceExportCleaner(mockCtrl)
 	mockInstanceExportCleaner.EXPECT().Clean(instance, params).Return(nil)
-	mockInstanceExportCleaner.EXPECT().TraceLogs().Return([]string{"cleaner trace log"})
 
 	exporter := &OVFExporter{
 		storageClient:          mockStorageClient,
@@ -451,10 +425,9 @@ func TestRun_TimeOutOnManifestGeneratorTimingOut(t *testing.T) {
 
 func runAndAssertTimeout(t *testing.T, exporter *OVFExporter) {
 	start := time.Now()
-	loggable, err := exporter.Run(context.Background())
+	err := exporter.Run(context.Background())
 	duration := time.Since(start)
 
-	assert.NotNil(t, loggable)
 	assert.NotNil(t, err)
 	// to ensure disk exporter got interrupted and didn't run the full 5 seconds
 	assert.True(t, duration < time.Duration(1)*time.Second)
@@ -474,9 +447,9 @@ func TestValidateAndPopulateParams(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	params := ovfexportdomain.GetAllInstanceExportArgs()
-	paramValidator := mocks.NewMockOvfExportParamValidator(mockCtrl)
+	paramValidator := ovfexportmocks.NewMockOvfExportParamValidator(mockCtrl)
 	paramValidator.EXPECT().ValidateAndParseParams(params).Return(nil)
-	paramPopulator := mocks.NewMockOvfExportParamPopulator(mockCtrl)
+	paramPopulator := ovfexportmocks.NewMockOvfExportParamPopulator(mockCtrl)
 	paramPopulator.EXPECT().Populate(params).Return(nil)
 	err := validateAndPopulateParams(params, paramValidator, paramPopulator)
 	assert.Nil(t, err)
@@ -488,7 +461,7 @@ func TestValidateAndPopulateParams_ErrorOnValidate(t *testing.T) {
 
 	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.MachineImageName = "also-machine-image-name-which-is-invalid"
-	paramValidator := mocks.NewMockOvfExportParamValidator(mockCtrl)
+	paramValidator := ovfexportmocks.NewMockOvfExportParamValidator(mockCtrl)
 	paramValidator.EXPECT().ValidateAndParseParams(params).Return(fmt.Errorf("validation error"))
 	err := validateAndPopulateParams(params, paramValidator, nil)
 	assert.NotNil(t, err)
@@ -499,11 +472,11 @@ func TestValidateAndPopulateParams_ErrorOnPopulate(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	params := ovfexportdomain.GetAllInstanceExportArgs()
-	paramValidator := mocks.NewMockOvfExportParamValidator(mockCtrl)
+	paramValidator := ovfexportmocks.NewMockOvfExportParamValidator(mockCtrl)
 	paramValidator.EXPECT().ValidateAndParseParams(params).Return(nil)
 
 	populatorError := fmt.Errorf("populator error")
-	paramPopulator := mocks.NewMockOvfExportParamPopulator(mockCtrl)
+	paramPopulator := ovfexportmocks.NewMockOvfExportParamPopulator(mockCtrl)
 	paramPopulator.EXPECT().Populate(params).Return(populatorError)
 
 	err := validateAndPopulateParams(params, paramValidator, paramPopulator)
