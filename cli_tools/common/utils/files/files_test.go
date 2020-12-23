@@ -18,6 +18,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/google/uuid"
@@ -79,7 +80,7 @@ func TestDirectoryExists(t *testing.T) {
 	}
 }
 
-func TestAbsolute_HappyCase(t *testing.T) {
+func TestMakeAbsolute_HappyCase(t *testing.T) {
 	// Return to the test directory after running the test.
 	curr, err := os.Getwd()
 	if err != nil {
@@ -103,10 +104,16 @@ func TestAbsolute_HappyCase(t *testing.T) {
 	assert.Equal(t, expected, actual)
 }
 
-func TestAbsolute_PanicWhenTargetDoesntExist(t *testing.T) {
+func TestMakeAbsolute_PanicWhenTargetDoesntExist(t *testing.T) {
 	assert.Panics(t, func() {
 		MakeAbsolute(makeNotExistantFile(t))
 	})
+}
+
+func TestMakeAbsolute_WhenParamIsAbsolute_DontModify(t *testing.T) {
+	absoluteDir := makeTempDir(t)
+	assert.True(t, filepath.IsAbs(absoluteDir))
+	assert.Equal(t, absoluteDir, MakeAbsolute(absoluteDir))
 }
 
 // makeNotExistantFile returns a filesystem path that is guaranteed to *not* point to a file.
