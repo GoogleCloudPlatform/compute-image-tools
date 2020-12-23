@@ -34,6 +34,7 @@ import (
 )
 
 const (
+	// LogPrefix is prefix for OVF export log lines
 	LogPrefix  = "[ovf-export]"
 	bytesPerGB = int64(1024 * 1024 * 1024)
 )
