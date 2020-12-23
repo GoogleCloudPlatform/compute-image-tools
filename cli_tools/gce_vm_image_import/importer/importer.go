@@ -44,26 +44,31 @@ type Importer interface {
 }
 
 // NewImporter constructs an Importer instance.
-func NewImporter(args ImportArguments, computeClient compute.Client, storageClient storage.Client, logger logging.Logger) (Importer, error) {
-	inflater, err := newInflater(args, computeClient, storageClient, imagefile.NewGCSInspector(), logger)
+func NewImporter(request ImageImportRequest, computeClient compute.Client, storageClient storage.Client, logger logging.Logger) (Importer, error) {
+
+	if err := request.validate(); err != nil {
+		return nil, err
+	}
+
+	inflater, err := newInflater(request, computeClient, storageClient, imagefile.NewGCSInspector(), logger)
 	if err != nil {
 		return nil, err
 	}
 
-	inspector, err := disk.NewInspector(args.EnvironmentSettings(), logger)
+	inspector, err := disk.NewInspector(request.EnvironmentSettings(), logger)
 	if err != nil {
 		return nil, err
 	}
 	return &importer{
-		project:      args.Project,
-		zone:         args.Zone,
-		timeout:      args.Timeout,
-		preValidator: newPreValidator(args, computeClient),
+		project:      request.Project,
+		zone:         request.Zone,
+		timeout:      request.Timeout,
+		preValidator: newPreValidator(request, computeClient),
 		inflater:     inflater,
 		processorProvider: defaultProcessorProvider{
-			args,
+			request,
 			computeClient,
-			newProcessPlanner(args, inspector),
+			newProcessPlanner(request, inspector),
 			logger,
 		},
 		diskClient: computeClient,
