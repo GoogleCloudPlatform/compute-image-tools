@@ -35,13 +35,15 @@ func Exists(path string) bool {
 // MakeAbsolute converts path to absolute, relative to the process's current working directory.
 // Panics if path isn't found.
 func MakeAbsolute(path string) string {
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
+	if !filepath.IsAbs(path) {
+		wd, err := os.Getwd()
+		if err != nil {
+			panic(err)
+		}
+		path = filepath.Join(wd, path)
 	}
-	abs := filepath.Join(wd, path)
-	if !Exists(abs) {
+	if !Exists(path) {
 		panic(fmt.Sprintf("%s: File not found", path))
 	}
-	return abs
+	return path
 }
