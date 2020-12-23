@@ -62,7 +62,11 @@ func NewOvfDescriptorGenerator(computeClient daisycompute.Client, storageClient 
 
 // GenerateAndWriteOVFDescriptor generates an OVF descriptor based on the
 // instance exported and disk file paths. and stores it as a file in GCS.
-func (g *ovfDescriptorGeneratorImpl) GenerateAndWriteOVFDescriptor(instance *compute.Instance, exportedDisks []*ovfexportdomain.ExportedDisk, bucketName, gcsDirectoryPath string, diskInspectionResult *pb.InspectionResults) error {
+func (g *ovfDescriptorGeneratorImpl) GenerateAndWriteOVFDescriptor(
+	instance *compute.Instance, exportedDisks []*ovfexportdomain.ExportedDisk,
+	bucketName, gcsDirectoryPath, descriptorFileName string,
+	diskInspectionResult *pb.InspectionResults) error {
+
 	var err error
 	var descriptor *ovf.Envelope
 	if descriptor, err = g.generate(instance, exportedDisks, diskInspectionResult); err != nil {
@@ -72,7 +76,10 @@ func (g *ovfDescriptorGeneratorImpl) GenerateAndWriteOVFDescriptor(instance *com
 	if descriptorStr, err = marshal(descriptor); err != nil {
 		return err
 	}
-	if err := g.storageClient.WriteToGCS(bucketName, storageutils.ConcatGCSPath(gcsDirectoryPath, instance.Name+".ovf"), strings.NewReader(descriptorStr)); err != nil {
+	if err := g.storageClient.WriteToGCS(
+		bucketName,
+		storageutils.ConcatGCSPath(gcsDirectoryPath, descriptorFileName),
+		strings.NewReader(descriptorStr)); err != nil {
 		return err
 	}
 	return nil

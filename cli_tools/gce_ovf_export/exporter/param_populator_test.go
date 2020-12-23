@@ -41,7 +41,7 @@ func TestPopulate(t *testing.T) {
 	assert.Equal(t, "global/networks/a-network", params.Network)
 	assert.Equal(t, fmt.Sprintf("regions/%v/subnetworks/%v", ovfexportdomain.TestRegion, "a-subnet"), params.Subnet)
 	assert.Equal(t, "gs://bucket/folder/gce-ovf-export-2020-10-28T23:24:00Z-abc", params.ScratchBucketGcsPath)
-	assert.Equal(t, "gs://ovfbucket/ovfpath/", params.DestinationURI)
+	assert.Equal(t, "gs://ovfbucket/OVFpath/", params.DestinationDirectory)
 }
 
 func TestPopulate_BuildIDPopulated(t *testing.T) {
@@ -81,10 +81,75 @@ func TestPopulate_ErrorOnSuperPopulatorError(t *testing.T) {
 	assert.Equal(t, superPopulatorErr, err)
 }
 
+func TestPopulate_DestinationWhenURIOVFFile(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
+	params.DestinationURI = "gs://bucket/folder/descriptor.ovf"
+	err := runPopulateParams(params, mockCtrl)
+	assert.Nil(t, err)
+	assert.Equal(t, "gs://bucket/folder/", params.DestinationDirectory)
+	assert.Equal(t, "descriptor", params.OvfName)
+}
+
+func TestPopulate_DestinationWhenURIDirectory_Instance(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
+	params.DestinationURI = "gs://bucket/folder/"
+	err := runPopulateParams(params, mockCtrl)
+	assert.Nil(t, err)
+	assert.Equal(t, "gs://bucket/folder/", params.DestinationDirectory)
+	assert.Equal(t, params.InstanceName, params.OvfName)
+}
+
+func TestPopulate_DestinationWhenURIBucketOnlyEndingWithDotOvf_Instance(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
+	params.DestinationURI = "gs://bucket.ovf"
+	err := runPopulateParams(params, mockCtrl)
+	assert.Nil(t, err)
+	assert.Equal(t, "gs://bucket.ovf/", params.DestinationDirectory)
+	assert.Equal(t, params.InstanceName, params.OvfName)
+}
+
+func TestPopulate_PanicsWhenDestinationURIInvalid_Instance(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	params := ovfexportdomain.GetAllInstanceExportArgs()
+	params.DestinationURI = "NOT_GCS_PATH"
+	assert.Panics(t, func() {
+		runPopulateParams(params, mockCtrl)
+	})
+}
+
+func TestPopulate_DestinationWhenURIDirectory_MachineImage(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	params := ovfexportdomain.GetAllMachineImageExportArgs()
+	params.DestinationURI = "gs://bucket/folder/"
+	err := runPopulateParams(params, mockCtrl)
+	assert.Nil(t, err)
+	assert.Equal(t, "gs://bucket/folder/", params.DestinationDirectory)
+	assert.Equal(t, params.MachineImageName, params.OvfName)
+}
+
+func TestPopulate_DestinationWhenURIBucketOnlyEndingWithDotOvf_MachineImage(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	params := ovfexportdomain.GetAllMachineImageExportArgs()
+	params.DestinationURI = "gs://bucket.ovf"
+	err := runPopulateParams(params, mockCtrl)
+	assert.Nil(t, err)
+	assert.Equal(t, "gs://bucket.ovf/", params.DestinationDirectory)
+	assert.Equal(t, params.MachineImageName, params.OvfName)
+}
+
 func runPopulateParams(params *ovfexportdomain.OVFExportArgs, mockCtrl *gomock.Controller) error {
 	paramPopulator := mocks.NewMockPopulator(mockCtrl)
 	paramPopulator.EXPECT().PopulateMissingParameters(&params.Project, params.ClientID, &params.Zone,
 		&params.Region, &params.ScratchBucketGcsPath, params.DestinationURI, nil).Return(nil)
-	ovfExporParamPopulator := ovfExportParamPopulatorImpl{Populator: paramPopulator}
-	return ovfExporParamPopulator.Populate(params)
+	ovfExportParamPopulator := ovfExportParamPopulatorImpl{Populator: paramPopulator}
+	return ovfExportParamPopulator.Populate(params)
 }

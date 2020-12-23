@@ -73,7 +73,6 @@ type OVFExportArgs struct {
 	ClientID              string
 	ClientVersion         string
 	DestinationURI        string
-	OvfFormat             string
 	DiskExportFormat      string
 	OsID                  string
 	Network               string
@@ -96,6 +95,12 @@ type OVFExportArgs struct {
 	WorkflowDir string
 	Region      string
 	Started     time.Time
+	//DestinationDirectory holds a full path to GCS directory where OVF will be saved after export. E.g. `gs://my-bucket/my-folder/`
+	DestinationDirectory string
+	// OvfName is a name of OVF being exported. E.g. if DestinationURI is
+	//`gs://my-bucket/my-folder/vm.ovf`, OvfName will be `vm`. If a directory is
+	// provided for DestinationURI, instance name will be used for OVF name
+	OvfName string
 }
 
 // NewOVFExportArgs parses args to create an NewOVFExportArgs instance.
@@ -126,6 +131,14 @@ func (args *OVFExportArgs) IsInstanceExport() bool {
 // a machine image export. False otherwise.
 func (args *OVFExportArgs) IsMachineImageExport() bool {
 	return !args.IsInstanceExport()
+}
+
+// GetResourceName returns name of the resource to be exported, either instance name or machine image name
+func (args *OVFExportArgs) GetResourceName() string {
+	if args.IsInstanceExport() {
+		return args.InstanceName
+	}
+	return args.MachineImageName
 }
 
 //TODO: consolidate with ovf_importer.toWorkingDir
@@ -171,9 +184,7 @@ func (args *OVFExportArgs) registerFlags(cliArgs []string) error {
 	flagSet.Var((*flags.TrimmedString)(&args.ClientVersion), "client-version",
 		"Identifies the version of the client of the exporter.")
 	flagSet.Var((*flags.TrimmedString)(&args.DestinationURI), DestinationURIFlagKey,
-		"Google Cloud Storage URI of the OVF or OVA file to export to. For example: gs://my-bucket/my-vm.ovf.")
-	flagSet.Var((*flags.LowerTrimmedString)(&args.OvfFormat), OvfFormatFlagKey,
-		"One of: `ovf` or `ova`. Defaults to `ovf`. If `ova` is specified, exported OVF package will be packed as an OVA archive and individual files will be removed from GCS.")
+		"Google Cloud Storage URI of the OVF descriptor or directory to export to. For example: `gs://my-bucket/my-vm.ovf` or `gs://my-bucket/my-ovf/`.")
 	flagSet.Var((*flags.LowerTrimmedString)(&args.DiskExportFormat), "disk-export-format",
 		"format for disks in OVF, such as vmdk, vhdx, vpc, or qcow2. Any format supported by qemu-img is supported by OVF export. Defaults to `vmdk`.")
 	flagSet.Var((*flags.TrimmedString)(&args.Network), "network",

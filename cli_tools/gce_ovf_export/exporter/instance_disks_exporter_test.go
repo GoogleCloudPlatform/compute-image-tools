@@ -16,6 +16,7 @@ package ovfexporter
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"cloud.google.com/go/storage"
@@ -42,11 +43,12 @@ func TestDiskExporter_HappyPath(t *testing.T) {
 		Disks: []*compute.AttachedDisk{
 			{
 				Source:     fmt.Sprintf("projects/%v/zones/us-central1-c/disks/disk-a", project),
-				DeviceName: "disk-a-dev",
+				DeviceName: "dska",
 			},
 			{
 				Source:     fmt.Sprintf("projects/%v/zones/us-central1-c/disks/disk-b", project),
-				DeviceName: "disk-b-dev",
+				DeviceName: params.OvfName + "-dskb",
+				//DeviceName:"dskb",
 			},
 		},
 		Zone: params.Zone,
@@ -84,14 +86,17 @@ func TestDiskExporter_HappyPath(t *testing.T) {
 	mockComputeClient.EXPECT().CreateInstance(project, params.Zone, gomock.Any()).Return(nil).AnyTimes()
 
 	for diskIndex, disk := range disks {
-		exporterInstanceName := fmt.Sprintf("inst-export-disk-%v-%v-dev-ovf-export-disk-export-exp-", diskIndex, disk.Name)
-		exporterInstanceDiskPrefix := fmt.Sprintf("disk-export-disk-%v-%v-", diskIndex, disk.Name)
-		mockComputeClient.EXPECT().GetSerialPortOutput(project, params.Zone, StartsWith(exporterInstanceName), int64(1), int64(0)).Return(&compute.SerialPortOutput{Contents: "export success", Next: 0}, nil).AnyTimes()
-		mockComputeClient.EXPECT().GetInstance(project, params.Zone, StartsWith(exporterInstanceName)).Return(&compute.Instance{}, nil).AnyTimes()
-		mockComputeClient.EXPECT().DeleteInstance(project, params.Zone, StartsWith(exporterInstanceName)).Return(nil)
+		exporterInstanceNamePrefix := fmt.Sprintf("inst-export-disk-%v-%v", diskIndex, instance.Disks[diskIndex].DeviceName)
+		exporterInstanceDiskPrefix := fmt.Sprintf("disk-export-disk-%v-%v-", diskIndex, instance.Disks[diskIndex].DeviceName)
+		mockComputeClient.EXPECT().GetSerialPortOutput(project, params.Zone, StartsWith(exporterInstanceNamePrefix), int64(1), int64(0)).Return(&compute.SerialPortOutput{Contents: "export success", Next: 0}, nil).AnyTimes()
+		mockComputeClient.EXPECT().GetInstance(project, params.Zone, StartsWith(exporterInstanceNamePrefix)).Return(&compute.Instance{}, nil).AnyTimes()
+		mockComputeClient.EXPECT().DeleteInstance(project, params.Zone, StartsWith(exporterInstanceNamePrefix)).Return(nil)
 		mockComputeClient.EXPECT().DeleteDisk(project, params.Zone, StartsWith(exporterInstanceDiskPrefix)).Return(nil).AnyTimes()
 		mockComputeClient.EXPECT().GetDisk(project, params.Zone, disk.Name).Return(disk, nil).AnyTimes()
-		mockStorageClient.EXPECT().GetObjectAttrs("ovfbucket", fmt.Sprintf("OVFpath/%v.%v", instance.Disks[diskIndex].DeviceName, params.DiskExportFormat)).Return(&storage.ObjectAttrs{Size: diskFileSizes[diskIndex]}, nil).AnyTimes()
+		mockStorageClient.EXPECT().GetObjectAttrs(
+			"ovfbucket",
+			fmt.Sprintf("OVFpath/%v", diskFileName(params.OvfName, instance.Disks[diskIndex].DeviceName, params.DiskExportFormat)),
+		).Return(&storage.ObjectAttrs{Size: diskFileSizes[diskIndex]}, nil).AnyTimes()
 	}
 
 	mockClientSetter := func(w *daisy.Workflow) {
@@ -112,8 +117,15 @@ func TestDiskExporter_HappyPath(t *testing.T) {
 	for diskIndex, exportedDisk := range exportedDisks {
 		assert.Equal(t, disks[diskIndex], exportedDisk.Disk)
 		assert.Equal(t, instance.Disks[diskIndex], exportedDisk.AttachedDisk)
-		assert.Equal(t, fmt.Sprintf("%v%v.%v", params.DestinationURI, instance.Disks[diskIndex].DeviceName, params.DiskExportFormat), exportedDisk.GcsPath)
+		assert.Equal(t, fmt.Sprintf("%v%v", params.DestinationDirectory, diskFileName(params.OvfName, instance.Disks[diskIndex].DeviceName, params.DiskExportFormat)), exportedDisk.GcsPath)
 		assert.NotNil(t, exportedDisk.GcsFileAttrs)
 		assert.Equal(t, diskFileSizes[diskIndex], exportedDisk.GcsFileAttrs.Size)
 	}
+}
+
+func diskFileName(ovfName, deviceName, fileFormat string) string {
+	if strings.HasPrefix(deviceName, ovfName) {
+		return fmt.Sprintf("%v.%v", deviceName, fileFormat)
+	}
+	return fmt.Sprintf("%v-%v.%v", ovfName, deviceName, fileFormat)
 }

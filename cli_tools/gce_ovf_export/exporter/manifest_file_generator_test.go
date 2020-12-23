@@ -50,7 +50,7 @@ func TestManifestGenerator_GenerateAndWriteToGCS(t *testing.T) {
 		strings.NewReader("SHA1(afile1.txt)= ef664589aac768e7deb904c687f8ff9ca6cc2100\nSHA1(afile2.txt)= f7343ea75dd828dcbe1dce4747e980cdbb9758c1\n"))
 
 	g := createManifestFileGenerator(mockStorageClient)
-	err := g.GenerateAndWriteToGCS("gs://a-bucket/folder1/subfolder/", "a-manifest")
+	err := g.GenerateAndWriteToGCS("gs://a-bucket/folder1/subfolder/", "a-manifest.mf")
 	assert.Nil(t, err)
 }
 
@@ -81,7 +81,7 @@ func prepareMocksForSuccessfulGenerate(mockCtrl *gomock.Controller) *mocks.MockS
 
 func TestManifestGenerator_GenerateAndWriteToGCS_ErrorOnInvalidGCSPath(t *testing.T) {
 	g := createManifestFileGenerator(nil)
-	err := g.GenerateAndWriteToGCS("NOT_A_GCS_PATH", "a-manifest")
+	err := g.GenerateAndWriteToGCS("NOT_A_GCS_PATH", "a-manifest.mf")
 	assert.Equal(t, daisy.Errf("%q is not a valid Cloud Storage path", "NOT_A_GCS_PATH"), err)
 }
 
@@ -144,7 +144,7 @@ func TestManifestGenerator_GenerateAndWriteToGCS_ErrorOnGenerate(t *testing.T) {
 		Return(mockObjectIterator)
 
 	g := createManifestFileGenerator(mockStorageClient)
-	err := g.GenerateAndWriteToGCS("gs://a-bucket/folder1/subfolder/", "a-manifest")
+	err := g.GenerateAndWriteToGCS("gs://a-bucket/folder1/subfolder/", "a-manifest.mf")
 	assert.Equal(t, iteratorError, err)
 }
 
@@ -160,7 +160,7 @@ func TestManifestGenerator_GenerateAndWriteToGCS_ErrorOnWriteToGCS(t *testing.T)
 		strings.NewReader("SHA1(afile1.txt)= ef664589aac768e7deb904c687f8ff9ca6cc2100\nSHA1(afile2.txt)= f7343ea75dd828dcbe1dce4747e980cdbb9758c1\n")).Return(gcsWriteError)
 
 	g := createManifestFileGenerator(mockStorageClient)
-	err := g.GenerateAndWriteToGCS("gs://a-bucket/folder1/subfolder/", "a-manifest")
+	err := g.GenerateAndWriteToGCS("gs://a-bucket/folder1/subfolder/", "a-manifest.mf")
 	assert.Equal(t, gcsWriteError, err)
 }
 

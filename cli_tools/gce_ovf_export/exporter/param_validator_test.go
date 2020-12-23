@@ -122,15 +122,6 @@ func TestInstanceExportFlagsAllValidBucketOnlyPathNoTrailingSlash(t *testing.T) 
 	assert.Nil(t, validator.ValidateAndParseParams(ovfexportdomain.GetAllInstanceExportArgs()))
 }
 
-func TestInstanceExportFlagsInvalidOvfFormat(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	validator := createDefaultParamValidator(mockCtrl, false)
-	params := ovfexportdomain.GetAllInstanceExportArgs()
-	params.OvfFormat = "zip"
-	assertErrorOnValidate(t, params, validator)
-}
-
 func TestMachineImageExportFlagsAllValid(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -194,15 +185,6 @@ func TestMachineImageExportFlagsAllValidBucketOnlyPathNoTrailingSlash(t *testing
 
 func assertErrorOnValidate(t *testing.T, params *ovfexportdomain.OVFExportArgs, validator *ovfExportParamValidatorImpl) {
 	assert.NotNil(t, validator.ValidateAndParseParams(params))
-}
-
-func TestMachineImageExportFlagsInvalidOvfFormat(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	validator := createDefaultParamValidator(mockCtrl, false)
-	params := ovfexportdomain.GetAllMachineImageExportArgs()
-	params.OvfFormat = "zip"
-	assertErrorOnValidate(t, params, validator)
 }
 
 func createDefaultParamValidator(mockCtrl *gomock.Controller, validateZone bool) *ovfExportParamValidatorImpl {

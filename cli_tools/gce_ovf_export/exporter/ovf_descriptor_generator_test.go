@@ -36,6 +36,7 @@ func TestOvfDescriptorGenerator_GenerateAndWriteOVFDescriptor(t *testing.T) {
 	zone := "us-west1-c"
 	machineType := "c2-standard-16"
 	instanceName := "an-instance"
+	descriptorFileName := "descriptor.ovf"
 	machineTypeURI := fmt.Sprintf("projects/%v/zones/%v/machineTypes/%v", project, zone, machineType)
 	testTarFileBytes, fileErr := ioutil.ReadFile("../../test_data/ovf_descriptor.ovf")
 	assert.NoError(t, fileErr)
@@ -46,7 +47,7 @@ func TestOvfDescriptorGenerator_GenerateAndWriteOVFDescriptor(t *testing.T) {
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().WriteToGCS(
-		bucket, fmt.Sprintf("%v%v.ovf", gcsFolder, instanceName),
+		bucket, fmt.Sprintf("%v%v", gcsFolder, descriptorFileName),
 		strings.NewReader(testTarFileString))
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
 	mockComputeClient.EXPECT().GetMachineType("a-project", "us-west1-c", machineType).Return(&compute.MachineType{GuestCpus: 2, MemoryMb: 2048, SelfLink: machineTypeURI}, nil)
@@ -77,7 +78,8 @@ func TestOvfDescriptorGenerator_GenerateAndWriteOVFDescriptor(t *testing.T) {
 		},
 	}
 	g := ovfDescriptorGeneratorImpl{storageClient: mockStorageClient, computeClient: mockComputeClient, Project: project, Zone: zone}
-	err := g.GenerateAndWriteOVFDescriptor(instance, exportedDisks, bucket, gcsFolder, diskInspectionResults)
+
+	err := g.GenerateAndWriteOVFDescriptor(instance, exportedDisks, bucket, gcsFolder, descriptorFileName, diskInspectionResults)
 	assert.Nil(t, err)
 }
 
@@ -100,6 +102,8 @@ func TestOvfDescriptorGenerator_GenerateAndWriteOVFDescriptor_ErrorOnGetMachineT
 		MachineType: machineTypeURI,
 	}
 	g := ovfDescriptorGeneratorImpl{storageClient: mockStorageClient, computeClient: mockComputeClient, Project: project, Zone: zone}
-	err := g.GenerateAndWriteOVFDescriptor(instance, []*ovfexportdomain.ExportedDisk{}, "a-bucket", "folder1/subfolder/", nil)
+	err := g.GenerateAndWriteOVFDescriptor(
+		instance, []*ovfexportdomain.ExportedDisk{}, "a-bucket",
+		"folder1/subfolder/", "descriptor.ovf", nil)
 	assert.Equal(t, machineTypeErr, err)
 }

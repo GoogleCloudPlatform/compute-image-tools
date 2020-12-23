@@ -40,7 +40,9 @@ func GetAllInstanceExportArgs() *OVFExportArgs {
 	return &OVFExportArgs{
 		InstanceName:         "instance1",
 		ClientID:             "aClient",
-		DestinationURI:       "gs://ovfbucket/OVFpath/",
+		DestinationURI:       "gs://ovfbucket/OVFpath/some-instance-ovf.ovf",
+		DestinationDirectory: "gs://ovfbucket/OVFpath/",
+		OvfName:              "ovfinst",
 		Network:              TestNetwork,
 		Subnet:               TestSubnet,
 		Zone:                 TestZone,
@@ -67,6 +69,8 @@ func GetAllMachineImageExportArgs() *OVFExportArgs {
 		MachineImageName:     "machine-image1",
 		ClientID:             "aClient",
 		DestinationURI:       "gs://ovfbucket/OVFpath",
+		DestinationDirectory: "gs://ovfbucket/OVFpath/",
+		OvfName:              "some-gmi-ovf",
 		Network:              TestNetwork,
 		Subnet:               TestSubnet,
 		Zone:                 TestZone,
@@ -81,7 +85,6 @@ func GetAllMachineImageExportArgs() *OVFExportArgs {
 		StdoutLogsDisabled:   true,
 		ReleaseTrack:         GA,
 		DiskExportFormat:     "vmdk",
-		OvfFormat:            "ovf",
 		Region:               TestRegion,
 	}
 }

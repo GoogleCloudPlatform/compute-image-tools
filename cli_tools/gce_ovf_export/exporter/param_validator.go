@@ -51,16 +51,17 @@ func (validator *ovfExportParamValidatorImpl) ValidateAndParseParams(params *ovf
 		return daisy.Errf("-%v and -%v can't be provided at the same time", ovfexportdomain.InstanceNameFlagKey, ovfexportdomain.MachineImageNameFlagKey)
 	}
 
-	if err := validation.ValidateStringFlagNotEmpty(params.DestinationURI, ovfexportdomain.DestinationURIFlagKey); err != nil {
-		return err
-	}
-
 	if err := validation.ValidateStringFlagNotEmpty(params.ClientID, ovfexportdomain.ClientIDFlagKey); err != nil {
 		return err
 	}
-
+	if err := validation.ValidateStringFlagNotEmpty(params.DestinationURI, ovfexportdomain.DestinationURIFlagKey); err != nil {
+		return err
+	}
 	if _, err := storage.GetBucketNameFromGCSPath(params.DestinationURI); err != nil {
 		return daisy.Errf("%v should be a path a Cloud Storage directory", ovfexportdomain.DestinationURIFlagKey)
+	}
+	if strings.HasSuffix(strings.ToLower(params.DestinationURI), ".ova") {
+		return daisy.Errf("Export to OVA is currently not supported")
 	}
 
 	if params.ReleaseTrack != "" {
@@ -73,13 +74,6 @@ func (validator *ovfExportParamValidatorImpl) ValidateAndParseParams(params *ovf
 
 		if !isValidReleaseTrack {
 			return daisy.Errf("%v should have one of the following values: %v", ovfexportdomain.ReleaseTrackFlagKey, validator.validReleaseTracks)
-		}
-	}
-
-	if params.OvfFormat != "" {
-		params.OvfFormat = strings.ToLower(params.OvfFormat)
-		if params.OvfFormat != "ovf" && params.OvfFormat != "ova" {
-			return daisy.Errf("%v should have one of the following values: %v", ovfexportdomain.OvfFormatFlagKey, []string{"ovf", "ova"})
 		}
 	}
 

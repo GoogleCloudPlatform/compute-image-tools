@@ -59,7 +59,7 @@ type OvfManifestGenerator interface {
 // To rebuild the mock, run `go generate ./...`
 //go:generate go run github.com/golang/mock/mockgen -package mocks -destination mocks/mock_ovf_descriptor_generator.go github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain OvfDescriptorGenerator
 type OvfDescriptorGenerator interface {
-	GenerateAndWriteOVFDescriptor(instance *compute.Instance, exportedDisks []*ExportedDisk, bucketName, gcsDirectoryPath string, diskInspectionResult *pb.InspectionResults) error
+	GenerateAndWriteOVFDescriptor(instance *compute.Instance, exportedDisks []*ExportedDisk, bucketName, gcsDirectoryPath, descriptorFileName string, diskInspectionResult *pb.InspectionResults) error
 	Cancel(reason string) bool
 }
 

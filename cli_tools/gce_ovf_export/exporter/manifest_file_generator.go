@@ -68,7 +68,7 @@ func (g *ovfManifestGeneratorImpl) generateAndWriteToGCS(gcsPath, manifestFileNa
 	}
 	if err := g.storageClient.WriteToGCS(
 		bucketName,
-		storageutils.ConcatGCSPath(directoryPath, fmt.Sprintf("%v.mf", manifestFileName)),
+		storageutils.ConcatGCSPath(directoryPath, manifestFileName),
 		strings.NewReader(manifestFileContent)); err != nil {
 		return err
 	}

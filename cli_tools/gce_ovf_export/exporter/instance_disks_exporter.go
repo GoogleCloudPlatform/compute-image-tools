@@ -121,7 +121,13 @@ func (ide *instanceDisksExporterImpl) addExportDisksSteps(w *daisy.Workflow, ins
 			return nil, daisy.Errf("Disk source `%v` is invalid.", attachedDisk.Source)
 		}
 		diskPath := attachedDisk.Source[indexOfProjects:]
-		exportedDiskGCSPath := params.DestinationURI + attachedDisk.DeviceName + "." + params.DiskExportFormat
+		var exportedDiskFileName string
+		if strings.HasPrefix(attachedDisk.DeviceName, params.OvfName) {
+			exportedDiskFileName = fmt.Sprintf("%v.%v", attachedDisk.DeviceName, params.DiskExportFormat)
+		} else {
+			exportedDiskFileName = fmt.Sprintf("%v-%v.%v", params.OvfName, attachedDisk.DeviceName, params.DiskExportFormat)
+		}
+		exportedDiskGCSPath := fmt.Sprintf("%v%v", params.DestinationDirectory, exportedDiskFileName)
 		exportedDisks = append(exportedDisks, &ovfexportdomain.ExportedDisk{AttachedDisk: attachedDisk, GcsPath: exportedDiskGCSPath})
 
 		exportDiskStepName := fmt.Sprintf(

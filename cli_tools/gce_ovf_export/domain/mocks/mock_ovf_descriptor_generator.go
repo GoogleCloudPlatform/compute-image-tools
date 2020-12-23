@@ -50,15 +50,15 @@ func (mr *MockOvfDescriptorGeneratorMockRecorder) Cancel(arg0 interface{}) *gomo
 }
 
 // GenerateAndWriteOVFDescriptor mocks base method
-func (m *MockOvfDescriptorGenerator) GenerateAndWriteOVFDescriptor(arg0 *compute.Instance, arg1 []*ovfexportdomain.ExportedDisk, arg2, arg3 string, arg4 *pb.InspectionResults) error {
+func (m *MockOvfDescriptorGenerator) GenerateAndWriteOVFDescriptor(arg0 *compute.Instance, arg1 []*ovfexportdomain.ExportedDisk, arg2, arg3, arg4 string, arg5 *pb.InspectionResults) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateAndWriteOVFDescriptor", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "GenerateAndWriteOVFDescriptor", arg0, arg1, arg2, arg3, arg4, arg5)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // GenerateAndWriteOVFDescriptor indicates an expected call of GenerateAndWriteOVFDescriptor
-func (mr *MockOvfDescriptorGeneratorMockRecorder) GenerateAndWriteOVFDescriptor(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+func (mr *MockOvfDescriptorGeneratorMockRecorder) GenerateAndWriteOVFDescriptor(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateAndWriteOVFDescriptor", reflect.TypeOf((*MockOvfDescriptorGenerator)(nil).GenerateAndWriteOVFDescriptor), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateAndWriteOVFDescriptor", reflect.TypeOf((*MockOvfDescriptorGenerator)(nil).GenerateAndWriteOVFDescriptor), arg0, arg1, arg2, arg3, arg4, arg5)
 }

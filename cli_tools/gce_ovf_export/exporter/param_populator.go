@@ -23,6 +23,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 )
 
@@ -76,10 +77,20 @@ func (populator *ovfExportParamPopulatorImpl) populateBuildID(params *ovfexportd
 }
 
 func (populator *ovfExportParamPopulatorImpl) populateDestinationURI(params *ovfexportdomain.OVFExportArgs) {
-	params.DestinationURI = strings.ToLower(params.DestinationURI)
-	if !strings.HasSuffix(params.DestinationURI, ".ova") {
-		params.DestinationURI = pathutils.ToDirectoryURL(params.DestinationURI)
+	_, objectPath, err := storage.SplitGCSPath(params.DestinationURI)
+	if err != nil {
+		panic("params.DestinationURI should be validated before calling populate")
 	}
+	if objectPath != "" && strings.HasSuffix(strings.ToLower(objectPath), ".ovf") {
+		if lastSlashIndex := strings.LastIndex(params.DestinationURI, "/"); lastSlashIndex > -1 {
+			params.DestinationDirectory = pathutils.ToDirectoryURL(params.DestinationURI[:lastSlashIndex])
+			// get the file name of the descriptor and use it for all the exported files
+			params.OvfName = params.DestinationURI[lastSlashIndex+1 : len(params.DestinationURI)-4]
+			return
+		}
+	}
+	params.DestinationDirectory = pathutils.ToDirectoryURL(params.DestinationURI)
+	params.OvfName = params.GetResourceName()
 }
 
 // populateNamespacedScratchDirectory updates ScratchBucketGcsPath to include a directory

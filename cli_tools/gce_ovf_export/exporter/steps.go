@@ -67,18 +67,20 @@ func (oe *OVFExporter) inspectBootDisk(ctx context.Context) error {
 func (oe *OVFExporter) generateDescriptor(ctx context.Context, instance *compute.Instance) error {
 	return oe.runStep(ctx, func() error {
 		oe.Logger.User("Generating OVF descriptor.")
-		bucketName, gcsDirectoryPath, err := storageutils.GetGCSObjectPathElements(oe.params.DestinationURI)
+		bucketName, gcsDirectoryPath, err := storageutils.GetGCSObjectPathElements(oe.params.DestinationDirectory)
 		if err != nil {
 			return err
 		}
-		return oe.ovfDescriptorGenerator.GenerateAndWriteOVFDescriptor(instance, oe.exportedDisks, bucketName, gcsDirectoryPath, oe.bootDiskInspectionResults)
+		return oe.ovfDescriptorGenerator.GenerateAndWriteOVFDescriptor(
+			instance, oe.exportedDisks, bucketName, gcsDirectoryPath,
+			fmt.Sprintf("%v.ovf", oe.params.OvfName), oe.bootDiskInspectionResults)
 	}, oe.ovfDescriptorGenerator.Cancel)
 }
 
 func (oe *OVFExporter) generateManifest(ctx context.Context) error {
 	return oe.runStep(ctx, func() error {
 		oe.Logger.User("Generating manifest.")
-		return oe.manifestFileGenerator.GenerateAndWriteToGCS(oe.params.DestinationURI, oe.params.InstanceName)
+		return oe.manifestFileGenerator.GenerateAndWriteToGCS(oe.params.DestinationDirectory, fmt.Sprintf("%v.mf", oe.params.OvfName))
 	}, oe.manifestFileGenerator.Cancel)
 }
 
