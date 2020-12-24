@@ -35,7 +35,7 @@ const (
 	workflowFile = "image_import/inspection/boot-inspect.wf.json"
 )
 
-// To rebuild the mock for DaisyWorker, run `go generate ./...`
+// To rebuild the mock for Inspector, run `go generate ./...`
 //go:generate go run github.com/golang/mock/mockgen -package mocks -source $GOFILE -destination mocks/mock_inspect.go
 
 // Inspector finds partition and boot-related properties for a disk.
