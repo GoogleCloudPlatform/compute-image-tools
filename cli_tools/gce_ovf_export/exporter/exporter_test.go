@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	mock_disk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk/mocks"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	ovfexportmocks "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain/mocks"
@@ -85,9 +86,9 @@ func TestRun_HappyPath(t *testing.T) {
 	mockInstanceDisksExporter := ovfexportmocks.NewMockInstanceDisksExporter(mockCtrl)
 	mockInstanceDisksExporter.EXPECT().Export(instance, params).Return(exportedDisks, nil)
 
-	mockInspector := mocks.NewMockInspector(mockCtrl)
+	mockInspector := mock_disk.NewMockInspector(mockCtrl)
 	mockInspector.EXPECT().Inspect(
-		fmt.Sprintf("projects/%v/zones/%v/disks/%v", params.Project, params.Zone, "bootdisk"), true).Return(inspectionResults, nil)
+		fmt.Sprintf("projects/%v/zones/%v/disks/%v", params.Project, params.Zone, "bootdisk")).Return(inspectionResults, nil)
 
 	mockOvfDescriptorGenerator := ovfexportmocks.NewMockOvfDescriptorGenerator(mockCtrl)
 	mockOvfDescriptorGenerator.EXPECT().GenerateAndWriteOVFDescriptor(instance, exportedDisks, "ovfbucket", "OVFpath/", params.OvfName+".ovf", inspectionResults).Return(nil)
@@ -147,7 +148,7 @@ func TestRun_DontRunDiskExporterIfPreparerTimedOut(t *testing.T) {
 	mockInstanceExportPreparer.EXPECT().Cancel("timed-out").Do(func(_ string) { preparerCancelChan <- true }).Return(true)
 
 	mockInstanceDisksExporter := ovfexportmocks.NewMockInstanceDisksExporter(mockCtrl)
-	mockInspector := mocks.NewMockInspector(mockCtrl)
+	mockInspector := mock_disk.NewMockInspector(mockCtrl)
 	mockOvfDescriptorGenerator := ovfexportmocks.NewMockOvfDescriptorGenerator(mockCtrl)
 	mockOvfManifestGenerator := ovfexportmocks.NewMockOvfManifestGenerator(mockCtrl)
 
@@ -204,7 +205,7 @@ func TestRun_DontRunInspectorIfDiskExporterTimedOut(t *testing.T) {
 		}).Return(nil, nil)
 	mockInstanceDisksExporter.EXPECT().Cancel("timed-out").Do(func(_ string) { diskExporterCancelChan <- true }).Return(true)
 
-	mockInspector := mocks.NewMockInspector(mockCtrl)
+	mockInspector := mock_disk.NewMockInspector(mockCtrl)
 	mockOvfDescriptorGenerator := ovfexportmocks.NewMockOvfDescriptorGenerator(mockCtrl)
 	mockOvfManifestGenerator := ovfexportmocks.NewMockOvfManifestGenerator(mockCtrl)
 
@@ -256,9 +257,9 @@ func TestRun_DontRunDescriptorGeneratorIfInspectorTimedOut(t *testing.T) {
 	mockInstanceDisksExporter.EXPECT().Export(instance, params).Return(exportedDisks, nil)
 
 	inspectorCancelChan := make(chan bool)
-	mockInspector := mocks.NewMockInspector(mockCtrl)
+	mockInspector := mock_disk.NewMockInspector(mockCtrl)
 	mockInspector.EXPECT().Inspect(
-		fmt.Sprintf("projects/%v/zones/%v/disks/%v", params.Project, params.Zone, "bootdisk"), true).Do(func(reference string, inspectOS bool) { sleepStep(inspectorCancelChan) }).Return(&pb.InspectionResults{}, nil)
+		fmt.Sprintf("projects/%v/zones/%v/disks/%v", params.Project, params.Zone, "bootdisk")).Do(func(reference string) { sleepStep(inspectorCancelChan) }).Return(&pb.InspectionResults{}, nil)
 	mockInspector.EXPECT().Cancel("timed-out").Do(func(_ string) { inspectorCancelChan <- true }).Return(true)
 
 	mockOvfDescriptorGenerator := ovfexportmocks.NewMockOvfDescriptorGenerator(mockCtrl)
@@ -318,9 +319,9 @@ func TestRun_DontRunManifestGeneratorIfDescriptorGeneratorTimedOut(t *testing.T)
 	mockInstanceDisksExporter := ovfexportmocks.NewMockInstanceDisksExporter(mockCtrl)
 	mockInstanceDisksExporter.EXPECT().Export(instance, params).Return(exportedDisks, nil)
 
-	mockInspector := mocks.NewMockInspector(mockCtrl)
+	mockInspector := mock_disk.NewMockInspector(mockCtrl)
 	mockInspector.EXPECT().Inspect(
-		fmt.Sprintf("projects/%v/zones/%v/disks/%v", params.Project, params.Zone, "bootdisk"), true).Return(inspectionResults, nil)
+		fmt.Sprintf("projects/%v/zones/%v/disks/%v", params.Project, params.Zone, "bootdisk")).Return(inspectionResults, nil)
 
 	descriptorGeneratorCancelChan := make(chan bool)
 	mockOvfDescriptorGenerator := ovfexportmocks.NewMockOvfDescriptorGenerator(mockCtrl)
@@ -387,9 +388,9 @@ func TestRun_TimeOutOnManifestGeneratorTimingOut(t *testing.T) {
 	mockInstanceDisksExporter := ovfexportmocks.NewMockInstanceDisksExporter(mockCtrl)
 	mockInstanceDisksExporter.EXPECT().Export(instance, params).Return(exportedDisks, nil)
 
-	mockInspector := mocks.NewMockInspector(mockCtrl)
+	mockInspector := mock_disk.NewMockInspector(mockCtrl)
 	mockInspector.EXPECT().Inspect(
-		fmt.Sprintf("projects/%v/zones/%v/disks/%v", params.Project, params.Zone, "bootdisk"), true).Return(inspectionResults, nil)
+		fmt.Sprintf("projects/%v/zones/%v/disks/%v", params.Project, params.Zone, "bootdisk")).Return(inspectionResults, nil)
 
 	mockOvfDescriptorGenerator := ovfexportmocks.NewMockOvfDescriptorGenerator(mockCtrl)
 	mockOvfDescriptorGenerator.EXPECT().GenerateAndWriteOVFDescriptor(

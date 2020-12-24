@@ -54,7 +54,7 @@ func (oe *OVFExporter) inspectBootDisk(ctx context.Context) error {
 		}
 		var err error
 		oe.bootDiskInspectionResults, err = oe.inspector.Inspect(
-			daisyutils.GetDiskURI(oe.params.Project, oe.params.Zone, bootDisk.Disk.Name), true)
+			daisyutils.GetDiskURI(oe.params.Project, oe.params.Zone, bootDisk.Disk.Name))
 		if err != nil {
 			oe.Logger.User(fmt.Sprintf("WARNING: Could not detect operating system on the boot disk: %v", err))
 		}
