@@ -42,6 +42,26 @@ func CombineStringSlices(s1 []string, s2 ...string) []string {
 	return ret
 }
 
+// Substring returns a substring of a string given start and substring length.
+// start and length must be non-negative. The func works with any charset,
+// including Unicode.
+func Substring(input string, start int, length int) string {
+	runes := []rune(input)
+	if start < 0 {
+		start = 0
+	}
+	if length < 0 {
+		length = 0
+	}
+	if start >= len(runes) {
+		return ""
+	}
+	if start+length > len(runes) {
+		length = len(runes) - start
+	}
+	return string(runes[start : start+length])
+}
+
 // SafeStringToInt returns the base-10 integer represented by s, or zero if
 // there is a parse failure.
 func SafeStringToInt(s string) int64 {

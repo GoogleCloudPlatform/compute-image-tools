@@ -207,6 +207,21 @@ func (mr *MockStorageClientInterfaceMockRecorder) GetObject(arg0, arg1 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObject", reflect.TypeOf((*MockStorageClientInterface)(nil).GetObject), arg0, arg1)
 }
 
+// GetObjectAttrs mocks base method
+func (m *MockStorageClientInterface) GetObjectAttrs(arg0, arg1 string) (*storage.ObjectAttrs, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetObjectAttrs", arg0, arg1)
+	ret0, _ := ret[0].(*storage.ObjectAttrs)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetObjectAttrs indicates an expected call of GetObjectAttrs
+func (mr *MockStorageClientInterfaceMockRecorder) GetObjectAttrs(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObjectAttrs", reflect.TypeOf((*MockStorageClientInterface)(nil).GetObjectAttrs), arg0, arg1)
+}
+
 // GetObjects mocks base method
 func (m *MockStorageClientInterface) GetObjects(arg0, arg1 string) domain.ObjectIteratorInterface {
 	m.ctrl.T.Helper()

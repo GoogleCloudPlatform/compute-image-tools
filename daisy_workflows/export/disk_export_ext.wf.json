@@ -37,11 +37,19 @@
     "compute_service_account": {
       "Value": "default",
       "Description": "Service account that will be used by the created worker instance"
+    },
+    "export_disk_ext.sh": {
+      "Value": "./export_disk_ext.sh",
+      "Description": "Path to export_disk_ext.sh script"
+    },
+    "disk_resizing_mon.sh": {
+      "Value": "./disk_resizing_mon.sh",
+      "Description": "Path to disk_resizing_mon.sh script"
     }
   },
   "Sources": {
-    "${NAME}_export_disk_ext.sh": "./export_disk_ext.sh",
-    "${NAME}_disk_resizing_mon.sh": "./disk_resizing_mon.sh"
+    "${NAME}_export_disk_ext.sh": "${export_disk_ext.sh}",
+    "${NAME}_disk_resizing_mon.sh": "${disk_resizing_mon.sh}"
   },
   "Steps": {
     "setup-disks": {

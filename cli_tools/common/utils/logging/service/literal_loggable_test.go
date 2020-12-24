@@ -94,3 +94,24 @@ func TestSingleImageImportLoggableBuilder(t *testing.T) {
 		}
 	}
 }
+
+func TestOvfExportLoggableBuilder(t *testing.T) {
+	sourceGb := []int64{12, 25}
+	targetGb := []int64{100, 300}
+	traceLogs1 := []string{"log-a", "log-b"}
+	traceLogs2 := []string{"log-c", "log-d"}
+
+	expected := literalLoggable{
+		strings: map[string]string{},
+		int64s: map[string][]int64{
+			sourceSizeGb: {12, 25},
+			targetSizeGb: {100, 300},
+		},
+		bools:     map[string]bool{},
+		traceLogs: append(traceLogs1, traceLogs2...),
+	}
+	assert.Equal(t, expected, NewOvfExportLoggableBuilder().SetDiskSizes(sourceGb, targetGb).
+		AppendTraceLogs(traceLogs1).
+		AppendTraceLogs(traceLogs2).
+		Build())
+}

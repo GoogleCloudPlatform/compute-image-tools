@@ -30,6 +30,7 @@ type StorageClientInterface interface {
 	GetBucket(bucket string) *storage.BucketHandle
 	GetObject(bucket string, objectPath string) StorageObject
 	GetObjects(bucket string, objectPath string) ObjectIteratorInterface
+	GetObjectAttrs(bucket string, objectPath string) (*storage.ObjectAttrs, error)
 	FindGcsFile(gcsDirectoryPath string, fileExtension string) (*storage.ObjectHandle, error)
 	FindGcsFileDepthLimited(gcsDirectoryPath string, fileExtension string, lookupDepth int) (*storage.ObjectHandle, error)
 	GetGcsFileContent(gcsObject *storage.ObjectHandle) ([]byte, error)

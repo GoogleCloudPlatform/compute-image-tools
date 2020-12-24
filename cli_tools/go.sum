@@ -60,6 +60,8 @@ dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/GoogleCloudPlatform/compute-image-tools v0.0.0-20200721213208-00ba2b996712 h1:HETnxhAjXUpM5fBclFfw/zNTXIwOHVQ2Jibw0DqrOqI=
+github.com/GoogleCloudPlatform/compute-image-tools v0.0.0-20201214200241-d4736a0b5477 h1:/JNjD2WQeROlDnnmEllUbpGplXnhqZac8GFt0r53J9o=
+github.com/GoogleCloudPlatform/compute-image-tools v0.0.0-20201222163737-d5ce407a6d98 h1:VFzqgtS8NQoqtFJIE9mxSJvWivD2YJOSCZ9RE5uViMA=
 github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0-20200114193945-760dc9647411/go.mod h1:928Ttg3SXjfF1mOI37hjnFUahdU4R234SpDcgcBO0I8=
 github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0-20200406182414-bf9021434372/go.mod h1:zkxkF+fdCQyagLcSSWbQeDcvShTFro3HbulNmXzbBJg=
 github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200111002017-35d3756114c9/go.mod h1:F+pk+WYiOJPq6m9oQkFZ3Vyw2l4nYJUgDyl4UW58+Q4=
@@ -192,7 +194,9 @@ github.com/google/go-cmp v0.5.2/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/
 github.com/google/logger v1.0.1/go.mod h1:w7O8nrRr0xufejBlQMI83MXqRusvREoJdaAxV+CoAB4=
 github.com/google/logger v1.1.0 h1:saB74Etb4EAJNH3z74CVbCKk75hld/8T0CsXKetWCwM=
 github.com/google/logger v1.1.0/go.mod h1:w7O8nrRr0xufejBlQMI83MXqRusvREoJdaAxV+CoAB4=
+github.com/google/martian v2.1.0+incompatible h1:/CP5g8u/VJHijgedC/Legn3BAbAaWPgecwXBIDzw5no=
 github.com/google/martian v2.1.0+incompatible/go.mod h1:9I4somxYTbIHy5NJKHRl3wXiIaQGbYVAs8BPL6v8lEs=
+github.com/google/martian/v3 v3.0.0 h1:pMen7vLs8nvgEYhywH3KDWJIJTeEr2ULsVWHWYHQyBs=
 github.com/google/martian/v3 v3.0.0/go.mod h1:y5Zk1BBys9G+gd6Jrk0W3cC1+ELVxBWuIGO+w/tUAp0=
 github.com/google/pprof v0.0.0-20181206194817-3ea8567a2e57/go.mod h1:zfwlbNMJ+OItoe0UupaVj+oy1omPYYDuagoSzA8v9mc=
 github.com/google/pprof v0.0.0-20190515194954-54271f7e092f/go.mod h1:zfwlbNMJ+OItoe0UupaVj+oy1omPYYDuagoSzA8v9mc=

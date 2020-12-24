@@ -69,6 +69,22 @@ func TestCombineStringSlices(t *testing.T) {
 	}
 }
 
+func TestSubstring(t *testing.T) {
+	assert.Equal(t, "The main string", Substring("The main string", 0, 15))
+	assert.Equal(t, "The main string", Substring("The main string", 0, 21))
+	assert.Equal(t, "The main string", Substring("The main string", -5, 21))
+	assert.Equal(t, "The main str", Substring("The main str", 0, 12))
+	assert.Equal(t, " main string", Substring("The main string", 3, 12))
+	assert.Equal(t, " main string", Substring("The main string", 3, 50))
+	assert.Equal(t, " main s", Substring("The main string", 3, 7))
+	assert.Equal(t, "", Substring("The main string", 17, 3))
+	assert.Equal(t, "", Substring("The main string", 3, 0))
+	assert.Equal(t, "", Substring("The main string", 3, -5))
+
+	assert.Equal(t, "Стефановић", Substring("Вук Стефановић Караџић", 4, 10))
+	assert.Equal(t, "什么名", Substring("你叫什么名字", 2, 3))
+}
+
 func TestSafeStringToInt(t *testing.T) {
 	tests := []struct {
 		input    string

@@ -104,3 +104,42 @@ func (b *SingleImageImportLoggableBuilder) AppendTraceLogs(traceLogs []string) *
 func (b *SingleImageImportLoggableBuilder) Build() Loggable {
 	return b.literalLoggable
 }
+
+// OvfExportLoggableBuilder initializes and builds a Loggable with the metadata
+// fields that are relevant when exporting OVF.
+type OvfExportLoggableBuilder struct {
+	literalLoggable
+}
+
+// NewOvfExportLoggableBuilder creates and initializes a OvfExportLoggableBuilder.
+func NewOvfExportLoggableBuilder() *OvfExportLoggableBuilder {
+	return &OvfExportLoggableBuilder{literalLoggable{
+		strings: map[string]string{},
+		int64s:  map[string][]int64{},
+		bools:   map[string]bool{},
+	}}
+}
+
+// SetDiskSizes sets disk sizes for OVF exported disks
+func (b *OvfExportLoggableBuilder) SetDiskSizes(sourceSizes []int64,
+	targetSizes []int64) *OvfExportLoggableBuilder {
+
+	b.int64s[sourceSizeGb] = sourceSizes
+	b.int64s[targetSizeGb] = targetSizes
+	return b
+}
+
+// AppendTraceLogs sets trace logs during OVF export.
+func (b *OvfExportLoggableBuilder) AppendTraceLogs(traceLogs []string) *OvfExportLoggableBuilder {
+	if b.traceLogs != nil {
+		b.traceLogs = append(b.traceLogs, traceLogs...)
+	} else {
+		b.traceLogs = traceLogs
+	}
+	return b
+}
+
+// Build builds the actual Loggable object.
+func (b *OvfExportLoggableBuilder) Build() Loggable {
+	return b.literalLoggable
+}

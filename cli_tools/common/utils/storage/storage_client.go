@@ -102,6 +102,15 @@ func (sc *Client) GetObjects(bucket string, objectPath string) domain.ObjectIter
 	return sc.Oic.CreateObjectIterator(bucket, objectPath)
 }
 
+// GetObjectAttrs returns storage object attributes
+func (sc *Client) GetObjectAttrs(bucket string, objectPath string) (*storage.ObjectAttrs, error) {
+	objectAttrs, err := sc.StorageClient.Bucket(bucket).Object(objectPath).Attrs(sc.Ctx)
+	if err != nil {
+		return nil, daisy.Errf("Error getting object attributes for object `%v\\%v`: %v", bucket, objectPath, err)
+	}
+	return objectAttrs, nil
+}
+
 // DeleteGcsPath deletes a GCS path, including files
 func (sc *Client) DeleteGcsPath(gcsPath string) error {
 	bucketName, objectPath, err := SplitGCSPath(gcsPath)
@@ -242,6 +251,18 @@ func SplitGCSPath(p string) (string, string, error) {
 	}
 
 	return "", "", daisy.Errf("%q is not a valid Cloud Storage path", p)
+}
+
+// ConcatGCSPath concatenates multiple elements of GCS path into a GCS path.
+func ConcatGCSPath(pathElements ...string) string {
+	path := ""
+	for i, pathElement := range pathElements {
+		path += pathElement
+		if i != len(pathElements)-1 && !strings.HasSuffix(pathElement, "/") {
+			path += "/"
+		}
+	}
+	return path
 }
 
 // GetGCSObjectPathElements returns bucket name, object path within the bucket

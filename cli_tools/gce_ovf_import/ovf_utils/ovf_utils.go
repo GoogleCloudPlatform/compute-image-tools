@@ -19,8 +19,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 	"github.com/vmware/govmomi/ovf"
 )
 
@@ -35,7 +37,8 @@ const (
 	usbController          uint16 = 23
 )
 
-type osInfo struct {
+// OsInfo holds OS information for OVF import and export
+type OsInfo struct {
 	// description holds OS description that can be used for messages shown to users
 	description string
 
@@ -49,22 +52,24 @@ type osInfo struct {
 	// know if BYOL agreement is in place for the customer. In that case, customers
 	// have to explicitly provide --os flag.
 	nonDeterministic bool
+
+	OsType string
 }
 
-// isDeterministic returns true if, based on osInfo, importer OS ID can be determined.
+// isDeterministic returns true if, based on OsInfo, importer OS ID can be determined.
 // if false is returned, the customer needs to provide OS value via the --os flag.
-func (oi *osInfo) isDeterministic() bool {
+func (oi *OsInfo) isDeterministic() bool {
 	return len(oi.importerOSIDs) == 1 && !oi.nonDeterministic
 }
 
-// hasImporterOSIDs returns true if osInfo has any mappings to importer OS IDs.
-func (oi *osInfo) hasImporterOSIDs() bool {
+// hasImporterOSIDs returns true if OsInfo has any mappings to importer OS IDs.
+func (oi *OsInfo) hasImporterOSIDs() bool {
 	return len(oi.importerOSIDs) > 0
 }
 
 //Mapping OVF OS ID to OS info
 //Full list: http://schemas.dmtf.org/wbem/cim-html/2/CIM_OperatingSystem.html
-var ovfOSIDToImporterOSID = map[int16]osInfo{
+var ovfOSIDToImporterOSID = map[int16]OsInfo{
 	2:   {description: "MACOS", importerOSIDs: []string{}},
 	3:   {description: "ATTUNIX", importerOSIDs: []string{}},
 	4:   {description: "DGUX", importerOSIDs: []string{}},
@@ -178,12 +183,33 @@ var ovfOSIDToImporterOSID = map[int16]osInfo{
 	114: {description: "Microsoft Windows 8", importerOSIDs: []string{"windows-8-x86-byol"}, nonDeterministic: true},
 	115: {description: "Microsoft Windows 8 64-bit", importerOSIDs: []string{"windows-8-x64-byol"}, nonDeterministic: true},
 	116: {description: "Microsoft Windows Server 2012 R2", importerOSIDs: []string{"windows-2012r2", "windows-2012r2-byol"}},
-	117: {description: "Microsoft Windows Server 2016", importerOSIDs: []string{"windows-2016", "windows-2016-byol"}},
+	117: {description: "Microsoft Windows Server 2016", importerOSIDs: []string{"windows-2016", "windows-2016-byol", "windows-2019", "windows-2019-byol"}}, //as per https://www.ibm.com/support/knowledgecenter/SSZQFR_2.3.2.0/iwd/pct_byos_win_image.html 2016/2019 share the same ID
 	118: {description: "Microsoft Windows 8.1", importerOSIDs: []string{}},
 	119: {description: "Microsoft Windows 8.1 64-bit", importerOSIDs: []string{}},
 	120: {description: "Microsoft Windows 10", importerOSIDs: []string{"windows-10-x86-byol"}, nonDeterministic: true},
 	121: {description: "Microsoft Windows 10 64-bit", importerOSIDs: []string{"windows-10-x64-byol"}, nonDeterministic: true},
-	//TODO: windows-2019, windows-2019-byol
+}
+
+// GetOSInfoForInspectionResults builds OS info from inspection results
+func GetOSInfoForInspectionResults(ir *pb.InspectionResults) (*OsInfo, int16) {
+	release, err := distro.FromComponents(
+		ir.GetOsRelease().GetDistro(),
+		ir.GetOsRelease().GetMajorVersion(),
+		ir.GetOsRelease().GetMinorVersion(),
+		pb.Architecture_name[int32(ir.GetOsRelease().GetArchitecture())],
+	)
+	if err != nil {
+		return nil, 0
+	}
+	osGcloudArg := release.AsGcloudArg()
+	for osID, osInfo := range ovfOSIDToImporterOSID {
+		for _, importerOsID := range osInfo.importerOSIDs {
+			if strings.HasPrefix(strings.ToLower(importerOsID), strings.ToLower(osGcloudArg)) {
+				return &osInfo, osID
+			}
+		}
+	}
+	return nil, 0
 }
 
 //Mapping OVF osType attribute to importer OS ID
@@ -191,14 +217,14 @@ var ovfOSIDToImporterOSID = map[int16]osInfo{
 // Some might have only one option but we can't select it automatically as we cannot guarantee
 // correctness. All Windows Client imports are in this category due to the fact we can't assume BYOL licensing.
 //Full list: https://vdc-download.vmware.com/vmwb-repository/dcr-public/da47f910-60ac-438b-8b9b-6122f4d14524/16b7274a-bf8b-4b4c-a05e-746f2aa93c8c/doc/vim.vm.GuestOsDescriptor.GuestOsIdentifier.html
-var ovfOSTypeToOSID = map[string]osInfo{
-	"debian8_64Guest":       osInfo{importerOSIDs: []string{"debian-8"}},
-	"debian9_64Guest":       osInfo{importerOSIDs: []string{"debian-9"}},
-	"centos7_64Guest":       osInfo{importerOSIDs: []string{"centos-7"}},
-	"centos8_64Guest":       osInfo{importerOSIDs: []string{"centos-8"}},
-	"rhel6_64Guest":         osInfo{importerOSIDs: []string{"rhel-6"}},
-	"rhel7_64Guest":         osInfo{importerOSIDs: []string{"rhel-7"}},
-	"windows7Server64Guest": osInfo{importerOSIDs: []string{"windows-2008r2"}},
+var ovfOSTypeToOSID = map[string]OsInfo{
+	"debian8_64Guest":       OsInfo{importerOSIDs: []string{"debian-8"}},
+	"debian9_64Guest":       OsInfo{importerOSIDs: []string{"debian-9"}},
+	"centos7_64Guest":       OsInfo{importerOSIDs: []string{"centos-7"}},
+	"centos8_64Guest":       OsInfo{importerOSIDs: []string{"centos-8"}},
+	"rhel6_64Guest":         OsInfo{importerOSIDs: []string{"rhel-6"}},
+	"rhel7_64Guest":         OsInfo{importerOSIDs: []string{"rhel-7"}},
+	"windows7Server64Guest": OsInfo{importerOSIDs: []string{"windows-2008r2"}},
 	"ubuntu64Guest":         {importerOSIDs: []string{"ubuntu-1404", "ubuntu-1604", "ubuntu-1804"}, nonDeterministic: true},
 	"windows7Guest":         {importerOSIDs: []string{"windows-7-x86-byol"}, nonDeterministic: true},
 	"windows7_64Guest":      {importerOSIDs: []string{"windows-7-x64-byol"}, nonDeterministic: true},
@@ -397,7 +423,7 @@ func GetOSId(ovfDescriptor *ovf.Envelope) (string, error) {
 		return "", daisy.Errf("OVF descriptor error: OperatingSystemSection.OSType or OperatingSystemSection.ID must be defined to retrieve OS info. Use --os flag to specify OS")
 	}
 
-	var osInfoFromOSType, osInfoFromOSID *osInfo
+	var osInfoFromOSType, osInfoFromOSID *OsInfo
 	if ovfDescriptor.VirtualSystem.OperatingSystem[0].OSType != nil && *ovfDescriptor.VirtualSystem.OperatingSystem[0].OSType != "" {
 		if osInfoFromOSTypeValue, ok := ovfOSTypeToOSID[*ovfDescriptor.VirtualSystem.OperatingSystem[0].OSType]; ok {
 			osInfoFromOSType = &osInfoFromOSTypeValue
@@ -430,7 +456,7 @@ func GetOSId(ovfDescriptor *ovf.Envelope) (string, error) {
 		)
 }
 
-func getMoreSpecificOSInfo(osInfo1, osInfo2 *osInfo) *osInfo {
+func getMoreSpecificOSInfo(osInfo1, osInfo2 *OsInfo) *OsInfo {
 	if osInfo1 == nil || !osInfo1.hasImporterOSIDs() {
 		return osInfo2
 	}
