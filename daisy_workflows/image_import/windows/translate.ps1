@@ -232,10 +232,10 @@ function Change-InstanceProperties {
   # Change time zone to Coordinated Universal Time.
   Run-Command tzutil /s 'UTC'
 
-  # Not supported on 6.1 client, but is supported on 6.1 server
+  # Supported on 6.1 client and 6.1 server with SP1 installed only
   $pn_path = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
   $pn = (Get-ItemProperty -Path $pn_path -Name ProductName).ProductName
-  if ($pn -notlike '*Windows 7*') {
+  if (($pn -notlike '*Windows 7*') -or ($pn -notlike '*Windows Server 2008*')) {
     Run-Command powercfg /hibernate off
   }
 }
