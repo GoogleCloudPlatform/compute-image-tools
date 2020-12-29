@@ -17,8 +17,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"path"
-	"path/filepath"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/cli"
@@ -28,7 +26,8 @@ import (
 func main() {
 	// Directory where workflows are located; in this case, the value indicates that
 	// that the `daisy_workflows` directory is located in the same directory as the current binary.
-	workflowDir := path.Join(filepath.Dir(os.Args[0]), "daisy_workflows")
+	//workflowDir := path.Join(filepath.Dir(os.Args[0]), "daisy_workflows")
+	workflowDir := "/usr/local/google/home/zoranl/go/src/github.com/GoogleCloudPlatform/compute-image-tools/daisy_workflows"
 	toolLogger := logging.NewToolLogger(fmt.Sprintf("[%s]", importer.LogPrefix))
 	if err := cli.Main(os.Args[1:], toolLogger, workflowDir); err != nil {
 		// Main is responsible for logging the failure.
