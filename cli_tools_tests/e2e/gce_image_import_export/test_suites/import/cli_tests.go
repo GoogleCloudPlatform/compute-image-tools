@@ -557,7 +557,7 @@ func runImageImportOSDefaultServiceAccountWithMissingPermissionsFailTest(ctx con
 		},
 	}
 
-	e2e.RunTestCommandAssertErrorMessage(cmds[testType], argsMap[testType], "ImportFailed: Failed to download GCS path", logger, testCase)
+	e2e.RunTestCommandAssertErrorMessage(cmds[testType], argsMap[testType], "Failed to download GCS path", logger, testCase)
 }
 
 func runImportTest(ctx context.Context, args []string, testType e2e.CLITestType,
