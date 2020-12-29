@@ -1,5 +1,5 @@
 {{/*
-  Template to publish Red Hat Enterprise Linux images.
+  Template to publish UEFI-enabled CentOS images.
   By default this template is setup to publish to the 'gce-image-builder'
   project, the 'environment' variable can be used to publish to 'test', 'prod',
   or 'staging'.
@@ -7,7 +7,8 @@
   time period is set.
 */}}
 {
-  "Name": "rhel",
+  "Name": "centos",
+  "SourceGCSPath": "gs://gce-image-archive/centos-uefi",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/beta/projects/"` -}}
   {{$delete_after := `"24h*30*6"` -}}
@@ -18,7 +19,7 @@
   "DeleteAfter": {{$delete_after}},
   {{- else if eq .environment "prod" -}}
   "WorkProject": {{$work_project}},
-  "PublishProject": "rhel-cloud",
+  "PublishProject": "centos-cloud",
   "ComputeEndpoint": {{$endpoint}},
   {{- else if eq .environment "staging" -}}
   "WorkProject": "bct-staging-images",
@@ -31,19 +32,21 @@
   "ComputeEndpoint": {{$endpoint}},
   "DeleteAfter": {{$delete_after}},
   {{- end}}
+  {{$guest_features := `["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE"]` -}}
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Prefix": "rhel-6",
-      "Family": "rhel-6",
-      "Description": "Red Hat, Red Hat Enterprise Linux, 6, x86_64 built on {{$time}}",
+      "Family": "centos-stream",
+      "Prefix": "centos-stream",
+      "Description": "CentOS, CentOS, Stream, x86_64 built on {{$time}}, supports Shielded VM features",
       "Licenses": [
         {{if eq .environment "staging" -}}
-        "projects/bct-staging-functional/global/licenses/rhel-6-server"
+        "projects/bct-staging-functional/global/licenses/centos-stream"
         {{- else -}}
-        "projects/rhel-cloud/global/licenses/rhel-6-server"
+        "projects/centos-cloud/global/licenses/centos-stream"
         {{- end}}
-      ]
+      ],
+      "GuestOsFeatures": {{$guest_features}}
     }
   ]
 }
