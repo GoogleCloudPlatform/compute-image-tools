@@ -19,6 +19,9 @@ import (
 	"fmt"
 	"strings"
 
+	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/option"
+
 	commondisk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	computeutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
@@ -29,8 +32,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
-	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/option"
 )
 
 const (
@@ -85,12 +86,7 @@ func NewOVFExporter(params *ovfexportdomain.OVFExportArgs, logger logging.ToolLo
 	if err := validateAndPopulateParams(params, paramValidator, paramPopulator); err != nil {
 		return nil, err
 	}
-	inspector, err := commondisk.NewInspector(
-		params.DaisyAttrs(),
-		params.Network,
-		params.Subnet,
-		params.ComputeServiceAccount,
-		logger)
+	inspector, err := commondisk.NewInspector(params.EnvironmentSettings(), logger)
 	if err != nil {
 		return nil, daisy.Errf("Error creating disk inspector: %v", err)
 	}

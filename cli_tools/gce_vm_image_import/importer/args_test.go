@@ -398,30 +398,36 @@ func TestSysprepSettable(t *testing.T) {
 
 func TestImportArguments_DaisyAttrs(t *testing.T) {
 	args := ImportArguments{
-		Project:              "panda",
-		Zone:                 "us-west",
-		ScratchBucketGcsPath: "gs://bucket/path",
-		Oauth:                "oauth-info",
-		Timeout:              time.Hour * 3,
-		ComputeEndpoint:      "endpoint-uri",
-		GcsLogsDisabled:      true,
-		CloudLogsDisabled:    true,
-		StdoutLogsDisabled:   true,
-		NoExternalIP:         true,
+		Project:               "panda",
+		Zone:                  "us-west",
+		ScratchBucketGcsPath:  "gs://bucket/path",
+		Oauth:                 "oauth-info",
+		Timeout:               time.Hour * 3,
+		ComputeEndpoint:       "endpoint-uri",
+		GcsLogsDisabled:       true,
+		CloudLogsDisabled:     true,
+		StdoutLogsDisabled:    true,
+		NoExternalIP:          true,
+		Network:               "net",
+		Subnet:                "sub",
+		ComputeServiceAccount: "sa",
 	}
-	expected := daisycommon.WorkflowAttributes{
-		Project:           "panda",
-		Zone:              "us-west",
-		GCSPath:           "gs://bucket/path",
-		OAuth:             "oauth-info",
-		Timeout:           "3h0m0s",
-		ComputeEndpoint:   "endpoint-uri",
-		DisableGCSLogs:    true,
-		DisableCloudLogs:  true,
-		DisableStdoutLogs: true,
-		NoExternalIP:      true,
+	expected := daisycommon.EnvironmentSettings{
+		Project:               "panda",
+		Zone:                  "us-west",
+		GCSPath:               "gs://bucket/path",
+		OAuth:                 "oauth-info",
+		Timeout:               "3h0m0s",
+		ComputeEndpoint:       "endpoint-uri",
+		DisableGCSLogs:        true,
+		DisableCloudLogs:      true,
+		DisableStdoutLogs:     true,
+		NoExternalIP:          true,
+		Network:               "net",
+		Subnet:                "sub",
+		ComputeServiceAccount: "sa",
 	}
-	assert.Equal(t, expected, args.DaisyAttrs())
+	assert.Equal(t, expected, args.EnvironmentSettings())
 }
 
 type mockPopulator struct {

@@ -19,12 +19,13 @@ import (
 	"fmt"
 	"sync"
 
+	"google.golang.org/api/compute/v1"
+
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
+	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	"google.golang.org/api/compute/v1"
 )
 
 type populateStepsFunc func(*daisy.Workflow) error
@@ -120,7 +121,7 @@ func generateWorkflowWithSteps(workflowName, timeout string, populateStepsFunc p
 	// workflows are used, this func has to be called as wf.postValidateModifier.
 	//postValidateWorkflowModifier(w, params)
 
-	daisycommon.SetWorkflowAttributes(w, params.DaisyAttrs())
+	daisycommon.SetWorkflowAttributes(w, params.EnvironmentSettings())
 	return w, nil
 }
 

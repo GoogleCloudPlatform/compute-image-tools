@@ -35,7 +35,7 @@ Loop:
 		return nil, daisy.Errf("unknown workflow Var %q passed to Workflow %q", k, w.Name)
 	}
 
-	SetWorkflowAttributes(w, WorkflowAttributes{
+	SetWorkflowAttributes(w, EnvironmentSettings{
 		Project:           project,
 		Zone:              zone,
 		GCSPath:           gcsPath,
@@ -50,37 +50,53 @@ Loop:
 	return w, nil
 }
 
-// WorkflowAttributes holds common attributes that are required to instantiate a daisy workflow.
-type WorkflowAttributes struct {
-	Project, Zone, GCSPath, OAuth, Timeout, ComputeEndpoint, WorkflowDirectory string
-	DisableGCSLogs, DisableCloudLogs, DisableStdoutLogs, NoExternalIP          bool
+// EnvironmentSettings controls the resources that are used during import.
+type EnvironmentSettings struct {
+	// Location of workflows
+	WorkflowDirectory string
+
+	// Fields from daisy.Workflow
+	Project, Zone, GCSPath, OAuth, Timeout, ComputeEndpoint string
+	DisableGCSLogs, DisableCloudLogs, DisableStdoutLogs     bool
+
+	// Worker instance customizations
+	Network, Subnet       string
+	ComputeServiceAccount string
+	NoExternalIP          bool
+}
+
+// SetWorkerCustomizations sets variables that are used when creating worker instances.
+func SetWorkerCustomizations(wf *daisy.Workflow, env EnvironmentSettings) {
+	wf.AddVar("network", env.Network)
+	wf.AddVar("subnet", env.Subnet)
+	if env.ComputeServiceAccount != "" {
+		wf.AddVar("compute_service_account", env.ComputeServiceAccount)
+	}
 }
 
 // SetWorkflowAttributes sets workflow running attributes.
-func SetWorkflowAttributes(w *daisy.Workflow, attrs WorkflowAttributes) {
-	w.Project = attrs.Project
-	w.Zone = attrs.Zone
-	if attrs.GCSPath != "" {
-		w.GCSPath = attrs.GCSPath
+func SetWorkflowAttributes(w *daisy.Workflow, env EnvironmentSettings) {
+	w.Project = env.Project
+	w.Zone = env.Zone
+	if env.GCSPath != "" {
+		w.GCSPath = env.GCSPath
 	}
-	if attrs.OAuth != "" {
-		w.OAuthPath = attrs.OAuth
+	if env.OAuth != "" {
+		w.OAuthPath = env.OAuth
 	}
-	if attrs.Timeout != "" {
-		w.DefaultTimeout = attrs.Timeout
+	if env.Timeout != "" {
+		w.DefaultTimeout = env.Timeout
 	}
-
-	if attrs.ComputeEndpoint != "" {
-		w.ComputeEndpoint = attrs.ComputeEndpoint
+	if env.ComputeEndpoint != "" {
+		w.ComputeEndpoint = env.ComputeEndpoint
 	}
-
-	if attrs.DisableGCSLogs {
+	if env.DisableGCSLogs {
 		w.DisableGCSLogging()
 	}
-	if attrs.DisableCloudLogs {
+	if env.DisableCloudLogs {
 		w.DisableCloudLogging()
 	}
-	if attrs.DisableStdoutLogs {
+	if env.DisableStdoutLogs {
 		w.DisableStdoutLogging()
 	}
 }

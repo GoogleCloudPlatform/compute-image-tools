@@ -1,0 +1,9 @@
+Creates a GCP project that disables external IPs for VMs. Internet traffic is routed through
+a Cloud NAT router.
+
+Specifically the project has:
+ 1. No default network
+ 2. One network with default firewall
+ 3. One subnet (single region)
+ 4. Policy disallowing external IPs for VMs
+ 5. Internet traffic allowed using Cloud NAT: https://cloud.google.com/nat/docs/gce-example

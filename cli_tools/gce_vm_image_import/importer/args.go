@@ -299,20 +299,23 @@ func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
 		"Whether to generalize image using Windows Sysprep. Only applicable to Windows.")
 }
 
-// DaisyAttrs returns the subset of DaisyAttrs that are required to instantiate
-// a daisy workflow.
-func (args ImportArguments) DaisyAttrs() daisycommon.WorkflowAttributes {
-	return daisycommon.WorkflowAttributes{
-		Project:           args.Project,
-		Zone:              args.Zone,
-		GCSPath:           args.ScratchBucketGcsPath,
-		OAuth:             args.Oauth,
-		Timeout:           args.Timeout.String(),
-		ComputeEndpoint:   args.ComputeEndpoint,
-		DisableGCSLogs:    args.GcsLogsDisabled,
-		DisableCloudLogs:  args.CloudLogsDisabled,
-		DisableStdoutLogs: args.StdoutLogsDisabled,
-		NoExternalIP:      args.NoExternalIP,
-		WorkflowDirectory: args.WorkflowDir,
+// EnvironmentSettings creates an EnvironmentSettings instance from the fields
+// in this struct.
+func (args ImportArguments) EnvironmentSettings() daisycommon.EnvironmentSettings {
+	return daisycommon.EnvironmentSettings{
+		Project:               args.Project,
+		Zone:                  args.Zone,
+		GCSPath:               args.ScratchBucketGcsPath,
+		OAuth:                 args.Oauth,
+		Timeout:               args.Timeout.String(),
+		ComputeEndpoint:       args.ComputeEndpoint,
+		DisableGCSLogs:        args.GcsLogsDisabled,
+		DisableCloudLogs:      args.CloudLogsDisabled,
+		DisableStdoutLogs:     args.StdoutLogsDisabled,
+		NoExternalIP:          args.NoExternalIP,
+		WorkflowDirectory:     args.WorkflowDir,
+		Network:               args.Network,
+		Subnet:                args.Subnet,
+		ComputeServiceAccount: args.ComputeServiceAccount,
 	}
 }
