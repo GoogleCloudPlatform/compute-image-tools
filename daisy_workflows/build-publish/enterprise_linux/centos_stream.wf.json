@@ -22,7 +22,7 @@
     },
     "installer_iso": {
       "Required": true,
-      "Description": "The CentOS 7 installer ISO to build from."
+      "Description": "The CentOS Stream installer ISO to build from."
     }
   },
   "Steps": {
