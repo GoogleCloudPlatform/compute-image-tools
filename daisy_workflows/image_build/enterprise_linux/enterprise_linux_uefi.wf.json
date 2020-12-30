@@ -86,7 +86,10 @@
             "rhel_sap": "${rhel_sap}",
             "rhel_uefi": "${rhel_uefi}"
           },
-          "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
+          "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_write",
+            "https://www.googleapis.com/auth/logging.write"
+          ],
           "StartupScript": "installerprep_startup_script"
         }
       ]
@@ -115,7 +118,11 @@
         {
           "Name": "inst-build",
           "Disks": [{"Source": "disk-installer"}, {"Source": "${install_disk}"}],
-          "MachineType": "n1-standard-4"
+          "MachineType": "n1-standard-4",
+           "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_write",
+            "https://www.googleapis.com/auth/logging.write"
+          ]
         }
       ]
     },
