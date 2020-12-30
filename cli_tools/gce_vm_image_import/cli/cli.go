@@ -94,6 +94,9 @@ func Main(args []string, toolLogger logging.ToolLogger, workflowDir string) erro
 }
 
 func userFriendlyError(err error, importArgs importer.ImportArguments) error {
+	if err == nil {
+		return err
+	}
 	if strings.Contains(err.Error(), "constraints/compute.vmExternalIpAccess") {
 		return fmt.Errorf("constraint constraints/compute.vmExternalIpAccess "+
 			"violated for project %v. For more information about importing disks using "+
