@@ -85,7 +85,7 @@ class RepoString(object):
     """Initializes RepoString with attributes passes as arguments.
 
     Args:
-      repo_version: string; expects 'el6', 'el7', 'el8'.
+      repo_version: string; expects 'el7', 'el8'.
 
       repo: string; used to specify which dict in repodict to use to assemble
             the yum.conf repo segment.
@@ -158,7 +158,7 @@ class RepoString(object):
     return self.url_root + (url_branch % self.repo_version)
 
 
-def BuildKsConfig(release, google_cloud_repo, byos, sap, uefi):
+def BuildKsConfig(release, google_cloud_repo, byos, sap):
   """Builds kickstart config from shards.
 
   Args:
@@ -166,166 +166,123 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap, uefi):
     google_cloud_repo: string; expects 'stable', 'unstable', or 'staging'.
     byos: bool; true if using a BYOS RHEL license.
     sap: bool; true if building RHEL for SAP.
-    uefi: bool; true if building uefi image.
 
   Returns:
     string; a valid kickstart config.
   """
 
-  # This is where we put the kickstart config together. There are three
-  # sections in a kickstart config. Sections are:
-  # Commands and options
-  # Packages
-  # pre and post
-  # Each section must be in a specific order, but items in that section do not
-  # have to be.
+  # Each kickstart file will have the following components:
+  # ks_options: kickstart install options
+  # ks_packages: kickstart package config
+  # ks_post: kickstart post install scripts
 
-  # Common
-  pre = ''
-  ks_packages = FetchConfigPart('common-packages.cfg')
-  cleanup = FetchConfigPart('cleanup.cfg')
+  # Common kickstart sections.
+  ks_cleanup = FetchConfigPart('cleanup.cfg')
+  el7_packages = FetchConfigPart('el7-packages.cfg')
+  el8_packages = FetchConfigPart('el8-packages.cfg')
+  el7_post = FetchConfigPart('el7-post.cfg')
+  el8_post = FetchConfigPart('el8-post.cfg')
+
   # For BYOS RHEL, don't remove subscription-manager.
   if byos:
     logging.info('Building RHEL BYOS image.')
     rhel_byos_post = FetchConfigPart('rhel-byos-post.cfg')
 
-  if release == 'rhel6':
-    logging.info('Building RHEL 6 image.')
-    pre = FetchConfigPart('el6-pre.cfg')
-    ks_options = FetchConfigPart('el6-options.cfg')
-    rhel_post = FetchConfigPart('rhel6-post.cfg')
-    el_post = FetchConfigPart('el6-post.cfg')
-    custom_post = '\n'.join([rhel_post, el_post])
-    if byos:
-      custom_post = '\n'.join([custom_post, rhel_byos_post])
-    repo_version = 'el6'
-  elif release == "centos6":
-    logging.info('Building CentOS 6 image.')
-    pre = FetchConfigPart('el6-pre.cfg')
-    ks_options = FetchConfigPart('el6-options.cfg')
-    custom_post = FetchConfigPart('el6-post.cfg')
-    repo_version = 'el6'
-  elif release == 'rhel7' or release.startswith('rhel-7'):
+  # RHEL 7 variants.
+  if release.startswith('rhel-7'):
     logging.info('Building RHEL 7 image.')
-    if uefi:
-      logging.info('Building RHEL 7 for UEFI')
-      ks_options = FetchConfigPart('el7-uefi-options.cfg')
-    else:
-      ks_options = FetchConfigPart('el7-options.cfg')
-    rhel_post = FetchConfigPart('rhel7-post.cfg')
+    repo_version = 'el7'
+    ks_options = FetchConfigPart('rhel-7-options.cfg')
+    ks_packages = el7_packages
+    # Build RHEL post scripts.
+    rhel_post = FetchConfigPart('rhel-7-post.cfg')
     if sap:
       logging.info('Building RHEL 7 for SAP')
+      rhel_sap_post = FetchConfigPart('rhel-7-sap-post.cfg')
       point = ''
       if release == 'rhel-7-4':
         logging.info('Building RHEL 7.4 for SAP')
-        point = FetchConfigPart('rhel7-4-post.cfg')
+        point = FetchConfigPart('rhel-7-4-post.cfg')
       if release == 'rhel-7-6':
         logging.info('Building RHEL 7.6 for SAP')
-        point = FetchConfigPart('rhel7-6-post.cfg')
+        point = FetchConfigPart('rhel-7-6-post.cfg')
       if release == 'rhel-7-7':
         logging.info('Building RHEL 7.7 for SAP')
-        point = FetchConfigPart('rhel7-7-post.cfg')
-      rhel_post = '\n'.join([point, FetchConfigPart('rhel7-sap-post.cfg')])
-    el_post = FetchConfigPart('el7-post.cfg')
-    custom_post = '\n'.join([rhel_post, el_post])
+        point = FetchConfigPart('rhel-7-7-post.cfg')
+      rhel_post = '\n'.join([point, rhel_sap_post])
     if byos:
-      custom_post = '\n'.join([custom_post, rhel_byos_post])
-    repo_version = 'el7'
-  elif release == "centos7":
-    logging.info('Building CentOS 7 image.')
-    if uefi:
-      logging.info('Building CentOS 7 for UEFI')
-      ks_options = FetchConfigPart('el7-uefi-options.cfg')
-    else:
-      ks_options = FetchConfigPart('el7-options.cfg')
-    custom_post = FetchConfigPart('el7-post.cfg')
-    repo_version = 'el7'
-  elif release == "oraclelinux6":
-    logging.info('Building Oracle Linux 6 image.')
-    pre = FetchConfigPart('el6-pre.cfg')
-    ks_options = FetchConfigPart('el6-options.cfg')
-    ol_post = FetchConfigPart('ol6-post.cfg')
-    el_post = FetchConfigPart('el6-post.cfg')
-    custom_post = '\n'.join([ol_post, el_post])
-    repo_version = 'el6'
-  elif release == "oraclelinux7":
-    logging.info('Building Oracle Linux 7 image.')
-    ks_options = FetchConfigPart('el7-options.cfg')
-    ol_post = FetchConfigPart('ol7-post.cfg')
-    el_post = FetchConfigPart('el7-post.cfg')
-    custom_post = '\n'.join([ol_post, el_post])
-    repo_version = 'el7'
-  elif release == "rhel8" or release.startswith('rhel-8'):
+      rhel_post = '\n'.join([rhel_post, rhel_byos_post])
+    # Combine RHEL specific post install to EL7 post.
+    ks_post = '\n'.join([rhel_post, el7_post])
+
+  # RHEL 8 variants.
+  elif release.startswith('rhel-8'):
     logging.info('Building RHEL 8 image.')
-    ks_packages = FetchConfigPart('el8-packages.cfg')
-    ks_options = FetchConfigPart('el8-options.cfg')
-    if uefi:
-      logging.info('Building RHEL 8 for UEFI')
-      ks_options = FetchConfigPart('el8-uefi-options.cfg')
-    rhel_post = FetchConfigPart('rhel8-post.cfg')
+    repo_version = 'el8'
+    ks_options = FetchConfigPart('rhel-8-options.cfg')
+    ks_packages = el8_packages
+    # Build RHEL post scripts.
+    rhel_post = FetchConfigPart('rhel-8-post.cfg')
     if sap:
       logging.info('Building RHEL 8 for SAP')
+      rhel_sap_post = FetchConfigPart('rhel-8-sap-post.cfg')
       point = ''
       if release == 'rhel-8-1':
         logging.info('Building RHEL 8.1 for SAP')
-        point = FetchConfigPart('rhel8-1-post.cfg')
+        point = FetchConfigPart('rhel-8-1-post.cfg')
       elif release == 'rhel-8-2':
         logging.info('Building RHEL 8.2 for SAP')
-        point = FetchConfigPart('rhel8-2-post.cfg')
-      rhel_post = '\n'.join([point, FetchConfigPart('rhel8-sap-post.cfg')])
-    el_post = FetchConfigPart('el8-post.cfg')
-    custom_post = '\n'.join([rhel_post, el_post])
+        point = FetchConfigPart('rhel-8-2-post.cfg')
+      rhel_post = '\n'.join([point, rhel_sap_post])
     if byos:
-      custom_post = '\n'.join([custom_post, rhel_byos_post])
-    repo_version = 'el8'
-  elif release == "centos8":
+      rhel_post = '\n'.join([rhel_post, rhel_byos_post])
+    # Combine RHEL specific post install to EL8 post.
+    ks_post = '\n'.join([rhel_post, el8_post])
+
+ # CentOS 7
+  elif release.startswith('centos-7'):
+    logging.info('Building CentOS 7 image.')
+    repo_version = 'el7'
+    ks_options = FetchConfigPart('centos-7-options.cfg')
+    ks_packages = el7_packages
+    ks_post = el7_post
+
+  # CentOS 8
+  elif release.startswith('centos-8'):
     logging.info('Building CentOS 8 image.')
-    ks_packages = FetchConfigPart('el8-packages.cfg')
-    ks_options = FetchConfigPart('el8-options.cfg')
-    if uefi:
-      logging.info('Building CentOS 8 for UEFI')
-      ks_options = FetchConfigPart('el8-uefi-options.cfg')
-    custom_post = FetchConfigPart('el8-post.cfg')
     repo_version = 'el8'
+    ks_options = FetchConfigPart('centos-8-options.cfg')
+    ks_packages = el8_packages
+    ks_post = el8_post
+
+  # CentOS Stream 8
+  elif release.startswith('centos-stream-8'):
+    logging.info('Building CentOS Stream image.')
+    repo_version = 'el8'
+    ks_options = FetchConfigPart('centos-stream-8-options.cfg')
+    ks_packages = el8_packages
+    ks_post = el8_post
+
   else:
     logging.error('Unknown Image Name: %s' % release)
 
-  ks_post = BuildPost(custom_post, cleanup, repo_version, google_cloud_repo)
-
-  # This list should be in the order that you want each section to appear in
-  # the Kickstart config.
-  return '\n'.join([ks_options, ks_packages, pre, ks_post])
-
-
-def BuildPost(custom_post, cleanup, repo_version, google_cloud_repo):
-  """Assembles the %post section of a kickstart file.
-
-  Args:
-    custom_post: string; a kickstart %post segment containing post install
-                 steps needed for a given flavor of Enterprise Linux.
-
-    cleanup: string; a kickstart %post segment for cleanup.
-
-    repo_version: string; expects 'el6', 'el7', or 'el8'.
-
-    google_cloud_repo: string; expects 'stable', 'unstable', or 'staging'.
-
-  Returns:
-    string; a complete %pre/post segment of a kickstart file.
-  """
-  # Configure repository %post section
+  # Post section for Google cloud repos.
   repo_post = BuildReposPost(repo_version, google_cloud_repo)
+  # Joined kickstart post sections.
+  ks_post = '\n'.join([repo_post, ks_post, ks_cleanup])
+  # Joine kickstart file.
+  ks_file = '\n'.join([ks_options, ks_packages, ks_post])
 
-  ks_post_list = [repo_post, custom_post, cleanup]
-  return '\n'.join(ks_post_list)
+  # Return the joined kickstart file as a string.
+  logging.info("Kickstart file: \n%s", ks_file)
+  return ks_file
 
 
 def BuildReposPost(repo_version, google_cloud_repo):
   """Creates a kickstart post macro with repos needed by GCE.
 
   Args:
-    repo_version: string; expects 'el6', 'el7', or 'el8'.
-
+    repo_version: string; expects 'el7', or 'el8'.
     google_cloud_repo: string; expects 'stable', 'unstable', or 'staging'
 
   Returns:

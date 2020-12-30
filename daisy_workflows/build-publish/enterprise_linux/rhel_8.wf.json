@@ -1,5 +1,5 @@
 {
-  "Name": "rhel-6",
+  "Name": "rhel-8",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -9,7 +9,7 @@
       "Description": "Build datestamp used to version the image."
     },
     "google_cloud_repo": {
-      "Value": "staging",
+      "Value": "stable",
       "Description": "The Google Cloud Repo branch to use."
     },
     "workflow_root": {
@@ -22,18 +22,18 @@
     },
     "installer_iso": {
       "Required": true,
-      "Description": "The RHEL 6 installer ISO to build from."
+      "Description": "The RHEL 8 installer ISO to build from."
     }
   },
   "Steps": {
     "build": {
       "TimeOut": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/enterprise_linux/rhel_6.wf.json",
+        "Path": "${workflow_root}/image_build/enterprise_linux/rhel_8.wf.json",
         "Vars": {
           "build_date": "${build_date}",
           "google_cloud_repo": "${google_cloud_repo}",
-          "install_disk": "disk-rhel-6",
+          "install_disk": "disk-rhel-8",
           "installer_iso": "${installer_iso}"
         }
       }
@@ -44,13 +44,13 @@
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
           "destination": "${gcs_url}",
-          "source_disk": "disk-rhel-6"
+          "source_disk": "disk-rhel-8"
         }
       }
     },
     "cleanup-image": {
       "DeleteResources": {
-        "Images": ["rhel-6-v${build_date}"]
+        "Images": ["rhel-8-v${build_date}"]
       }
     }
   },

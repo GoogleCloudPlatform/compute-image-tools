@@ -26,9 +26,9 @@
     "build-rhel": {
       "Timeout": "60m",
       "IncludeWorkflow": {
-        "Path": "./enterprise_linux_uefi.wf.json",
+        "Path": "./enterprise_linux.wf.json",
         "Vars": {
-          "el_release": "rhel7",
+          "el_release": "rhel-7",
           "google_cloud_repo": "${google_cloud_repo}",
           "install_disk": "${install_disk}",
           "installer_iso": "${installer_iso}",

@@ -1,5 +1,5 @@
 {
-  "Name": "rhel-7-uefi",
+  "Name": "rhel-7",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -9,7 +9,7 @@
       "Description": "Build datestamp used to version the image."
     },
     "google_cloud_repo": {
-      "Value": "staging",
+      "Value": "stable",
       "Description": "The Google Cloud Repo branch to use."
     },
     "workflow_root": {
@@ -29,7 +29,7 @@
     "build": {
       "TimeOut": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/enterprise_linux/rhel_7_uefi.wf.json",
+        "Path": "${workflow_root}/image_build/enterprise_linux/rhel_7.wf.json",
         "Vars": {
           "build_date": "${build_date}",
           "google_cloud_repo": "${google_cloud_repo}",
@@ -50,7 +50,7 @@
     },
     "cleanup-image": {
       "DeleteResources": {
-        "Images": ["rhel-7-uefi-v${build_date}"]
+        "Images": ["rhel-7-v${build_date}"]
       }
     }
   },

@@ -1,5 +1,5 @@
 {
-  "Name": "centos-8-uefi",
+  "Name": "centos-stream-8",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -9,7 +9,7 @@
       "Description": "Build datestamp used to version the image."
     },
     "google_cloud_repo": {
-      "Value": "staging",
+      "Value": "stable",
       "Description": "The Google Cloud Repo branch to use."
     },
     "workflow_root": {
@@ -29,11 +29,11 @@
     "build": {
       "TimeOut": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/enterprise_linux/centos_8_uefi.wf.json",
+        "Path": "${workflow_root}/image_build/enterprise_linux/centos_stream-8.wf.json",
         "Vars": {
           "build_date": "${build_date}",
           "google_cloud_repo": "${google_cloud_repo}",
-          "install_disk": "disk-centos-8",
+          "install_disk": "disk-centos-stream-8",
           "installer_iso": "${installer_iso}"
         }
       }
@@ -44,13 +44,13 @@
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
           "destination": "${gcs_url}",
-          "source_disk": "disk-centos-8"
+          "source_disk": "disk-centos-stream-8"
         }
       }
     },
     "cleanup-image": {
       "DeleteResources": {
-        "Images": ["centos-8-uefi-v${build_date}"]
+        "Images": ["centos-stream-8-v${build_date}"]
       }
     }
   },

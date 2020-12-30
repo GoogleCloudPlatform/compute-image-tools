@@ -49,6 +49,7 @@
             "files_gcs_dir": "${SOURCESPATH}/build_files",
             "google_cloud_repo": "${google_cloud_repo}",
             "script": "build.py",
+            "script_prints_status": "no",
             "prefix": "Build"
           },
           "Scopes": [
