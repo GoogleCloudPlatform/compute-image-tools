@@ -17,6 +17,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"google.golang.org/api/option"
 
@@ -81,7 +82,7 @@ func Main(args []string, toolLogger logging.ToolLogger, workflowDir string) erro
 
 	importClosure := func() (service.Loggable, error) {
 		err := importRunner.Run(ctx)
-		return service.NewOutputInfoLoggable(toolLogger.ReadOutputInfo()), err
+		return service.NewOutputInfoLoggable(toolLogger.ReadOutputInfo()), userFriendlyError(err, importArgs)
 	}
 
 	project := importArgs.Project
@@ -90,6 +91,20 @@ func Main(args []string, toolLogger logging.ToolLogger, workflowDir string) erro
 		return err
 	}
 	return nil
+}
+
+func userFriendlyError(err error, importArgs importer.ImportArguments) error {
+	if err == nil {
+		return err
+	}
+	if strings.Contains(err.Error(), "constraints/compute.vmExternalIpAccess") {
+		return fmt.Errorf("constraint constraints/compute.vmExternalIpAccess "+
+			"violated for project %v. For more information about importing disks using "+
+			"networks that don't allow external IP addresses, see "+
+			"https://cloud.google.com/compute/docs/import/importing-virtual-disks#no-external-ip",
+			importArgs.Project)
+	}
+	return err
 }
 
 // logFailure sends a message to the logging framework, and is expected to be
