@@ -17,7 +17,6 @@ package disk
 import (
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -33,35 +32,27 @@ import (
 )
 
 func TestBootInspector_Inspect_PassesVarsWhenInvokingWorkflow(t *testing.T) {
-	for caseNumber, tt := range []struct {
-		reference string
-	}{
-		{reference: "uri/for/pd"},
-		{reference: "uri/for/pd"},
-	} {
-		caseName := fmt.Sprintf("%d reference=%v", caseNumber, tt.reference)
-		t.Run(caseName, func(t *testing.T) {
-			logger := logging.NewToolLogger(t.Name())
-			expected := &pb.InspectionResults{
-				UefiBootable: true,
-			}
+	reference := "uri/for/pd"
 
-			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
-			worker := mocks.NewMockDaisyWorker(mockCtrl)
-			worker.EXPECT().RunAndReadSerialValue("inspect_pb", map[string]string{
-				"pd_uri": tt.reference,
-			}).Return(encodeToBase64(expected), nil)
-			inspector := bootInspector{worker, logger}
+	logger := logging.NewToolLogger(t.Name())
+	expected := &pb.InspectionResults{
+		UefiBootable: true,
+	}
 
-			actual, err := inspector.Inspect(tt.reference)
-			assert.NoError(t, err)
-			assertLogsContainResults(t, expected, logger)
-			actual.ElapsedTimeMs = 0
-			if diff := cmp.Diff(expected, actual, protocmp.Transform()); diff != "" {
-				t.Errorf("unexpected difference:\n%v", diff)
-			}
-		})
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	worker := mocks.NewMockDaisyWorker(mockCtrl)
+	worker.EXPECT().RunAndReadSerialValue("inspect_pb", map[string]string{
+		"pd_uri": reference,
+	}).Return(encodeToBase64(expected), nil)
+	inspector := bootInspector{worker, logger}
+
+	actual, err := inspector.Inspect(reference)
+	assert.NoError(t, err)
+	assertLogsContainResults(t, expected, logger)
+	actual.ElapsedTimeMs = 0
+	if diff := cmp.Diff(expected, actual, protocmp.Transform()); diff != "" {
+		t.Errorf("unexpected difference:\n%v", diff)
 	}
 }
 
