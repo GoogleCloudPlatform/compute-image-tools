@@ -54,7 +54,6 @@ type ImportArguments struct {
 	Family                string
 	GcsLogsDisabled       bool
 	ImageName             string
-	Inspect               bool
 	Labels                map[string]string
 	Network               string
 	NoExternalIP          bool
@@ -237,8 +236,6 @@ func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
 
 	flagSet.BoolVar(&args.NoExternalIP, "no_external_ip", false,
 		"VPC doesn't allow external IPs.")
-
-	flagSet.BoolVar(&args.Inspect, "inspect", true, "Run disk inspections.")
 
 	flagSet.Var((*flags.TrimmedString)(&args.ExecutionID), "execution_id",
 		"The execution ID to differentiate GCE resources of each imports.")

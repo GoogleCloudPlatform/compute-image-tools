@@ -19,7 +19,6 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"strconv"
 	"strings"
 	"time"
 
@@ -36,11 +35,14 @@ const (
 	workflowFile = "image_import/inspection/boot-inspect.wf.json"
 )
 
+// To rebuild the mock for Inspector, run `go generate ./...`
+//go:generate go run github.com/golang/mock/mockgen -package mocks -source $GOFILE -destination mocks/mock_inspect.go
+
 // Inspector finds partition and boot-related properties for a disk.
 type Inspector interface {
 	// Inspect finds partition and boot-related properties for a disk and
 	// returns an InspectionResult. The reference is implementation specific.
-	Inspect(reference string, inspectOS bool) (*pb.InspectionResults, error)
+	Inspect(reference string) (*pb.InspectionResults, error)
 	Cancel(reason string) bool
 }
 
@@ -76,16 +78,14 @@ func (i *bootInspector) Cancel(reason string) bool {
 
 // Inspect finds partition and boot-related properties for a GCP persistent disk, and
 // returns an InspectionResult. `reference` is a fully-qualified PD URI, such as
-// "projects/project-name/zones/us-central1-a/disks/disk-name". `inspectOS` is a flag
-// to determine whether to inspect OS on the disk.
-func (i *bootInspector) Inspect(reference string, inspectOS bool) (*pb.InspectionResults, error) {
+// "projects/project-name/zones/us-central1-a/disks/disk-name".
+func (i *bootInspector) Inspect(reference string) (*pb.InspectionResults, error) {
 	startTime := time.Now()
 	results := &pb.InspectionResults{}
 
 	// Run the inspection worker.
 	vars := map[string]string{
-		"pd_uri":        reference,
-		"is_inspect_os": strconv.FormatBool(inspectOS),
+		"pd_uri": reference,
 	}
 	encodedProto, err := i.worker.RunAndReadSerialValue("inspect_pb", vars)
 	if err != nil {

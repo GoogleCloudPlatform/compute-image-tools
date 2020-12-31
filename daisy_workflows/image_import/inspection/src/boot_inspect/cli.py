@@ -65,11 +65,7 @@ def main():
     'device',
     help='a block device or disk file.'
   )
-  parser.add_argument(
-    '--inspect-os',
-    help='whether to detect the operating system.',
-    action='store_true'
-  )
+
   args = parser.parse_args()
   results = inspect_pb2.InspectionResults()
   try:
@@ -79,28 +75,26 @@ def main():
   except BaseException as e:
     print('Failed to mount guest: ', e)
     results.ErrorWhen = inspect_pb2.InspectionResults.ErrorWhen.MOUNTING_GUEST
-    return results
+    globals()['_output_' + args.format](results)
+    return
 
-  if args.inspect_os:
-    try:
-      print('Inspecting OS')
-      results = inspection.inspect_device(g)
-    except BaseException as e:
-      print('Failed to inspect OS: ', e)
-      results.ErrorWhen = inspect_pb2.InspectionResults.ErrorWhen.INSPECTING_OS
-      return results
+  try:
+    print('Inspecting OS')
+    results = inspection.inspect_device(g)
+  except BaseException as e:
+    print('Failed to inspect OS: ', e)
+    results.ErrorWhen = inspect_pb2.InspectionResults.ErrorWhen.INSPECTING_OS
 
   try:
     boot_results = inspection.inspect_boot_loader(g, args.device)
+    results.bios_bootable = boot_results.bios_bootable
+    results.uefi_bootable = boot_results.uefi_bootable
+    results.root_fs = boot_results.root_fs
   except BaseException as e:
     print('Failed to inspect boot loader: ', e)
     results.ErrorWhen = \
         inspect_pb2.InspectionResults.ErrorWhen.INSPECTING_BOOTLOADER
-    return results
 
-  results.bios_bootable = boot_results.bios_bootable
-  results.uefi_bootable = boot_results.uefi_bootable
-  results.root_fs = boot_results.root_fs
   globals()['_output_' + args.format](results)
 
 

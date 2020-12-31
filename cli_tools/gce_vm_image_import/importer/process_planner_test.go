@@ -16,14 +16,15 @@ package importer
 
 import (
 	"errors"
-	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
-	"google.golang.org/api/compute/v1"
 	"testing"
+
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/api/compute/v1"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	mock_disk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk/mocks"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
+	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
 
 func Test_DefaultPlanner_Plan_SkipInspectionWhenCustomWorkflowExists(t *testing.T) {
@@ -51,7 +52,6 @@ func Test_DefaultPlanner_Plan_InspectionFailures(t *testing.T) {
 			name: "Succeed when inspection fails but OS is provided.",
 			args: ImportArguments{
 				OS:          "debian-8",
-				Inspect:     true,
 				WorkflowDir: "workflowroot",
 			},
 			expectedResults: &processingPlan{
@@ -63,7 +63,6 @@ func Test_DefaultPlanner_Plan_InspectionFailures(t *testing.T) {
 			name: "Succeed when inspection fails but OS and uefi_compatible is provided.",
 			args: ImportArguments{
 				OS:             "windows-2012r2",
-				Inspect:        true,
 				UefiCompatible: true,
 				WorkflowDir:    "workflowroot",
 			},
@@ -76,7 +75,6 @@ func Test_DefaultPlanner_Plan_InspectionFailures(t *testing.T) {
 		{
 			name: "Fail when inspection fails and OS is not provided.",
 			args: ImportArguments{
-				Inspect:     true,
 				WorkflowDir: "workflowroot",
 			},
 			expectErrorToContain: "Please re-import with the operating system specified",
@@ -85,7 +83,6 @@ func Test_DefaultPlanner_Plan_InspectionFailures(t *testing.T) {
 			name: "Fail when inspection fails and specified OS is not supported",
 			args: ImportArguments{
 				OS:          "kali-rolling",
-				Inspect:     true,
 				WorkflowDir: "workflowroot",
 			},
 			expectErrorToContain: "kali-rolling.*is invalid",
@@ -95,7 +92,7 @@ func Test_DefaultPlanner_Plan_InspectionFailures(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 			mockInspector := mock_disk.NewMockInspector(mockCtrl)
-			mockInspector.EXPECT().Inspect(pd.uri, true).Return(nil, inspectionError)
+			mockInspector.EXPECT().Inspect(pd.uri).Return(nil, inspectionError)
 			processPlanner := newProcessPlanner(tt.args, mockInspector)
 			actualResults, actualError := processPlanner.plan(pd)
 			if tt.expectErrorToContain == "" {
@@ -122,7 +119,6 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 			name: "Use provided OS, even when inspection passes.",
 			args: ImportArguments{
 				OS:          "debian-8",
-				Inspect:     true,
 				WorkflowDir: "workflowroot",
 			},
 			inspectionResults: &pb.InspectionResults{
@@ -139,7 +135,6 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 		{
 			name: "Support BYOL for inspection results",
 			args: ImportArguments{
-				Inspect:     true,
 				BYOL:        true,
 				WorkflowDir: "workflowroot",
 			},
@@ -157,7 +152,6 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 		{
 			name: "Fail when BYOL is specified, but detected OS doesn't support it.",
 			args: ImportArguments{
-				Inspect:     true,
 				BYOL:        true,
 				WorkflowDir: "workflowroot",
 			},
@@ -172,7 +166,6 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 		{
 			name: "Fail when inspected OS is not supported",
 			args: ImportArguments{
-				Inspect:     true,
 				WorkflowDir: "workflowroot",
 			},
 			inspectionResults: &pb.InspectionResults{
@@ -186,7 +179,6 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 		{
 			name: "Fail when inspection succeeds, but doesn't find an OS, and OS is not provided.",
 			args: ImportArguments{
-				Inspect:     true,
 				WorkflowDir: "workflowroot",
 			},
 			inspectionResults: &pb.InspectionResults{
@@ -198,7 +190,6 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 			name: "Use provided UEFI argument, even when inspection shows UEFI is not supported.",
 			args: ImportArguments{
 				OS:             "debian-8",
-				Inspect:        true,
 				UefiCompatible: true,
 				WorkflowDir:    "workflowroot",
 			},
@@ -215,7 +206,6 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 			name: "Don't use UEFI when disk is GPT and can boot with BIOS or UEFI.",
 			args: ImportArguments{
 				OS:          "debian-8",
-				Inspect:     true,
 				WorkflowDir: "workflowroot",
 			},
 			inspectionResults: &pb.InspectionResults{
@@ -232,7 +222,7 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 			mockInspector := mock_disk.NewMockInspector(mockCtrl)
-			mockInspector.EXPECT().Inspect(pd.uri, true).Return(tt.inspectionResults, nil)
+			mockInspector.EXPECT().Inspect(pd.uri).Return(tt.inspectionResults, nil)
 			processPlanner := newProcessPlanner(tt.args, mockInspector)
 			actualResults, actualError := processPlanner.plan(pd)
 			if tt.expectErrorToContain == "" {

@@ -127,7 +127,7 @@ func TestInspectDisk(t *testing.T) {
 			imageURI: "projects/gce-uefi-images/global/images/windows-server-2019-dc-core-v20200609",
 			expected: &pb.InspectionResults{
 				OsRelease: &pb.OsRelease{
-					CliFormatted: "windows-2019-x64",
+					CliFormatted: "windows-2019",
 					Distro:       "windows",
 					MajorVersion: "2019",
 					Architecture: pb.Architecture_X64,
@@ -190,7 +190,7 @@ func TestInspectDisk(t *testing.T) {
 			imageURI: "projects/windows-cloud/global/images/windows-server-2008-r2-dc-v20200114",
 			expected: &pb.InspectionResults{
 				OsRelease: &pb.OsRelease{
-					CliFormatted: "windows-2008r2-x64",
+					CliFormatted: "windows-2008r2",
 					Distro:       "windows",
 					MajorVersion: "2008",
 					MinorVersion: "r2",
@@ -203,7 +203,7 @@ func TestInspectDisk(t *testing.T) {
 			imageURI: "projects/compute-image-tools-test/global/images/windows-2012-r2-vmware-import",
 			expected: &pb.InspectionResults{
 				OsRelease: &pb.OsRelease{
-					CliFormatted: "windows-2012r2-x64",
+					CliFormatted: "windows-2012r2",
 					Distro:       "windows",
 					MajorVersion: "2012",
 					MinorVersion: "r2",
@@ -216,7 +216,7 @@ func TestInspectDisk(t *testing.T) {
 			imageURI: "projects/compute-image-tools-test/global/images/windows-2016-import",
 			expected: &pb.InspectionResults{
 				OsRelease: &pb.OsRelease{
-					CliFormatted: "windows-2016-x64",
+					CliFormatted: "windows-2016",
 					Distro:       "windows",
 					MajorVersion: "2016",
 					Architecture: pb.Architecture_X64,
@@ -228,7 +228,7 @@ func TestInspectDisk(t *testing.T) {
 			imageURI: "projects/compute-image-tools-test/global/images/windows-2019",
 			expected: &pb.InspectionResults{
 				OsRelease: &pb.OsRelease{
-					CliFormatted: "windows-2019-x64",
+					CliFormatted: "windows-2019",
 					Distro:       "windows",
 					MajorVersion: "2019",
 					Architecture: pb.Architecture_X64,
@@ -335,7 +335,7 @@ func TestInspectDisk(t *testing.T) {
 
 			diskURI := createDisk(t, client, project, currentTest.imageURI)
 
-			actual, err := inspector.Inspect(diskURI, true)
+			actual, err := inspector.Inspect(diskURI)
 			assert.NoError(t, err)
 			actual.ElapsedTimeMs = 0
 			if diff := cmp.Diff(currentTest.expected, actual, protocmp.Transform()); diff != "" {
@@ -404,7 +404,7 @@ func TestInspectionWorksWithNonDefaultNetwork(t *testing.T) {
 
 			diskURI := createDisk(t, client, project, "projects/opensuse-cloud/global/images/opensuse-leap-15-2-v20200702")
 			defer deleteDisk(t, client, project, diskURI)
-			actual, err := inspector.Inspect(diskURI, true)
+			actual, err := inspector.Inspect(diskURI)
 			if err != nil {
 				t.Fatalf("Inspect failed: %v", err)
 			}
@@ -446,7 +446,7 @@ func assertInspectionSucceeds(t *testing.T, image string, expected *pb.Inspectio
 
 	diskURI := createDisk(t, client, project, image)
 	defer deleteDisk(t, client, project, diskURI)
-	actual, err := inspector.Inspect(diskURI, true)
+	actual, err := inspector.Inspect(diskURI)
 	assert.NoError(t, err)
 	actual.ElapsedTimeMs = 0
 	if diff := cmp.Diff(expected, actual, protocmp.Transform()); diff != "" {

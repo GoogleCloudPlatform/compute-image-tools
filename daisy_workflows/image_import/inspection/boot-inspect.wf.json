@@ -14,9 +14,6 @@
       "Value": "",
       "Description": "Subnet for worker instance"
     },
-    "is_inspect_os": {
-      "Description": "Whether to inspect OS."
-    },
     "compute_service_account": {
       "Value": "default",
       "Description": "Service account that will be used by the created worker instance"
@@ -47,9 +44,6 @@
           ],
           "MachineType": "n1-standard-4",
           "StartupScript": "daisy-shim.sh",
-          "Metadata": {
-            "is-inspect-os": "${is_inspect_os}"
-          },
           "networkInterfaces": [
             {
               "network": "${network}",
