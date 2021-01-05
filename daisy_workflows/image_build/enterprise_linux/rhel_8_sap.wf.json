@@ -14,7 +14,7 @@
       "Description": "Build datestamp used to version the image."
     },
     "rhel_release": {
-      "Value": "rhel-8-1",
+      "Value": "rhel-8",
       "Description": "RHEL release version to use."
     },
     "install_disk": {
@@ -30,14 +30,13 @@
     "build-rhel": {
       "Timeout": "60m",
       "IncludeWorkflow": {
-        "Path": "./enterprise_linux_uefi.wf.json",
+        "Path": "./enterprise_linux.wf.json",
         "Vars": {
           "el_release": "${rhel_release}",
           "google_cloud_repo": "${google_cloud_repo}",
           "install_disk": "${install_disk}",
           "installer_iso": "${installer_iso}",
-          "rhel_sap": "true",
-          "rhel_uefi": "true"
+          "rhel_sap": "true"
         }
       }
     },
@@ -54,10 +53,7 @@
           "Project": "${publish_project}",
           "NoCleanup": true,
           "ExactName": true,
-          "GuestOsFeatures": [
-            "VIRTIO_SCSI_MULTIQUEUE",
-            "UEFI_COMPATIBLE"
-          ]
+          "GuestOsFeatures": ["UEFI_COMPATIBLE",  "VIRTIO_SCSI_MULTIQUEUE"]
         }
       ]
     }

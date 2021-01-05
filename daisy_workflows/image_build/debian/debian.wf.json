@@ -38,6 +38,7 @@
             "debian_install_google_api_python_client": "yes",
             "files_gcs_dir": "${SOURCESPATH}/build_files",
             "script": "build.py",
+            "script_prints_status": "no",
             "prefix": "Build",
             "google_cloud_repo": "${google_cloud_repo}"
           },

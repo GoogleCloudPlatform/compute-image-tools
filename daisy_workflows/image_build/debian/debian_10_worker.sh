@@ -41,6 +41,7 @@ parted
 python3-guestfs
 python3-netaddr
 python3-pip
+rsync
 tinyproxy
 qemu-utils
 "

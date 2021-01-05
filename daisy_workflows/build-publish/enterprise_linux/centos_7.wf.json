@@ -1,5 +1,5 @@
 {
-  "Name": "rhel-8-uefi",
+  "Name": "centos-7",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -9,7 +9,7 @@
       "Description": "Build datestamp used to version the image."
     },
     "google_cloud_repo": {
-      "Value": "staging",
+      "Value": "stable",
       "Description": "The Google Cloud Repo branch to use."
     },
     "workflow_root": {
@@ -22,18 +22,18 @@
     },
     "installer_iso": {
       "Required": true,
-      "Description": "The RHEL 8 installer ISO to build from."
+      "Description": "The CentOS 7 installer ISO to build from."
     }
   },
   "Steps": {
     "build": {
       "TimeOut": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/enterprise_linux/rhel_8_uefi.wf.json",
+        "Path": "${workflow_root}/image_build/enterprise_linux/centos_7.wf.json",
         "Vars": {
           "build_date": "${build_date}",
           "google_cloud_repo": "${google_cloud_repo}",
-          "install_disk": "disk-rhel-8",
+          "install_disk": "disk-centos-7",
           "installer_iso": "${installer_iso}"
         }
       }
@@ -44,18 +44,18 @@
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
           "destination": "${gcs_url}",
-          "source_disk": "disk-rhel-8"
+          "source_disk": "disk-centos-7"
         }
       }
     },
     "cleanup-image": {
       "DeleteResources": {
-        "Images": ["rhel-8-uefi-v${build_date}"]
+        "Images": ["centos-7-v${build_date}"]
       }
     }
   },
   "Dependencies": {
     "export-image": ["build"],
-    "cleanup-image": ["build"]
+    "cleanup-image": ["export-image"]
   }
 }
