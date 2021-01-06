@@ -50,7 +50,7 @@ Loop:
 	return w, nil
 }
 
-// EnvironmentSettings controls the resources that are used during import.
+// EnvironmentSettings controls the resources that are used during tool execution.
 type EnvironmentSettings struct {
 	// Location of workflows
 	WorkflowDirectory string
