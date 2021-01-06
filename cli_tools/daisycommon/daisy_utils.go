@@ -35,7 +35,7 @@ Loop:
 		return nil, daisy.Errf("unknown workflow Var %q passed to Workflow %q", k, w.Name)
 	}
 
-	SetWorkflowAttributes(w, EnvironmentSettings{
+	EnvironmentSettings{
 		Project:           project,
 		Zone:              zone,
 		GCSPath:           gcsPath,
@@ -45,7 +45,7 @@ Loop:
 		DisableGCSLogs:    disableGCSLogs,
 		DisableCloudLogs:  disableCloudLogs,
 		DisableStdoutLogs: disableStdoutLogs,
-	})
+	}.ApplyToWorkflow(w)
 
 	return w, nil
 }
@@ -65,8 +65,9 @@ type EnvironmentSettings struct {
 	NoExternalIP          bool
 }
 
-// SetWorkerCustomizations sets variables that are used when creating worker instances.
-func SetWorkerCustomizations(wf *daisy.Workflow, env EnvironmentSettings) {
+// ApplyWorkerCustomizations sets variables on daisy.Workflow that
+// are used when creating worker instances.
+func (env EnvironmentSettings) ApplyWorkerCustomizations(wf *daisy.Workflow) {
 	wf.AddVar("network", env.Network)
 	wf.AddVar("subnet", env.Subnet)
 	if env.ComputeServiceAccount != "" {
@@ -74,8 +75,8 @@ func SetWorkerCustomizations(wf *daisy.Workflow, env EnvironmentSettings) {
 	}
 }
 
-// SetWorkflowAttributes sets workflow running attributes.
-func SetWorkflowAttributes(w *daisy.Workflow, env EnvironmentSettings) {
+// ApplyToWorkflow sets fields on daisy.Workflow from the environment settings.
+func (env EnvironmentSettings) ApplyToWorkflow(w *daisy.Workflow) {
 	w.Project = env.Project
 	w.Zone = env.Zone
 	if env.GCSPath != "" {

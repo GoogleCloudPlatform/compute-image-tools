@@ -241,7 +241,7 @@ func (inflater *apiInflater) getCalculateChecksumWorkflow(diskURI string) *daisy
 	}
 
 	// Calculate checksum within 20min.
-	daisycommon.SetWorkflowAttributes(w, daisycommon.EnvironmentSettings{
+	daisycommon.EnvironmentSettings{
 		Project:           inflater.args.Project,
 		Zone:              inflater.args.Zone,
 		GCSPath:           inflater.args.ScratchBucketGcsPath,
@@ -251,7 +251,7 @@ func (inflater *apiInflater) getCalculateChecksumWorkflow(diskURI string) *daisy
 		DisableGCSLogs:    inflater.args.GcsLogsDisabled,
 		DisableCloudLogs:  inflater.args.CloudLogsDisabled,
 		DisableStdoutLogs: inflater.args.StdoutLogsDisabled,
-	})
+	}.ApplyToWorkflow(w)
 	if inflater.args.ComputeServiceAccount != "" {
 		w.AddVar("compute_service_account", inflater.args.ComputeServiceAccount)
 	}

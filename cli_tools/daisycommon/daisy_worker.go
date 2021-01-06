@@ -47,8 +47,8 @@ type defaultDaisyWorker struct {
 // runAndReadSerialValue runs the daisy workflow with the supplied vars, and returns the serial
 // output value associated with the supplied key.
 func (w *defaultDaisyWorker) RunAndReadSerialValue(key string, vars map[string]string) (string, error) {
-	SetWorkflowAttributes(w.wf, w.env)
-	SetWorkerCustomizations(w.wf, w.env)
+	w.env.ApplyToWorkflow(w.wf)
+	w.env.ApplyWorkerCustomizations(w.wf)
 	for k, v := range vars {
 		w.wf.AddVar(k, v)
 	}

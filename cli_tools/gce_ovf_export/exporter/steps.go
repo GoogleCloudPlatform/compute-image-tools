@@ -23,7 +23,6 @@ import (
 
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
@@ -121,7 +120,7 @@ func generateWorkflowWithSteps(workflowName, timeout string, populateStepsFunc p
 	// workflows are used, this func has to be called as wf.postValidateModifier.
 	//postValidateWorkflowModifier(w, params)
 
-	daisycommon.SetWorkflowAttributes(w, params.EnvironmentSettings())
+	params.EnvironmentSettings().ApplyToWorkflow(w)
 	return w, nil
 }
 
