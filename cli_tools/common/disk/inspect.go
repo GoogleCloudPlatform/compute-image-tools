@@ -49,19 +49,12 @@ type Inspector interface {
 // NewInspector creates an Inspector that can inspect GCP disks.
 // A GCE instance runs the inspection; network and subnet are used
 // for its network interface.
-func NewInspector(wfAttributes daisycommon.WorkflowAttributes, network string, subnet string,
-	computeServiceAccount string, logger logging.Logger) (Inspector, error) {
-	wf, err := daisy.NewFromFile(path.Join(wfAttributes.WorkflowDirectory, workflowFile))
+func NewInspector(env daisycommon.EnvironmentSettings, logger logging.Logger) (Inspector, error) {
+	wf, err := daisy.NewFromFile(path.Join(env.WorkflowDirectory, workflowFile))
 	if err != nil {
 		return nil, err
 	}
-	daisycommon.SetWorkflowAttributes(wf, wfAttributes)
-	wf.AddVar("network", network)
-	wf.AddVar("subnet", subnet)
-	if computeServiceAccount != "" {
-		wf.AddVar("compute_service_account", computeServiceAccount)
-	}
-	return &bootInspector{daisycommon.NewDaisyWorker(wf, logger), logger}, nil
+	return &bootInspector{daisycommon.NewDaisyWorker(wf, env, logger), logger}, nil
 }
 
 // bootInspector implements disk.Inspector using the Python boot-inspect package,

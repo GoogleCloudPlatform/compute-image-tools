@@ -36,19 +36,19 @@ import (
 )
 
 const (
-	defaultNetwork = ""
-	defaultSubnet  = ""
-	workflowDir    = "../../../daisy_workflows"
+	workflowDir = "../../../daisy_workflows"
 )
 
 var (
-	zone = runtime.GetConfig("GOOGLE_CLOUD_ZONE", "compute/zone")
+	defaultEnvironment = daisycommon.EnvironmentSettings{
+		Zone:              runtime.GetConfig("GOOGLE_CLOUD_ZONE", "compute/zone"),
+		Project:           runtime.GetConfig("GOOGLE_CLOUD_PROJECT", "project"),
+		WorkflowDirectory: workflowDir,
+	}
 )
 
 func TestInspectDisk(t *testing.T) {
 	t.Parallel()
-
-	project := runtime.GetConfig("GOOGLE_CLOUD_PROJECT", "project")
 
 	client, err := daisycompute.NewClient(context.Background())
 	if err != nil {
@@ -324,16 +324,12 @@ func TestInspectDisk(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			inspector, err := disk.NewInspector(daisycommon.WorkflowAttributes{
-				Project:           project,
-				Zone:              zone,
-				WorkflowDirectory: workflowDir,
-			}, defaultNetwork, defaultSubnet, "", logging.NewToolLogger(t.Name()))
+			inspector, err := disk.NewInspector(defaultEnvironment, logging.NewToolLogger(t.Name()))
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			diskURI := createDisk(t, client, project, currentTest.imageURI)
+			diskURI := createDisk(t, client, defaultEnvironment, currentTest.imageURI)
 
 			actual, err := inspector.Inspect(diskURI)
 			assert.NoError(t, err)
@@ -341,7 +337,7 @@ func TestInspectDisk(t *testing.T) {
 			if diff := cmp.Diff(currentTest.expected, actual, protocmp.Transform()); diff != "" {
 				t.Errorf("unexpected difference:\n%v", diff)
 			}
-			deleteDisk(t, client, project, diskURI)
+			deleteDisk(t, client, defaultEnvironment, diskURI)
 		})
 	}
 }
@@ -352,7 +348,7 @@ func TestInspectDisk_NoOSResults_WhenDistroUnrecognized(t *testing.T) {
 	image := "projects/compute-image-tools-test/global/images/manjaro"
 	expected := &pb.InspectionResults{}
 
-	assertInspectionSucceeds(t, image, expected)
+	assertInspectionSucceeds(t, image, defaultEnvironment, expected)
 }
 
 func TestInspectDisk_NoOSResults_WhenDiskEmpty(t *testing.T) {
@@ -361,13 +357,57 @@ func TestInspectDisk_NoOSResults_WhenDiskEmpty(t *testing.T) {
 	image := "projects/compute-image-tools-test/global/images/blank-10g"
 	expected := &pb.InspectionResults{}
 
-	assertInspectionSucceeds(t, image, expected)
+	assertInspectionSucceeds(t, image, defaultEnvironment, expected)
 }
 
-func TestInspectionWorksWithNonDefaultNetwork(t *testing.T) {
+func TestInspectDisk_SupportsNoExternalIP(t *testing.T) {
+	t.Parallel()
+
+	client, err := daisycompute.NewClient(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	env := daisycommon.EnvironmentSettings{
+		Project:           "gce-guest-no-external-ip-3afc2",
+		Zone:              "us-west1-a",
+		WorkflowDirectory: workflowDir,
+		NoExternalIP:      true,
+		Network:           "projects/gce-guest-no-external-ip-3afc2/global/networks/nat",
+		Subnet:            "projects/gce-guest-no-external-ip-3afc2/regions/us-west1/subnetworks/nat",
+	}
+	inspector, err := disk.NewInspector(env, logging.NewToolLogger(t.Name()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	diskURI := createDisk(t, client, env, "projects/debian-cloud/global/images/debian-9-stretch-v20200714")
+	defer deleteDisk(t, client, env, diskURI)
+
+	actual, err := inspector.Inspect(diskURI)
+	assert.NoError(t, err)
+	actual.ElapsedTimeMs = 0
+	expected := &pb.InspectionResults{
+		OsCount: 1,
+		OsRelease: &pb.OsRelease{
+			CliFormatted: "debian-9",
+			Distro:       "debian",
+			MajorVersion: "9",
+			MinorVersion: "12",
+			Architecture: pb.Architecture_X64,
+			DistroId:     pb.Distro_DEBIAN,
+		},
+	}
+	if diff := cmp.Diff(expected, actual, protocmp.Transform()); diff != "" {
+		t.Errorf("unexpected difference:\n%v", diff)
+	}
+}
+
+func TestInspectionDisk_SupportsNonDefaultNetwork(t *testing.T) {
 	t.Parallel()
 
 	project := "compute-image-test-custom-vpc"
+	zone := "us-central1-a"
 	client, err := daisycompute.NewClient(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -393,17 +433,20 @@ func TestInspectionWorksWithNonDefaultNetwork(t *testing.T) {
 		t.Run(currentTest.caseName, func(t *testing.T) {
 			t.Parallel()
 			t.Logf("Network=%s, Subnet=%s, project=%s", network, subnet, project)
-			inspector, err := disk.NewInspector(daisycommon.WorkflowAttributes{
+			env := daisycommon.EnvironmentSettings{
 				Project:           "compute-image-test-custom-vpc",
 				Zone:              zone,
 				WorkflowDirectory: workflowDir,
-			}, currentTest.network, currentTest.subnet, "", logging.NewToolLogger(t.Name()))
+				Network:           currentTest.network,
+				Subnet:            currentTest.subnet,
+			}
+			inspector, err := disk.NewInspector(env, logging.NewToolLogger(t.Name()))
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			diskURI := createDisk(t, client, project, "projects/opensuse-cloud/global/images/opensuse-leap-15-2-v20200702")
-			defer deleteDisk(t, client, project, diskURI)
+			diskURI := createDisk(t, client, env, "projects/opensuse-cloud/global/images/opensuse-leap-15-2-v20200702")
+			defer deleteDisk(t, client, env, diskURI)
 			actual, err := inspector.Inspect(diskURI)
 			if err != nil {
 				t.Fatalf("Inspect failed: %v", err)
@@ -415,23 +458,23 @@ func TestInspectionWorksWithNonDefaultNetwork(t *testing.T) {
 	}
 }
 
-func createDisk(t *testing.T, client daisycompute.Client, project, srcImage string) string {
+func createDisk(t *testing.T, client daisycompute.Client, env daisycommon.EnvironmentSettings, srcImage string) string {
 	name := "d" + uuid.New().String()
-	err := client.CreateDisk(project, zone, &compute.Disk{
+	err := client.CreateDisk(env.Project, env.Zone, &compute.Disk{
 		Name:        name,
 		SourceImage: srcImage,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	diskURI := fmt.Sprintf("projects/%s/zones/%s/disks/%s", project, zone, name)
+	diskURI := fmt.Sprintf("projects/%s/zones/%s/disks/%s", env.Project, env.Zone, name)
 	t.Logf("created disk: %s", diskURI)
 	return diskURI
 }
 
-func deleteDisk(t *testing.T, client daisycompute.Client, project, diskURI string) {
+func deleteDisk(t *testing.T, client daisycompute.Client, env daisycommon.EnvironmentSettings, diskURI string) {
 	name := diskURI[strings.LastIndex(diskURI, "/")+1:]
-	err := client.DeleteDisk(project, zone, name)
+	err := client.DeleteDisk(env.Project, env.Zone, name)
 	if err != nil {
 		t.Logf("Failed to delete disk: %v", err)
 	} else {
@@ -439,13 +482,11 @@ func deleteDisk(t *testing.T, client daisycompute.Client, project, diskURI strin
 	}
 }
 
-func assertInspectionSucceeds(t *testing.T, image string, expected *pb.InspectionResults) {
-	project := runtime.GetConfig("GOOGLE_CLOUD_PROJECT", "project")
+func assertInspectionSucceeds(t *testing.T, image string, env daisycommon.EnvironmentSettings, expected *pb.InspectionResults) {
+	client, inspector := makeClientAndInspector(t, env)
 
-	client, inspector := makeClientAndInspector(t, project)
-
-	diskURI := createDisk(t, client, project, image)
-	defer deleteDisk(t, client, project, diskURI)
+	diskURI := createDisk(t, client, env, image)
+	defer deleteDisk(t, client, env, diskURI)
 	actual, err := inspector.Inspect(diskURI)
 	assert.NoError(t, err)
 	actual.ElapsedTimeMs = 0
@@ -454,17 +495,13 @@ func assertInspectionSucceeds(t *testing.T, image string, expected *pb.Inspectio
 	}
 }
 
-func makeClientAndInspector(t *testing.T, project string) (daisycompute.Client, disk.Inspector) {
+func makeClientAndInspector(t *testing.T, env daisycommon.EnvironmentSettings) (daisycompute.Client, disk.Inspector) {
 	client, err := daisycompute.NewClient(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	inspector, err := disk.NewInspector(daisycommon.WorkflowAttributes{
-		Project:           project,
-		Zone:              zone,
-		WorkflowDirectory: workflowDir,
-	}, defaultNetwork, defaultSubnet, "", logging.NewToolLogger(t.Name()))
+	inspector, err := disk.NewInspector(env, logging.NewToolLogger(t.Name()))
 	if err != nil {
 		t.Fatal(err)
 	}

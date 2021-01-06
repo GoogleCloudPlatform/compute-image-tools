@@ -17,6 +17,7 @@ package daisycommon
 import (
 	"context"
 
+	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
@@ -33,22 +34,25 @@ type DaisyWorker interface {
 // NewDaisyWorker returns an implementation of DaisyWorker. The returned value is
 // designed to be run once and discarded. In other words, don't run RunAndReadSerialValue
 // twice on the same instance.
-func NewDaisyWorker(wf *daisy.Workflow, logger logging.Logger) DaisyWorker {
-	return &defaultDaisyWorker{wf, logger}
+func NewDaisyWorker(wf *daisy.Workflow, env EnvironmentSettings, logger logging.Logger) DaisyWorker {
+	return &defaultDaisyWorker{wf, env, logger}
 }
 
 type defaultDaisyWorker struct {
 	wf     *daisy.Workflow
+	env    EnvironmentSettings
 	logger logging.Logger
 }
 
 // runAndReadSerialValue runs the daisy workflow with the supplied vars, and returns the serial
 // output value associated with the supplied key.
 func (w *defaultDaisyWorker) RunAndReadSerialValue(key string, vars map[string]string) (string, error) {
+	w.env.ApplyToWorkflow(w.wf)
+	w.env.ApplyWorkerCustomizations(w.wf)
 	for k, v := range vars {
 		w.wf.AddVar(k, v)
 	}
-	err := w.wf.Run(context.Background())
+	err := w.wf.RunWithModifiers(context.Background(), w.preValidateFunction, w.postValidateFunction)
 	if w.wf.Logger != nil {
 		for _, trace := range w.wf.Logger.ReadSerialPortLogs() {
 			w.logger.Trace(trace)
@@ -68,4 +72,12 @@ func (w *defaultDaisyWorker) Cancel(reason string) bool {
 
 	//indicate cancel was not performed
 	return false
+}
+
+func (w *defaultDaisyWorker) preValidateFunction(wf *daisy.Workflow) {
+	// no-op
+}
+
+func (w *defaultDaisyWorker) postValidateFunction(wf *daisy.Workflow) {
+	daisy_utils.UpdateAllInstanceNoExternalIP(wf, w.env.NoExternalIP)
 }

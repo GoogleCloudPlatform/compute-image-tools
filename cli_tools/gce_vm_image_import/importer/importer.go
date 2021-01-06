@@ -50,7 +50,7 @@ func NewImporter(args ImportArguments, computeClient compute.Client, storageClie
 		return nil, err
 	}
 
-	inspector, err := disk.NewInspector(args.DaisyAttrs(), args.Network, args.Subnet, args.ComputeServiceAccount, logger)
+	inspector, err := disk.NewInspector(args.EnvironmentSettings(), logger)
 	if err != nil {
 		return nil, err
 	}

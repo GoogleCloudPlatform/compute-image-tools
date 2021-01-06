@@ -17,8 +17,9 @@ package ovfexportdomain
 import (
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
 
 func TestIsInstanceExport(t *testing.T) {
@@ -34,12 +35,21 @@ func TestIsMachineImageExport(t *testing.T) {
 func TestDaisyAttrs(t *testing.T) {
 	params := GetAllInstanceExportArgs()
 	assert.Equal(t,
-		daisycommon.WorkflowAttributes{
-			Project: params.Project, Zone: params.Zone, GCSPath: params.ScratchBucketGcsPath,
-			OAuth: params.Oauth, Timeout: params.Timeout.String(), ComputeEndpoint: params.Ce,
-			WorkflowDirectory: params.WorkflowDir, DisableGCSLogs: params.GcsLogsDisabled,
-			DisableCloudLogs: params.CloudLogsDisabled, DisableStdoutLogs: params.StdoutLogsDisabled,
-			NoExternalIP: params.NoExternalIP,
+		daisycommon.EnvironmentSettings{
+			Project:               params.Project,
+			Zone:                  params.Zone,
+			GCSPath:               params.ScratchBucketGcsPath,
+			OAuth:                 params.Oauth,
+			Timeout:               params.Timeout.String(),
+			ComputeEndpoint:       params.Ce,
+			WorkflowDirectory:     params.WorkflowDir,
+			DisableGCSLogs:        params.GcsLogsDisabled,
+			DisableCloudLogs:      params.CloudLogsDisabled,
+			DisableStdoutLogs:     params.StdoutLogsDisabled,
+			NoExternalIP:          params.NoExternalIP,
+			Network:               params.Network,
+			Subnet:                params.Subnet,
+			ComputeServiceAccount: params.ComputeServiceAccount,
 		},
-		params.DaisyAttrs())
+		params.EnvironmentSettings())
 }
