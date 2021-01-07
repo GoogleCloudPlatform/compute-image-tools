@@ -1,0 +1,27 @@
+{
+  "Name": "centos-8-devcluster",
+  "Project": "gce-image-builder",
+  "Zone": "us-central1-b",
+  "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
+  "Vars": {
+    "source_image_project": "bct-prod-images",
+    "build_date": "${DATE}",
+    "workflow_root": {"Value": "/workflows", "Description": "Root of github workflows, defaults to /workflows in the container."}
+  },
+  "Steps": {
+    "build-centos-8-devcluster": {
+      "Timeout": "70m",
+      "IncludeWorkflow": {
+        "Path": "devcluster.wf.json",
+        "Vars": {
+          "base_image": "projects/${source_image_project}/global/images/family/centos-8",
+          "build_date": "${build_date}",
+          "dev_script": "centos_dev.sh",
+          "image_prefix": "centos-8-dev",
+          "licenses": "5731035067256925298",
+          "workflow_root": "${workflow_root}"
+        }
+      }
+    }
+  }
+}
