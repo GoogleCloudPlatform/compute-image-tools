@@ -15,6 +15,10 @@
     "workflow_root": {
       "Value": "/workflows",
       "Description": "Root of github workflows, defaults to /workflows in the container."
+    },
+    "gcs_url": {
+      "Required": true,
+      "Description": "The GCS path that image raw file exported to."
     }
   },
   "Steps": {
