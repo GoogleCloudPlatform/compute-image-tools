@@ -303,6 +303,13 @@ function Install-32bitPackages {
   }
 }
 
+function Enable-WinRM {
+  if ($pn -like '*Enterprise') {
+    Write-Host 'Translate: Windows Client detected, enabling WinRM (including on Public networks).'
+    & winrm quickconfig -quiet -force
+  }
+}
+
 try {
   Write-Output 'Translate: Beginning translate PowerShell script.'
   Remove-VMWareTools
@@ -350,6 +357,7 @@ try {
   }
 
   Enable-RemoteDesktop
+  Enable-WinRM
 
   if ($script:sysprep.ToLower() -ne 'true') {
     if ($script:is_byol.ToLower() -ne 'true') {
