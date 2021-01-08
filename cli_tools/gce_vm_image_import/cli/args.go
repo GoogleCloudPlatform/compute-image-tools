@@ -1,4 +1,4 @@
-//  Copyright 2020 Google Inc. All Rights Reserved.
+//  Copyright 2021 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/importer"
 )
 
-// imageImportArgs holds the arguments passed by the user, and facilitates creating
+// imageImportArgs receives arguments passed by the user and facilitates creating
 // importer.ImageImportRequest.
 type imageImportArgs struct {
 	ClientID      string
@@ -41,23 +41,31 @@ type imageImportArgs struct {
 	importer.ImageImportRequest
 }
 
+// parseArgsFromUser creates an imageImportArgs instance from the arguments
+// passed by the user.
 func parseArgsFromUser(argsFromUser []string) (imageImportArgs, error) {
 	flagSet := flag.NewFlagSet("image-import", flag.ContinueOnError)
 	// Don't write parse errors to stdout, instead propagate them via an
 	// exception since we use flag.ContinueOnError.
 	flagSet.SetOutput(ioutil.Discard)
-	parsed := imageImportArgs{
-		Started: time.Now(),
-		ImageImportRequest: importer.ImageImportRequest{
-			ExecutionID: path.RandString(5),
-		},
-	}
+	parsed := imageImportArgs{}
 	parsed.registerFlags(flagSet)
 	return parsed, flagSet.Parse(argsFromUser)
 }
 
-func (args *imageImportArgs) populate(populator param.Populator,
+// populateAndValidate populates missing arguments, and validates specified
+// arguments. We depend on the importer module to validate *its* arguments,
+// so validation is limited to the fields that aren't used by that module.
+func (args *imageImportArgs) populateAndValidate(populator param.Populator,
 	sourceFactory importer.SourceFactory) (err error) {
+
+	if args.Started == (time.Time{}) {
+		args.Started = time.Now()
+	}
+
+	if args.ExecutionID == "" {
+		args.ExecutionID = path.RandString(5)
+	}
 
 	if args.ClientID == "" {
 		return fmt.Errorf("%s has to be specified", importer.ClientFlag)

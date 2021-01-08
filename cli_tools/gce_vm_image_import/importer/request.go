@@ -1,4 +1,4 @@
-//  Copyright 2020 Google Inc. All Rights Reserved.
+//  Copyright 2021 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,14 +16,12 @@ package importer
 
 import (
 	"fmt"
-	"reflect"
-	"regexp"
 	"strings"
 	"time"
 
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // Flags that are validated.
@@ -37,7 +35,6 @@ const (
 )
 
 func (args *ImageImportRequest) validate() error {
-
 	if err := args.checkRequiredArguments(); err != nil {
 		return err
 	}
@@ -66,75 +63,42 @@ func (args *ImageImportRequest) validate() error {
 }
 
 func (args *ImageImportRequest) checkRequiredArguments() error {
-	element := reflect.ValueOf(args).Elem()
-	typeOfElement := element.Type()
-
-	for i := 0; i < typeOfElement.NumField(); i++ {
-		field := element.Field(i)
-		typeOfField := typeOfElement.Field(i)
-		if typeOfField.Tag.Get("name") == "" {
-			continue
-		}
-		var present bool
-		switch typeOfField.Type.Name() {
-		case "string":
-			regex := typeOfField.Tag.Get("regex")
-			if regex == "" {
-				panic("Required string field needs regex struct tag")
-			}
-			present = field.String() != ""
-			if present && !regexp.MustCompile("^"+regex+"$").MatchString(field.String()) {
-				return daisy.Errf("image_name %q does not match pattern "+regex, field.String())
-			}
-		case "Source":
-			present = field.Interface() != nil
-		case "Duration":
-			present = field.Int() > 0
-		}
-		if !present {
-			return fmt.Errorf("%s has to be specified", typeOfField.Tag.Get("name"))
-		}
-	}
-	return nil
+	return validation.ValidateStruct(args)
 }
 
 // ImageImportRequest includes the parameters required to perform an image import.
 //
-// Using tags for validation:
-//  - All fields with the tag key 'name' will be validated.
-//      - The value of 'name' is shown to the user in an error message.
-//  - Validated string fields must also contain a regex pattern.
-//  - Validated non-string fields are required to have a non-default value.
+// Tags define validations; see validation.ValidateStruct for more info.
 type ImageImportRequest struct {
-	ExecutionID           string `name:"execution_id" regex:".+"`
+	ExecutionID           string `name:"execution_id" validate:"required"`
 	CloudLogsDisabled     bool
 	ComputeEndpoint       string
 	ComputeServiceAccount string
-	WorkflowDir           string `name:"workflow_dir" regex:".+"`
+	WorkflowDir           string `name:"workflow_dir" validate:"required"`
 	CustomWorkflow        string
 	DataDisk              bool
 	Description           string
 	Family                string
 	GcsLogsDisabled       bool
-	ImageName             string `name:"image_name" regex:"[a-z]([-a-z0-9]{0,61}[a-z0-9])?"` // https://cloud.google.com/compute/docs/reference/rest/v1/images
+	ImageName             string `name:"image_name" validate:"required,gce_disk_image_name"`
 	Inspect               bool
 	Labels                map[string]string
-	Network               string `name:"network" regex:".+"`
+	Network               string `name:"network" validate:"required"`
 	NoExternalIP          bool
 	NoGuestEnvironment    bool
 	Oauth                 string
 	BYOL                  bool
 	OS                    string
-	Project               string `name:"project" regex:".+"`
-	ScratchBucketGcsPath  string `name:"scratch_bucket_gcs_path" regex:".+"`
-	Source                Source `name:"source"`
+	Project               string `name:"project" validate:"required"`
+	ScratchBucketGcsPath  string `name:"scratch_bucket_gcs_path" validate:"required"`
+	Source                Source `name:"source" validate:"required"`
 	StdoutLogsDisabled    bool
 	StorageLocation       string
 	Subnet                string
 	SysprepWindows        bool
-	Timeout               time.Duration `name:"timeout"`
+	Timeout               time.Duration `name:"timeout" validate:"required"`
 	UefiCompatible        bool
-	Zone                  string `name:"zone" regex:".+"`
+	Zone                  string `name:"zone" validate:"required"`
 }
 
 // EnvironmentSettings returns the subset of EnvironmentSettings that are required to instantiate

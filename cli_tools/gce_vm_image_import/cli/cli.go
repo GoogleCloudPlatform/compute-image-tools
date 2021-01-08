@@ -34,8 +34,13 @@ func Main(args []string, toolLogger logging.ToolLogger, workflowDir string) erro
 	logging.RedirectGlobalLogsToUser(toolLogger)
 	ctx := context.Background()
 
-	// 1. Parse authentication-related arguments, which are required for parsing and
-	// validating the remaining arguments.
+	// Interpreting the user's request occurs in three steps:
+	//  1. Parse the CLI arguments, without performing validation or population.
+	//  2. Instantiate API clients using authentication overrides from arguments,
+	//     if they were provided.
+	//  3. Populate missing arguments using the API clients.
+
+	// 1. Parse the CLI arguments
 	importArgs, err := parseArgsFromUser(args)
 	if err != nil {
 		logFailure(importArgs, err)
@@ -65,13 +70,14 @@ func Main(args []string, toolLogger logging.ToolLogger, workflowDir string) erro
 		storage.NewScratchBucketCreator(ctx, storageClient),
 	)
 
-	// 3. Infer missing arguments.
-	err = importArgs.populate(paramPopulator, importer.NewSourceFactory(storageClient))
+	// 3. Populate missing arguments.
+	err = importArgs.populateAndValidate(paramPopulator, importer.NewSourceFactory(storageClient))
 	if err != nil {
 		logFailure(importArgs, err)
 		return err
 	}
 
+	// Run the import.
 	importRunner, err := importer.NewImporter(importArgs.ImageImportRequest, computeClient, *storageClient, toolLogger)
 	if err != nil {
 		logFailure(importArgs, err)

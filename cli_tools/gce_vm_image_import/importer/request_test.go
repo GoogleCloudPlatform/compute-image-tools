@@ -1,4 +1,4 @@
-//  Copyright 2020 Google Inc. All Rights Reserved.
+//  Copyright 2021 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 func Test_validate_RequiresImageName(t *testing.T) {
@@ -30,27 +30,10 @@ func Test_validate_RequiresImageName(t *testing.T) {
 	assertMissingField(t, request, "image_name")
 }
 
-func Test_validate_ValidatesImageName(t *testing.T) {
-	// Allowable name format: https://cloud.google.com/compute/docs/reference/rest/v1/images
-	for _, imgName := range []string{
-		"-no-starting-dash",
-		"no-ending-dash-",
-		"dont/allow/slashes",
-		"DontAllowCaps",
-		"o-----longer-than-max-63---------------------------------------o",
-	} {
-		t.Run(imgName, func(t *testing.T) {
-			request := makeValidRequest()
-			request.ImageName = imgName
-			err := request.validate()
-			assert.Regexp(t, "image_name .* does not match pattern", err)
-			realError := err.(daisy.DError)
-			for _, anonymizedErrs := range realError.AnonymizedErrs() {
-				assert.NotContains(t, anonymizedErrs, imgName,
-					"Don't include image name in anonymized error")
-			}
-		})
-	}
+func Test_validate_ValidatesImageNameUsesValidationUtil(t *testing.T) {
+	request := makeValidRequest()
+	request.ImageName = "-no-starting-dashes"
+	assert.Equal(t, request.validate(), validation.ValidateImageName(request.ImageName))
 }
 
 func Test_validate_AllowsValidImageName(t *testing.T) {
@@ -123,7 +106,8 @@ func Test_validate_ValidatesExecutionId(t *testing.T) {
 }
 
 func assertMissingField(t *testing.T, request ImageImportRequest, fieldName string) bool {
-	return assert.EqualError(t, request.validate(), fieldName+" has to be specified")
+	err := request.validate()
+	return assert.EqualError(t, err, fieldName+" has to be specified")
 }
 
 func makeValidRequest() ImageImportRequest {

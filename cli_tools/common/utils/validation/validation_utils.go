@@ -15,16 +15,25 @@
 package validation
 
 import (
+	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
+
+	"github.com/go-playground/validator/v10"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
-var (
+const (
 	rfc1035LabelRegexpStr = "[A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9]"
-	rfc1035LabelRegexp    = regexp.MustCompile(rfc1035LabelRegexpStr)
-	fqdnRegexp            = regexp.MustCompile(fmt.Sprintf("^((%v)\\.)+(%v)$", rfc1035LabelRegexpStr, rfc1035LabelRegexpStr))
+	imageNameStr          = "^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$"
+)
+
+var (
+	rfc1035LabelRegexp = regexp.MustCompile(rfc1035LabelRegexpStr)
+	fqdnRegexp         = regexp.MustCompile(fmt.Sprintf("^((%v)\\.)+(%v)$", rfc1035LabelRegexpStr, rfc1035LabelRegexpStr))
+	imageNameRegexp    = regexp.MustCompile(imageNameStr)
 )
 
 // ValidateStringFlagNotEmpty returns error with error message stating field must be provided if
@@ -54,4 +63,66 @@ func ValidateRfc1035Label(value string) error {
 		return daisy.Errf(fmt.Sprintf("Value `%v` must conform to RFC 1035 requirements for valid labels.", value))
 	}
 	return nil
+}
+
+// ValidateImageName validates whether a string is a valid image name, as defined by
+// <https://cloud.google.com/compute/docs/reference/rest/v1/images>.
+func ValidateImageName(value string) error {
+	if !imageNameRegexp.MatchString(value) {
+		return daisy.Errf("Image name `%v` must conform to https://cloud.google.com/compute/docs/reference/rest/v1/images", value)
+	}
+	return nil
+}
+
+// ValidateStruct performs struct field validation based on field tags.
+//
+// Use the syntax from <https://github.com/go-playground/validator>.  In addition,
+// the following is supported:
+//
+//  New validators:
+//    gce_disk_image_name:  Validates using `ValidateImageName`
+//
+//  Field names:
+//    To customize the field name in the error message, include a tag named 'name'.
+func ValidateStruct(s interface{}) error {
+	validate := validator.New()
+
+	// Register new validators.
+	if err := validate.RegisterValidation("gce_disk_image_name", func(fl validator.FieldLevel) bool {
+		return ValidateImageName(fl.Field().String()) == nil
+	}); err != nil {
+		panic(err)
+	}
+
+	// Allow the error message's field name to be customized via a `name` struct tag.
+	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
+		if name, found := fld.Tag.Lookup("name"); found {
+			return name
+		}
+		return fld.Name
+	})
+
+	// Run validation.
+	err := validate.Struct(s)
+	if err == nil {
+		return nil
+	}
+
+	// If validation fails:
+	//  1. Surface the first error.
+	//  2. Create a new error message. This ensures sensitive information
+	//     is not leaked to anonymous logs.
+	var verr validator.ValidationErrors
+	if errors.As(err, &verr) && len(verr) > 0 {
+		firstErr := verr[0]
+		switch firstErr.Tag() {
+		case "required":
+			return errors.New(firstErr.Field() + " has to be specified")
+		case "gce_disk_image_name":
+			return ValidateImageName(firstErr.Value().(string))
+		}
+	}
+	// Panic to ensure that CLI arguments are not leaked. To safely show an argument
+	// to a user, inject it into a string template using `daisy.Errf`.
+	panic(fmt.Sprintf("Customize error: %v", err))
 }

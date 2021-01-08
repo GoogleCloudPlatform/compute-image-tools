@@ -1,4 +1,4 @@
-//  Copyright 2020 Google Inc. All Rights Reserved.
+//  Copyright 2021 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -26,180 +26,180 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/importer"
 )
 
-func Test_parseArgsFromUser_InitializesStarted(t *testing.T) {
-	actual := addRequiredArgsAndParse(t, "")
+func Test_populateAndValidate_InitializesStarted(t *testing.T) {
+	actual := parseAndPopulate(t, "-image_name=img")
 	now := time.Now()
 	if now.Sub(actual.Started) > time.Minute {
 		t.Errorf("Expected Started to be initialized to current time. now=%q actual=%q", now, actual.Started)
 	}
 }
 
-func Test_parseArgsFromUser_InitializesExecutionID(t *testing.T) {
-	actual := addRequiredArgsAndParse(t, "")
+func Test_populateAndValidate_InitializesExecutionID(t *testing.T) {
+	actual := parseAndPopulate(t, "-image_name=img")
 	assert.NotEmpty(t, actual.ExecutionID)
 }
 
-func Test_parseArgsFromUser_SupportsCustomExecutionID(t *testing.T) {
+func Test_populateAndValidate_SupportsCustomExecutionID(t *testing.T) {
 	expected := uuid.New().String()
 	actual := addRequiredArgsAndParse(t, "-execution_id="+expected)
 	assert.Equal(t, expected, actual.ExecutionID)
 }
 
-func Test_populate_TrimsAndLowerImageName(t *testing.T) {
+func Test_populateAndValidate_TrimsAndLowerImageName(t *testing.T) {
 	assert.Equal(t, "gcp-is-great", parseAndPopulate(t, "-image_name", "  GCP-is-GREAT  ").ImageName)
 }
 
-func Test_populate_TrimsFamily(t *testing.T) {
+func Test_populateAndValidate_TrimsFamily(t *testing.T) {
 	assert.Equal(t, "Ubuntu", parseAndPopulate(t, "-family", "  Ubuntu  ").Family)
 }
 
-func Test_populate_TrimsDescription(t *testing.T) {
+func Test_populateAndValidate_TrimsDescription(t *testing.T) {
 	assert.Equal(t, "Ubuntu", parseAndPopulate(t, "-description", "  Ubuntu  ").Description)
 }
 
-func Test_populate_CreatesMapOfLabels(t *testing.T) {
+func Test_populateAndValidate_CreatesMapOfLabels(t *testing.T) {
 	expected := map[string]string{"internal": "true", "private": "false"}
 	assert.Equal(t, expected, parseAndPopulate(t, "-labels=internal=true,private=false").Labels)
 }
 
-func Test_populate_FailsWhenLabelsHaveSyntaxError(t *testing.T) {
+func Test_populateAndValidate_FailsWhenLabelsHaveSyntaxError(t *testing.T) {
 	assert.Contains(t, expectFailedParse(t, "-labels=internal:true").Error(),
 		"invalid value \"internal:true\" for flag -labels")
 }
 
-func Test_populate_TrimsAndLowerStorageLocation(t *testing.T) {
+func Test_populateAndValidate_TrimsAndLowerStorageLocation(t *testing.T) {
 	assert.Equal(t, "eu", parseAndPopulate(t, "-storage_location", "  EU  ").StorageLocation)
 }
 
-func Test_populate_TrimsAndLowerClientId(t *testing.T) {
+func Test_populateAndValidate_TrimsAndLowerClientId(t *testing.T) {
 	assert.Equal(t, "pantheon", parseAndPopulate(t, "-client_id", " Pantheon ").ClientID)
 }
 
-func Test_populate_TrimsClientVersion(t *testing.T) {
+func Test_populateAndValidate_TrimsClientVersion(t *testing.T) {
 	assert.Equal(t, "301.0.0B", parseAndPopulate(t, "-client_version", " 301.0.0B ").ClientVersion)
 }
 
-func Test_populate_TrimsProject(t *testing.T) {
+func Test_populateAndValidate_TrimsProject(t *testing.T) {
 	assert.Equal(t, "TestProject", parseAndPopulate(t, "-project", " TestProject ").Project)
 }
 
-func Test_populate_TrimsNetwork(t *testing.T) {
+func Test_populateAndValidate_TrimsNetwork(t *testing.T) {
 	assert.Equal(t, "global/networks/id", parseAndPopulate(t, "-network", "  id  ").Network)
 }
 
-func Test_populate_TrimsSubnet(t *testing.T) {
+func Test_populateAndValidate_TrimsSubnet(t *testing.T) {
 	assert.Equal(t, "regions/us-west2/subnetworks/sub-id", parseAndPopulate(t, "-subnet", "  sub-id  ").Subnet)
 }
 
-func Test_populate_TrimsAndLowerZone(t *testing.T) {
+func Test_populateAndValidate_TrimsAndLowerZone(t *testing.T) {
 	assert.Equal(t, "us-central4-a", parseAndPopulate(t, "-zone", "  us-central4-a  ").Zone)
 }
 
-func Test_populate_TrimsOauth(t *testing.T) {
+func Test_populateAndValidate_TrimsOauth(t *testing.T) {
 	assert.Equal(t, "file.json", parseAndPopulate(t, "-oauth", "  file.json ").Oauth)
 }
 
-func Test_populate_TrimsComputeEndpoint(t *testing.T) {
+func Test_populateAndValidate_TrimsComputeEndpoint(t *testing.T) {
 	assert.Equal(t, "http://endpoint",
 		parseAndPopulate(t, "-compute_endpoint_override", "  http://endpoint ").ComputeEndpoint)
 }
 
-func Test_populate_TrimsComputeServiceAccount(t *testing.T) {
+func Test_populateAndValidate_TrimsComputeServiceAccount(t *testing.T) {
 	assert.Equal(t, "",
 		parseAndPopulate(t, "-compute_service_account", " 	").ComputeServiceAccount)
 	assert.Equal(t, "email",
 		parseAndPopulate(t, "-compute_service_account", " email	").ComputeServiceAccount)
 }
 
-func Test_populate_SupportsGcsLogsDisabled(t *testing.T) {
+func Test_populateAndValidate_SupportsGcsLogsDisabled(t *testing.T) {
 	assert.False(t, parseAndPopulate(t, "-disable_gcs_logging=false").GcsLogsDisabled)
 	assert.True(t, parseAndPopulate(t, "-disable_gcs_logging=true").GcsLogsDisabled)
 	assert.True(t, parseAndPopulate(t, "-disable_gcs_logging").GcsLogsDisabled)
 }
 
-func Test_populate_SupportsCloudLogsDisabled(t *testing.T) {
+func Test_populateAndValidate_SupportsCloudLogsDisabled(t *testing.T) {
 	assert.False(t, parseAndPopulate(t, "-disable_cloud_logging=false").CloudLogsDisabled)
 	assert.True(t, parseAndPopulate(t, "-disable_cloud_logging=true").CloudLogsDisabled)
 	assert.True(t, parseAndPopulate(t, "-disable_cloud_logging").CloudLogsDisabled)
 }
 
-func Test_populate_SupportsStdoutLogsDisabled(t *testing.T) {
+func Test_populateAndValidate_SupportsStdoutLogsDisabled(t *testing.T) {
 	assert.False(t, parseAndPopulate(t, "-disable_stdout_logging=false").StdoutLogsDisabled)
 	assert.True(t, parseAndPopulate(t, "-disable_stdout_logging=true").StdoutLogsDisabled)
 	assert.True(t, parseAndPopulate(t, "-disable_stdout_logging").StdoutLogsDisabled)
 }
 
-func Test_populate_SupportsNoExternalIp(t *testing.T) {
+func Test_populateAndValidate_SupportsNoExternalIp(t *testing.T) {
 	assert.False(t, parseAndPopulate(t, "-no_external_ip=false").NoExternalIP)
 	assert.True(t, parseAndPopulate(t, "-no_external_ip=true").NoExternalIP)
 	assert.True(t, parseAndPopulate(t, "-no_external_ip").NoExternalIP)
 }
 
-func Test_populate_TrimsSourceFile(t *testing.T) {
+func Test_populateAndValidate_TrimsSourceFile(t *testing.T) {
 	assert.Equal(t, "gs://bucket/image.vmdk", parseAndPopulate(
 		t, "-source_file", " gs://bucket/image.vmdk ").SourceFile)
 }
 
-func Test_populate_TrimsSourceImage(t *testing.T) {
+func Test_populateAndValidate_TrimsSourceImage(t *testing.T) {
 	assert.Equal(t, "path/source-image", parseAndPopulate(
 		t, "-source_image", "  path/source-image  ").SourceImage)
 }
 
-func Test_populate_SupportsNoGuestEnvironment(t *testing.T) {
+func Test_populateAndValidate_SupportsNoGuestEnvironment(t *testing.T) {
 	assert.False(t, parseAndPopulate(t, "-no_guest_environment=false", "-os=ubuntu-1804").NoGuestEnvironment)
 	assert.False(t, parseAndPopulate(t, "-os=ubuntu-1804").NoGuestEnvironment)
 	assert.True(t, parseAndPopulate(t, "-no_guest_environment=true").NoGuestEnvironment)
 	assert.True(t, parseAndPopulate(t, "-no_guest_environment").NoGuestEnvironment)
 }
 
-func Test_populate_TrimsAndLowerOS(t *testing.T) {
+func Test_populateAndValidate_TrimsAndLowerOS(t *testing.T) {
 	assert.Equal(t, "ubuntu-1804", parseAndPopulate(t, "-os", "  UBUNTU-1804 ").OS)
 }
 
-func Test_populate_SupportsDataDisk(t *testing.T) {
+func Test_populateAndValidate_SupportsDataDisk(t *testing.T) {
 	assert.False(t, parseAndPopulate(t, "-data_disk=false", "-os=ubuntu-1804").DataDisk)
 	assert.False(t, parseAndPopulate(t, "-os=ubuntu-1804").DataDisk)
 	assert.True(t, parseAndPopulate(t, "-data_disk=true").DataDisk)
 	assert.True(t, parseAndPopulate(t, "-data_disk").DataDisk)
 }
 
-func Test_populate_DefaultsBYOLToFalse(t *testing.T) {
+func Test_populateAndValidate_DefaultsBYOLToFalse(t *testing.T) {
 	assert.False(t, parseAndPopulate(t).BYOL)
 }
 
-func Test_populate_SupportsBYOL(t *testing.T) {
+func Test_populateAndValidate_SupportsBYOL(t *testing.T) {
 	assert.True(t, parseAndPopulate(t, "-byol").BYOL)
 }
 
-func Test_populate_TimeoutHasDefaultValue(t *testing.T) {
+func Test_populateAndValidate_TimeoutHasDefaultValue(t *testing.T) {
 	assert.Equal(t, time.Hour*2, parseAndPopulate(t).Timeout)
 }
 
-func Test_populate_SupportsTimeout(t *testing.T) {
+func Test_populateAndValidate_SupportsTimeout(t *testing.T) {
 	assert.Equal(t, time.Hour*5, parseAndPopulate(t, "-timeout=5h").Timeout)
 }
 
-func Test_populate_TrimsCustomWorkflow(t *testing.T) {
+func Test_populateAndValidate_TrimsCustomWorkflow(t *testing.T) {
 	assert.Equal(t, "workflow.json", parseAndPopulate(t,
 		"-custom_translate_workflow", "  workflow.json  ").CustomWorkflow)
 }
 
-func Test_populate_SupportsUEFI(t *testing.T) {
+func Test_populateAndValidate_SupportsUEFI(t *testing.T) {
 	assert.False(t, parseAndPopulate(t, "-uefi_compatible=false").UefiCompatible)
 	assert.True(t, parseAndPopulate(t, "-uefi_compatible=true").UefiCompatible)
 	assert.True(t, parseAndPopulate(t, "-uefi_compatible").UefiCompatible)
 }
 
-func Test_populate_SupportsSysprep(t *testing.T) {
+func Test_populateAndValidate_SupportsSysprep(t *testing.T) {
 	assert.False(t, parseAndPopulate(t, "-sysprep_windows=false").SysprepWindows)
 	assert.True(t, parseAndPopulate(t, "-sysprep_windows=true").SysprepWindows)
 	assert.True(t, parseAndPopulate(t, "-sysprep_windows").SysprepWindows)
 }
 
-func Test_populate_FailsWhenClientIdMissing(t *testing.T) {
+func Test_populateAndValidate_FailsWhenClientIdMissing(t *testing.T) {
 	args, err := parseArgsFromUser([]string{"-image_name=i", "-data_disk"})
 	assert.NoError(t, err)
-	err = args.populate(mockPopulator{
+	err = args.populateAndValidate(mockPopulator{
 		zone:            "us-west2-a",
 		region:          "us-west2",
 		storageLocation: "us",
@@ -207,11 +207,11 @@ func Test_populate_FailsWhenClientIdMissing(t *testing.T) {
 	assert.EqualError(t, err, "client_id has to be specified")
 }
 
-func Test_populate_BackfillsStorageLocationIfMissing(t *testing.T) {
+func Test_populateAndValidate_BackfillsStorageLocationIfMissing(t *testing.T) {
 	args := []string{"-image_name=i", "-client_id=c", "-data_disk"}
 	actual, err := parseArgsFromUser(args)
 	assert.NoError(t, err)
-	err = actual.populate(mockPopulator{
+	err = actual.populateAndValidate(mockPopulator{
 		zone:            "us-west2-a",
 		region:          "us-west2",
 		storageLocation: "us",
@@ -220,11 +220,11 @@ func Test_populate_BackfillsStorageLocationIfMissing(t *testing.T) {
 	assert.Equal(t, "us", actual.StorageLocation)
 }
 
-func Test_populate_BackfillsProjectIfMissing(t *testing.T) {
+func Test_populateAndValidate_BackfillsProjectIfMissing(t *testing.T) {
 	args := []string{"-image_name=i", "-client_id=c", "-data_disk"}
 	actual, err := parseArgsFromUser(args)
 	assert.NoError(t, err)
-	err = actual.populate(mockPopulator{
+	err = actual.populateAndValidate(mockPopulator{
 		zone:    "us-west2-a",
 		region:  "us-west2",
 		project: "the-project",
@@ -233,11 +233,11 @@ func Test_populate_BackfillsProjectIfMissing(t *testing.T) {
 	assert.Equal(t, "the-project", actual.Project)
 }
 
-func Test_populate_BackfillsZoneIfMissing(t *testing.T) {
+func Test_populateAndValidate_BackfillsZoneIfMissing(t *testing.T) {
 	args := []string{"-image_name=i", "-client_id=c", "-data_disk"}
 	actual, err := parseArgsFromUser(args)
 	assert.NoError(t, err)
-	err = actual.populate(mockPopulator{
+	err = actual.populateAndValidate(mockPopulator{
 		zone:   "us-west2-a",
 		region: "us-west2",
 	}, mockSourceFactory{})
@@ -245,11 +245,11 @@ func Test_populate_BackfillsZoneIfMissing(t *testing.T) {
 	assert.Equal(t, "us-west2-a", actual.Zone)
 }
 
-func Test_populate_BackfillsRegionIfMissing(t *testing.T) {
+func Test_populateAndValidate_BackfillsRegionIfMissing(t *testing.T) {
 	args := []string{"-image_name=i", "-client_id=c", "-data_disk"}
 	actual, err := parseArgsFromUser(args)
 	assert.NoError(t, err)
-	err = actual.populate(mockPopulator{
+	err = actual.populateAndValidate(mockPopulator{
 		zone:   "us-west2-a",
 		region: "us-west2",
 	}, mockSourceFactory{})
@@ -257,7 +257,7 @@ func Test_populate_BackfillsRegionIfMissing(t *testing.T) {
 	assert.Equal(t, "us-west2", actual.Region)
 }
 
-func Test_populate_HandlesNetworkAndSubnet(t *testing.T) {
+func Test_populateAndValidate_HandlesNetworkAndSubnet(t *testing.T) {
 	tests := []struct {
 		name            string
 		args            []string
@@ -302,11 +302,11 @@ func Test_populate_HandlesNetworkAndSubnet(t *testing.T) {
 	}
 }
 
-func Test_populate_CreatesSourceObjectFromSourceImage(t *testing.T) {
+func Test_populateAndValidate_CreatesSourceObjectFromSourceImage(t *testing.T) {
 	args := []string{"-source_image", "path/source-image", "-image_name=i", "-client_id=c", "-data_disk"}
 	actual, err := parseArgsFromUser(args)
 	assert.NoError(t, err)
-	err = actual.populate(mockPopulator{
+	err = actual.populateAndValidate(mockPopulator{
 		zone:          "us-west2-a",
 		region:        "us-west2",
 		scratchBucket: "gs://custom-bucket/",
@@ -319,11 +319,11 @@ func Test_populate_CreatesSourceObjectFromSourceImage(t *testing.T) {
 	assert.Equal(t, "path/source-image", actual.Source.Path())
 }
 
-func Test_populate_CreatesSourceObjectFromSourceFile(t *testing.T) {
+func Test_populateAndValidate_CreatesSourceObjectFromSourceFile(t *testing.T) {
 	args := []string{"-source_file", "gs://path/file", "-image_name=i", "-client_id=c", "-data_disk"}
 	actual, err := parseArgsFromUser(args)
 	assert.NoError(t, err)
-	err = actual.populate(mockPopulator{
+	err = actual.populateAndValidate(mockPopulator{
 		zone:          "us-west2-a",
 		region:        "us-west2",
 		scratchBucket: "gs://custom-bucket/",
@@ -336,11 +336,11 @@ func Test_populate_CreatesSourceObjectFromSourceFile(t *testing.T) {
 	assert.Equal(t, "gs://path/file", actual.Source.Path())
 }
 
-func Test_populate_FailsWhenSourceValidateFails(t *testing.T) {
+func Test_populateAndValidate_FailsWhenSourceValidateFails(t *testing.T) {
 	args := []string{"-image_name=i", "-client_id=c", "-data_disk"}
 	actual, err := parseArgsFromUser(args)
 	assert.NoError(t, err)
-	err = actual.populate(mockPopulator{
+	err = actual.populateAndValidate(mockPopulator{
 		zone:          "us-west2-a",
 		region:        "us-west2",
 		scratchBucket: "gs://custom-bucket/",
@@ -352,7 +352,7 @@ func Test_populate_FailsWhenSourceValidateFails(t *testing.T) {
 	assert.Contains(t, err.Error(), "bad source")
 }
 
-func Test_populate_StandardizesScratchBucketPath(t *testing.T) {
+func Test_populateAndValidate_StandardizesScratchBucketPath(t *testing.T) {
 	started := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 	id := "abc"
 	scratchDir := "gce-image-import-2009-11-10T23:00:00Z-abc"
@@ -374,7 +374,7 @@ func Test_populate_StandardizesScratchBucketPath(t *testing.T) {
 			args := addRequiredArgsAndParse(t, "-scratch_bucket_gcs_path", tt.bucketArg)
 			args.Started = started
 			args.ExecutionID = id
-			err := args.populate(mockPopulator{
+			err := args.populateAndValidate(mockPopulator{
 				zone:          "us-west2-a",
 				region:        "us-west2",
 				scratchBucket: "gs://fallback-bucket/",
@@ -449,7 +449,7 @@ func (m mockSourceFactory) Init(sourceFile, sourceImage string) (importer.Source
 
 func parseAndPopulate(t *testing.T, args ...string) imageImportArgs {
 	actual := addRequiredArgsAndParse(t, args...)
-	err := actual.populate(mockPopulator{
+	err := actual.populateAndValidate(mockPopulator{
 		zone:   "us-west2-a",
 		region: "us-west2",
 	}, mockSourceFactory{})
