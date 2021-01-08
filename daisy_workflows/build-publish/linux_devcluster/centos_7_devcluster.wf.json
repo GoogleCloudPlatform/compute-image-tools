@@ -6,7 +6,8 @@
   "Vars": {
     "source_image_project": "bct-prod-images",
     "build_date": "${DATE}",
-    "workflow_root": {"Value": "/workflows", "Description": "Root of github workflows, defaults to /workflows in the container."}
+    "workflow_root": {"Value": "/workflows", "Description": "Root of github workflows, defaults to /workflows in the container."},
+    "gcs_url": {"Required": true, "Description": "The GCS path that image raw file exported to."}
   },
   "Steps": {
     "build-centos-7-devcluster": {
@@ -17,7 +18,7 @@
           "base_image": "projects/${source_image_project}/global/images/family/centos-7",
           "build_date": "${build_date}",
           "dev_script": "centos_dev.sh",
-          "image_prefix": "centos-7-dev",
+          "gcs_url": "${gcs_url}",
           "licenses": "1000207",
           "workflow_root": "${workflow_root}"
         }

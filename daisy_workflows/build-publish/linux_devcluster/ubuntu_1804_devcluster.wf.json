@@ -6,7 +6,8 @@
   "Vars": {
     "build_date": "${DATE}",
     "source_image_project": {"Value": "ubuntu-os-cloud","Description": "The source image project to build the image from."},
-    "workflow_root": {"Value": "/workflows", "Description": "Root of github workflows, defaults to /workflows in the container."}
+    "workflow_root": {"Value": "/workflows", "Description": "Root of github workflows, defaults to /workflows in the container."},
+    "gcs_url": {"Required": true, "Description": "The GCS path that image raw file exported to."}
   },
   "Steps": {
     "build-ubuntu-1804-devcluster": {
@@ -17,7 +18,7 @@
           "base_image": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1804-lts",
           "build_date": "${build_date}",
           "dev_script": "debian_dev.sh",
-          "image_prefix": "ubuntu-1804-dev",
+          "gcs_url": "${gcs_url}",
           "licenses": "5926592092274602096",
           "workflow_root": "${workflow_root}"
         }
