@@ -232,10 +232,8 @@ function Change-InstanceProperties {
   # Change time zone to Coordinated Universal Time.
   Run-Command tzutil /s 'UTC'
 
-  # Not supported on 6.1 client, but is supported on 6.1 server
-  $pn_path = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
-  $pn = (Get-ItemProperty -Path $pn_path -Name ProductName).ProductName
-  if ($pn -notlike '*Windows 7*') {
+  # Disable hibernate on Win7 SP1/2008R2 SP1 and later.
+  if ([System.Environment]::OSVersion.Version.Build -ge 7601) {
     Run-Command powercfg /hibernate off
   }
 }
@@ -304,7 +302,7 @@ function Install-32bitPackages {
 }
 
 function Enable-WinRM {
-  if ($pn -like '*Enterprise') {
+  if ($script:pn -like '*Enterprise') {
     Write-Host 'Translate: Windows Client detected, enabling WinRM (including on Public networks).'
     & winrm quickconfig -quiet -force
   }
@@ -312,6 +310,8 @@ function Enable-WinRM {
 
 try {
   Write-Output 'Translate: Beginning translate PowerShell script.'
+  $script:pn = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name ProductName).ProductName
+  Write-Host "Translate: OS is $script:pn, version $([System.Environment]::OSVersion.Version.ToString())"
   Remove-VMWareTools
   Change-InstanceProperties
   Configure-Network
@@ -342,10 +342,7 @@ try {
     # Since 32-bit GooGet packages are not provided via repository, the only option is to install them from a local source.
     Install-32bitPackages
     # The following function will halt a 32-bit Windows 10 version 1909 import, so skip it.
-    $pn_path = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
-    $pn = (Get-ItemProperty -Path $pn_path -Name ProductName).ProductName
-    Write-Output "Product Name: ${pn}"
-    if ($pn -notlike '*Windows 10*') {
+    if ($script:pn -notlike '*Windows 10*') {
       Configure-Power
     }
   }
