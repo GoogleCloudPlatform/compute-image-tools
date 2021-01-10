@@ -232,8 +232,8 @@ function Change-InstanceProperties {
   # Change time zone to Coordinated Universal Time.
   Run-Command tzutil /s 'UTC'
 
-  # Disable hibernate on Win7 SP1/2008R2 SP1 and later.
-  if ([System.Environment]::OSVersion.Version.Build -ge 7601) {
+  # Disable hibernate on Win8/Win2008R2 SP1 and later.
+  if (([System.Environment]::OSVersion.Version.Build -ge 7601) -and ($script:pn -notlike '*Windows 7*')) {
     Run-Command powercfg /hibernate off
   }
 }
