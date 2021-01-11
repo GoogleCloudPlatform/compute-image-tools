@@ -1,25 +1,25 @@
 {
-  "Name": "ubuntu-1604-devcluster",
+  "Name": "debian-10-dev",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
   "Vars": {
+    "source_image_project": "bct-prod-images",
     "build_date": "${DATE}",
-    "source_image_project": {"Value": "ubuntu-os-cloud","Description": "The source image project to build the image from."},
     "workflow_root": {"Value": "/workflows", "Description": "Root of github workflows, defaults to /workflows in the container."},
     "gcs_url": {"Required": true, "Description": "The GCS path that image raw file exported to."}
   },
   "Steps": {
-    "build-ubuntu-1604-devcluster": {
+    "build-debian-10-dev": {
       "Timeout": "70m",
       "IncludeWorkflow": {
-        "Path": "devcluster.wf.json",
+        "Path": "development.wf.json",
         "Vars": {
-          "base_image": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts",
+          "base_image": "projects/${source_image_project}/global/images/family/debian-10",
           "build_date": "${build_date}",
           "dev_script": "debian_dev.sh",
           "gcs_url": "${gcs_url}",
-          "licenses": "1000201",
+          "licenses": "5543610867827062957",
           "workflow_root": "${workflow_root}"
         }
       }
