@@ -92,10 +92,26 @@ Exactly one of these must be specified:
 + `-disable-gcs-logging` do not stream logs to GCS
 + `-disable-cloud-logging` do not stream logs to Cloud Logging
 + `-disable-stdout-logging` do not display individual workflow logs on stdout
-+ `-node-affinity-label` Node affinity label used to determine sole tenant node to schedule this instance on. Label is of the format: <key>,<operator>,<value>,<value2>... where <operator> can be one of: IN, NOT. For example: workload,IN,prod,test is a label with key 'workload' and values 'prod' and 'test'. This flag can be specified multiple times for multiple labels.
-+ `-release-track` Release track of OVF import. One of: %s, %s or %s. Impacts which compute API release track is used by the import tool.
-+ `-hostname` Specify the hostname of the instance to be created. The specified hostname must be RFC1035 compliant.
-+ `-machine-image-storage-location` GCS bucket storage location of the machine image being imported (regional or multi-regional). Applicable only if `-machine-image-name` is provided.
++ `-node-affinity-label` Node affinity label used to determine sole tenant node 
+  to schedule this instance on. Label is of the format: 
+  <key>,<operator>,<value>,<value2>... 
+  where <operator> can be one of: IN, NOT. For example: workload,IN,prod,test is 
+  a label with key 'workload' and values 'prod' and 'test'. This flag can be 
+  specified multiple times for multiple labels.
++ `-release-track` Release track of OVF import. One of: %s, %s or %s. Impacts 
+  which compute API release track is used by the import tool.
++ `-hostname` Specify the hostname of the instance to be created. The specified 
+  hostname must be RFC1035 compliant.
++ `-machine-image-storage-location` GCS bucket storage location of the machine 
+  image being imported (regional or multi-regional). Applicable only if 
+  `-machine-image-name` is provided.
++ `-uefi-compatible` Enables UEFI booting, which is an alternative system boot method. 
+  Most public images use the GRUB bootloader as their primary boot method.`
++ `-client-version` Identifies the version of the client of the importer
++ `-build-id` Cloud Build ID override. This flag should be used if auto-generated 
+  or build ID provided by Cloud Build is not appropriate. For example, if running 
+  multiple imports in parallel in a single Cloud Build run, sharing build ID could 
+  cause premature temporary resource clean-up resulting in import failures.`
 
 ### Usage
 
@@ -118,7 +134,8 @@ gce_ovf_import -instance-names=INSTANCE_NAME -client-id=CLIENT_ID
 [-scratch-bucket-gcs-path=SCRATCH_BUCKET_PATH] [-oauth=OAUTH_FILE_PATH]
 [-compute-endpoint-override=CE_ENDPOINT] [-disable-gcs-logging] 
 [-disable-cloud-logging] [-disable-stdout-logging] [-no-guest-environment]
-[-hostname]
+[-hostname=HOSTNAME] [-client-version=CLIENT_VERSION] [-uefi-compatible] 
+[-build-id=BUILD_ID]
 ```
 
 Import into a machine image:
@@ -140,4 +157,5 @@ gce_ovf_import -machine-image-name=MACHINE_IMAGE_NAME -client-id=CLIENT_ID
 [-scratch-bucket-gcs-path=SCRATCH_BUCKET_PATH] [-oauth=OAUTH_FILE_PATH]
 [-compute-endpoint-override=CE_ENDPOINT] [-disable-gcs-logging] 
 [-disable-cloud-logging] [-disable-stdout-logging] [-no-guest-environment]
-[-hostname] [-machine-image-storage-location]
+[-hostname=HOSTNAME] [-machine-image-storage-location] 
+[-client-version=CLIENT_VERSION] [-uefi-compatible] [-build-id=BUILD_ID]

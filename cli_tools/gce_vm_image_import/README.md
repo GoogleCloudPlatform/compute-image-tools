@@ -60,14 +60,24 @@ Exactly one of these must be specified:
 + `-kms-keyring=KMS_KEYRING` The KMS keyring of the key.
 + `-kms-location=KMS_LOCATION` The Cloud location for the key.
 + `-kms-project=KMS_PROJECT` The Cloud project for the key
-+ `-no_external_ip` Set if VPC does not allow external IPs
++ `-no_external_ip` Temporary VMs are created in your project during image import. 
+  Set this flag so that these temporary VMs are not assigned external IP addresses. 
+  For more information, see: https://cloud.google.com/compute/docs/import/importing-virtual-disks#no-external-ip
 + `-labels=[KEY=VALUE,...]` labels: List of label KEY=VALUE pairs to add. Keys must start with a
   lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and 
   numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.
-+ `-storage_location` Location for the imported image which can be any GCS location. If the location
-  parameter is not included, images are created in the multi-region associated with the source disk,
-  image, snapshot or GCS bucket.  
-
++ `-storage_location` Location (a region or a multi-region) for the imported
+  image which can be any GCS location. If the location parameter is not included, 
+  images are created in the multi-region associated with the source disk, image,
+  snapshot or GCS bucket.  
++ `-compute_service_account` Compute service account to be used by importer 
+  Virtual Machine. When empty, the default Compute Engine service account is used.
++ `-uefi_compatible` Enables UEFI booting, which is an alternative system boot method. 
++ `-sysprep_windows` Generalize image using Windows Sysprep. Only applicable to Windows.
++ `-byol` Specifies that a BYOL license should be applied.
++ `-client_version` Identifies the version of the client of the importer.
++ `-execution_id` The execution ID to differentiate GCE resources of each imports.
+  
 ### Usage
 
 ```
@@ -78,5 +88,9 @@ gce_vm_image_import -image_name=IMAGE_NAME -client_id=CLIENT_ID (-data-disk | -o
         [-oauth=OAUTH_PATH] [-compute_endpoint_override=ENDPOINT] [-disable_gcs_logging]
         [-disable_cloud_logging] [-disable_stdout_logging]
         [-kms-key=KMS_KEY -kms-keyring=KMS_KEYRING -kms-location=KMS_LOCATION
-        -kms-project=KMS_PROJECT] [-labels=KEY=VALUE,...]
+        -kms-project=KMS_PROJECT] [-no_external_ip] [-labels=KEY=VALUE,...] 
+        [-storage_location=STORAGE_LOCATION]
+        [-compute_service_account=COMPUTE_SERVICE_ACCOUNT] 
+        [-uefi_compatible] [-sysprep_windows] [-byol] 
+        [-client_version=CLIENT_VERSION] [-execution_id=EXECUTION_ID]
 ```
