@@ -134,7 +134,7 @@ gce_ovf_import -instance-names=INSTANCE_NAME -client-id=CLIENT_ID
 [-scratch-bucket-gcs-path=SCRATCH_BUCKET_PATH] [-oauth=OAUTH_FILE_PATH]
 [-compute-endpoint-override=CE_ENDPOINT] [-disable-gcs-logging] 
 [-disable-cloud-logging] [-disable-stdout-logging] [-no-guest-environment]
-[-hostname=HOSTNAME] [-client-version=CLIENT_VERSION] [-uefi-compatible] 
+[-hostname=HOSTNAME] [-uefi-compatible] [-client-version=CLIENT_VERSION]
 [-build-id=BUILD_ID]
 ```
 
@@ -157,5 +157,5 @@ gce_ovf_import -machine-image-name=MACHINE_IMAGE_NAME -client-id=CLIENT_ID
 [-scratch-bucket-gcs-path=SCRATCH_BUCKET_PATH] [-oauth=OAUTH_FILE_PATH]
 [-compute-endpoint-override=CE_ENDPOINT] [-disable-gcs-logging] 
 [-disable-cloud-logging] [-disable-stdout-logging] [-no-guest-environment]
-[-hostname=HOSTNAME] [-machine-image-storage-location] 
-[-client-version=CLIENT_VERSION] [-uefi-compatible] [-build-id=BUILD_ID]
+[-hostname=HOSTNAME] [-machine-image-storage-location=STORAGE_LOCATION] 
+[-uefi-compatible] [-client-version=CLIENT_VERSION] [-build-id=BUILD_ID]
