@@ -27,6 +27,20 @@ function Check-Hiberation {
   if ($HibernateEnabled -eq $null -or $HibernateEnabled -ne 0) {
     throw "Hibernation not disabled. HKLM:\SYSTEM\CurrentControlSet\Control\Power\HibernateEnabled = $HibernateEnabled"
   }
+  $HibernateInfo = New-Object System.Diagnostics.ProcessStartInfo
+  $HibernateInfo.FileName = "shutdown"
+  $HibernateInfo.RedirectStandardError = $true
+  $HibernateInfo.UseShellExecute = $false
+  $HibernateInfo.Arguments = "/h"
+  $Hibernate = New-Object System.Diagnostics.Process
+  $Hibernate.StartInfo = $HibernateInfo
+  $Hibernate.Start() | Out-Null
+  $Hibernate.WaitForExit()
+  $stderr = $Hibernate.StandardError.ReadToEnd()
+  Write-Host "stderr: $stderr"
+  if ($stderr -notlike "*Hibernation is not enabled*") {
+    throw "Unexpected response when attempting to place the system into hibernation."
+  }
 }
 
 function Check-MetadataAccessibility {
