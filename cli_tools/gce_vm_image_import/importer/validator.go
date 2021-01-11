@@ -25,10 +25,10 @@ type validator interface {
 	validate() error
 }
 
-func newPreValidator(args ImportArguments, client getImageClient) validator {
+func newPreValidator(request ImageImportRequest, client getImageClient) validator {
 	return validateImageNameAvailable{
-		project: args.Project,
-		name:    args.ImageName,
+		project: request.Project,
+		name:    request.ImageName,
 		client:  client,
 	}
 }

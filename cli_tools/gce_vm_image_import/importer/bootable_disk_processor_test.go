@@ -38,10 +38,10 @@ func init() {
 }
 
 func TestBootableDiskProcessor_Process_WritesSourceDiskVar(t *testing.T) {
-	args := ImportArguments{
+	request := ImageImportRequest{
 		OS: "opensuse-15",
 	}
-	p, err := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()))
+	p, err := newBootableDiskProcessor(request, opensuse15workflow, logging.NewToolLogger(t.Name()))
 	assert.NoError(t, err)
 	_, err = p.process(persistentDisk{uri: "uri"})
 	assert.Equal(t, "uri", p.(*bootableDiskProcessor).workflow.Vars["source_disk"].Value)
@@ -64,7 +64,6 @@ func TestBootableDiskProcessor_PopulatesWorkflowVarsUsingArgs(t *testing.T) {
 	imageSpec.Network = "network-copied-verbatum"
 	imageSpec.Subnet = "subnet-copied-verbatum"
 	imageSpec.NoGuestEnvironment = true
-	imageSpec.Region = "us-central"
 	imageSpec.SysprepWindows = true
 	imageSpec.ComputeServiceAccount = "csa@email.com"
 
@@ -174,8 +173,8 @@ func TestBootableDiskProcessor_SupportsCancel(t *testing.T) {
 	assert.False(t, channelOpen, "realProcessor.workflow.Cancel should be closed on timeout")
 }
 
-func createAndRunPrePostFunctions(t *testing.T, args ImportArguments) *bootableDiskProcessor {
-	translator, e := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()))
+func createAndRunPrePostFunctions(t *testing.T, request ImageImportRequest) *bootableDiskProcessor {
+	translator, e := newBootableDiskProcessor(request, opensuse15workflow, logging.NewToolLogger(t.Name()))
 	assert.NoError(t, e)
 	realTranslator := translator.(*bootableDiskProcessor)
 	// A concrete logger is required since the import/export logging framework writes a log entry
@@ -219,8 +218,8 @@ func getImage(t *testing.T, workflow *daisy.Workflow) daisy.Image {
 	panic("expected create image step")
 }
 
-func defaultImportArgs() ImportArguments {
-	return ImportArguments{OS: "opensuse-15"}
+func defaultImportArgs() ImageImportRequest {
+	return ImageImportRequest{OS: "opensuse-15"}
 }
 
 func asMap(vars map[string]daisy.Var) map[string]string {

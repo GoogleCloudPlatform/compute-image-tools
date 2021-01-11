@@ -21,8 +21,6 @@ import (
 
 	"google.golang.org/api/option"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/files"
-
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
@@ -34,17 +32,21 @@ import (
 // Main starts an image import.
 func Main(args []string, toolLogger logging.ToolLogger, workflowDir string) error {
 	logging.RedirectGlobalLogsToUser(toolLogger)
-
 	ctx := context.Background()
 
-	// 1. Parse the args without validating or populating. Splitting parsing and
-	// validation allows us to log the intermediate, non-validated values, if
-	// there's an error setting up dependencies.
-	importArgs, err := importer.NewImportArguments(args, files.MakeAbsolute(workflowDir))
+	// Interpreting the user's request occurs in three steps:
+	//  1. Parse the CLI arguments, without performing validation or population.
+	//  2. Instantiate API clients using authentication overrides from arguments,
+	//     if they were provided.
+	//  3. Populate missing arguments using the API clients.
+
+	// 1. Parse the CLI arguments
+	importArgs, err := parseArgsFromUser(args)
 	if err != nil {
 		logFailure(importArgs, err)
 		return err
 	}
+	importArgs.WorkflowDir = workflowDir
 
 	// 2. Setup dependencies.
 	storageClient, err := storage.NewStorageClient(
@@ -53,6 +55,7 @@ func Main(args []string, toolLogger logging.ToolLogger, workflowDir string) erro
 		logFailure(importArgs, err)
 		return err
 	}
+
 	computeClient, err := param.CreateComputeClient(
 		&ctx, importArgs.Oauth, importArgs.ComputeEndpoint)
 	if err != nil {
@@ -67,14 +70,15 @@ func Main(args []string, toolLogger logging.ToolLogger, workflowDir string) erro
 		storage.NewScratchBucketCreator(ctx, storageClient),
 	)
 
-	// 3. Parse, validate, and populate arguments.
-	if err = importArgs.ValidateAndPopulate(
-		paramPopulator, importer.NewSourceFactory(storageClient)); err != nil {
+	// 3. Populate missing arguments.
+	err = importArgs.populateAndValidate(paramPopulator, importer.NewSourceFactory(storageClient))
+	if err != nil {
 		logFailure(importArgs, err)
 		return err
 	}
 
-	importRunner, err := importer.NewImporter(importArgs, computeClient, *storageClient, toolLogger)
+	// Run the import.
+	importRunner, err := importer.NewImporter(importArgs.ImageImportRequest, computeClient, *storageClient, toolLogger)
 	if err != nil {
 		logFailure(importArgs, err)
 		return err
@@ -93,7 +97,7 @@ func Main(args []string, toolLogger logging.ToolLogger, workflowDir string) erro
 	return nil
 }
 
-func userFriendlyError(err error, importArgs importer.ImportArguments) error {
+func userFriendlyError(err error, importArgs imageImportArgs) error {
 	if err == nil {
 		return err
 	}
@@ -109,7 +113,7 @@ func userFriendlyError(err error, importArgs importer.ImportArguments) error {
 
 // logFailure sends a message to the logging framework, and is expected to be
 // used when a validation failure causes the import to not run.
-func logFailure(allArgs importer.ImportArguments, cause error) {
+func logFailure(allArgs imageImportArgs, cause error) {
 	noOpCallback := func() (service.Loggable, error) {
 		return nil, cause
 	}
@@ -119,7 +123,7 @@ func logFailure(allArgs importer.ImportArguments, cause error) {
 		service.ImageImportAction, initLoggingParams(allArgs), nil, noOpCallback)
 }
 
-func initLoggingParams(args importer.ImportArguments) service.InputParams {
+func initLoggingParams(args imageImportArgs) service.InputParams {
 	return service.InputParams{
 		ImageImportParams: &service.ImageImportParams{
 			CommonParams: &service.CommonParams{

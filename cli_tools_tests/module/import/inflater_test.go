@@ -120,7 +120,7 @@ func runDaisyInflate(t *testing.T, fileURI string) string {
 		t.Fatal(err)
 	}
 
-	args := importer.ImportArguments{
+	request := importer.ImageImportRequest{
 		ExecutionID: namespace,
 		WorkflowDir: workflowDir,
 		Project:     project,
@@ -128,7 +128,7 @@ func runDaisyInflate(t *testing.T, fileURI string) string {
 		Timeout:     time.Hour,
 		Zone:        zone,
 	}
-	inflater, err := importer.NewDaisyInflater(args, imagefile.NewGCSInspector(), logging.NewToolLogger("TODO"))
+	inflater, err := importer.NewDaisyInflater(request, imagefile.NewGCSInspector(), logging.NewToolLogger("TODO"))
 	if err != nil {
 		t.Fatal(err)
 	}

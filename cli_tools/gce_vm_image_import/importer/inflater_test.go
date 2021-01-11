@@ -20,27 +20,25 @@ import (
 	"fmt"
 	"testing"
 
-	logging2 "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
+	logging2 "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // gcloud expects log lines to start with the substring "[import". Daisy
 // constructs the log prefix using the workflow's name.
 func TestCreateDaisyInflater_SetsWorkflowNameToGcloudPrefix(t *testing.T) {
-	inflater := createDaisyInflaterForImageSafe(t, ImportArguments{
+	inflater := createDaisyInflaterForImageSafe(t, ImageImportRequest{
 		Source: imageSource{uri: "projects/test/uri/image"},
 	})
 	assert.Equal(t, inflater.wf.Name, "import-image")
 }
 
 func TestCreateDaisyInflater_Image_HappyCase(t *testing.T) {
-	inflater := createDaisyInflaterForImageSafe(t, ImportArguments{
+	inflater := createDaisyInflaterForImageSafe(t, ImageImportRequest{
 		Source:      imageSource{uri: "projects/test/uri/image"},
 		Zone:        "us-west1-b",
 		ExecutionID: "1234",
@@ -54,7 +52,7 @@ func TestCreateDaisyInflater_Image_HappyCase(t *testing.T) {
 }
 
 func TestCreateDaisyInflater_Image_Windows(t *testing.T) {
-	inflater := createDaisyInflaterForImageSafe(t, ImportArguments{
+	inflater := createDaisyInflaterForImageSafe(t, ImageImportRequest{
 		Source: imageSource{uri: "image/uri"},
 		OS:     "windows-2019",
 	})
@@ -65,7 +63,7 @@ func TestCreateDaisyInflater_Image_Windows(t *testing.T) {
 }
 
 func TestCreateDaisyInflater_Image_NotWindows(t *testing.T) {
-	inflater := createDaisyInflaterForImageSafe(t, ImportArguments{
+	inflater := createDaisyInflaterForImageSafe(t, ImageImportRequest{
 		Source: imageSource{uri: "image/uri"},
 		OS:     "ubuntu-1804",
 	})
@@ -76,7 +74,7 @@ func TestCreateDaisyInflater_Image_NotWindows(t *testing.T) {
 }
 
 func TestCreateDaisyInflater_Image_UEFI(t *testing.T) {
-	inflater := createDaisyInflaterForImageSafe(t, ImportArguments{
+	inflater := createDaisyInflaterForImageSafe(t, ImageImportRequest{
 		Source:         imageSource{uri: "image/uri"},
 		OS:             "ubuntu-1804",
 		UefiCompatible: true,
@@ -88,7 +86,7 @@ func TestCreateDaisyInflater_Image_UEFI(t *testing.T) {
 }
 
 func TestCreateDaisyInflater_Image_NotUEFI(t *testing.T) {
-	inflater := createDaisyInflaterForImageSafe(t, ImportArguments{
+	inflater := createDaisyInflaterForImageSafe(t, ImageImportRequest{
 		Source:         imageSource{uri: "image/uri"},
 		OS:             "ubuntu-1804",
 		UefiCompatible: false,
@@ -101,7 +99,7 @@ func TestCreateDaisyInflater_Image_NotUEFI(t *testing.T) {
 
 func TestCreateDaisyInflater_File_HappyCase(t *testing.T) {
 	source := fileSource{gcsPath: "gs://bucket/vmdk"}
-	inflater := createDaisyInflaterSafe(t, ImportArguments{
+	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 		Source:       source,
 		Subnet:       "projects/subnet/subnet",
 		Network:      "projects/network/network",
@@ -127,7 +125,7 @@ func TestCreateDaisyInflater_File_HappyCase(t *testing.T) {
 
 func TestCreateDaisyInflater_File_ComputeServiceAcount(t *testing.T) {
 	source := fileSource{gcsPath: "gs://bucket/vmdk"}
-	inflater := createDaisyInflaterSafe(t, ImportArguments{
+	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 		Source:                source,
 		ComputeServiceAccount: "csa",
 	}, mockInspector{
@@ -142,7 +140,7 @@ func TestCreateDaisyInflater_File_ComputeServiceAcount(t *testing.T) {
 
 func TestCreateDaisyInflater_File_NoExternalIP(t *testing.T) {
 	source := fileSource{gcsPath: "gs://bucket/vmdk"}
-	inflater := createDaisyInflaterSafe(t, ImportArguments{
+	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 		Source:       source,
 		NoExternalIP: true,
 	}, mockInspector{
@@ -158,7 +156,7 @@ func TestCreateDaisyInflater_File_NoExternalIP(t *testing.T) {
 
 func TestCreateDaisyInflater_File_UsesFallbackSizes_WhenInspectionFails(t *testing.T) {
 	source := fileSource{gcsPath: "gs://bucket/vmdk"}
-	inflater := createDaisyInflaterSafe(t, ImportArguments{
+	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 		Source:       source,
 		NoExternalIP: true,
 	}, mockInspector{
@@ -201,7 +199,7 @@ func TestCreateDaisyInflater_File_SetsSizesFromInspectedFile(t *testing.T) {
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			source := fileSource{gcsPath: "gs://bucket/vmdk"}
-			inflater := createDaisyInflaterSafe(t, ImportArguments{
+			inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 				Source:       source,
 				NoExternalIP: true,
 			}, mockInspector{
@@ -221,7 +219,7 @@ func TestCreateDaisyInflater_File_SetsSizesFromInspectedFile(t *testing.T) {
 
 func TestCreateDaisyInflater_File_Windows(t *testing.T) {
 	source := fileSource{gcsPath: "gs://bucket/vmdk"}
-	inflater := createDaisyInflaterSafe(t, ImportArguments{
+	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 		Source: source,
 		OS:     "windows-2019",
 	}, mockInspector{
@@ -239,7 +237,7 @@ func TestCreateDaisyInflater_File_Windows(t *testing.T) {
 
 func TestCreateDaisyInflater_File_NotWindows(t *testing.T) {
 	source := fileSource{gcsPath: "gs://bucket/vmdk"}
-	inflater := createDaisyInflaterSafe(t, ImportArguments{
+	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 		Source: source,
 		OS:     "ubuntu-1804",
 	}, mockInspector{
@@ -257,7 +255,7 @@ func TestCreateDaisyInflater_File_NotWindows(t *testing.T) {
 
 func TestCreateDaisyInflater_File_UEFI(t *testing.T) {
 	source := fileSource{gcsPath: "gs://bucket/vmdk"}
-	inflater := createDaisyInflaterSafe(t, ImportArguments{
+	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 		Source:         source,
 		OS:             "ubuntu-1804",
 		UefiCompatible: true,
@@ -276,7 +274,7 @@ func TestCreateDaisyInflater_File_UEFI(t *testing.T) {
 
 func TestCreateDaisyInflater_File_NotUEFI(t *testing.T) {
 	source := fileSource{gcsPath: "gs://bucket/vmdk"}
-	inflater := createDaisyInflaterSafe(t, ImportArguments{
+	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 		Source:         source,
 		OS:             "ubuntu-1804",
 		UefiCompatible: false,
@@ -293,18 +291,18 @@ func TestCreateDaisyInflater_File_NotUEFI(t *testing.T) {
 	})
 }
 
-func createDaisyInflaterSafe(t *testing.T, args ImportArguments,
+func createDaisyInflaterSafe(t *testing.T, request ImageImportRequest,
 	inspector imagefile.Inspector) *daisyInflater {
-	args.WorkflowDir = "../../../daisy_workflows"
-	inflater, err := NewDaisyInflater(args, inspector, logging2.NewToolLogger("TODO"))
+	request.WorkflowDir = "../../../daisy_workflows"
+	inflater, err := NewDaisyInflater(request, inspector, logging2.NewToolLogger("TODO"))
 	assert.NoError(t, err)
 	realInflater, ok := inflater.(*daisyInflater)
 	assert.True(t, ok)
 	return realInflater
 }
 
-func createDaisyInflaterForImageSafe(t *testing.T, args ImportArguments) *daisyInflater {
-	return createDaisyInflaterSafe(t, args, nil)
+func createDaisyInflaterForImageSafe(t *testing.T, request ImageImportRequest) *daisyInflater {
+	return createDaisyInflaterSafe(t, request, nil)
 }
 
 func getWorkerNetwork(t *testing.T, workflow *daisy.Workflow) *compute.NetworkInterface {

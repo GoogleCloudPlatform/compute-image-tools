@@ -14,6 +14,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/dustin/go-humanize v1.0.0
 	github.com/go-ole/go-ole v1.2.4
+	github.com/go-playground/validator/v10 v10.4.1
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.5.2
@@ -25,9 +26,6 @@ require (
 	github.com/minio/highwayhash v1.0.0
 	github.com/stretchr/testify v1.5.1
 	github.com/vmware/govmomi v0.23.1
-	golang.org/x/exp v0.0.0-20200331195152-e8c3332aa8e5 // indirect
-	golang.org/x/net v0.0.0-20200904194848-62affa334b73 // indirecresource_labeler_testt
-	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 	golang.org/x/sys v0.0.0-20200909081042-eff7692f9009
 	golang.org/x/tools v0.0.0-20200914161755-17fc728d0d1e // indirect
 	google.golang.org/api v0.31.0

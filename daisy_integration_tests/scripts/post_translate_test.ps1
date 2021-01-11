@@ -37,9 +37,8 @@ function Check-Hiberation {
   $Hibernate.Start() | Out-Null
   $Hibernate.WaitForExit()
   $stderr = $Hibernate.StandardError.ReadToEnd()
-  Write-Host "stderr: $stderr"
   if ($stderr -notlike "*Hibernation is not enabled*") {
-    throw "Unexpected response when attempting to place the system into hibernation."
+    throw "Unexpected response when attempting to place the system into hibernation. StdErr should contain 'Hibernation is not enabled', stderr=$stderr"
   }
 }
 

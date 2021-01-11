@@ -16,6 +16,10 @@ package validation
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 func TestValidateFqdnValidValue(t *testing.T) {
@@ -51,4 +55,64 @@ func TestValidateFqdnTooLong(t *testing.T) {
 	if err == nil {
 		t.Error("error expected")
 	}
+}
+
+func TestValidateImageName_ExpectValid(t *testing.T) {
+	// Allowable name format: https://cloud.google.com/compute/docs/reference/rest/v1/images
+	for _, imgName := range []string{
+		"dashes-allowed-inside",
+		"a", // min length is 1
+		"o-----equal-to-max-63-----------------------------------------o",
+	} {
+		t.Run(imgName, func(t *testing.T) {
+			assert.NoError(t, ValidateImageName(imgName))
+		})
+	}
+}
+
+func TestValidateImageName_ExpectInvalid(t *testing.T) {
+	// Allowable name format: https://cloud.google.com/compute/docs/reference/rest/v1/images
+	for _, imgName := range []string{
+		"-no-starting-dash",
+		"no-ending-dash-",
+		"dont/allow/slashes",
+		"DontAllowCaps",
+		"o-----longer-than-max-63---------------------------------------o",
+	} {
+		t.Run(imgName, func(t *testing.T) {
+			err := ValidateImageName(imgName)
+			assert.Regexp(t, "Image name .* must conform to https://cloud.google.com/compute/docs/reference/rest/v1/images", err)
+			assert.Contains(t, err.Error(), imgName, "Raw error should include image's name")
+			realError := err.(daisy.DError)
+			for _, anonymizedErrs := range realError.AnonymizedErrs() {
+				assert.NotContains(t, anonymizedErrs, imgName,
+					"Anonymized error should not contain image's name")
+			}
+		})
+	}
+}
+
+func TestValidateStruct_SupportsCustomFieldNames(t *testing.T) {
+	type User struct {
+		Firstname string `name:"first_name" validate:"required"`
+	}
+
+	assert.EqualError(t, ValidateStruct(User{}), "first_name has to be specified")
+}
+
+func TestValidateStruct_UsesFieldStructNameByDefault(t *testing.T) {
+	type User struct {
+		Name string `validate:"required"`
+	}
+
+	assert.EqualError(t, ValidateStruct(User{}), "Name has to be specified")
+}
+
+func TestValidateStruct_SupportsImageNameValidation(t *testing.T) {
+	type Disk struct {
+		ImageName string `validate:"gce_disk_image_name"`
+	}
+
+	d := Disk{"uri/disk/path"}
+	assert.Equal(t, ValidateImageName(d.ImageName), ValidateStruct(d))
 }
