@@ -75,6 +75,8 @@ func CLITestSuite(
 			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import OS"))
 		imageImportOSFromImageTestCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import OS from image"))
+		imageImportOSFromVHDImageTestCase := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import OS from VHD image"))
 		imageImportWithRichParamsTestCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import with rich params"))
 		imageImportWithDifferentNetworkParamStylesTestCase := junitxml.NewTestCase(
@@ -89,6 +91,7 @@ func CLITestSuite(
 		testsMap[testType][imageImportDataDiskTestCase] = runImageImportDataDiskTest
 		testsMap[testType][imageImportOSTestCase] = runImageImportOSTest
 		testsMap[testType][imageImportOSFromImageTestCase] = runImageImportOSFromImageTest
+		testsMap[testType][imageImportOSFromVHDImageTestCase] = runImageImportOSFromVHDImageTest
 		testsMap[testType][imageImportWithRichParamsTestCase] = runImageImportWithRichParamsTest
 		testsMap[testType][imageImportWithDifferentNetworkParamStylesTestCase] = runImageImportWithDifferentNetworkParamStyles
 		testsMap[testType][imageImportWithSubnetWithoutNetworkSpecifiedTestCase] = runImageImportWithSubnetWithoutNetworkSpecified
@@ -201,6 +204,39 @@ func runImageImportOSFromImageTest(ctx context.Context, testCase *junitxml.TestC
 		e2e.GcloudGaLatestWrapperRelease: {"compute", "images", "import", imageName, "--quiet",
 			"--os=debian-9", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
 			"--source-image=e2e-test-image-10g",
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		},
+	}
+
+	runImportTest(ctx, argsMap[testType], testType, testProjectConfig.TestProjectID, imageName, logger, testCase)
+}
+
+// Q's new test
+func runImageImportOSFromVHDImageTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+
+	suffix := path.RandString(5)
+	imageName := "e2e-test-image-import-os-from-image-" + suffix
+
+	argsMap := map[e2e.CLITestType][]string{
+		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-image_name=%v", imageName), "-os=ubuntu-1804",
+			fmt.Sprintf("-source_file=gs://%v-test-image/ubuntu-1804-azure.vhd", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+		},
+		e2e.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
+			"--docker-image-tag=latest", "--os=ubuntu-1804", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-source_file=gs://%v-test-image/ubuntu-1804-azure.vhd", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		},
+		e2e.GcloudBetaLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
+			"--docker-image-tag=latest", "--os=ubuntu-1804", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-source_file=gs://%v-test-image/ubuntu-1804-azure.vhd", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		},
+		e2e.GcloudGaLatestWrapperRelease: {"compute", "images", "import", imageName, "--quiet",
+			"--os=ubuntu-1804", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-source_file=gs://%v-test-image/ubuntu-1804-azure.vhd", testProjectConfig.TestProjectID),
 			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
 		},
 	}
