@@ -22,6 +22,13 @@ function Check-VMWareTools {
   }
 }
 
+function Check-Hiberation {
+  $HibernateEnabled = Get-ItemPropertyValue -Path  "HKLM:\SYSTEM\CurrentControlSet\Control\Power" -Name HibernateEnabled  -ErrorAction SilentlyContinue
+  if ($HibernateEnabled -eq $null -or $HibernateEnabled -ne 0) {
+    throw "Hibernation not disabled. HKLM:\SYSTEM\CurrentControlSet\Control\Power\HibernateEnabled = $HibernateEnabled"
+  }
+}
+
 function Check-MetadataAccessibility {
   @('metadata', 'metadata.google.internal') | ForEach-Object {
     if (-not (Test-Connection $_ -Count 1)) {
@@ -103,6 +110,8 @@ try {
   Check-MetadataAccessibility
   Write-Output 'Test: Check-OSConfigAgent'
   Check-OSConfigAgent
+  Write-Output 'Test: Check-Hiberation'
+  Check-Hiberation
   if ($byol.ToLower() -eq 'true') {
     Write-Output 'Test: Check-SkipActivation'
     Check-SkipActivation
