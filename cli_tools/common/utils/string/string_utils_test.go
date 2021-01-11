@@ -48,14 +48,14 @@ func TestCombineStringSlices(t *testing.T) {
 			want: []string{"WINDOWS"},
 		},
 		{
-			s1:   []string{"SECURE_BOOT"},
+			s1:   []string{"MULTI_IP_SUBNET"},
 			s2:   []string{"WINDOWS"},
-			want: []string{"SECURE_BOOT", "WINDOWS"},
+			want: []string{"MULTI_IP_SUBNET", "WINDOWS"},
 		},
 		{
-			s1:   []string{"SECURE_BOOT", "UEFI_COMPATIBLE"},
+			s1:   []string{"MULTI_IP_SUBNET", "UEFI_COMPATIBLE"},
 			s2:   []string{"WINDOWS", "UEFI_COMPATIBLE"},
-			want: []string{"SECURE_BOOT", "UEFI_COMPATIBLE", "WINDOWS"},
+			want: []string{"MULTI_IP_SUBNET", "UEFI_COMPATIBLE", "WINDOWS"},
 		},
 	}
 
