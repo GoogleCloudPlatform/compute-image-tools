@@ -392,14 +392,14 @@ func TestCombineGuestOSFeatures(t *testing.T) {
 			want:               featuresOf("WINDOWS"),
 		},
 		{
-			currentFeatures:    featuresOf("SECURE_BOOT"),
+			currentFeatures:    featuresOf("MULTI_IP_SUBNET"),
 			additionalFeatures: []string{"WINDOWS"},
-			want:               featuresOf("SECURE_BOOT", "WINDOWS"),
+			want:               featuresOf("MULTI_IP_SUBNET", "WINDOWS"),
 		},
 		{
-			currentFeatures:    featuresOf("SECURE_BOOT", "UEFI_COMPATIBLE"),
+			currentFeatures:    featuresOf("MULTI_IP_SUBNET", "UEFI_COMPATIBLE"),
 			additionalFeatures: []string{"WINDOWS", "UEFI_COMPATIBLE"},
-			want:               featuresOf("SECURE_BOOT", "UEFI_COMPATIBLE", "WINDOWS"),
+			want:               featuresOf("MULTI_IP_SUBNET", "UEFI_COMPATIBLE", "WINDOWS"),
 		},
 	}
 
