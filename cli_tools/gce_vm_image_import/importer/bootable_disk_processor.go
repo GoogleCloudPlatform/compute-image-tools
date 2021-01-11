@@ -27,7 +27,7 @@ import (
 )
 
 type bootableDiskProcessor struct {
-	args     ImportArguments
+	request  ImageImportRequest
 	workflow *daisy.Workflow
 	logger   logging.Logger
 }
@@ -38,8 +38,8 @@ func (b *bootableDiskProcessor) process(pd persistentDisk) (persistentDisk, erro
 	var err error
 	err = b.workflow.RunWithModifiers(context.Background(), b.preValidateFunc(), b.postValidateFunc())
 	if err != nil {
-		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.args.Network, b.workflow)
-		err = customizeErrorToDetectionResults(b.args.OS,
+		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.request.Network, b.workflow)
+		err = customizeErrorToDetectionResults(b.request.OS,
 			b.workflow.GetSerialConsoleOutputValue("detected_distro"),
 			b.workflow.GetSerialConsoleOutputValue("detected_major_version"),
 			b.workflow.GetSerialConsoleOutputValue("detected_minor_version"), err)
@@ -57,24 +57,24 @@ func (b *bootableDiskProcessor) cancel(reason string) bool {
 	return true
 }
 
-func newBootableDiskProcessor(args ImportArguments, wfPath string, logger logging.Logger) (processor, error) {
+func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger logging.Logger) (processor, error) {
 	vars := map[string]string{
-		"image_name":           args.ImageName,
-		"install_gce_packages": strconv.FormatBool(!args.NoGuestEnvironment),
-		"sysprep":              strconv.FormatBool(args.SysprepWindows),
-		"family":               args.Family,
-		"description":          args.Description,
-		"import_subnet":        args.Subnet,
-		"import_network":       args.Network,
+		"image_name":           request.ImageName,
+		"install_gce_packages": strconv.FormatBool(!request.NoGuestEnvironment),
+		"sysprep":              strconv.FormatBool(request.SysprepWindows),
+		"family":               request.Family,
+		"description":          request.Description,
+		"import_subnet":        request.Subnet,
+		"import_network":       request.Network,
 	}
 
-	if args.ComputeServiceAccount != "" {
-		vars["compute_service_account"] = args.ComputeServiceAccount
+	if request.ComputeServiceAccount != "" {
+		vars["compute_service_account"] = request.ComputeServiceAccount
 	}
 
 	workflow, err := daisycommon.ParseWorkflow(wfPath, vars,
-		args.Project, args.Zone, args.ScratchBucketGcsPath, args.Oauth, args.Timeout.String(),
-		args.ComputeEndpoint, args.GcsLogsDisabled, args.CloudLogsDisabled, args.StdoutLogsDisabled)
+		request.Project, request.Zone, request.ScratchBucketGcsPath, request.Oauth, request.Timeout.String(),
+		request.ComputeEndpoint, request.GcsLogsDisabled, request.CloudLogsDisabled, request.StdoutLogsDisabled)
 
 	if err != nil {
 		return nil, err
@@ -85,7 +85,7 @@ func newBootableDiskProcessor(args ImportArguments, wfPath string, logger loggin
 	workflow.Name = LogPrefix
 
 	return &bootableDiskProcessor{
-		args:     args,
+		request:  request,
 		workflow: workflow,
 		logger:   logger,
 	}, err
@@ -97,9 +97,9 @@ func (b *bootableDiskProcessor) postValidateFunc() daisy.WorkflowModifier {
 		w.LogWorkflowInfo("Cloud Build ID: %s", buildID)
 		rl := &daisy_utils.ResourceLabeler{
 			BuildID:         buildID,
-			UserLabels:      b.args.Labels,
+			UserLabels:      b.request.Labels,
 			BuildIDLabelKey: "gce-image-import-build-id",
-			ImageLocation:   b.args.StorageLocation,
+			ImageLocation:   b.request.StorageLocation,
 			InstanceLabelKeyRetriever: func(instanceName string) string {
 				return "gce-image-import-tmp"
 			},
@@ -114,7 +114,7 @@ func (b *bootableDiskProcessor) postValidateFunc() daisy.WorkflowModifier {
 				return imageTypeLabel
 			}}
 		rl.LabelResources(w)
-		daisy_utils.UpdateAllInstanceNoExternalIP(w, b.args.NoExternalIP)
+		daisy_utils.UpdateAllInstanceNoExternalIP(w, b.request.NoExternalIP)
 	}
 }
 

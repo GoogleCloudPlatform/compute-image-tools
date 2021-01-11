@@ -32,7 +32,7 @@ import (
 const daisyWorkflows = "../../../daisy_workflows"
 
 func TestCreateInflater_File(t *testing.T) {
-	inflater, err := newInflater(ImportArguments{
+	inflater, err := newInflater(ImageImportRequest{
 		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:       "projects/subnet/subnet",
 		Network:      "projects/network/network",
@@ -66,7 +66,7 @@ func TestCreateInflater_File(t *testing.T) {
 }
 
 func TestCreateInflater_Image(t *testing.T) {
-	inflater, err := newInflater(ImportArguments{
+	inflater, err := newInflater(ImageImportRequest{
 		Source:      imageSource{uri: "projects/test/uri/image"},
 		Zone:        "us-west1-b",
 		ExecutionID: "1234",
@@ -83,10 +83,10 @@ func TestCreateInflater_Image(t *testing.T) {
 }
 
 func TestCreateAPIInflater_IncludesUEFIGuestOSFeature(t *testing.T) {
-	args := ImportArguments{
+	request := ImageImportRequest{
 		UefiCompatible: true,
 	}
-	realInflater, _ := createAPIInflater(args, nil, storage.Client{}, logging.NewToolLogger(t.Name())).(*apiInflater)
+	realInflater, _ := createAPIInflater(request, nil, storage.Client{}, logging.NewToolLogger(t.Name())).(*apiInflater)
 	assert.Contains(t, realInflater.guestOsFeatures,
 		&computeBeta.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
 }
@@ -101,7 +101,7 @@ func TestAPIInflater_Inflate_CreateDiskFailed_CancelWithoutDeleteDisk(t *testing
 	mockLogger := mocks.NewMockLogger(mockCtrl)
 	mockLogger.EXPECT().Debug("apiInflater.inflate is canceled: cancel")
 
-	inflater := createAPIInflater(ImportArguments{
+	inflater := createAPIInflater(ImageImportRequest{
 		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:       "projects/subnet/subnet",
 		Network:      "projects/network/network",
@@ -133,7 +133,7 @@ func TestAPIInflater_Inflate_CreateDiskSuccess_CancelWithDeleteDisk(t *testing.T
 	mockLogger := mocks.NewMockLogger(mockCtrl)
 	mockLogger.EXPECT().Debug("apiInflater.inflate is canceled: cancel")
 
-	inflater := createAPIInflater(ImportArguments{
+	inflater := createAPIInflater(ImageImportRequest{
 		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:       "projects/subnet/subnet",
 		Network:      "projects/network/network",
@@ -163,7 +163,7 @@ func TestAPIInflater_Inflate_Cancel_CleanupFailedToVerify(t *testing.T) {
 	mockLogger := mocks.NewMockLogger(mockCtrl)
 	mockLogger.EXPECT().Debug("apiInflater.inflate is canceled, cleanup failed to verify: cancel")
 
-	inflater := createAPIInflater(ImportArguments{
+	inflater := createAPIInflater(ImageImportRequest{
 		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:       "projects/subnet/subnet",
 		Network:      "projects/network/network",
@@ -189,7 +189,7 @@ func TestAPIInflater_Inflate_Cancel_CleanupFailed(t *testing.T) {
 	mockLogger := mocks.NewMockLogger(mockCtrl)
 	mockLogger.EXPECT().Debug("apiInflater.inflate is canceled, cleanup is failed: cancel")
 
-	inflater := createAPIInflater(ImportArguments{
+	inflater := createAPIInflater(ImageImportRequest{
 		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:       "projects/subnet/subnet",
 		Network:      "projects/network/network",
@@ -207,7 +207,7 @@ func TestAPIInflater_Inflate_Cancel_CleanupFailed(t *testing.T) {
 }
 
 func TestAPIInflater_getCalculateChecksumWorkflow(t *testing.T) {
-	inflater := createAPIInflater(ImportArguments{
+	inflater := createAPIInflater(ImageImportRequest{
 		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:       "projects/subnet/subnet",
 		Network:      "projects/network/network",
@@ -224,7 +224,7 @@ func TestAPIInflater_getCalculateChecksumWorkflow(t *testing.T) {
 	_, ok = w.Vars["compute_service_account"]
 	assert.False(t, ok)
 
-	apiInflater.args.ComputeServiceAccount = "email"
+	apiInflater.request.ComputeServiceAccount = "email"
 	w = apiInflater.getCalculateChecksumWorkflow("")
 	assert.Equal(t, "email", w.Vars["compute_service_account"].Value)
 }

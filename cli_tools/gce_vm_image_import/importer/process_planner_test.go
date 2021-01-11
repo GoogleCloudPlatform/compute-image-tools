@@ -31,7 +31,7 @@ func Test_DefaultPlanner_Plan_SkipInspectionWhenCustomWorkflowExists(t *testing.
 	// Using an uninitialized inspector ensures there will be a nil dereference if inspection tries to run.
 	var inspector disk.Inspector
 	customWorkflow := "workflow/path"
-	processPlanner := newProcessPlanner(ImportArguments{CustomWorkflow: customWorkflow}, inspector)
+	processPlanner := newProcessPlanner(ImageImportRequest{CustomWorkflow: customWorkflow}, inspector)
 	actualPlan, err := processPlanner.plan(persistentDisk{})
 	assert.NoError(t, err)
 
@@ -44,13 +44,13 @@ func Test_DefaultPlanner_Plan_InspectionFailures(t *testing.T) {
 	inspectionError := errors.New("inspection failed")
 	for _, tt := range []struct {
 		name                 string
-		args                 ImportArguments
+		request              ImageImportRequest
 		expectErrorToContain string
 		expectedResults      *processingPlan
 	}{
 		{
 			name: "Succeed when inspection fails but OS is provided.",
-			args: ImportArguments{
+			request: ImageImportRequest{
 				OS:          "debian-8",
 				WorkflowDir: "workflowroot",
 			},
@@ -61,7 +61,7 @@ func Test_DefaultPlanner_Plan_InspectionFailures(t *testing.T) {
 		},
 		{
 			name: "Succeed when inspection fails but OS and uefi_compatible is provided.",
-			args: ImportArguments{
+			request: ImageImportRequest{
 				OS:             "windows-2012r2",
 				UefiCompatible: true,
 				WorkflowDir:    "workflowroot",
@@ -74,14 +74,14 @@ func Test_DefaultPlanner_Plan_InspectionFailures(t *testing.T) {
 		},
 		{
 			name: "Fail when inspection fails and OS is not provided.",
-			args: ImportArguments{
+			request: ImageImportRequest{
 				WorkflowDir: "workflowroot",
 			},
 			expectErrorToContain: "Please re-import with the operating system specified",
 		},
 		{
 			name: "Fail when inspection fails and specified OS is not supported",
-			args: ImportArguments{
+			request: ImageImportRequest{
 				OS:          "kali-rolling",
 				WorkflowDir: "workflowroot",
 			},
@@ -93,7 +93,7 @@ func Test_DefaultPlanner_Plan_InspectionFailures(t *testing.T) {
 			defer mockCtrl.Finish()
 			mockInspector := mock_disk.NewMockInspector(mockCtrl)
 			mockInspector.EXPECT().Inspect(pd.uri).Return(nil, inspectionError)
-			processPlanner := newProcessPlanner(tt.args, mockInspector)
+			processPlanner := newProcessPlanner(tt.request, mockInspector)
 			actualResults, actualError := processPlanner.plan(pd)
 			if tt.expectErrorToContain == "" {
 				assert.NoError(t, actualError)
@@ -110,14 +110,14 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 	pd := persistentDisk{uri: "disk/uri"}
 	for _, tt := range []struct {
 		name                 string
-		args                 ImportArguments
+		request              ImageImportRequest
 		inspectionResults    *pb.InspectionResults
 		expectErrorToContain string
 		expectedResults      *processingPlan
 	}{
 		{
 			name: "Use provided OS, even when inspection passes.",
-			args: ImportArguments{
+			request: ImageImportRequest{
 				OS:          "debian-8",
 				WorkflowDir: "workflowroot",
 			},
@@ -134,7 +134,7 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 		},
 		{
 			name: "Support BYOL for inspection results",
-			args: ImportArguments{
+			request: ImageImportRequest{
 				BYOL:        true,
 				WorkflowDir: "workflowroot",
 			},
@@ -151,7 +151,7 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 		},
 		{
 			name: "Fail when BYOL is specified, but detected OS doesn't support it.",
-			args: ImportArguments{
+			request: ImageImportRequest{
 				BYOL:        true,
 				WorkflowDir: "workflowroot",
 			},
@@ -165,7 +165,7 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 		},
 		{
 			name: "Fail when inspected OS is not supported",
-			args: ImportArguments{
+			request: ImageImportRequest{
 				WorkflowDir: "workflowroot",
 			},
 			inspectionResults: &pb.InspectionResults{
@@ -178,7 +178,7 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 		},
 		{
 			name: "Fail when inspection succeeds, but doesn't find an OS, and OS is not provided.",
-			args: ImportArguments{
+			request: ImageImportRequest{
 				WorkflowDir: "workflowroot",
 			},
 			inspectionResults: &pb.InspectionResults{
@@ -188,7 +188,7 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 		},
 		{
 			name: "Use provided UEFI argument, even when inspection shows UEFI is not supported.",
-			args: ImportArguments{
+			request: ImageImportRequest{
 				OS:             "debian-8",
 				UefiCompatible: true,
 				WorkflowDir:    "workflowroot",
@@ -204,7 +204,7 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 		},
 		{
 			name: "Don't use UEFI when disk is GPT and can boot with BIOS or UEFI.",
-			args: ImportArguments{
+			request: ImageImportRequest{
 				OS:          "debian-8",
 				WorkflowDir: "workflowroot",
 			},
@@ -223,7 +223,7 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 			defer mockCtrl.Finish()
 			mockInspector := mock_disk.NewMockInspector(mockCtrl)
 			mockInspector.EXPECT().Inspect(pd.uri).Return(tt.inspectionResults, nil)
-			processPlanner := newProcessPlanner(tt.args, mockInspector)
+			processPlanner := newProcessPlanner(tt.request, mockInspector)
 			actualResults, actualError := processPlanner.plan(pd)
 			if tt.expectErrorToContain == "" {
 				assert.NoError(t, actualError)

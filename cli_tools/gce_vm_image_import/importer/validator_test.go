@@ -14,9 +14,10 @@ package importer
 
 import (
 	"errors"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
-	"testing"
 )
 
 func TestPreValidator(t *testing.T) {
@@ -52,7 +53,7 @@ func TestPreValidator(t *testing.T) {
 				err:               tt.errorFromClient,
 			}
 
-			validator := newPreValidator(ImportArguments{
+			validator := newPreValidator(ImageImportRequest{
 				Project:   project,
 				ImageName: imageName,
 			}, client)

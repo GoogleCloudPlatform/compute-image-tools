@@ -47,7 +47,7 @@ func isCausedByAlphaAPIAccess(err error) bool {
 
 // apiInflater implements `importer.inflater` using the Compute Engine API
 type apiInflater struct {
-	args            ImportArguments
+	request         ImageImportRequest
 	computeClient   daisyCompute.Client
 	storageClient   storage.Client
 	guestOsFeatures []*computeBeta.GuestOsFeature
@@ -56,15 +56,15 @@ type apiInflater struct {
 	logger          logging.Logger
 }
 
-func createAPIInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client, logger logging.Logger) Inflater {
+func createAPIInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient storage.Client, logger logging.Logger) Inflater {
 	inflater := apiInflater{
-		args:          args,
+		request:       request,
 		computeClient: computeClient,
 		storageClient: storageClient,
 		cancelChan:    make(chan string, 1),
 		logger:        logger,
 	}
-	if args.UefiCompatible {
+	if request.UefiCompatible {
 		inflater.guestOsFeatures = []*computeBeta.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}}
 	}
 	return &inflater
@@ -81,17 +81,17 @@ func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error)
 	// Create shadow disk
 	cd := computeBeta.Disk{
 		Name:                diskName,
-		SourceStorageObject: inflater.args.SourceFile,
+		SourceStorageObject: inflater.request.Source.Path(),
 		GuestOsFeatures:     inflater.guestOsFeatures,
 	}
 
-	err := inflater.computeClient.CreateDiskBeta(inflater.args.Project, inflater.args.Zone, &cd)
+	err := inflater.computeClient.CreateDiskBeta(inflater.request.Project, inflater.request.Zone, &cd)
 	if err != nil {
 		return persistentDisk{}, shadowTestFields{}, daisy.Errf("Failed to create shadow disk: %v", err)
 	}
 
 	// Cleanup the shadow disk ignoring error
-	defer inflater.computeClient.DeleteDisk(inflater.args.Project, inflater.args.Zone, cd.Name)
+	defer inflater.computeClient.DeleteDisk(inflater.request.Project, inflater.request.Zone, cd.Name)
 
 	// If received a cancel signal from cancel(), then return early. Otherwise, it will waste
 	// 2 min+ on calculateChecksum().
@@ -102,7 +102,7 @@ func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error)
 	}
 
 	// Prepare return value
-	bkt, objPath, err := storage.GetGCSObjectPathElements(inflater.args.SourceFile)
+	bkt, objPath, err := storage.GetGCSObjectPathElements(inflater.request.Source.Path())
 	if err != nil {
 		return persistentDisk{}, shadowTestFields{}, err
 	}
@@ -113,7 +113,7 @@ func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error)
 	}
 	sourceFileSizeGb := (attrs.Size-1)/1073741824 + 1
 
-	diskURI := fmt.Sprintf("zones/%s/disks/%s", inflater.args.Zone, diskName)
+	diskURI := fmt.Sprintf("zones/%s/disks/%s", inflater.request.Zone, diskName)
 	pd := persistentDisk{
 		uri:        diskURI,
 		sizeGb:     cd.SizeGb,
@@ -135,7 +135,7 @@ func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error)
 }
 
 func (inflater *apiInflater) getShadowDiskName() string {
-	return fmt.Sprintf("shadow-disk-%v", inflater.args.ExecutionID)
+	return fmt.Sprintf("shadow-disk-%v", inflater.request.ExecutionID)
 }
 
 func (inflater *apiInflater) Cancel(reason string) bool {
@@ -147,7 +147,7 @@ func (inflater *apiInflater) Cancel(reason string) bool {
 	inflater.wg.Wait()
 
 	// Expect 404 error to ensure shadow disk has been cleaned up.
-	_, err := inflater.computeClient.GetDisk(inflater.args.Project, inflater.args.Zone, inflater.getShadowDiskName())
+	_, err := inflater.computeClient.GetDisk(inflater.request.Project, inflater.request.Zone, inflater.getShadowDiskName())
 	if apiErr, ok := err.(*googleapi.Error); !ok || apiErr.Code != 404 {
 		if err == nil {
 			inflater.logger.Debug(fmt.Sprintf("apiInflater.inflate is canceled, cleanup is failed: %v", reason))
@@ -242,18 +242,18 @@ func (inflater *apiInflater) getCalculateChecksumWorkflow(diskURI string) *daisy
 
 	// Calculate checksum within 20min.
 	daisycommon.EnvironmentSettings{
-		Project:           inflater.args.Project,
-		Zone:              inflater.args.Zone,
-		GCSPath:           inflater.args.ScratchBucketGcsPath,
-		OAuth:             inflater.args.Oauth,
+		Project:           inflater.request.Project,
+		Zone:              inflater.request.Zone,
+		GCSPath:           inflater.request.ScratchBucketGcsPath,
+		OAuth:             inflater.request.Oauth,
 		Timeout:           "20m",
-		ComputeEndpoint:   inflater.args.ComputeEndpoint,
-		DisableGCSLogs:    inflater.args.GcsLogsDisabled,
-		DisableCloudLogs:  inflater.args.CloudLogsDisabled,
-		DisableStdoutLogs: inflater.args.StdoutLogsDisabled,
+		ComputeEndpoint:   inflater.request.ComputeEndpoint,
+		DisableGCSLogs:    inflater.request.GcsLogsDisabled,
+		DisableCloudLogs:  inflater.request.CloudLogsDisabled,
+		DisableStdoutLogs: inflater.request.StdoutLogsDisabled,
 	}.ApplyToWorkflow(w)
-	if inflater.args.ComputeServiceAccount != "" {
-		w.AddVar("compute_service_account", inflater.args.ComputeServiceAccount)
+	if inflater.request.ComputeServiceAccount != "" {
+		w.AddVar("compute_service_account", inflater.request.ComputeServiceAccount)
 	}
 	return w
 }

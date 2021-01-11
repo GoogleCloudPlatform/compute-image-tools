@@ -36,7 +36,7 @@ type processorProvider interface {
 }
 
 type defaultProcessorProvider struct {
-	ImportArguments
+	ImageImportRequest
 	computeClient daisyCompute.Client
 	planner       processPlanner
 	logger        logging.Logger
@@ -58,13 +58,13 @@ func (d defaultProcessorProvider) provide(pd persistentDisk) ([]processor, error
 
 	var processors []processor
 	if plan.metadataChangesRequired() {
-		p := newMetadataProcessor(d.ImportArguments.Project, d.ImportArguments.Zone, d.computeClient)
+		p := newMetadataProcessor(d.ImageImportRequest.Project, d.ImageImportRequest.Zone, d.computeClient)
 		p.requiredLicenses = plan.requiredLicenses
 		p.requiredFeatures = plan.requiredFeatures
 		processors = append(processors, p)
 	}
 
-	bootableDiskProcessor, err := newBootableDiskProcessor(d.ImportArguments, plan.translationWorkflowPath, d.logger)
+	bootableDiskProcessor, err := newBootableDiskProcessor(d.ImageImportRequest, plan.translationWorkflowPath, d.logger)
 	if err != nil {
 		return nil, err
 	}
