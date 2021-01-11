@@ -16,7 +16,8 @@
         "Path": "bare_metal_linux.wf.json",
         "Vars": {
           "base_image": "projects/${source_image_project}/global/images/family/rhel-7",
-          "workflow_root": "${workflow_root}"
+          "workflow_root": "${workflow_root}",
+          "gcs_url": "${gcs_url}"
         }
       }
     }
