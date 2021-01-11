@@ -232,10 +232,8 @@ function Change-InstanceProperties {
   # Change time zone to Coordinated Universal Time.
   Run-Command tzutil /s 'UTC'
 
-  # Disable hibernate on Win8/Win2008R2 SP1 and later.
-  if (([System.Environment]::OSVersion.Version.Build -ge 7601) -and ($script:pn -notlike '*Windows 7*')) {
-    Run-Command powercfg /hibernate off
-  }
+  # Disable hibernate via the registry, the c:\hibernation.sys if present file will be removed on the next reboot.
+  New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Power" -Name HibernateEnabled -PropertyType DWord -Value 0 -Force
 }
 
 function Configure-RDPSecurity {
