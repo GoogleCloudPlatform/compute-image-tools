@@ -34,10 +34,10 @@ type processPlanner interface {
 	plan(pd persistentDisk) (*processingPlan, error)
 }
 
-// newProcessPlanner returns a processPlanner that prioritizes information from ImportArguments,
+// newProcessPlanner returns a processPlanner that prioritizes information from ImageImportRequest,
 // but falls back to disk.Inspector results when required.
-func newProcessPlanner(args ImportArguments, diskInspector disk.Inspector) processPlanner {
-	return &defaultPlanner{args, diskInspector}
+func newProcessPlanner(request ImageImportRequest, diskInspector disk.Inspector) processPlanner {
+	return &defaultPlanner{request, diskInspector}
 }
 
 // processingPlan describes the metadata and translation steps that need to be performed
@@ -55,24 +55,24 @@ func (plan *processingPlan) metadataChangesRequired() bool {
 }
 
 type defaultPlanner struct {
-	args          ImportArguments
+	request       ImageImportRequest
 	diskInspector disk.Inspector
 }
 
 func (p *defaultPlanner) plan(pd persistentDisk) (*processingPlan, error) {
 	// Don't run inspection if the user specified a custom workflow.
-	if p.args.CustomWorkflow != "" {
-		return &processingPlan{translationWorkflowPath: p.args.CustomWorkflow}, nil
+	if p.request.CustomWorkflow != "" {
+		return &processingPlan{translationWorkflowPath: p.request.CustomWorkflow}, nil
 	}
 
 	inspectionResults, inspectionError := p.inspectDisk(pd.uri)
 
-	osID := p.args.OS
-	requiresUEFI := p.args.UefiCompatible
+	osID := p.request.OS
+	requiresUEFI := p.request.UefiCompatible
 	if inspectionError == nil && inspectionResults != nil {
 		if osID == "" && inspectionResults.GetOsCount() == 1 && inspectionResults.GetOsRelease() != nil {
 			osID = inspectionResults.GetOsRelease().CliFormatted
-			if p.args.BYOL {
+			if p.request.BYOL {
 				osID += "-byol"
 			}
 		}
@@ -108,7 +108,7 @@ func (p *defaultPlanner) plan(pd persistentDisk) (*processingPlan, error) {
 	return &processingPlan{
 		requiredLicenses:        []string{settings.LicenseURI},
 		requiredFeatures:        requiredGuestOSFeatures,
-		translationWorkflowPath: path.Join(p.args.WorkflowDir, "image_import", settings.WorkflowPath),
+		translationWorkflowPath: path.Join(p.request.WorkflowDir, "image_import", settings.WorkflowPath),
 	}, nil
 }
 

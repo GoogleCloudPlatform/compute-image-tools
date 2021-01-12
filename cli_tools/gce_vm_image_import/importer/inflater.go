@@ -213,19 +213,19 @@ type shadowTestFields struct {
 	inflationType string
 }
 
-func newInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client,
+func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient storage.Client,
 	inspector imagefile.Inspector, logger logging.Logger) (Inflater, error) {
 
-	di, err := NewDaisyInflater(args, inspector, logger)
+	di, err := NewDaisyInflater(request, inspector, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	if isImage(args.Source) {
+	if isImage(request.Source) {
 		return di, nil
 	}
 
-	ai := createAPIInflater(args, computeClient, storageClient, logger)
+	ai := createAPIInflater(request, computeClient, storageClient, logger)
 	return &inflaterFacade{
 		mainInflater:   di,
 		shadowInflater: ai,
@@ -234,27 +234,27 @@ func newInflater(args ImportArguments, computeClient daisyCompute.Client, storag
 }
 
 // NewDaisyInflater returns an Inflater that uses a Daisy workflow.
-func NewDaisyInflater(args ImportArguments, fileInspector imagefile.Inspector, logger logging.Logger) (Inflater, error) {
-	diskName := "disk-" + args.ExecutionID
+func NewDaisyInflater(request ImageImportRequest, fileInspector imagefile.Inspector, logger logging.Logger) (Inflater, error) {
+	diskName := "disk-" + request.ExecutionID
 	var wfPath string
 	var vars map[string]string
 	var inflationDiskIndex int
-	if isImage(args.Source) {
+	if isImage(request.Source) {
 		wfPath = inflateImagePath
 		vars = map[string]string{
-			"source_image": args.Source.Path(),
+			"source_image": request.Source.Path(),
 			"disk_name":    diskName,
 		}
 		inflationDiskIndex = 0 // Workflow only uses one disk.
 	} else {
 		wfPath = inflateFilePath
-		vars = createDaisyVarsForFile(args, fileInspector, diskName)
+		vars = createDaisyVarsForFile(request, fileInspector, diskName)
 		inflationDiskIndex = 1 // First disk is for the worker
 	}
 
-	wf, err := daisycommon.ParseWorkflow(path.Join(args.WorkflowDir, wfPath), vars,
-		args.Project, args.Zone, args.ScratchBucketGcsPath, args.Oauth, args.Timeout.String(), args.ComputeEndpoint,
-		args.GcsLogsDisabled, args.CloudLogsDisabled, args.StdoutLogsDisabled)
+	wf, err := daisycommon.ParseWorkflow(path.Join(request.WorkflowDir, wfPath), vars,
+		request.Project, request.Zone, request.ScratchBucketGcsPath, request.Oauth, request.Timeout.String(), request.ComputeEndpoint,
+		request.GcsLogsDisabled, request.CloudLogsDisabled, request.StdoutLogsDisabled)
 	if err != nil {
 		return nil, err
 	}
@@ -263,11 +263,11 @@ func NewDaisyInflater(args ImportArguments, fileInspector imagefile.Inspector, l
 		wf.AddVar(k, v)
 	}
 
-	daisyUtils.UpdateAllInstanceNoExternalIP(wf, args.NoExternalIP)
-	if args.UefiCompatible {
+	daisyUtils.UpdateAllInstanceNoExternalIP(wf, request.NoExternalIP)
+	if request.UefiCompatible {
 		addFeatureToDisk(wf, "UEFI_COMPATIBLE", inflationDiskIndex)
 	}
-	if strings.Contains(args.OS, "windows") {
+	if strings.Contains(request.OS, "windows") {
 		addFeatureToDisk(wf, "WINDOWS", inflationDiskIndex)
 	}
 
@@ -276,7 +276,7 @@ func NewDaisyInflater(args ImportArguments, fileInspector imagefile.Inspector, l
 	wf.Name = LogPrefix
 	return &daisyInflater{
 		wf:              wf,
-		inflatedDiskURI: fmt.Sprintf("zones/%s/disks/%s", args.Zone, diskName),
+		inflatedDiskURI: fmt.Sprintf("zones/%s/disks/%s", request.Zone, diskName),
 		logger:          logger,
 	}, nil
 }
@@ -309,17 +309,17 @@ func (inflater *daisyInflater) Cancel(reason string) bool {
 	return true
 }
 
-func createDaisyVarsForFile(args ImportArguments,
+func createDaisyVarsForFile(request ImageImportRequest,
 	fileInspector imagefile.Inspector, diskName string) map[string]string {
 	vars := map[string]string{
-		"source_disk_file": args.Source.Path(),
-		"import_network":   args.Network,
-		"import_subnet":    args.Subnet,
+		"source_disk_file": request.Source.Path(),
+		"import_network":   request.Network,
+		"import_subnet":    request.Subnet,
 		"disk_name":        diskName,
 	}
 
-	if args.ComputeServiceAccount != "" {
-		vars["compute_service_account"] = args.ComputeServiceAccount
+	if request.ComputeServiceAccount != "" {
+		vars["compute_service_account"] = request.ComputeServiceAccount
 	}
 
 	// To reduce the runtime permissions used on the inflation worker, we pre-allocate
@@ -328,7 +328,7 @@ func createDaisyVarsForFile(args ImportArguments,
 	// a padding factor to account for filesystem overhead.
 	deadline, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(inspectionTimeout))
 	defer cancelFunc()
-	metadata, err := fileInspector.Inspect(deadline, args.Source.Path())
+	metadata, err := fileInspector.Inspect(deadline, request.Source.Path())
 	if err == nil {
 		vars["inflated_disk_size_gb"] = fmt.Sprintf("%d", calculateInflatedSize(metadata))
 		vars["scratch_disk_size_gb"] = fmt.Sprintf("%d", calculateScratchDiskSize(metadata))

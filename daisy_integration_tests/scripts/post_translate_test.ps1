@@ -22,6 +22,26 @@ function Check-VMWareTools {
   }
 }
 
+function Check-Hiberation {
+  $HibernateEnabled = (Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Power" -ErrorAction SilentlyContinue).HibernateEnabled
+  if ($HibernateEnabled -eq $null -or $HibernateEnabled -ne 0) {
+    throw "Hibernation not disabled. HKLM:\SYSTEM\CurrentControlSet\Control\Power\HibernateEnabled = $HibernateEnabled"
+  }
+  $HibernateInfo = New-Object System.Diagnostics.ProcessStartInfo
+  $HibernateInfo.FileName = "shutdown"
+  $HibernateInfo.RedirectStandardError = $true
+  $HibernateInfo.UseShellExecute = $false
+  $HibernateInfo.Arguments = "/h"
+  $Hibernate = New-Object System.Diagnostics.Process
+  $Hibernate.StartInfo = $HibernateInfo
+  $Hibernate.Start() | Out-Null
+  $Hibernate.WaitForExit()
+  $stderr = $Hibernate.StandardError.ReadToEnd()
+  if ($stderr -notlike "*Hibernation is not enabled*") {
+    throw "Unexpected response when attempting to place the system into hibernation. StdErr should contain 'Hibernation is not enabled', stderr=$stderr"
+  }
+}
+
 function Check-MetadataAccessibility {
   @('metadata', 'metadata.google.internal') | ForEach-Object {
     if (-not (Test-Connection $_ -Count 1)) {
@@ -103,6 +123,8 @@ try {
   Check-MetadataAccessibility
   Write-Output 'Test: Check-OSConfigAgent'
   Check-OSConfigAgent
+  Write-Output 'Test: Check-Hiberation'
+  Check-Hiberation
   if ($byol.ToLower() -eq 'true') {
     Write-Output 'Test: Check-SkipActivation'
     Check-SkipActivation

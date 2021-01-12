@@ -94,6 +94,7 @@ func Test_DeleteSourceFile_WhenScratchOwnedByDifferentProject(t *testing.T) {
 		},
 		{
 			caseName:       "Retain when gcloud and not in scratch",
+			clientID:       "gcloud",
 			deleteExpected: false,
 			expectedError:  regexp.MustCompile("Scratch bucket.* is not in project"),
 			fileToImport: gcsPath{
