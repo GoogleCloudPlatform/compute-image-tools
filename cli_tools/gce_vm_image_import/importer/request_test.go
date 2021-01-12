@@ -63,10 +63,16 @@ func Test_validate_RequiresWorkflowDir(t *testing.T) {
 	assertMissingField(t, request, "workflow_dir")
 }
 
-func Test_validate_RequiresNetwork(t *testing.T) {
+func Test_validate_NetworkIsOptional(t *testing.T) {
 	request := makeValidRequest()
 	request.Network = ""
-	assertMissingField(t, request, "network")
+	assert.NoError(t, request.validate())
+}
+
+func Test_validate_SubnetIsOptional(t *testing.T) {
+	request := makeValidRequest()
+	request.Subnet = ""
+	assert.NoError(t, request.validate())
 }
 
 func Test_validate_RequiresProject(t *testing.T) {
