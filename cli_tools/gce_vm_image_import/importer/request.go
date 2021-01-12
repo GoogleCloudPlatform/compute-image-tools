@@ -83,7 +83,7 @@ type ImageImportRequest struct {
 	ImageName             string `name:"image_name" validate:"required,gce_disk_image_name"`
 	Inspect               bool
 	Labels                map[string]string
-	Network               string `name:"network" validate:"required"`
+	Network               string
 	NoExternalIP          bool
 	NoGuestEnvironment    bool
 	Oauth                 string
