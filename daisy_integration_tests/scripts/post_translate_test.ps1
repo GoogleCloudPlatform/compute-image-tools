@@ -23,7 +23,7 @@ function Check-VMWareTools {
 }
 
 function Check-Hiberation {
-  $HibernateEnabled = Get-ItemPropertyValue -Path  "HKLM:\SYSTEM\CurrentControlSet\Control\Power" -Name HibernateEnabled  -ErrorAction SilentlyContinue
+  $HibernateEnabled = (Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Power" -ErrorAction SilentlyContinue).HibernateEnabled
   if ($HibernateEnabled -eq $null -or $HibernateEnabled -ne 0) {
     throw "Hibernation not disabled. HKLM:\SYSTEM\CurrentControlSet\Control\Power\HibernateEnabled = $HibernateEnabled"
   }
