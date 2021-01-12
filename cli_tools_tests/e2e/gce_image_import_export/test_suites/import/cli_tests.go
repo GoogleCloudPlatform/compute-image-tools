@@ -211,12 +211,11 @@ func runImageImportOSFromImageTest(ctx context.Context, testCase *junitxml.TestC
 	runImportTest(ctx, argsMap[testType], testType, testProjectConfig.TestProjectID, imageName, logger, testCase)
 }
 
-// Q's new test
 func runImageImportOSFromVHDImageTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	suffix := path.RandString(5)
-	imageName := "e2e-test-image-import-os-from-image-" + suffix
+	imageName := "e2e-test-image-import-os-from-vhd-image-" + suffix
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
