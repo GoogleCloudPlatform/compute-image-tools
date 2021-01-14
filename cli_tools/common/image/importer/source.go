@@ -20,17 +20,18 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // Source is a resource that can be imported to GCE disk images. If an instance of this
 // interface exists, it is expected that validation has already occurred,
 // and that the caller can safely use the resource.
+//
+//go:generate go run github.com/golang/mock/mockgen -package imagemocks -source $GOFILE -destination mocks/source_mocks.go
 type Source interface {
 	Path() string
 }

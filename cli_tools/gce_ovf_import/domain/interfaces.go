@@ -14,7 +14,17 @@
 
 package domain
 
-import "github.com/vmware/govmomi/ovf"
+import (
+	"context"
+
+	"github.com/vmware/govmomi/ovf"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+)
+
+// To rebuild mocks, run `go generate ./...`
+//go:generate go run github.com/golang/mock/mockgen -package ovfdomainmocks -source $GOFILE -destination mocks/mock_interfaces.go
 
 // OvfDescriptorValidatorInterface represents OVF descriptor validator
 type OvfDescriptorValidatorInterface interface {
@@ -29,4 +39,14 @@ type OvfDescriptorLoaderInterface interface {
 // MachineTypeProviderInterface is responsible for providing GCE machine type
 type MachineTypeProviderInterface interface {
 	GetMachineType() (string, error)
+}
+
+// ImageImporterInterface creates a GCE disk image as specified by the request.
+type ImageImporterInterface interface {
+	ImportImage(context.Context, importer.ImageImportRequest, logging.Logger) error
+}
+
+// MultiImageImporterInterface imports multiple disk files simultaneously.
+type MultiImageImporterInterface interface {
+	ImportAll(ctx context.Context, params *OVFImportParams, fileURIs []string) (imageURIs []string, err error)
 }

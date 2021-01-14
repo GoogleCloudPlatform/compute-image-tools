@@ -19,13 +19,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pbtesting"
@@ -41,13 +40,11 @@ func Test_RedirectGlobalLogsToUser_CapturesStandardLog(t *testing.T) {
 	log.SetFlags(log.LstdFlags)
 	log.SetOutput(os.Stderr)
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
+	logger, buffer := setupTestLogger("prefix", dateTime)
 
-	mockLogger := mocks.NewMockLogger(mockCtrl)
-	mockLogger.EXPECT().User("hello world\n")
-	RedirectGlobalLogsToUser(mockLogger)
+	RedirectGlobalLogsToUser(logger)
 	log.Print("hello world")
+	assert.Equal(t, "prefix: 2009-11-10T23:10:15Z hello world\n", buffer.String())
 }
 
 func Test_DefaultToolLogger_User_FormatsLikeDaisy(t *testing.T) {
@@ -199,7 +196,7 @@ func Test_DefaultToolLogger_Metric_DoesntClobberSingleValuesWithDefaultValues(t 
 	pbtesting.AssertEqual(t, expected, logger.ReadOutputInfo())
 }
 
-func TestToolLogger_ReadOutputInfo_ClearsState(t *testing.T) {
+func Test_DefaultToolLogger_ReadOutputInfo_ClearsState(t *testing.T) {
 	logger, _ := setupTestLogger("[user]", dateTime)
 
 	// 1. Use the logger; on first read, OutputInfo should contain all buffered information.
@@ -226,6 +223,46 @@ func TestToolLogger_ReadOutputInfo_ClearsState(t *testing.T) {
 		InflationType: "daisy",
 		SerialOutputs: []string{"[user]: 2009-11-10T23:10:15Z hi 1\n", "trace 1"},
 	}, thirdRead)
+}
+
+func Test_DefaultToolLogger_NewLogger_WritesToParent(t *testing.T) {
+	parent, _ := setupTestLogger("[parent-prefix]", dateTime)
+
+	parent.User("user-1")
+	parent.Debug("debug-1")
+	parent.Trace("trace-1")
+	parent.Metric(&pb.OutputInfo{SourcesSizeGb: []int64{1}})
+
+	child := parent.NewLogger("[child-prefix]")
+	child.User("user-2")
+	child.Debug("debug-2")
+	child.Trace("trace-2")
+	child.Metric(&pb.OutputInfo{SourcesSizeGb: []int64{2}})
+
+	parent.User("user-3")
+	parent.Debug("debug-3")
+	parent.Trace("trace-3")
+	parent.Metric(&pb.OutputInfo{SourcesSizeGb: []int64{3}})
+
+	expected := pb.OutputInfo{
+		SourcesSizeGb: []int64{1, 2, 3},
+		SerialOutputs: []string{
+			strings.Join([]string{
+				"[parent-prefix]: 2009-11-10T23:10:15Z user-1",
+				"[debug]: 2009-11-10T23:10:15Z debug-1",
+				"[child-prefix]: 2009-11-10T23:10:15Z user-2",
+				"[debug]: 2009-11-10T23:10:15Z debug-2",
+				"[parent-prefix]: 2009-11-10T23:10:15Z user-3",
+				"[debug]: 2009-11-10T23:10:15Z debug-3",
+				"",
+			}, "\n"),
+			"trace-1",
+			"trace-2",
+			"trace-3",
+		},
+	}
+	actual := parent.ReadOutputInfo()
+	pbtesting.AssertEqual(t, &expected, actual)
 }
 
 func setupTestLogger(userPrefix string, now time.Time) (ToolLogger, fmt.Stringer) {

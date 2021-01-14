@@ -22,12 +22,11 @@ import (
 
 	"google.golang.org/api/option"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 // GetProjectID gets project id from flag if exists; otherwise, try to retrieve from GCE metadata.
@@ -168,4 +167,29 @@ func GetRegionalResourcePath(region string, resourceType string, resourceName st
 // GetZonalResourcePath gets zonal resource path based on either a local resource name or a path
 func GetZonalResourcePath(zone string, resourceType string, resourceName string) string {
 	return getResourcePath(fmt.Sprintf("zones/%v", zone), resourceType, resourceName)
+}
+
+// DisambiguateNetworkAndSubnet returns the URI representation of network and subnet
+// within a given region.
+//
+// There are two goals:
+//
+// 	  a. Explicitly use the 'default' network only when
+//       network is omitted and subnet is empty.
+//    b. Convert bare identifiers to URIs.
+//
+// Rules: https://cloud.google.com/vpc/docs/vpc
+func DisambiguateNetworkAndSubnet(originalNetwork, originalSubnet string, region string) (network string, subnet string) {
+	network, subnet = strings.TrimSpace(originalNetwork), strings.TrimSpace(originalSubnet)
+	if network == "" && subnet == "" {
+		network = "default"
+	}
+	if subnet != "" {
+		subnet = GetRegionalResourcePath(region, "subnetworks", subnet)
+	}
+	if network != "" {
+		network = GetGlobalResourcePath("networks", network)
+	}
+
+	return network, subnet
 }

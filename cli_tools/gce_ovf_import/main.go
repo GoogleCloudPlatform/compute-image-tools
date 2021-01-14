@@ -19,21 +19,23 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_import_params"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_importer"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
+	ovfimporter "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_importer"
 )
 
 var (
-	instanceNames               = flag.String(ovfimportparams.InstanceNameFlagKey, "", "VM Instance names to be created, separated by commas.")
-	machineImageName            = flag.String(ovfimportparams.MachineImageNameFlagKey, "", "Name of the machine image to create.")
-	clientID                    = flag.String(ovfimportparams.ClientIDFlagKey, "", "Identifies the client of the importer, e.g. `gcloud` or `pantheon`")
+	instanceNames               = flag.String(ovfimporter.InstanceNameFlagKey, "", "VM Instance names to be created, separated by commas.")
+	machineImageName            = flag.String(ovfimporter.MachineImageNameFlagKey, "", "Name of the machine image to create.")
+	clientID                    = flag.String(ovfimporter.ClientIDFlagKey, "", "Identifies the client of the importer, e.g. `gcloud` or `pantheon`")
 	clientVersion               = flag.String("client-version", "", "Identifies the version of the client of the importer")
-	ovfOvaGcsPath               = flag.String(ovfimportparams.OvfGcsPathFlagKey, "", " Google Cloud Storage URI of the OVF or OVA file to import. For example: gs://my-bucket/my-vm.ovf.")
+	ovfOvaGcsPath               = flag.String(ovfimporter.OvfGcsPathFlagKey, "", " Google Cloud Storage URI of the OVF or OVA file to import. For example: gs://my-bucket/my-vm.ovf.")
 	noGuestEnvironment          = flag.Bool("no-guest-environment", false, "Google Guest Environment will not be installed on the image.")
 	canIPForward                = flag.Bool("can-ip-forward", false, "If provided, allows the instances to send and receive packets with non-matching destination or source IP addresses.")
 	deletionProtection          = flag.Bool("deletion-protection", false, "Enables deletion protection for the instance.")
@@ -64,14 +66,14 @@ var (
 	gcsLogsDisabled             = flag.Bool("disable-gcs-logging", false, "do not stream logs to GCS")
 	cloudLogsDisabled           = flag.Bool("disable-cloud-logging", false, "do not stream logs to Cloud Logging")
 	stdoutLogsDisabled          = flag.Bool("disable-stdout-logging", false, "do not display individual workflow logs on stdout")
-	releaseTrack                = flag.String("release-track", ovfimporter.GA, fmt.Sprintf("Release track of OVF import. One of: %s, %s or %s. Impacts which compute API release track is used by the import tool.", ovfimporter.Alpha, ovfimporter.Beta, ovfimporter.GA))
+	releaseTrack                = flag.String("release-track", domain.GA, fmt.Sprintf("Release track of OVF import. One of: %s, %s or %s. Impacts which compute API release track is used by the import tool.", domain.Alpha, domain.Beta, domain.GA))
 	uefiCompatible              = flag.Bool("uefi-compatible", false, "Enables UEFI booting, which is an alternative system boot method. Most public images use the GRUB bootloader as their primary boot method.")
-	hostname                    = flag.String(ovfimportparams.HostnameFlagKey, "", "Specify the hostname of the instance to be created. The specified hostname must be RFC1035 compliant.")
-	machineImageStorageLocation = flag.String(ovfimportparams.MachineImageStorageLocationFlagKey, "", "GCS bucket storage location of the machine image being imported (regional or multi-regional)")
+	hostname                    = flag.String(ovfimporter.HostnameFlagKey, "", "Specify the hostname of the instance to be created. The specified hostname must be RFC1035 compliant.")
+	machineImageStorageLocation = flag.String(ovfimporter.MachineImageStorageLocationFlagKey, "", "GCS bucket storage location of the machine image being imported (regional or multi-regional)")
 	buildID                     = flag.String("build-id", "", "Cloud Build ID override. This flag should be used if auto-generated or build ID provided by Cloud Build is not appropriate. For example, if running multiple imports in parallel in a single Cloud Build run, sharing build ID could cause premature temporary resource clean-up resulting in import failures.")
-
-	nodeAffinityLabelsFlag flags.StringArrayFlag
-	currentExecutablePath  string
+	workflowDir                 = flag.String("workflow-dir", path.Join(filepath.Dir(os.Args[0]), "daisy_workflows"), "Filesystem path to daisy_workflows directory from github.com/GoogleCloudPlatform/compute-image-tools")
+	nodeAffinityLabelsFlag      flags.StringArrayFlag
+	currentExecutablePath       string
 )
 
 func init() {
@@ -79,9 +81,9 @@ func init() {
 	flag.Var(&nodeAffinityLabelsFlag, "node-affinity-label", "Node affinity label used to determine sole tenant node to schedule this instance on. Label is of the format: <key>,<operator>,<value>,<value2>... where <operator> can be one of: IN, NOT. For example: workload,IN,prod,test is a label with key 'workload' and values 'prod' and 'test'. This flag can be specified multiple times for multiple labels.")
 }
 
-func buildOVFImportParams() *ovfimportparams.OVFImportParams {
+func buildOVFImportParams() *domain.OVFImportParams {
 	flag.Parse()
-	return &ovfimportparams.OVFImportParams{InstanceNames: *instanceNames,
+	return &domain.OVFImportParams{InstanceNames: *instanceNames,
 		MachineImageName: *machineImageName, ClientID: *clientID,
 		OvfOvaGcsPath: *ovfOvaGcsPath, NoGuestEnvironment: *noGuestEnvironment,
 		CanIPForward: *canIPForward, DeletionProtection: *deletionProtection, Description: *description,
@@ -110,7 +112,7 @@ func runImport() (service.Loggable, error) {
 		}
 	}()
 
-	if ovfImporter, err = ovfimporter.NewOVFImporter(buildOVFImportParams()); err != nil {
+	if ovfImporter, err = ovfimporter.NewOVFImporter(buildOVFImportParams(), *workflowDir); err != nil {
 		return nil, err
 	}
 

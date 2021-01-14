@@ -59,6 +59,10 @@ type EnvironmentSettings struct {
 	Project, Zone, GCSPath, OAuth, Timeout, ComputeEndpoint string
 	DisableGCSLogs, DisableCloudLogs, DisableStdoutLogs     bool
 
+	// An optional prefix to include in the bracketed portion of daisy's stdout logs.
+	// Gcloud does a prefix match to determine whether to show a log line to a user.
+	DaisyLogLinePrefix string
+
 	// Worker instance customizations
 	Network, Subnet       string
 	ComputeServiceAccount string

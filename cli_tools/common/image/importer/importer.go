@@ -24,27 +24,23 @@ import (
 	"google.golang.org/api/googleapi"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
 
-// LogPrefix is a string that conforms to gcloud's output filter.
-// To ensure that a line is shown by gcloud, emit a line to stdout
-// using this string surrounded in brackets.
-const LogPrefix = "import-image"
-
-// Importer runs the end-to-end import workflow, and exposes the results
-// via an error and Loggable.
+// Importer creates a GCE disk image from a source disk file or image.
+//
+//go:generate go run github.com/golang/mock/mockgen -package imagemocks -source $GOFILE -destination mocks/importer_mocks.go
 type Importer interface {
 	Run(ctx context.Context) error
 }
 
 // NewImporter constructs an Importer instance.
-func NewImporter(request ImageImportRequest, computeClient compute.Client, storageClient storage.Client, logger logging.Logger) (Importer, error) {
+func NewImporter(request ImageImportRequest, computeClient compute.Client, storageClient domain.StorageClientInterface, logger logging.Logger) (Importer, error) {
 
 	if err := request.validate(); err != nil {
 		return nil, err
@@ -68,7 +64,7 @@ func NewImporter(request ImageImportRequest, computeClient compute.Client, stora
 		processorProvider: defaultProcessorProvider{
 			request,
 			computeClient,
-			newProcessPlanner(request, inspector),
+			newProcessPlanner(request, inspector, logger),
 			logger,
 		},
 		diskClient: computeClient,

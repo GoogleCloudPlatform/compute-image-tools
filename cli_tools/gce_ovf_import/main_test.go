@@ -17,10 +17,11 @@ package main
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/test"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_import_params"
-	"github.com/stretchr/testify/assert"
+	ovfimporter "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_importer"
 )
 
 func TestBuildParams(t *testing.T) {
@@ -30,10 +31,10 @@ func TestBuildParams(t *testing.T) {
 
 	params := buildOVFImportParams()
 
-	assert.Equal(t, cliArgs[ovfimportparams.InstanceNameFlagKey], params.InstanceNames)
-	assert.Equal(t, cliArgs[ovfimportparams.MachineImageNameFlagKey], params.MachineImageName)
-	assert.Equal(t, cliArgs[ovfimportparams.ClientIDFlagKey], params.ClientID)
-	assert.Equal(t, cliArgs[ovfimportparams.OvfGcsPathFlagKey], params.OvfOvaGcsPath)
+	assert.Equal(t, cliArgs[ovfimporter.InstanceNameFlagKey], params.InstanceNames)
+	assert.Equal(t, cliArgs[ovfimporter.MachineImageNameFlagKey], params.MachineImageName)
+	assert.Equal(t, cliArgs[ovfimporter.ClientIDFlagKey], params.ClientID)
+	assert.Equal(t, cliArgs[ovfimporter.OvfGcsPathFlagKey], params.OvfOvaGcsPath)
 	assert.Equal(t, cliArgs["no-guest-environment"], params.NoGuestEnvironment)
 	assert.Equal(t, cliArgs["can-ip-forward"], params.CanIPForward)
 	assert.Equal(t, cliArgs["deletion-protection"], params.DeletionProtection)
@@ -65,48 +66,48 @@ func TestBuildParams(t *testing.T) {
 	assert.Equal(t, cliArgs["disable-cloud-logging"], params.CloudLogsDisabled)
 	assert.Equal(t, cliArgs["disable-stdout-logging"], params.StdoutLogsDisabled)
 	assert.Equal(t, flags.StringArrayFlag{"env,IN,prod,test"}, params.NodeAffinityLabelsFlag)
-	assert.Equal(t, cliArgs[ovfimportparams.HostnameFlagKey], params.Hostname)
-	assert.Equal(t, cliArgs[ovfimportparams.MachineImageStorageLocationFlagKey], params.MachineImageStorageLocation)
+	assert.Equal(t, cliArgs[ovfimporter.HostnameFlagKey], params.Hostname)
+	assert.Equal(t, cliArgs[ovfimporter.MachineImageStorageLocationFlagKey], params.MachineImageStorageLocation)
 }
 
 func getAllCliArgs() map[string]interface{} {
 	return map[string]interface{}{
-		ovfimportparams.InstanceNameFlagKey:     "instance1",
-		ovfimportparams.MachineImageNameFlagKey: "machineimage1",
-		ovfimportparams.ClientIDFlagKey:         "aClient",
-		ovfimportparams.OvfGcsPathFlagKey:       "gs://ovfbucket/ovfpath/vmware.ova",
-		"no-guest-environment":                  true,
-		"can-ip-forward":                        true,
-		"deletion-protection":                   true,
-		"description":                           "aDescription",
-		"labels":                                "userkey1=uservalue1,userkey2=uservalue2",
-		"machine-type":                          "n1-standard-2",
-		"network":                               "aNetwork",
-		"subnet":                                "aSubnet",
-		"network-tier":                          "PREMIUM",
-		"private-network-ip":                    "10.0.0.1",
-		"no-external-ip":                        true,
-		"no-restart-on-failure":                 true,
-		"os":                                    "ubuntu-1404",
-		"shielded-integrity-monitoring":         true,
-		"shielded-secure-boot":                  true,
-		"shielded-vtpm":                         true,
-		"tags":                                  "tag1=val1",
-		"zone":                                  "us-central1-c",
-		"boot-disk-kms-key":                     "aKey",
-		"boot-disk-kms-keyring":                 "aKeyring",
-		"boot-disk-kms-location":                "aKmsLocation",
-		"boot-disk-kms-project":                 "aKmsProject",
-		"timeout":                               "3h",
-		"project":                               "aProject",
-		"scratch-bucket-gcs-path":               "gs://bucket/folder",
-		"oauth":                                 "oAuthFilePath",
-		"compute-endpoint-override":             "us-east1-c",
-		"disable-gcs-logging":                   true,
-		"disable-cloud-logging":                 true,
-		"disable-stdout-logging":                true,
-		"node-affinity-label":                   "env,IN,prod,test",
-		ovfimportparams.HostnameFlagKey:         "hostname1",
-		ovfimportparams.MachineImageStorageLocationFlagKey: "us-west2",
+		ovfimporter.InstanceNameFlagKey:     "instance1",
+		ovfimporter.MachineImageNameFlagKey: "machineimage1",
+		ovfimporter.ClientIDFlagKey:         "aClient",
+		ovfimporter.OvfGcsPathFlagKey:       "gs://ovfbucket/ovfpath/vmware.ova",
+		"no-guest-environment":              true,
+		"can-ip-forward":                    true,
+		"deletion-protection":               true,
+		"description":                       "aDescription",
+		"labels":                            "userkey1=uservalue1,userkey2=uservalue2",
+		"machine-type":                      "n1-standard-2",
+		"network":                           "aNetwork",
+		"subnet":                            "aSubnet",
+		"network-tier":                      "PREMIUM",
+		"private-network-ip":                "10.0.0.1",
+		"no-external-ip":                    true,
+		"no-restart-on-failure":             true,
+		"os":                                "ubuntu-1404",
+		"shielded-integrity-monitoring":     true,
+		"shielded-secure-boot":              true,
+		"shielded-vtpm":                     true,
+		"tags":                              "tag1=val1",
+		"zone":                              "us-central1-c",
+		"boot-disk-kms-key":                 "aKey",
+		"boot-disk-kms-keyring":             "aKeyring",
+		"boot-disk-kms-location":            "aKmsLocation",
+		"boot-disk-kms-project":             "aKmsProject",
+		"timeout":                           "3h",
+		"project":                           "aProject",
+		"scratch-bucket-gcs-path":           "gs://bucket/folder",
+		"oauth":                             "oAuthFilePath",
+		"compute-endpoint-override":         "us-east1-c",
+		"disable-gcs-logging":               true,
+		"disable-cloud-logging":             true,
+		"disable-stdout-logging":            true,
+		"node-affinity-label":               "env,IN,prod,test",
+		ovfimporter.HostnameFlagKey:         "hostname1",
+		ovfimporter.MachineImageStorageLocationFlagKey: "us-west2",
 	}
 }

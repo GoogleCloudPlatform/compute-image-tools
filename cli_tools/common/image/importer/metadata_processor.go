@@ -62,7 +62,7 @@ func (p *metadataProcessor) process(pd persistentDisk) (persistentDisk, error) {
 	if err != nil {
 		return pd, daisy.Errf("Failed to create UEFI disk: %v", err)
 	}
-	log.Println("UEFI disk created: ", newDisk.Name)
+	log.Print("Disk will boot with UEFI")
 
 	// Delete the old disk after the new disk is created.
 	deleteDisk(p.computeDiskClient, p.project, p.zone, pd)

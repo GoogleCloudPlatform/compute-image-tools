@@ -75,7 +75,11 @@ type OutputInfoReader interface {
 // ToolLogger implements Logger and OutputInfoReader. Create an instance at the
 // start of a CLI tool's invocation, and pass that instance to dependencies that
 // require logging.
+//
+// NewLogger creates a new logger that writes to this ToolLogger, but with a
+// different User prefix.
 type ToolLogger interface {
+	NewLogger(userPrefix string) Logger
 	Logger
 	OutputInfoReader
 }
@@ -122,6 +126,12 @@ type defaultToolLogger struct {
 
 	// mutationLock should be taken when reading or writing trace, userAndDebugBuffer, or outputInfo.
 	mutationLock sync.Mutex
+}
+
+// NewLogger creates a new logger that writes to this ToolLogger, but with a
+// different User prefix.
+func (l *defaultToolLogger) NewLogger(userPrefix string) Logger {
+	return &childToolLogger{userPrefix, l}
 }
 
 // User writes message to the underlying log.Logger, and then buffers the message
@@ -224,4 +234,26 @@ func NewToolLogger(userPrefix string) ToolLogger {
 		outputInfo:      &pb.OutputInfo{},
 		timeProvider:    time.Now,
 	}
+}
+
+// childToolLogger is a Logger that writes to a ToolLogger using a custom prefix for User messages.
+type childToolLogger struct {
+	userPrefix string
+	parent     *defaultToolLogger
+}
+
+func (s *childToolLogger) User(message string) {
+	s.parent.writeLine(s.userPrefix, message)
+}
+
+func (s *childToolLogger) Debug(message string) {
+	s.parent.Debug(message)
+}
+
+func (s *childToolLogger) Trace(message string) {
+	s.parent.Trace(message)
+}
+
+func (s *childToolLogger) Metric(metric *pb.OutputInfo) {
+	s.parent.Metric(metric)
 }

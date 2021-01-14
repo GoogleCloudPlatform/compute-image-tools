@@ -17,15 +17,36 @@ package daisyovfutils
 import (
 	"fmt"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
+
+	ovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 const (
+	cleanupStepName        = "cleanup"
 	createInstanceStepName = "create-instance"
 	gceMinimumDiskSizeGB   = "10"
 )
+
+// AddDataDisksToInstanceImport updates the CreateInstances step in w to include
+// disks based on the referenced images. The cleanup step is updated to delete the
+// images.
+func AddDataDisksToInstanceImport(w *daisy.Workflow, imageURIs []string) {
+	cleanupStep := w.Steps[cleanupStepName].DeleteResources
+	instanceStep := w.Steps[createInstanceStepName].CreateInstances.Instances[0]
+	for i, imageURI := range imageURIs {
+		instanceStep.Disks = append(instanceStep.Disks,
+			&compute.AttachedDisk{
+				InitializeParams: &compute.AttachedDiskInitializeParams{
+					DiskName:    generateDataDiskName(w.Vars["instance_name"].Value, i+1),
+					SourceImage: imageURI,
+				},
+				AutoDelete: true,
+			})
+		cleanupStep.Images = append(cleanupStep.Images, imageURI)
+	}
+}
 
 // AddDiskImportSteps adds Daisy steps to OVF import workflow to import disks
 // defined in dataDiskInfos.

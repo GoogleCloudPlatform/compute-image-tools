@@ -24,6 +24,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	mock_disk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk/mocks"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
 
@@ -31,7 +32,7 @@ func Test_DefaultPlanner_Plan_SkipInspectionWhenCustomWorkflowExists(t *testing.
 	// Using an uninitialized inspector ensures there will be a nil dereference if inspection tries to run.
 	var inspector disk.Inspector
 	customWorkflow := "workflow/path"
-	processPlanner := newProcessPlanner(ImageImportRequest{CustomWorkflow: customWorkflow}, inspector)
+	processPlanner := newProcessPlanner(ImageImportRequest{CustomWorkflow: customWorkflow}, inspector, logging.NewToolLogger("test"))
 	actualPlan, err := processPlanner.plan(persistentDisk{})
 	assert.NoError(t, err)
 
@@ -93,7 +94,7 @@ func Test_DefaultPlanner_Plan_InspectionFailures(t *testing.T) {
 			defer mockCtrl.Finish()
 			mockInspector := mock_disk.NewMockInspector(mockCtrl)
 			mockInspector.EXPECT().Inspect(pd.uri).Return(nil, inspectionError)
-			processPlanner := newProcessPlanner(tt.request, mockInspector)
+			processPlanner := newProcessPlanner(tt.request, mockInspector, logging.NewToolLogger("test"))
 			actualResults, actualError := processPlanner.plan(pd)
 			if tt.expectErrorToContain == "" {
 				assert.NoError(t, actualError)
@@ -223,7 +224,7 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 			defer mockCtrl.Finish()
 			mockInspector := mock_disk.NewMockInspector(mockCtrl)
 			mockInspector.EXPECT().Inspect(pd.uri).Return(tt.inspectionResults, nil)
-			processPlanner := newProcessPlanner(tt.request, mockInspector)
+			processPlanner := newProcessPlanner(tt.request, mockInspector, logging.NewToolLogger("test"))
 			actualResults, actualError := processPlanner.plan(pd)
 			if tt.expectErrorToContain == "" {
 				assert.NoError(t, actualError)

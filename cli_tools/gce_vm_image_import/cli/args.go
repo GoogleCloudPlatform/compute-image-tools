@@ -21,12 +21,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/importer"
 )
 
 // imageImportArgs receives arguments passed by the user and facilitates creating
@@ -80,22 +80,7 @@ func (args *imageImportArgs) populateAndValidate(populator param.Populator,
 		return err
 	}
 
-	// Populate Network and Subnet. Two goals:
-	//
-	// a. Explicitly use the 'default' network only when
-	//    network is omitted and subnet is empty.
-	// b. Convert bare identifiers to URIs.
-	//
-	// Rules: https://cloud.google.com/vpc/docs/vpc
-	if args.Network == "" && args.Subnet == "" {
-		args.Network = "default"
-	}
-	if args.Subnet != "" {
-		args.Subnet = param.GetRegionalResourcePath(args.Region, "subnetworks", args.Subnet)
-	}
-	if args.Network != "" {
-		args.Network = param.GetGlobalResourcePath("networks", args.Network)
-	}
+	args.Network, args.Subnet = param.DisambiguateNetworkAndSubnet(args.Network, args.Subnet, args.Region)
 
 	// Ensure that all workflow logs are put in the same GCS directory.
 	// path.join doesn't work since it converts `gs://` to `gs:/`.

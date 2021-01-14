@@ -33,7 +33,7 @@ type bootableDiskProcessor struct {
 }
 
 func (b *bootableDiskProcessor) process(pd persistentDisk) (persistentDisk, error) {
-
+	b.logger.User("Making disk bootable on GCE")
 	b.workflow.AddVar("source_disk", pd.uri)
 	var err error
 	err = b.workflow.RunWithModifiers(context.Background(), b.preValidateFunc(), b.postValidateFunc())
@@ -44,6 +44,7 @@ func (b *bootableDiskProcessor) process(pd persistentDisk) (persistentDisk, erro
 			b.workflow.GetSerialConsoleOutputValue("detected_major_version"),
 			b.workflow.GetSerialConsoleOutputValue("detected_minor_version"), err)
 	}
+	b.logger.User("Finished making disk bootable")
 	if b.workflow.Logger != nil {
 		for _, trace := range b.workflow.Logger.ReadSerialPortLogs() {
 			b.logger.Trace(trace)
@@ -80,9 +81,12 @@ func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger 
 		return nil, err
 	}
 
-	// Temporary fix to ensure gcloud shows daisy's output.
-	// A less fragile approach is tracked in b/161567644.
-	workflow.Name = LogPrefix
+	// Daisy uses the workflow name as the prefix for log lines.
+	logPrefix := request.DaisyLogLinePrefix
+	if logPrefix != "" {
+		logPrefix += "-"
+	}
+	workflow.Name = logPrefix + "translate"
 
 	return &bootableDiskProcessor{
 		request:  request,
