@@ -13,7 +13,7 @@
     "build-bare-metal": {
       "Timeout": "70m",
       "IncludeWorkflow": {
-        "Path": "bare_metal_linux.wf.json",
+        "Path": "../../image_build/bare_metal/bare_metal_linux.wf.json",
         "Vars": {
           "base_image": "projects/${source_image_project}/global/images/family/rhel-7",
           "workflow_root": "${workflow_root}",
