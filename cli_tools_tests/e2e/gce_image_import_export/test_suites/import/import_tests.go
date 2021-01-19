@@ -77,6 +77,14 @@ type testCase struct {
 }
 
 var basicCases = []*testCase{
+	// Disk image formats
+	{
+		caseName:             "vhd-ubuntu-1804",
+		source:               "gs://compute-image-tools-test-resources/ubuntu-1804-azure.vhd",
+		os:                   "ubuntu-1804",
+		osConfigNotSupported: true,
+	},
+
 	// Error messages
 	{
 		caseName:      "incorrect OS specified",
