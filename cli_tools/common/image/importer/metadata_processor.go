@@ -16,7 +16,6 @@ package importer
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"google.golang.org/api/compute/v1"
@@ -60,9 +59,8 @@ func (p *metadataProcessor) process(pd persistentDisk) (persistentDisk, error) {
 	// to the new disk.
 	err = p.computeDiskClient.CreateDisk(p.project, p.zone, newDisk)
 	if err != nil {
-		return pd, daisy.Errf("Failed to create UEFI disk: %v", err)
+		return pd, daisy.Errf("Failed to clone disk: %v", err)
 	}
-	log.Print("Disk will boot with UEFI")
 
 	// Delete the old disk after the new disk is created.
 	deleteDisk(p.computeDiskClient, p.project, p.zone, pd)
