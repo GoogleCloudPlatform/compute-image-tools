@@ -148,6 +148,13 @@ try {
   Write-Output "Detected BCD folder drive letter: ${bcd_drive}"
   Write-Output "Detected Windows folder drive letter: ${script:os_drive}"
 
+  # Output system volume utilization and warn if less than 1GB free disk space.
+  $diskInfo = get-WmiObject win32_logicaldisk -Filter "DeviceID='${script:os_drive}'"
+  Write-Output "${script:os_drive} has $([math]::Round($diskInfo.FreeSpace / 1GB,2))GB free and is $([math]::Round(($diskInfo.FreeSpace / $diskInfo.Size)*100,2))% used."
+  if (($diskInfo.FreeSpace / 1GB) -lt 1) {
+    Write-Output "TranslateBootstrap: Warning imported system volume has less than 1GB free. $([math]::Round($diskInfo.FreeSpace / 1MB,2))MB disk space free. This may cause the import to fail."
+  }
+
   $kernel32_ver = (Get-Command "${script:os_drive}\Windows\System32\kernel32.dll").Version
   $os_version = "$($kernel32_ver.Major).$($kernel32_ver.Minor)"
 
