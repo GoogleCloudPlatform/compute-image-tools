@@ -33,4 +33,26 @@ if [[ $? -ne 0 ]]; then
   echo "BuildFailed: Packages install failed."
   exit 1
 fi
+
+# Temporary install of useful development tools.
+echo "Installing development tools."
+yum -y install net-tools pciutils tcpdump
+
+# Temporary boot fix for RHEL 8.
+# Removes grub2 in place of a BootLoaderSpec which is loaded from the firmware.
+if [[ "${RELEASE}" == "el8" ]]; then
+  echo "Configuring temporary RHEL 8 boot."
+  # Remove grub2
+  dnf -y remove grub2*
+  dnf -y install file
+  # Set kernel cmdline args
+  echo -n "net.ifnames=0 biosdevname=0 scsi_mod.use_blk_mq=Y" > /etc/kernel/cmdline
+  # Install systemd-bootd
+  bootctl install
+  rm -rf /boot/loader
+  # Install the kernel into /boot
+  kernel-install add $(uname -r) /lib/modules/$(uname -r)/vmlinuz
+  # Disable auto updates
+  systemctl disable dnf-automatic.timer dnf-automatic.service
+fi
 echo "BuildSuccess: Bare Metal image build succeeded."
