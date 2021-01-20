@@ -156,7 +156,9 @@ func (args *imageImportArgs) registerFlags(flagSet *flag.FlagSet) {
 		"Do not write logs to stdout.")
 
 	flagSet.BoolVar(&args.NoExternalIP, "no_external_ip", false,
-		"VPC doesn't allow external IPs.")
+		"Temporary VMs are created in your project during {operation}. "+
+			"Set this flag so that these temporary VMs are not assigned external IP addresses. "+
+			"For more information, see: https://cloud.google.com/compute/docs/import/importing-virtual-disks#no-external-ip")
 
 	flagSet.Var((*flags.TrimmedString)(&args.ExecutionID), "execution_id",
 		"The execution ID to differentiate GCE resources of each imports.")
@@ -180,7 +182,7 @@ func (args *imageImportArgs) registerFlags(flagSet *flag.FlagSet) {
 			"For more information, see: https://cloud.google.com/compute/docs/labeling-resources")
 
 	flagSet.Var((*flags.LowerTrimmedString)(&args.StorageLocation), "storage_location",
-		"Specifies a Cloud Storage location, either regional or multi-regional, "+
+		"Specifies a Cloud Storage location, either a region or a multi-region, "+
 			"where image content is to be stored. If not specified, the multi-region "+
 			"location closest to the source is chosen automatically.")
 
@@ -217,7 +219,7 @@ func (args *imageImportArgs) registerFlags(flagSet *flag.FlagSet) {
 			"Most public images use the GRUB bootloader as their primary boot method.")
 
 	flagSet.BoolVar(&args.SysprepWindows, "sysprep_windows", false,
-		"Whether to generalize image using Windows Sysprep. Only applicable to Windows.")
+		"Generalize image using Windows Sysprep. Only applicable to Windows.")
 }
 
 // EnvironmentSettings creates an EnvironmentSettings instance from the fields

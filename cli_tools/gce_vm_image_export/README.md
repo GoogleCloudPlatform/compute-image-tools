@@ -46,6 +46,9 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image
 + `-labels=[KEY=VALUE,...]` labels: List of label KEY=VALUE pairs to add. Keys must start with a
   lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and 
   numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.
++ `-compute_service_account` Compute service account to be used by exporter 
+  Virtual Machine. When empty, the Compute Engine default service account is used.
++ `-client_version` Identifies the version of the client of the exporter
   
 ### Usage
 
@@ -55,4 +58,5 @@ gce_vm_image_export -client_id=CLIENT_ID -destionation_uri=DESTINATION_URI
         [-subnet=SUBNET] [-zone=ZONE] [-timeout=TIMEOUT] [-scratch_bucket_gcs_path=PATH]
         [-oauth=OAUTH_PATH] [-compute_endpoint_override=ENDPOINT] [-disable_gcs_logging]
         [-disable_cloud_logging] [-disable_stdout_logging] [-labels=KEY=VALUE,...]
+        [-compute_service_account=COMPUTE_SERVICE_ACCOUNT] [-client_version]
 ```
