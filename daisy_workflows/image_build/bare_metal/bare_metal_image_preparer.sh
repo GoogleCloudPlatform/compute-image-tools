@@ -45,8 +45,6 @@ if [[ "${RELEASE}" == "el8" ]]; then
   # Remove grub2
   dnf -y remove grub2*
   dnf -y install file
-  # Set kernel cmdline args
-  echo -n "net.ifnames=0 biosdevname=0 scsi_mod.use_blk_mq=Y" > /etc/kernel/cmdline
   # Install systemd-bootd
   bootctl install
   rm -rf /boot/loader
