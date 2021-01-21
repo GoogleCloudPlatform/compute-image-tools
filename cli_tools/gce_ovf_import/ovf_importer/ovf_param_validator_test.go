@@ -15,15 +15,19 @@
 package ovfimporter
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"os"
 	"testing"
 	"time"
 
+	"cloud.google.com/go/storage"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/api/iterator"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 )
@@ -38,6 +42,149 @@ func TestMachineImageStorageLocationProvidedForInstanceImport(t *testing.T) {
 	params := getAllInstanceImportParams()
 	params.MachineImageStorageLocation = "us-west2"
 	assertErrorOnValidate(t, params, "-machine-image-storage-location can't be provided when importing an instance")
+}
+
+func Test_ValidateAndParseParams_Fail_WhenRegionCantBeFoundFromZone(t *testing.T) {
+	params := getAllInstanceImportParams()
+	params.Zone = "uscentral1"
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockZoneValidator := mocks.NewMockZoneValidatorInterface(mockCtrl)
+	mockZoneValidator.EXPECT().
+		ZoneValid(*params.Project, params.Zone).Return(nil)
+
+	err := (&ParamValidatorAndPopulator{zoneValidator: mockZoneValidator}).ValidateAndPopulate(params)
+	assert.Contains(t, err.Error(), "uscentral1 is not a valid zone")
+}
+
+func Test_ValidateAndParseParams_Fail_WhenZoneMissingAndLookupFails(t *testing.T) {
+	params := getAllInstanceImportParams()
+	params.Zone = ""
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockMetadataGce.EXPECT().OnGCE().Return(true).AnyTimes()
+	mockMetadataGce.EXPECT().Zone().Return("", errors.New("zone not found"))
+	mockMetadataGce.EXPECT().ProjectID().Return(defaultProject, nil).AnyTimes()
+
+	mockZoneValidator := mocks.NewMockZoneValidatorInterface(mockCtrl)
+	if params.Zone != "" {
+		mockZoneValidator.EXPECT().
+			ZoneValid(defaultProject, defaultZone).Return(nil)
+	}
+
+	err := (&ParamValidatorAndPopulator{metadataClient: mockMetadataGce, zoneValidator: mockZoneValidator}).ValidateAndPopulate(params)
+	assert.Contains(t, err.Error(), "can't infer zone: zone not found")
+}
+
+func Test_ValidateAndParseParams_Fail_WhenZoneMissingAndNotOnGCE(t *testing.T) {
+	params := getAllInstanceImportParams()
+	params.Zone = ""
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
+	mockMetadataGce.EXPECT().ProjectID().Return(defaultProject, nil).AnyTimes()
+
+	err := (&ParamValidatorAndPopulator{metadataClient: mockMetadataGce}).ValidateAndPopulate(params)
+	assert.Contains(t, err.Error(), "zone cannot be determined because build is not running on Google Compute Engine")
+}
+
+func Test_ValidateAndParseParams_Fail_WhenZoneFailsValidation(t *testing.T) {
+	params := getAllInstanceImportParams()
+	params.Zone = "zzz-east"
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockZoneValidator := mocks.NewMockZoneValidatorInterface(mockCtrl)
+	mockZoneValidator.EXPECT().
+		ZoneValid(*params.Project, params.Zone).Return(errors.New("unrecognized zone"))
+
+	err := (&ParamValidatorAndPopulator{zoneValidator: mockZoneValidator}).ValidateAndPopulate(params)
+	assert.Contains(t, err.Error(), "unrecognized zone")
+}
+
+func Test_ValidateAndParseParams_GenerateBucketName_WhenNotProvided(t *testing.T) {
+	projectName := "test-google"
+	params := getAllInstanceImportParams()
+	params.Region = "us-west2"
+	params.Zone = "us-west2-a"
+	params.ScratchBucketGcsPath = ""
+	params.Project = &projectName
+	expectedBucketName := "test-elgoog-ovf-import-bkt-us-west2"
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockZoneValidator := mocks.NewMockZoneValidatorInterface(mockCtrl)
+	mockZoneValidator.EXPECT().
+		ZoneValid(projectName, params.Zone).Return(nil)
+
+	someBucketAttrs := &storage.BucketAttrs{
+		Name:     expectedBucketName,
+		Location: "us-west2",
+	}
+	mockBucketIterator := mocks.NewMockBucketIteratorInterface(mockCtrl)
+	mockBucketIterator.EXPECT().Next().Return(someBucketAttrs, nil)
+
+	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
+	mockBucketIteratorCreator.EXPECT().CreateBucketIterator(gomock.Any(), gomock.Any(), *params.Project).Return(mockBucketIterator)
+
+	mockStorage := mocks.NewMockStorageClientInterface(mockCtrl)
+	err := (&ParamValidatorAndPopulator{
+		zoneValidator:         mockZoneValidator,
+		bucketIteratorCreator: mockBucketIteratorCreator,
+		logger:                logging.NewToolLogger("test"),
+		storageClient:         mockStorage,
+	}).ValidateAndPopulate(params)
+	assert.NoError(t, err)
+	assert.Equal(t, fmt.Sprintf("gs://%s/%s", expectedBucketName, params.BuildID), params.ScratchBucketGcsPath)
+}
+
+func Test_ValidateAndParseParams_CreateScratchBucket_WhenGeneratedDoesntExist(t *testing.T) {
+	projectName := "goog-test"
+	params := getAllInstanceImportParams()
+	params.Region = "us-west2"
+	params.Zone = "us-west2-a"
+	params.ScratchBucketGcsPath = ""
+	params.Project = &projectName
+	expectedBucketName := "ggoo-test-ovf-import-bkt-us-west2"
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockZoneValidator := mocks.NewMockZoneValidatorInterface(mockCtrl)
+	mockZoneValidator.EXPECT().
+		ZoneValid(projectName, params.Zone).Return(nil)
+
+	someBucketAttrs := &storage.BucketAttrs{
+		Name:     "other-bucket",
+		Location: "us-west2",
+	}
+	mockBucketIterator := mocks.NewMockBucketIteratorInterface(mockCtrl)
+	mockBucketIterator.EXPECT().Next().Return(someBucketAttrs, nil)
+	mockBucketIterator.EXPECT().Next().Return(nil, iterator.Done)
+
+	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
+	mockBucketIteratorCreator.EXPECT().CreateBucketIterator(gomock.Any(), gomock.Any(), *params.Project).Return(mockBucketIterator)
+
+	mockStorage := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorage.EXPECT().CreateBucket(expectedBucketName, projectName, &storage.BucketAttrs{Name: expectedBucketName, Location: params.Region})
+	err := (&ParamValidatorAndPopulator{
+		zoneValidator:         mockZoneValidator,
+		bucketIteratorCreator: mockBucketIteratorCreator,
+		logger:                logging.NewToolLogger("test"),
+		storageClient:         mockStorage,
+	}).ValidateAndPopulate(params)
+	assert.NoError(t, err)
+	assert.Equal(t, fmt.Sprintf("gs://%s/%s", expectedBucketName, params.BuildID), params.ScratchBucketGcsPath)
 }
 
 func Test_ValidateAndParseParams_ErrorMessages(t *testing.T) {

@@ -135,20 +135,18 @@ func TestAddDiskImportStepsDiskNamesValidWhenInstanceNameLong(t *testing.T) {
 	assert.NoError(t, validation.ValidateRfc1035Label((*w.Steps["setup-data-disk-2"].CreateDisks)[2].Name))
 }
 
-func TestAddDataDisksToInstanceImport(t *testing.T) {
+func TestCreateDisksOnInstance(t *testing.T) {
 	wfPath := "../../../daisy_workflows/ovf_import/create_instance.wf.json"
 	wf, err := daisy.NewFromFile(wfPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	wf.AddVar("instance_name", "test-instance")
 	imageURIs := []string{
 		"uri-1",
 		"uri-2",
 	}
-	AddDataDisksToInstanceImport(wf, imageURIs)
 	createInstanceStep := wf.Steps["create-instance"].CreateInstances.Instances[0]
-	cleanupStep := wf.Steps["cleanup"].DeleteResources
+	CreateDisksOnInstance(createInstanceStep, "test-instance", imageURIs)
 	for i, expectedDiskName := range []string{
 		"test-instance-1",
 		"test-instance-2",
@@ -160,7 +158,6 @@ func TestAddDataDisksToInstanceImport(t *testing.T) {
 		assert.True(t, dataDisk.AutoDelete)
 		assert.Equal(t, expectedDiskName, dataDisk.InitializeParams.DiskName)
 		assert.Equal(t, expectedSourceURI, dataDisk.InitializeParams.SourceImage)
-		assert.Equal(t, expectedSourceURI, cleanupStep.Images[dataDiskIndex])
 	}
 }
 

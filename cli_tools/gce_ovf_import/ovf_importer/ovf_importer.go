@@ -29,7 +29,6 @@ import (
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/assert"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	computeutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
@@ -80,9 +79,7 @@ type OVFImporter struct {
 
 // NewOVFImporter creates an OVF importer, including automatically populating dependencies,
 // such as compute/storage clients. workflowDir is the filesystem path to `daisy_workflows`.
-func NewOVFImporter(params *ovfdomain.OVFImportParams, workflowDir string) (*OVFImporter, error) {
-	assert.DirectoryExists(workflowDir)
-
+func NewOVFImporter(params *ovfdomain.OVFImportParams) (*OVFImporter, error) {
 	ctx := context.Background()
 	log.SetPrefix(logPrefix + " ")
 	logger := logging.NewToolLogger(logPrefix)
@@ -96,12 +93,12 @@ func NewOVFImporter(params *ovfdomain.OVFImportParams, workflowDir string) (*OVF
 		return nil, err
 	}
 	tarGcsExtractor := storageutils.NewTarGcsExtractor(ctx, storageClient, logger)
-	workingDirOVFImportWorkflow := toWorkingDir(getImportWorkflowPath(workflowDir, params), params)
+	workingDirOVFImportWorkflow := toWorkingDir(getImportWorkflowPath(params), params)
 	ovfImporter := &OVFImporter{
 		ctx:                 ctx,
 		storageClient:       storageClient,
 		computeClient:       computeClient,
-		multiImageImporter:  multiimageimporter.NewMultiImageImporter(workflowDir, computeClient, storageClient, logger),
+		multiImageImporter:  multiimageimporter.NewMultiImageImporter(params.WorkflowDir, computeClient, storageClient, logger),
 		tarGcsExtractor:     tarGcsExtractor,
 		workflowPath:        workingDirOVFImportWorkflow,
 		ovfDescriptorLoader: ovfutils.NewOvfDescriptorLoader(storageClient),
@@ -118,7 +115,7 @@ func NewOVFImporter(params *ovfdomain.OVFImportParams, workflowDir string) (*OVF
 	return ovfImporter, nil
 }
 
-func getImportWorkflowPath(workflowDir string, params *ovfdomain.OVFImportParams) string {
+func getImportWorkflowPath(params *ovfdomain.OVFImportParams) string {
 	var workflow string
 	if useModulesForImport(params) {
 		workflow = createInstanceWorkflow
@@ -127,7 +124,7 @@ func getImportWorkflowPath(workflowDir string, params *ovfdomain.OVFImportParams
 	} else {
 		workflow = machineImageImportWorkflow
 	}
-	return path.Join(workflowDir, workflow)
+	return path.Join(params.WorkflowDir, workflow)
 }
 
 func useModulesForImport(params *ovfdomain.OVFImportParams) bool {
@@ -273,7 +270,17 @@ func (oi *OVFImporter) getOvfGcsPath(tmpGcsPath string) (string, bool, error) {
 func (oi *OVFImporter) modifyWorkflowPreValidate(w *daisy.Workflow) {
 	w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
 	if useModulesForImport(oi.params) {
-		daisyovfutils.AddDataDisksToInstanceImport(w, oi.imageURIs[1:])
+		// See workflows in `ovfWorkflowDir` for variable name declaration.
+		createInstanceStepName := "create-instance"
+		cleanupStepName := "cleanup"
+
+		daisyovfutils.CreateDisksOnInstance(
+			w.Steps[createInstanceStepName].CreateInstances.Instances[0],
+			oi.params.InstanceNames, oi.imageURIs[1:])
+
+		// Delete the images after the instance is created.
+		w.Steps[cleanupStepName].DeleteResources.Images = append(
+			w.Steps[cleanupStepName].DeleteResources.Images, oi.imageURIs[1:]...)
 	} else {
 		daisyovfutils.AddDiskImportSteps(w, (*oi.diskInfos)[1:])
 	}
@@ -368,7 +375,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (workflow *daisy.Workflow, err erro
 	oi.Logger.User(fmt.Sprintf("Will create instance of `%v` machine type.", machineTypeStr))
 
 	if useModulesForImport(oi.params) {
-		if err := oi.importWithModule(settings); err != nil {
+		if err := oi.importWithModule(settings.GcloudOsFlag); err != nil {
 			return nil, err
 		}
 	}
@@ -440,15 +447,15 @@ func (oi *OVFImporter) CleanUp() {
 	}
 }
 
-func (oi *OVFImporter) importWithModule(settings daisyutils.TranslationSettings) error {
+func (oi *OVFImporter) importWithModule(osID string) error {
 	var dataDiskURIs []string
 	for _, info := range *oi.diskInfos {
 		dataDiskURIs = append(dataDiskURIs, info.FilePath)
 	}
 	params := *oi.params
-	params.OsID = settings.GcloudOsFlag
+	params.OsID = osID
 	params.Deadline = params.Deadline.Add(-1 * instanceConstructionTime)
-	imageURIs, err := oi.multiImageImporter.ImportAll(oi.ctx, oi.params, dataDiskURIs)
+	imageURIs, err := oi.multiImageImporter.Import(oi.ctx, oi.params, dataDiskURIs)
 	if err == nil {
 		oi.imageURIs = imageURIs
 	}

@@ -67,35 +67,36 @@ type ParamValidatorAndPopulator struct {
 // ValidateAndPopulate validates OVFImportParams, and populates values that are missing.
 // It returns an error if params are invalid.
 func (p *ParamValidatorAndPopulator) ValidateAndPopulate(params *ovfdomain.OVFImportParams) (err error) {
-	params.BuildID = p.determineBuildID(params.BuildID)
+	params.BuildID = p.generateBuildIDIfMissing(params.BuildID)
 
-	if params.Project, err = p.determineProject(*params.Project); err != nil {
+	if params.Project, err = p.lookupProjectIfMissing(*params.Project); err != nil {
 		return err
 	}
 
-	if params.Zone, err = p.determineZone(*params.Project, params.Zone); err != nil {
+	if params.Zone, err = p.lookupZoneIfMissing(*params.Project, params.Zone); err != nil {
 		return err
 	}
 
-	if params.Region, err = p.determineRegion(params.Zone); err != nil {
+	if params.Region, err = p.getRegionFromZone(params.Zone); err != nil {
 		return err
 	}
 
-	if params.ReleaseTrack, err = p.determineReleaseTrack(params.ReleaseTrack); err != nil {
+	if params.ReleaseTrack, err = p.resolveReleaseTrack(params.ReleaseTrack); err != nil {
 		return err
 	}
 
-	if params.Deadline, err = p.determineDeadline(params.Timeout); err != nil {
+	if params.Deadline, err = p.calculateDeadlineFromTimeout(params.Timeout); err != nil {
 		return err
 	}
 
-	if params.ScratchBucketGcsPath, err = p.determineScratchBucket(params.ScratchBucketGcsPath, *params.Project, params.Region, params.BuildID); err != nil {
+	if params.ScratchBucketGcsPath, err = p.createScratchBucketIfMissing(
+		params.ScratchBucketGcsPath, *params.Project, params.Region, params.BuildID); err != nil {
 		return err
 	}
 
 	params.InstanceNames = strings.ToLower(strings.TrimSpace(params.InstanceNames))
 	params.MachineImageName = strings.ToLower(strings.TrimSpace(params.MachineImageName))
-	params.Network, params.Subnet = param.DisambiguateNetworkAndSubnet(params.Network, params.Subnet, params.Region)
+	params.Network, params.Subnet = param.ResolveNetworkAndSubnet(params.Network, params.Subnet, params.Region)
 	params.Description = strings.TrimSpace(params.Description)
 	params.PrivateNetworkIP = strings.TrimSpace(params.PrivateNetworkIP)
 	params.NetworkTier = strings.TrimSpace(params.NetworkTier)
@@ -158,12 +159,12 @@ func (p *ParamValidatorAndPopulator) ValidateAndPopulate(params *ovfdomain.OVFIm
 	return nil
 }
 
-func (p *ParamValidatorAndPopulator) determineProject(originalProject string) (*string, error) {
+func (p *ParamValidatorAndPopulator) lookupProjectIfMissing(originalProject string) (*string, error) {
 	project, err := param.GetProjectID(p.metadataClient, strings.TrimSpace(originalProject))
 	return &project, err
 }
 
-func (p *ParamValidatorAndPopulator) determineRegion(zone string) (string, error) {
+func (p *ParamValidatorAndPopulator) getRegionFromZone(zone string) (string, error) {
 	zoneSplits := strings.Split(zone, "-")
 	if len(zoneSplits) < 2 {
 		return "", daisy.Errf("%v is not a valid zone", zone)
@@ -171,7 +172,7 @@ func (p *ParamValidatorAndPopulator) determineRegion(zone string) (string, error
 	return strings.Join(zoneSplits[:len(zoneSplits)-1], "-"), nil
 }
 
-func (p *ParamValidatorAndPopulator) determineZone(project, originalZone string) (zone string, err error) {
+func (p *ParamValidatorAndPopulator) lookupZoneIfMissing(project, originalZone string) (zone string, err error) {
 	zone = strings.TrimSpace(originalZone)
 	if zone != "" {
 		if err := p.zoneValidator.ZoneValid(project, zone); err != nil {
@@ -180,7 +181,7 @@ func (p *ParamValidatorAndPopulator) determineZone(project, originalZone string)
 		return zone, nil
 	}
 	if !p.metadataClient.OnGCE() {
-		return "", fmt.Errorf("zone cannot be determined because build is not running on GCE")
+		return "", fmt.Errorf("zone cannot be determined because build is not running on Google Compute Engine")
 	}
 	// determine zone based on the zone Cloud Build is running in
 	zone, err = p.metadataClient.Zone()
@@ -190,7 +191,7 @@ func (p *ParamValidatorAndPopulator) determineZone(project, originalZone string)
 	return zone, nil
 }
 
-func (p *ParamValidatorAndPopulator) determineScratchBucket(originalBucket, project, region, buildID string) (scratchBucket string, err error) {
+func (p *ParamValidatorAndPopulator) createScratchBucketIfMissing(originalBucket, project, region, buildID string) (scratchBucket string, err error) {
 	if originalBucket != "" {
 		scratchBucket = originalBucket
 	} else {
@@ -225,7 +226,7 @@ func (p *ParamValidatorAndPopulator) determineScratchBucket(originalBucket, proj
 	return pathutils.JoinURL(scratchBucket, buildID), nil
 }
 
-func (p *ParamValidatorAndPopulator) determineReleaseTrack(releaseTrack string) (string, error) {
+func (p *ParamValidatorAndPopulator) resolveReleaseTrack(releaseTrack string) (string, error) {
 	if releaseTrack == "" {
 		releaseTrack = ovfdomain.GA
 	}
@@ -235,17 +236,17 @@ func (p *ParamValidatorAndPopulator) determineReleaseTrack(releaseTrack string) 
 	return releaseTrack, nil
 }
 
-func (p *ParamValidatorAndPopulator) determineDeadline(originalTimeout string) (time.Time, error) {
+func (p *ParamValidatorAndPopulator) calculateDeadlineFromTimeout(originalTimeout string) (time.Time, error) {
 	timeout, err := time.ParseDuration(originalTimeout)
 	if err != nil {
-		return time.Now(), daisy.Errf("Error parsing timeout `%v`", originalTimeout)
+		return time.Time{}, daisy.Errf("Error parsing timeout `%v`", originalTimeout)
 	}
 	return time.Now().Add(timeout), nil
 }
 
-func (p *ParamValidatorAndPopulator) determineBuildID(originalTimeout string) string {
-	if originalTimeout != "" {
-		return originalTimeout
+func (p *ParamValidatorAndPopulator) generateBuildIDIfMissing(originalBuildID string) string {
+	if originalBuildID != "" {
+		return originalBuildID
 	}
 	buildID := os.Getenv("BUILD_ID")
 	if buildID == "" {

@@ -71,7 +71,6 @@ var (
 	hostname                    = flag.String(ovfimporter.HostnameFlagKey, "", "Specify the hostname of the instance to be created. The specified hostname must be RFC1035 compliant.")
 	machineImageStorageLocation = flag.String(ovfimporter.MachineImageStorageLocationFlagKey, "", "GCS bucket storage location of the machine image being imported (regional or multi-regional)")
 	buildID                     = flag.String("build-id", "", "Cloud Build ID override. This flag should be used if auto-generated or build ID provided by Cloud Build is not appropriate. For example, if running multiple imports in parallel in a single Cloud Build run, sharing build ID could cause premature temporary resource clean-up resulting in import failures.")
-	workflowDir                 = flag.String("workflow-dir", path.Join(filepath.Dir(os.Args[0]), "daisy_workflows"), "Filesystem path to daisy_workflows directory from github.com/GoogleCloudPlatform/compute-image-tools")
 	nodeAffinityLabelsFlag      flags.StringArrayFlag
 	currentExecutablePath       string
 )
@@ -82,6 +81,12 @@ func init() {
 }
 
 func buildOVFImportParams() *domain.OVFImportParams {
+	// The tool expects the daisy_workflows directory to be in the same directory as the binary:
+	//  parent/
+	//    ├── gce_ovf_import
+	//    └── daisy_workflows/
+	workflowDir := path.Join(filepath.Dir(os.Args[0]), "daisy_workflows")
+
 	flag.Parse()
 	return &domain.OVFImportParams{InstanceNames: *instanceNames,
 		MachineImageName: *machineImageName, ClientID: *clientID,
@@ -100,6 +105,7 @@ func buildOVFImportParams() *domain.OVFImportParams {
 		CurrentExecutablePath: currentExecutablePath, ReleaseTrack: *releaseTrack,
 		UefiCompatible: *uefiCompatible, Hostname: *hostname,
 		MachineImageStorageLocation: *machineImageStorageLocation, BuildID: *buildID,
+		WorkflowDir: workflowDir,
 	}
 }
 
@@ -112,7 +118,7 @@ func runImport() (service.Loggable, error) {
 		}
 	}()
 
-	if ovfImporter, err = ovfimporter.NewOVFImporter(buildOVFImportParams(), *workflowDir); err != nil {
+	if ovfImporter, err = ovfimporter.NewOVFImporter(buildOVFImportParams()); err != nil {
 		return nil, err
 	}
 

@@ -33,7 +33,7 @@ type bootableDiskProcessor struct {
 }
 
 func (b *bootableDiskProcessor) process(pd persistentDisk) (persistentDisk, error) {
-	b.logger.User("Making disk bootable on GCE")
+	b.logger.User("Making disk bootable on Google Compute Engine")
 	b.workflow.AddVar("source_disk", pd.uri)
 	var err error
 	err = b.workflow.RunWithModifiers(context.Background(), b.preValidateFunc(), b.postValidateFunc())

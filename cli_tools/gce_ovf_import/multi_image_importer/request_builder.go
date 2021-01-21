@@ -15,7 +15,6 @@
 package multiimageimporter
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -32,10 +31,6 @@ type requestBuilder struct {
 // buildRequests constructs a list of ImageImportRequests based on the user's
 // invocation parameters and the files referenced in the OVF descriptor.
 func (r *requestBuilder) buildRequests(params *ovfdomain.OVFImportParams, fileURIs []string) (requests []importer.ImageImportRequest, err error) {
-	timeout := params.Deadline.Sub(time.Now())
-	if timeout <= 0 {
-		return nil, errors.New("Timeout exceeded")
-	}
 	for i, fileURI := range fileURIs {
 		var source importer.Source
 		if source, err = r.sourceFactory.Init(fileURI, ""); err != nil {
@@ -66,7 +61,7 @@ func (r *requestBuilder) buildRequests(params *ovfdomain.OVFImportParams, fileUR
 			Source:               source,
 			StdoutLogsDisabled:   params.StdoutLogsDisabled,
 			Subnet:               params.Subnet,
-			Timeout:              timeout,
+			Timeout:              params.Deadline.Sub(time.Now()),
 			UefiCompatible:       params.UefiCompatible,
 			Zone:                 params.Zone,
 		})

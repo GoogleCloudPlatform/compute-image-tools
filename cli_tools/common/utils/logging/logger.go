@@ -75,10 +75,9 @@ type OutputInfoReader interface {
 // ToolLogger implements Logger and OutputInfoReader. Create an instance at the
 // start of a CLI tool's invocation, and pass that instance to dependencies that
 // require logging.
-//
-// NewLogger creates a new logger that writes to this ToolLogger, but with a
-// different User prefix.
 type ToolLogger interface {
+	// NewLogger creates a new logger that writes to this ToolLogger, but with a
+	// different User prefix.
 	NewLogger(userPrefix string) Logger
 	Logger
 	OutputInfoReader
@@ -128,10 +127,8 @@ type defaultToolLogger struct {
 	mutationLock sync.Mutex
 }
 
-// NewLogger creates a new logger that writes to this ToolLogger, but with a
-// different User prefix.
 func (l *defaultToolLogger) NewLogger(userPrefix string) Logger {
-	return &childToolLogger{userPrefix, l}
+	return &customPrefixLogger{userPrefix, l}
 }
 
 // User writes message to the underlying log.Logger, and then buffers the message
@@ -236,24 +233,24 @@ func NewToolLogger(userPrefix string) ToolLogger {
 	}
 }
 
-// childToolLogger is a Logger that writes to a ToolLogger using a custom prefix for User messages.
-type childToolLogger struct {
+// customPrefixLogger is a Logger that writes to a ToolLogger using a custom prefix for User messages.
+type customPrefixLogger struct {
 	userPrefix string
 	parent     *defaultToolLogger
 }
 
-func (s *childToolLogger) User(message string) {
+func (s *customPrefixLogger) User(message string) {
 	s.parent.writeLine(s.userPrefix, message)
 }
 
-func (s *childToolLogger) Debug(message string) {
+func (s *customPrefixLogger) Debug(message string) {
 	s.parent.Debug(message)
 }
 
-func (s *childToolLogger) Trace(message string) {
+func (s *customPrefixLogger) Trace(message string) {
 	s.parent.Trace(message)
 }
 
-func (s *childToolLogger) Metric(metric *pb.OutputInfo) {
+func (s *customPrefixLogger) Metric(metric *pb.OutputInfo) {
 	s.parent.Metric(metric)
 }

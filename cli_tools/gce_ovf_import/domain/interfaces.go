@@ -43,10 +43,15 @@ type MachineTypeProviderInterface interface {
 
 // ImageImporterInterface creates a GCE disk image as specified by the request.
 type ImageImporterInterface interface {
-	ImportImage(context.Context, importer.ImageImportRequest, logging.Logger) error
+	Import(context.Context, importer.ImageImportRequest, logging.Logger) error
 }
 
-// MultiImageImporterInterface imports multiple disk files simultaneously.
+// MultiImageImporterInterface imports multiple disk files simultaneously, returning
+// a list of image resource URIs. The ordering of the returned list matches the ordering
+// of fileURIs.
+//
+// If an import fails, all running imports will be cancelled, and images from finished imports
+// will be deleted.
 type MultiImageImporterInterface interface {
-	ImportAll(ctx context.Context, params *OVFImportParams, fileURIs []string) (imageURIs []string, err error)
+	Import(ctx context.Context, params *OVFImportParams, fileURIs []string) (imageURIs []string, err error)
 }

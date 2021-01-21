@@ -93,6 +93,8 @@ type OVFImportParams struct {
 	NodeAffinitiesBeta    []*computeBeta.SchedulingNodeAffinity
 	CurrentExecutablePath string
 	Region                string
+	// Path to daisy_workflows directory.
+	WorkflowDir string
 }
 
 func (oip *OVFImportParams) String() string {

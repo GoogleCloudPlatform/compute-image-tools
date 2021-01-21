@@ -112,8 +112,6 @@ Exactly one of these must be specified:
   or build ID provided by Cloud Build is not appropriate. For example, if running 
   multiple imports in parallel in a single Cloud Build run, sharing build ID could 
   cause premature temporary resource clean-up resulting in import failures.`
-+ `-workflow-dir` Filesystem path to `daisy_workflows` directory from
-  github.com/GoogleCloudPlatform/compute-image-tools. Defaults to `daisy_workflows`.
 
 ### Usage
 

@@ -80,7 +80,7 @@ func (args *imageImportArgs) populateAndValidate(populator param.Populator,
 		return err
 	}
 
-	args.Network, args.Subnet = param.DisambiguateNetworkAndSubnet(args.Network, args.Subnet, args.Region)
+	args.Network, args.Subnet = param.ResolveNetworkAndSubnet(args.Network, args.Subnet, args.Region)
 
 	// Ensure that all workflow logs are put in the same GCS directory.
 	// path.join doesn't work since it converts `gs://` to `gs:/`.

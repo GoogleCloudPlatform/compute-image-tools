@@ -24,27 +24,21 @@ import (
 )
 
 const (
-	cleanupStepName        = "cleanup"
 	createInstanceStepName = "create-instance"
 	gceMinimumDiskSizeGB   = "10"
 )
 
-// AddDataDisksToInstanceImport updates the CreateInstances step in w to include
-// disks based on the referenced images. The cleanup step is updated to delete the
-// images.
-func AddDataDisksToInstanceImport(w *daisy.Workflow, imageURIs []string) {
-	cleanupStep := w.Steps[cleanupStepName].DeleteResources
-	instanceStep := w.Steps[createInstanceStepName].CreateInstances.Instances[0]
+// CreateDisksOnInstance adds disks to the instance based on the referenced images.
+func CreateDisksOnInstance(instance *daisy.Instance, instanceName string, imageURIs []string) {
 	for i, imageURI := range imageURIs {
-		instanceStep.Disks = append(instanceStep.Disks,
+		instance.Disks = append(instance.Disks,
 			&compute.AttachedDisk{
 				InitializeParams: &compute.AttachedDiskInitializeParams{
-					DiskName:    generateDataDiskName(w.Vars["instance_name"].Value, i+1),
+					DiskName:    generateDataDiskName(instanceName, i+1),
 					SourceImage: imageURI,
 				},
 				AutoDelete: true,
 			})
-		cleanupStep.Images = append(cleanupStep.Images, imageURI)
 	}
 }
 

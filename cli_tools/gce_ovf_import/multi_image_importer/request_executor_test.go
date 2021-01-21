@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -73,7 +74,7 @@ func TestExecuteRequests_DontImport_IfBootImageAlreadyExists(t *testing.T) {
 	}).executeRequests(context.Background(), []importer.ImageImportRequest{
 		bootRequest, dataRequest,
 	})
-	assert.EqualError(t, actualError, "Aborting import: Intermediate image img-1 already exists")
+	assert.EqualError(t, actualError, "Intermediate image img-1 already exists. Re-run import.")
 }
 
 func TestExecuteRequests_DontImport_IfDataImageAlreadyExists(t *testing.T) {
@@ -90,7 +91,7 @@ func TestExecuteRequests_DontImport_IfDataImageAlreadyExists(t *testing.T) {
 	}).executeRequests(context.Background(), []importer.ImageImportRequest{
 		bootRequest, dataRequest,
 	})
-	assert.EqualError(t, actualError, "Aborting import: Intermediate image img-2 already exists")
+	assert.EqualError(t, actualError, "Intermediate image img-2 already exists. Re-run import.")
 }
 
 func TestExecuteRequests_PerformCleanup_IfAnyImportFails(t *testing.T) {
@@ -126,6 +127,13 @@ func TestExecuteRequests_PerformCleanup_IfAnyImportFails(t *testing.T) {
 	assert.Equal(t, importFailedError, actualError)
 }
 
+func TestExecuteRequests_ReturnError_WhenTimeoutExceeded(t *testing.T) {
+	request := makeRequest("img-1")
+	request.Timeout = 0
+	_, actualError := (&requestExecutor{}).executeRequests(context.Background(), []importer.ImageImportRequest{request})
+	assert.EqualError(t, actualError, "Timeout exceeded")
+}
+
 func TestExecuteRequests_LogsMessage_IfCleanupFails(t *testing.T) {
 	importFailedError := errors.New("Error failed")
 	bootRequest := makeRequest("img-1")
@@ -146,7 +154,7 @@ func TestExecuteRequests_LogsMessage_IfCleanupFails(t *testing.T) {
 
 	mockLogger := mocks.NewMockToolLogger(ctrl)
 	mockLogger.EXPECT().NewLogger("[import-img-1]").Return(logging.NewToolLogger("test"))
-	mockLogger.EXPECT().User("Failed to delete \"img-1\". Manual deletion required.")
+	mockLogger.EXPECT().User("Failed to delete \"projects/project123/global/images/img-1\". Manual deletion required.")
 	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
 
 	_, actualError := (&requestExecutor{
@@ -164,5 +172,6 @@ func makeRequest(imageName string) importer.ImageImportRequest {
 		ImageName:          imageName,
 		Project:            defaultProject,
 		DaisyLogLinePrefix: imageName,
+		Timeout:            time.Hour,
 	}
 }

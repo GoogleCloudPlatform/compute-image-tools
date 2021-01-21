@@ -31,7 +31,7 @@ func NewMultiImageImporter(workflowDir string, computeClient daisycompute.Client
 	return &multiImageImporter{
 		builder: &requestBuilder{workflowDir, importer.NewSourceFactory(storageClient)},
 		executor: &requestExecutor{
-			&importerShim{computeClient, storageClient},
+			&importAdapter{computeClient, storageClient},
 			computeClient,
 			logger,
 		},
@@ -43,7 +43,7 @@ type multiImageImporter struct {
 	executor *requestExecutor
 }
 
-func (m *multiImageImporter) ImportAll(ctx context.Context, params *ovfdomain.OVFImportParams, fileURIs []string) (imageURIs []string, err error) {
+func (m *multiImageImporter) Import(ctx context.Context, params *ovfdomain.OVFImportParams, fileURIs []string) (imageURIs []string, err error) {
 	var requests []importer.ImageImportRequest
 	if requests, err = m.builder.buildRequests(params, fileURIs); err != nil {
 		return nil, err
@@ -51,14 +51,14 @@ func (m *multiImageImporter) ImportAll(ctx context.Context, params *ovfdomain.OV
 	return m.executor.executeRequests(ctx, requests)
 }
 
-// importerShim exposes a simplified interface for image import to facilitate testing.
-type importerShim struct {
+// importAdapter exposes a simplified interface for image import to facilitate testing.
+type importAdapter struct {
 	computeClient daisycompute.Client
 	storageClient domain.StorageClientInterface
 }
 
-func (shim *importerShim) ImportImage(ctx context.Context, request importer.ImageImportRequest, logger logging.Logger) error {
-	imageImporter, err := importer.NewImporter(request, shim.computeClient, shim.storageClient, logger)
+func (adapter *importAdapter) Import(ctx context.Context, request importer.ImageImportRequest, logger logging.Logger) error {
+	imageImporter, err := importer.NewImporter(request, adapter.computeClient, adapter.storageClient, logger)
 	if err != nil {
 		return err
 	}

@@ -177,7 +177,7 @@ type daisyInflater struct {
 
 func (inflater *daisyInflater) Inflate() (persistentDisk, shadowTestFields, error) {
 	if inflater.source != nil {
-		inflater.logger.User("Creating GCE disk from " + inflater.source.Path())
+		inflater.logger.User("Creating Google Compute Engine disk from " + inflater.source.Path())
 	}
 	startTime := time.Now()
 	err := inflater.wf.Run(context.Background())
@@ -186,7 +186,7 @@ func (inflater *daisyInflater) Inflate() (persistentDisk, shadowTestFields, erro
 			inflater.logger.Trace(trace)
 		}
 	}
-	inflater.logger.User("Finished creating GCE disk")
+	inflater.logger.User("Finished creating Google Compute Engine disk")
 	// See `daisy_workflows/image_import/import_image.sh` for generation of these values.
 	targetSizeGB := inflater.wf.GetSerialConsoleOutputValue("target-size-gb")
 	sourceSizeGB := inflater.wf.GetSerialConsoleOutputValue("source-size-gb")

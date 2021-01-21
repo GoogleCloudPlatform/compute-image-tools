@@ -25,6 +25,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
@@ -154,6 +155,19 @@ func getResourcePath(scope string, resourceType string, resourceName string) str
 	return fmt.Sprintf("%v/%v/%v", scope, resourceType, resourceName)
 }
 
+// GetImageResourcePath gets the resource path for an image. It will panic if either
+// projectID or imageName is invalid. To avoid panic, pre-validate using the
+// functions in the `validation` package.
+func GetImageResourcePath(projectID, imageName string) string {
+	if err := validation.ValidateImageName(imageName); err != nil {
+		panic(fmt.Sprintf("Invalid image name %q: %v", imageName, err))
+	}
+	if err := validation.ValidateProjectID(projectID); err != nil {
+		panic(fmt.Sprintf("Invalid projectID %q: %v", projectID, err))
+	}
+	return fmt.Sprintf("projects/%s/global/images/%s", projectID, imageName)
+}
+
 // GetGlobalResourcePath gets global resource path based on either a local resource name or a path
 func GetGlobalResourcePath(resourceType string, resourceName string) string {
 	return getResourcePath("global", resourceType, resourceName)
@@ -169,7 +183,7 @@ func GetZonalResourcePath(zone string, resourceType string, resourceName string)
 	return getResourcePath(fmt.Sprintf("zones/%v", zone), resourceType, resourceName)
 }
 
-// DisambiguateNetworkAndSubnet returns the URI representation of network and subnet
+// ResolveNetworkAndSubnet returns the URI representation of network and subnet
 // within a given region.
 //
 // There are two goals:
@@ -179,7 +193,7 @@ func GetZonalResourcePath(zone string, resourceType string, resourceName string)
 //    b. Convert bare identifiers to URIs.
 //
 // Rules: https://cloud.google.com/vpc/docs/vpc
-func DisambiguateNetworkAndSubnet(originalNetwork, originalSubnet string, region string) (network string, subnet string) {
+func ResolveNetworkAndSubnet(originalNetwork, originalSubnet string, region string) (network string, subnet string) {
 	network, subnet = strings.TrimSpace(originalNetwork), strings.TrimSpace(originalSubnet)
 	if network == "" && subnet == "" {
 		network = "default"

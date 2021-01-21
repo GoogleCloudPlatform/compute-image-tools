@@ -105,13 +105,6 @@ func TestBuildRequests_CreatesTimeout_FromDeadline(t *testing.T) {
 	}
 }
 
-func TestBuildRequests_ReturnError_WhenTimeoutExceeded(t *testing.T) {
-	params := makeDefaultParams()
-	params.Deadline = time.Now()
-	_, actualError := (&requestBuilder{}).buildRequests(params, []string{"gs://bucket/disk1.vmdk"})
-	assert.EqualError(t, actualError, "Timeout exceeded")
-}
-
 func TestBuildRequests_ReturnError_WhenSourceInitializationFails(t *testing.T) {
 	initError := errors.New("failed to init source")
 	fileURIs := []string{"gs://bucket/disk1.vmdk", "gs://bucket/disk2.vmdk"}

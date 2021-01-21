@@ -154,7 +154,7 @@ func (m *MockImageImporterInterface) EXPECT() *MockImageImporterInterfaceMockRec
 }
 
 // ImportImage mocks base method
-func (m *MockImageImporterInterface) ImportImage(arg0 context.Context, arg1 importer.ImageImportRequest, arg2 logging.Logger) error {
+func (m *MockImageImporterInterface) Import(arg0 context.Context, arg1 importer.ImageImportRequest, arg2 logging.Logger) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ImportImage", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
@@ -164,7 +164,7 @@ func (m *MockImageImporterInterface) ImportImage(arg0 context.Context, arg1 impo
 // ImportImage indicates an expected call of ImportImage
 func (mr *MockImageImporterInterfaceMockRecorder) ImportImage(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportImage", reflect.TypeOf((*MockImageImporterInterface)(nil).ImportImage), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportImage", reflect.TypeOf((*MockImageImporterInterface)(nil).Import), arg0, arg1, arg2)
 }
 
 // MockMultiImageImporterInterface is a mock of MultiImageImporterInterface interface
@@ -191,7 +191,7 @@ func (m *MockMultiImageImporterInterface) EXPECT() *MockMultiImageImporterInterf
 }
 
 // ImportAll mocks base method
-func (m *MockMultiImageImporterInterface) ImportAll(ctx context.Context, params *domain.OVFImportParams, fileURIs []string) ([]string, error) {
+func (m *MockMultiImageImporterInterface) Import(ctx context.Context, params *domain.OVFImportParams, fileURIs []string) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ImportAll", ctx, params, fileURIs)
 	ret0, _ := ret[0].([]string)
@@ -202,5 +202,5 @@ func (m *MockMultiImageImporterInterface) ImportAll(ctx context.Context, params 
 // ImportAll indicates an expected call of ImportAll
 func (mr *MockMultiImageImporterInterfaceMockRecorder) ImportAll(ctx, params, fileURIs interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportAll", reflect.TypeOf((*MockMultiImageImporterInterface)(nil).ImportAll), ctx, params, fileURIs)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportAll", reflect.TypeOf((*MockMultiImageImporterInterface)(nil).Import), ctx, params, fileURIs)
 }
