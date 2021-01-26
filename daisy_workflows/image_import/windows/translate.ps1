@@ -306,7 +306,20 @@ function Enable-WinRM {
   }
 }
 
+function Add-Warning {
+  param (
+    [parameter(Mandatory=$true)]
+      [string]$message,
+  )
+  if $script:warnings -ne '' {
+    $script:warnings += ' '
+  }
+  $script:warnings += $message
+  "Translate: Warning - $message"
+}
+
 try {
+  $script:warnings = ''
   Write-Output 'Translate: Beginning translate PowerShell script.'
   $script:pn = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name ProductName).ProductName
   Write-Host "Translate: OS is $script:pn, version $([System.Environment]::OSVersion.Version.ToString())"
@@ -381,6 +394,10 @@ try {
 catch {
   Write-Output 'Exception caught in script:'
   Write-Output $_.InvocationInfo.PositionMessage
-  Write-Output "TranslateFailed: $($_.Exception.Message)"
+  $previous_warnings = ''
+  if $script:warnings -ne '' {
+    $previous_warnings = " Previous warning(s): $script:warnings"
+  }
+  Write-Output "TranslateFailed: $($_.Exception.Message).$previous_warnings"
   exit 1
 }
