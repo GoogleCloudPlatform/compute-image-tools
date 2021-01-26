@@ -115,7 +115,20 @@ function Copy-32bitPackages {
   Copy-Item "${script:components_dir}\*.goo" "${script:os_drive}\ProgramData\GooGet\components\" -Force -Verbose -Recurse
 }
 
+function Add-Warning {
+  param (
+    [parameter(Mandatory=$true)]
+      [string]$message,
+  )
+  if $script:warnings -ne '' {
+    $script:warnings += ' '
+  }
+  $script:warnings += $message
+  "TranslateBootstrap: Warning - $message"
+}
+
 try {
+  $script:warnings = ''
   Write-Output 'TranslateBootstrap: Beginning translation bootstrap powershell script.'
   $script:is_x86 = Get-MetadataValue -key 'is_x86'
 
@@ -152,7 +165,7 @@ try {
   $diskInfo = get-WmiObject win32_logicaldisk -Filter "DeviceID='${script:os_drive}'"
   Write-Output "${script:os_drive} has $([math]::Round($diskInfo.FreeSpace / 1GB,2))GB free and is $([math]::Round(($diskInfo.FreeSpace / $diskInfo.Size)*100,2))% used."
   if (($diskInfo.FreeSpace / 1GB) -lt 1) {
-    Write-Output "TranslateBootstrap: Warning imported system volume has less than 1GB free. $([math]::Round($diskInfo.FreeSpace / 1MB,2))MB disk space free. This may cause the import to fail."
+    Add-Warning -message "Imported system volume has less than 1GB free. $([math]::Round($diskInfo.FreeSpace / 1MB,2))MB disk space free."
   }
 
   $kernel32_ver = (Get-Command "${script:os_drive}\Windows\System32\kernel32.dll").Version
@@ -222,6 +235,10 @@ try {
 catch {
   Write-Output 'Exception caught in script:'
   Write-Output $_.InvocationInfo.PositionMessage
-  Write-Output "TranslateFailed: $($_.Exception.Message)"
+  $previous_warnings = ''
+  if $script:warnings -ne '' {
+    $previous_warnings = " Previous warning(s): $script:warnings"
+  }
+  Write-Output "TranslateFailed: $($_.Exception.Message).$previous_warnings"
   exit 1
 }
