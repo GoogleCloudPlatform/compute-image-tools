@@ -5,7 +5,7 @@
   or 'staging'.
   DeleteAfter is set to 180 days for all environments other than prod where no
   time period is set.
-/}}
+*/}}
 {
   "Name": "rhel-8-byos",
   {{$work_project := printf "%q" "gce-image-builder" -}}
