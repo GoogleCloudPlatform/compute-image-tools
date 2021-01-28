@@ -105,7 +105,7 @@ func runInstanceOVFExportUbuntu3Disks(ctx context.Context, testCase *junitxml.Te
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All tests passed!",
 		failureMatches:        []string{"FAILED:", "TestFailed:"},
-		sourceGMI:             "projects/compute-image-test-pool-001/global/machineImages/ubuntu-1604-three-disks",
+		sourceGMI:             "projects/compute-image-test-pool-001/global/machineImages/ubuntu-1604-three-disks-do-not-delete",
 		instanceMetadata:      skipOSConfigMetadata,
 		os:                    "ubuntu-1604",
 		destinationURI:        fmt.Sprintf("gs://%v/%v/", exportBucket, exportPath),
@@ -178,7 +178,7 @@ func runOVFInstanceExportTest(ctx context.Context, args []string, testType e2e.C
 	logger.Printf("Exporting a temporary virtual machine instance `%v` to OVF at: %v", props.instanceName, props.destinationURI)
 	if e2e.RunTestForTestType(cmds[testType], args, testType, logger, testCase) {
 		if verifyExportedInstanceIsUnmodifiedAfterExport(ctx, testCase, testProjectConfig, logger, props) {
-			if ok, filesToClean := verifyExportedOVFContent(ctx, testCase, logger, props); ok {
+			if ok, filesToClean := verifyExportedOVFContent(ctx, testCase, logger, props, instance); ok {
 				defer cleanupGCSFiles(filesToClean, logger)
 				verifyExportedOVFUsingOVFImport(ctx, testCase, testProjectConfig, logger, props, computeClient)
 			}
@@ -214,17 +214,14 @@ func verifyExportedInstanceIsUnmodifiedAfterExport(
 }
 
 func verifyExportedOVFContent(ctx context.Context, testCase *junitxml.TestCase,
-	logger *log.Logger, props *instanceOvfExportTestProperties) (bool, []*gcp.File) {
+	logger *log.Logger, props *instanceOvfExportTestProperties, instance *gcp.Instance) (bool, []*gcp.File) {
 
-	splits := strings.Split(props.sourceGMI, "/")
-	sourceGMIName := splits[len(splits)-1]
-	sourceGMIName = "machine-image-import-s2mtj"
 	filePaths := []string{
-		fmt.Sprintf("%v/%v-%v.vmdk", props.exportPath, props.instanceName, sourceGMIName),
-		fmt.Sprintf("%v/%v-%v-1.vmdk", props.exportPath, props.instanceName, sourceGMIName),
-		fmt.Sprintf("%v/%v-%v-2.vmdk", props.exportPath, props.instanceName, sourceGMIName),
 		fmt.Sprintf("%v/%v.mf", props.exportPath, props.instanceName),
 		fmt.Sprintf("%v/%v.ovf", props.exportPath, props.instanceName),
+	}
+	for _, attachedDisk := range instance.Instance.Disks {
+		filePaths = append(filePaths, fmt.Sprintf("%v/%v-%v.vmdk", props.exportPath, props.instanceName, attachedDisk.DeviceName))
 	}
 
 	var fileErrors []error
