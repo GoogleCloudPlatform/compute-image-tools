@@ -44,7 +44,7 @@ var (
 		e2e.Wrapper: "./gce_ovf_export",
 	}
 	// Apply this as instance metadata if the OS config agent is not
-	// supported for the platform or version being imported.
+	// supported for the platform or version being exported.
 	skipOSConfigMetadata = map[string]string{"osconfig_not_supported": "true"}
 )
 
@@ -114,7 +114,7 @@ func runInstanceOVFExportUbuntu3Disks(ctx context.Context, testCase *junitxml.Te
 		buildID:               buildID,
 	}
 
-	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
+	runOVFInstanceExportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
 func buildTestArgs(props *instanceOvfExportTestProperties, testProjectConfig *testconfig.Project) map[e2e.CLITestType][]string {
@@ -140,7 +140,7 @@ func buildTestArgs(props *instanceOvfExportTestProperties, testProjectConfig *te
 	return argsMap
 }
 
-func runOVFInstanceImportTest(ctx context.Context, args []string, testType e2e.CLITestType,
+func runOVFInstanceExportTest(ctx context.Context, args []string, testType e2e.CLITestType,
 	testProjectConfig *testconfig.Project, logger *log.Logger, testCase *junitxml.TestCase,
 	props *instanceOvfExportTestProperties) {
 

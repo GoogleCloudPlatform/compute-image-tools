@@ -54,11 +54,13 @@ var (
 	now = time.Now()
 )
 
-func shouldDelete(labels map[string]string, t string, s int64) bool {
+func shouldDelete(name string, labels map[string]string, t string, s int64) bool {
 	if _, ok := labels[keepLabel]; ok {
 		return false
 	}
-
+	if strings.Contains(name, keepLabel) {
+		return false
+	}
 	var c time.Time
 	var err error
 	switch {
@@ -90,7 +92,7 @@ func cleanInstances(client daisyCompute.Client, project string) {
 		if i.DeletionProtection {
 			continue
 		}
-		if !shouldDelete(i.Labels, i.CreationTimestamp, 0) {
+		if !shouldDelete(i.Name, i.Labels, i.CreationTimestamp, 0) {
 			continue
 		}
 
@@ -121,7 +123,7 @@ func cleanDisks(client daisyCompute.Client, project string) {
 	fmt.Println("Cleaning disks:")
 	var wg sync.WaitGroup
 	for _, d := range disks {
-		if !shouldDelete(d.Labels, d.CreationTimestamp, 0) {
+		if !shouldDelete(d.Name, d.Labels, d.CreationTimestamp, 0) {
 			continue
 		}
 
@@ -151,12 +153,12 @@ func cleanImages(client daisyCompute.Client, project string) {
 
 	fmt.Println("Cleaning images:")
 	var wg sync.WaitGroup
-	for _, d := range images {
-		if !shouldDelete(d.Labels, d.CreationTimestamp, 0) {
+	for _, i := range images {
+		if !shouldDelete(i.Name, i.Labels, i.CreationTimestamp, 0) {
 			continue
 		}
 
-		name := path.Base(d.SelfLink)
+		name := path.Base(i.SelfLink)
 		fmt.Printf("- projects/%s/global/images/%s\n", project, name)
 		if *dryRun {
 			continue
@@ -181,8 +183,11 @@ func cleanMachineImages(client daisyCompute.Client, project string) {
 
 	fmt.Println("Cleaning machine images:")
 	var wg sync.WaitGroup
-	for _, d := range machineImages {
-		name := path.Base(d.SelfLink)
+	for _, mi := range machineImages {
+		if !shouldDelete(mi.Name, nil, mi.CreationTimestamp, 0) {
+			continue
+		}
+		name := path.Base(mi.SelfLink)
 		fmt.Printf("- projects/%s/global/machineImages/%s\n", project, name)
 		if *dryRun {
 			continue
@@ -208,7 +213,7 @@ func cleanSnapshots(client daisyCompute.Client, project string) {
 	fmt.Println("Cleaning snapshots:")
 	var wg sync.WaitGroup
 	for _, s := range snapshots {
-		if !shouldDelete(s.Labels, s.CreationTimestamp, 0) {
+		if !shouldDelete(s.Name, s.Labels, s.CreationTimestamp, 0) {
 			continue
 		}
 
@@ -255,7 +260,7 @@ func cleanNetworks(client daisyCompute.Client, project string) {
 			continue
 		}
 
-		if !shouldDelete(nil, n.CreationTimestamp, 0) {
+		if !shouldDelete(n.Name, nil, n.CreationTimestamp, 0) {
 			continue
 		}
 
@@ -336,7 +341,7 @@ func cleanGuestPolicies(ctx context.Context, client *osconfig.Client, project st
 			fmt.Printf("Error calling ListGuestPolicies in project %q: %v\n", project, err)
 			return
 		}
-		if !shouldDelete(nil, "", gp.GetCreateTime().GetSeconds()) {
+		if !shouldDelete(gp.Name, nil, "", gp.GetCreateTime().GetSeconds()) {
 			continue
 		}
 		fmt.Printf("- %s\n", gp.GetName())
