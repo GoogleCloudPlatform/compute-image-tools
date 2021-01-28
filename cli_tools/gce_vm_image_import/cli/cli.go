@@ -21,12 +21,12 @@ import (
 
 	"google.golang.org/api/option"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/importer"
 )
 
 // Main starts an image import.
@@ -78,7 +78,7 @@ func Main(args []string, toolLogger logging.ToolLogger, workflowDir string) erro
 	}
 
 	// Run the import.
-	importRunner, err := importer.NewImporter(importArgs.ImageImportRequest, computeClient, *storageClient, toolLogger)
+	importRunner, err := importer.NewImporter(importArgs.ImageImportRequest, computeClient, storageClient, toolLogger)
 	if err != nil {
 		logFailure(importArgs, err)
 		return err

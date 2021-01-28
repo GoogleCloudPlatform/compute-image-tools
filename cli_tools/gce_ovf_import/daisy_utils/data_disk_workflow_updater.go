@@ -17,15 +17,30 @@ package daisyovfutils
 import (
 	"fmt"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
+
+	ovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 const (
 	createInstanceStepName = "create-instance"
 	gceMinimumDiskSizeGB   = "10"
 )
+
+// CreateDisksOnInstance adds disks to the instance based on the referenced images.
+func CreateDisksOnInstance(instance *daisy.Instance, instanceName string, imageURIs []string) {
+	for i, imageURI := range imageURIs {
+		instance.Disks = append(instance.Disks,
+			&compute.AttachedDisk{
+				InitializeParams: &compute.AttachedDiskInitializeParams{
+					DiskName:    generateDataDiskName(instanceName, i+1),
+					SourceImage: imageURI,
+				},
+				AutoDelete: true,
+			})
+	}
+}
 
 // AddDiskImportSteps adds Daisy steps to OVF import workflow to import disks
 // defined in dataDiskInfos.

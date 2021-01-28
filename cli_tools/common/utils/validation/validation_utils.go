@@ -28,12 +28,19 @@ import (
 const (
 	rfc1035LabelRegexpStr = "[A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9]"
 	imageNameStr          = "^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$"
+
+	// projectID: "The unique, user-assigned ID of the Project. It must be 6 to 30
+	// lowercase letters,  digits, or hyphens. It must start with a letter.
+	// Trailing hyphens are prohibited."
+	// -- https://cloud.google.com/resource-manager/reference/rest/v1/projects
+	projectIDStr = "^[a-z][-a-z0-9]{4,28}[a-z0-9]$" //
 )
 
 var (
 	rfc1035LabelRegexp = regexp.MustCompile(rfc1035LabelRegexpStr)
 	fqdnRegexp         = regexp.MustCompile(fmt.Sprintf("^((%v)\\.)+(%v)$", rfc1035LabelRegexpStr, rfc1035LabelRegexpStr))
 	imageNameRegexp    = regexp.MustCompile(imageNameStr)
+	projectIDRegexp    = regexp.MustCompile(projectIDStr)
 )
 
 // ValidateStringFlagNotEmpty returns error with error message stating field must be provided if
@@ -70,6 +77,15 @@ func ValidateRfc1035Label(value string) error {
 func ValidateImageName(value string) error {
 	if !imageNameRegexp.MatchString(value) {
 		return daisy.Errf("Image name `%v` must conform to https://cloud.google.com/compute/docs/reference/rest/v1/images", value)
+	}
+	return nil
+}
+
+// ValidateProjectID validates whether a string is a valid projectID, as defined by
+// <https://cloud.google.com/resource-manager/reference/rest/v1/projects>.
+func ValidateProjectID(value string) error {
+	if !projectIDRegexp.MatchString(value) {
+		return daisy.Errf("projectID `%v` must conform to https://cloud.google.com/resource-manager/reference/rest/v1/projects", value)
 	}
 	return nil
 }

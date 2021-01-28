@@ -20,10 +20,11 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/vmware/govmomi/ovf"
+
+	ovfdomainmocks "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain/mocks"
 )
 
 var (
@@ -499,7 +500,7 @@ func TestGetOVFDescriptorAndDiskPaths(t *testing.T) {
 		},
 	}
 
-	mockOvfDescriptorLoader := mocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
+	mockOvfDescriptorLoader := ovfdomainmocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
 	mockOvfDescriptorLoader.EXPECT().Load(ovfPackagePath).Return(ovfDescriptor, nil)
 
 	ovfDescriptorResult, diskPaths, err := GetOVFDescriptorAndDiskPaths(
@@ -519,7 +520,7 @@ func TestGetOVFDescriptorAndDiskPathsErrorWhenLoadingDescriptor(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockOvfDescriptorLoader := mocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
+	mockOvfDescriptorLoader := ovfdomainmocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
 	mockOvfDescriptorLoader.EXPECT().Load(
 		"gs://abucket/apath/").Return(nil, fmt.Errorf("error loading descriptor"))
 
@@ -534,7 +535,7 @@ func TestGetOVFDescriptorAndDiskPathsErrorWhenNoVirtualSystem(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockOvfDescriptorLoader := mocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
+	mockOvfDescriptorLoader := ovfdomainmocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
 	mockOvfDescriptorLoader.EXPECT().Load("gs://abucket/apath/").Return(
 		&ovf.Envelope{
 			References: *defaultReferences,
@@ -552,7 +553,7 @@ func TestGetOVFDescriptorAndDiskPathsErrorWhenNoVirtualHardware(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockOvfDescriptorLoader := mocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
+	mockOvfDescriptorLoader := ovfdomainmocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
 	mockOvfDescriptorLoader.EXPECT().Load("gs://abucket/apath/").Return(
 		&ovf.Envelope{
 			VirtualSystem: &ovf.VirtualSystem{},
@@ -571,7 +572,7 @@ func TestGetOVFDescriptorAndDiskPathsErrorWhenNoDisks(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockOvfDescriptorLoader := mocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
+	mockOvfDescriptorLoader := ovfdomainmocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
 	mockOvfDescriptorLoader.EXPECT().Load("gs://abucket/apath/").Return(
 		&ovf.Envelope{
 			VirtualSystem: &ovf.VirtualSystem{VirtualHardware: []ovf.VirtualHardwareSection{
@@ -593,7 +594,7 @@ func TestGetOVFDescriptorAndDiskPathsErrorWhenNoReferences(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockOvfDescriptorLoader := mocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
+	mockOvfDescriptorLoader := ovfdomainmocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
 	mockOvfDescriptorLoader.EXPECT().Load("gs://abucket/apath/").Return(
 		&ovf.Envelope{
 			VirtualSystem: &ovf.VirtualSystem{VirtualHardware: []ovf.VirtualHardwareSection{

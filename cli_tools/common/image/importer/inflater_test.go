@@ -24,7 +24,7 @@ import (
 	"google.golang.org/api/compute/v1"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
-	logging2 "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -32,9 +32,10 @@ import (
 // constructs the log prefix using the workflow's name.
 func TestCreateDaisyInflater_SetsWorkflowNameToGcloudPrefix(t *testing.T) {
 	inflater := createDaisyInflaterForImageSafe(t, ImageImportRequest{
-		Source: imageSource{uri: "projects/test/uri/image"},
+		Source:             imageSource{uri: "projects/test/uri/image"},
+		DaisyLogLinePrefix: "disk-1",
 	})
-	assert.Equal(t, inflater.wf.Name, "import-image")
+	assert.Equal(t, "disk-1-inflate", inflater.wf.Name)
 }
 
 func TestCreateDaisyInflater_Image_HappyCase(t *testing.T) {
@@ -293,8 +294,8 @@ func TestCreateDaisyInflater_File_NotUEFI(t *testing.T) {
 
 func createDaisyInflaterSafe(t *testing.T, request ImageImportRequest,
 	inspector imagefile.Inspector) *daisyInflater {
-	request.WorkflowDir = "../../../daisy_workflows"
-	inflater, err := NewDaisyInflater(request, inspector, logging2.NewToolLogger("TODO"))
+	request.WorkflowDir = "../../../../daisy_workflows"
+	inflater, err := NewDaisyInflater(request, inspector, logging.NewToolLogger("test"))
 	assert.NoError(t, err)
 	realInflater, ok := inflater.(*daisyInflater)
 	assert.True(t, ok)

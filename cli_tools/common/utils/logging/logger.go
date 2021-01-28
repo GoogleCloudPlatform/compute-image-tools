@@ -76,6 +76,9 @@ type OutputInfoReader interface {
 // start of a CLI tool's invocation, and pass that instance to dependencies that
 // require logging.
 type ToolLogger interface {
+	// NewLogger creates a new logger that writes to this ToolLogger, but with a
+	// different User prefix.
+	NewLogger(userPrefix string) Logger
 	Logger
 	OutputInfoReader
 }
@@ -122,6 +125,10 @@ type defaultToolLogger struct {
 
 	// mutationLock should be taken when reading or writing trace, userAndDebugBuffer, or outputInfo.
 	mutationLock sync.Mutex
+}
+
+func (l *defaultToolLogger) NewLogger(userPrefix string) Logger {
+	return &customPrefixLogger{userPrefix, l}
 }
 
 // User writes message to the underlying log.Logger, and then buffers the message
@@ -224,4 +231,26 @@ func NewToolLogger(userPrefix string) ToolLogger {
 		outputInfo:      &pb.OutputInfo{},
 		timeProvider:    time.Now,
 	}
+}
+
+// customPrefixLogger is a Logger that writes to a ToolLogger using a custom prefix for User messages.
+type customPrefixLogger struct {
+	userPrefix string
+	parent     *defaultToolLogger
+}
+
+func (s *customPrefixLogger) User(message string) {
+	s.parent.writeLine(s.userPrefix, message)
+}
+
+func (s *customPrefixLogger) Debug(message string) {
+	s.parent.Debug(message)
+}
+
+func (s *customPrefixLogger) Trace(message string) {
+	s.parent.Trace(message)
+}
+
+func (s *customPrefixLogger) Metric(metric *pb.OutputInfo) {
+	s.parent.Metric(metric)
 }

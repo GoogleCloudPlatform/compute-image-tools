@@ -214,7 +214,7 @@ func Test_MetadataProcessor_DontDeleteOriginalDisk_IfCreateFails(t *testing.T) {
 	returnedPD, err := processor.process(argPD)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Failed to create UEFI disk")
+	assert.Contains(t, err.Error(), "Failed to clone disk: disk create failed")
 	assert.Equal(t, argPD, returnedPD)
 }
 

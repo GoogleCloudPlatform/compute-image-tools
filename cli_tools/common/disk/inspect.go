@@ -35,10 +35,9 @@ const (
 	workflowFile = "image_import/inspection/boot-inspect.wf.json"
 )
 
-// To rebuild the mock for Inspector, run `go generate ./...`
-//go:generate go run github.com/golang/mock/mockgen -package mocks -source $GOFILE -destination mocks/mock_inspect.go
-
 // Inspector finds partition and boot-related properties for a disk.
+//
+//go:generate go run github.com/golang/mock/mockgen -package diskmocks -source $GOFILE -destination mocks/mock_inspect.go
 type Inspector interface {
 	// Inspect finds partition and boot-related properties for a disk and
 	// returns an InspectionResult. The reference is implementation specific.
@@ -54,6 +53,14 @@ func NewInspector(env daisycommon.EnvironmentSettings, logger logging.Logger) (I
 	if err != nil {
 		return nil, err
 	}
+
+	// Daisy uses the workflow name as the prefix for log lines.
+	logPrefix := env.DaisyLogLinePrefix
+	if logPrefix != "" {
+		logPrefix += "-"
+	}
+	wf.Name = logPrefix + "inspect"
+
 	return &bootInspector{daisycommon.NewDaisyWorker(wf, env, logger), logger}, nil
 }
 

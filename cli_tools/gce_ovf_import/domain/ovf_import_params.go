@@ -12,14 +12,27 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package ovfimportparams
+package domain
 
 import (
 	"fmt"
+	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
+)
+
+const (
+	//Alpha represents alpha release track
+	Alpha = "alpha"
+
+	//Beta represents beta release track
+	Beta = "beta"
+
+	//GA represents GA release track
+	GA = "ga"
 )
 
 // OVFImportParams holds flags for OVF import as well as derived (parsed) params
@@ -72,10 +85,16 @@ type OVFImportParams struct {
 	BuildID                     string
 
 	// Non-flags
+
+	// Deadline of when timeout will occur.
+	Deadline              time.Time
 	UserLabels            map[string]string
 	NodeAffinities        []*compute.SchedulingNodeAffinity
 	NodeAffinitiesBeta    []*computeBeta.SchedulingNodeAffinity
 	CurrentExecutablePath string
+	Region                string
+	// Path to daisy_workflows directory.
+	WorkflowDir string
 }
 
 func (oip *OVFImportParams) String() string {

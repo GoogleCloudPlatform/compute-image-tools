@@ -309,9 +309,9 @@ function Enable-WinRM {
 function Add-Warning {
   param (
     [parameter(Mandatory=$true)]
-      [string]$message,
+      [string]$message
   )
-  if $script:warnings -ne '' {
+  if ($script:warnings -ne '') {
     $script:warnings += ' '
   }
   $script:warnings += $message
@@ -395,7 +395,7 @@ catch {
   Write-Output 'Exception caught in script:'
   Write-Output $_.InvocationInfo.PositionMessage
   $previous_warnings = ''
-  if $script:warnings -ne '' {
+  if ($script:warnings -ne '') {
     $previous_warnings = " Previous warning(s): $script:warnings"
   }
   Write-Output "TranslateFailed: $($_.Exception.Message).$previous_warnings"

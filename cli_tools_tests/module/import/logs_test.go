@@ -24,6 +24,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/cli"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
@@ -170,4 +171,8 @@ func (b *bufferedLogger) Metric(metric *pb.OutputInfo) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	proto.Merge(b.outputInfo, metric)
+}
+
+func (b *bufferedLogger) NewLogger(userPrefix string) logging.Logger {
+	panic("not expected for this test")
 }
