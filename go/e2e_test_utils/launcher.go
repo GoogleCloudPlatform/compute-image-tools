@@ -75,7 +75,7 @@ func RunTestsWithArgsAndOutput(testFunctions []func(context.Context, *sync.WaitG
 	pr := getProject(ctx)
 	testSuiteRegex, testCaseRegex := getTestRegex()
 
-	logger := log.New(os.Stdout, loggerPrefix+" ", 0)
+	logger := log.New(os.Stdout, loggerPrefix+" ", log.LstdFlags)
 	logger.Println("Starting...")
 
 	var s flags.KeyValueString = nil
