@@ -237,7 +237,6 @@ func verifyExportedOVFContent(ctx context.Context, testCase *junitxml.TestCase,
 			fileErrors = append(fileErrors, fileError)
 			filePathsForError = append(filePathsForError, filePath)
 		}
-		fmt.Sprintf("%v", file)
 	}
 	if len(fileErrors) != 0 {
 		var stringBuilder strings.Builder
