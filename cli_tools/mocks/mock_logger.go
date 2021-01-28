@@ -5,9 +5,12 @@
 package mocks
 
 import (
-	pb "github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
+
+	logging "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	pb "github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
 
 // MockLogger is a mock of Logger interface
@@ -104,18 +107,18 @@ func (m *MockOutputInfoReader) EXPECT() *MockOutputInfoReaderMockRecorder {
 	return m.recorder
 }
 
-// read mocks base method
-func (m *MockOutputInfoReader) read() *pb.OutputInfo {
+// ReadOutputInfo mocks base method
+func (m *MockOutputInfoReader) ReadOutputInfo() *pb.OutputInfo {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "read")
+	ret := m.ctrl.Call(m, "ReadOutputInfo")
 	ret0, _ := ret[0].(*pb.OutputInfo)
 	return ret0
 }
 
-// read indicates an expected call of read
-func (mr *MockOutputInfoReaderMockRecorder) read() *gomock.Call {
+// ReadOutputInfo indicates an expected call of ReadOutputInfo
+func (mr *MockOutputInfoReaderMockRecorder) ReadOutputInfo() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "read", reflect.TypeOf((*MockOutputInfoReader)(nil).read))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadOutputInfo", reflect.TypeOf((*MockOutputInfoReader)(nil).ReadOutputInfo))
 }
 
 // MockToolLogger is a mock of ToolLogger interface
@@ -139,6 +142,20 @@ func NewMockToolLogger(ctrl *gomock.Controller) *MockToolLogger {
 // EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockToolLogger) EXPECT() *MockToolLoggerMockRecorder {
 	return m.recorder
+}
+
+// NewLogger mocks base method
+func (m *MockToolLogger) NewLogger(userPrefix string) logging.Logger {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewLogger", userPrefix)
+	ret0, _ := ret[0].(logging.Logger)
+	return ret0
+}
+
+// NewLogger indicates an expected call of NewLogger
+func (mr *MockToolLoggerMockRecorder) NewLogger(userPrefix interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewLogger", reflect.TypeOf((*MockToolLogger)(nil).NewLogger), userPrefix)
 }
 
 // User mocks base method
@@ -189,16 +206,16 @@ func (mr *MockToolLoggerMockRecorder) Metric(metric interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Metric", reflect.TypeOf((*MockToolLogger)(nil).Metric), metric)
 }
 
-// read mocks base method
-func (m *MockToolLogger) read() *pb.OutputInfo {
+// ReadOutputInfo mocks base method
+func (m *MockToolLogger) ReadOutputInfo() *pb.OutputInfo {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "read")
+	ret := m.ctrl.Call(m, "ReadOutputInfo")
 	ret0, _ := ret[0].(*pb.OutputInfo)
 	return ret0
 }
 
-// read indicates an expected call of read
-func (mr *MockToolLoggerMockRecorder) read() *gomock.Call {
+// ReadOutputInfo indicates an expected call of ReadOutputInfo
+func (mr *MockToolLoggerMockRecorder) ReadOutputInfo() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "read", reflect.TypeOf((*MockToolLogger)(nil).read))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadOutputInfo", reflect.TypeOf((*MockToolLogger)(nil).ReadOutputInfo))
 }

@@ -34,7 +34,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	opensuse15workflow = path.Join("../../../daisy_workflows/image_import", settings.WorkflowPath)
+	opensuse15workflow = path.Join("../../../../daisy_workflows/image_import", settings.WorkflowPath)
 }
 
 func TestBootableDiskProcessor_Process_WritesSourceDiskVar(t *testing.T) {
@@ -51,9 +51,10 @@ func TestBootableDiskProcessor_Process_WritesSourceDiskVar(t *testing.T) {
 // constructs the log prefix using the workflow's name.
 func TestBootableDiskProcessor_SetsWorkflowNameToGcloudPrefix(t *testing.T) {
 	args := defaultImportArgs()
+	args.DaisyLogLinePrefix = "disk-1"
 	processor, e := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()))
 	assert.NoError(t, e)
-	assert.Equal(t, (processor.(*bootableDiskProcessor)).workflow.Name, "import-image")
+	assert.Equal(t, "disk-1-translate", (processor.(*bootableDiskProcessor)).workflow.Name)
 }
 
 func TestBootableDiskProcessor_PopulatesWorkflowVarsUsingArgs(t *testing.T) {

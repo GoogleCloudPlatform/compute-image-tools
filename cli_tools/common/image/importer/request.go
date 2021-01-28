@@ -68,6 +68,9 @@ func (args *ImageImportRequest) checkRequiredArguments() error {
 
 // ImageImportRequest includes the parameters required to perform an image import.
 //
+// DaisyLogLinePrefix configures Daisy's stdout to include this prefix. During inflation,
+// for example, a prefix of `ovf` would create a log line of `[ovf-inflate]`.
+//
 // Tags define validations; see validation.ValidateStruct for more info.
 type ImageImportRequest struct {
 	ExecutionID           string `name:"execution_id" validate:"required"`
@@ -77,6 +80,7 @@ type ImageImportRequest struct {
 	WorkflowDir           string `name:"workflow_dir" validate:"required"`
 	CustomWorkflow        string
 	DataDisk              bool
+	DaisyLogLinePrefix    string
 	Description           string
 	Family                string
 	GcsLogsDisabled       bool
@@ -105,16 +109,17 @@ type ImageImportRequest struct {
 // a daisy workflow.
 func (args ImageImportRequest) EnvironmentSettings() daisycommon.EnvironmentSettings {
 	return daisycommon.EnvironmentSettings{
-		Project:           args.Project,
-		Zone:              args.Zone,
-		GCSPath:           args.ScratchBucketGcsPath,
-		OAuth:             args.Oauth,
-		Timeout:           args.Timeout.String(),
-		ComputeEndpoint:   args.ComputeEndpoint,
-		DisableGCSLogs:    args.GcsLogsDisabled,
-		DisableCloudLogs:  args.CloudLogsDisabled,
-		DisableStdoutLogs: args.StdoutLogsDisabled,
-		NoExternalIP:      args.NoExternalIP,
-		WorkflowDirectory: args.WorkflowDir,
+		Project:            args.Project,
+		Zone:               args.Zone,
+		GCSPath:            args.ScratchBucketGcsPath,
+		OAuth:              args.Oauth,
+		Timeout:            args.Timeout.String(),
+		ComputeEndpoint:    args.ComputeEndpoint,
+		DaisyLogLinePrefix: args.DaisyLogLinePrefix,
+		DisableGCSLogs:     args.GcsLogsDisabled,
+		DisableCloudLogs:   args.CloudLogsDisabled,
+		DisableStdoutLogs:  args.StdoutLogsDisabled,
+		NoExternalIP:       args.NoExternalIP,
+		WorkflowDirectory:  args.WorkflowDir,
 	}
 }

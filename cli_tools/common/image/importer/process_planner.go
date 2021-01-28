@@ -16,7 +16,7 @@ package importer
 
 import (
 	"errors"
-	"log"
+	"fmt"
 	"path"
 	"strings"
 
@@ -24,6 +24,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
@@ -36,8 +37,8 @@ type processPlanner interface {
 
 // newProcessPlanner returns a processPlanner that prioritizes information from ImageImportRequest,
 // but falls back to disk.Inspector results when required.
-func newProcessPlanner(request ImageImportRequest, diskInspector disk.Inspector) processPlanner {
-	return &defaultPlanner{request, diskInspector}
+func newProcessPlanner(request ImageImportRequest, diskInspector disk.Inspector, logger logging.Logger) processPlanner {
+	return &defaultPlanner{request, diskInspector, logger}
 }
 
 // processingPlan describes the metadata and translation steps that need to be performed
@@ -57,6 +58,7 @@ func (plan *processingPlan) metadataChangesRequired() bool {
 type defaultPlanner struct {
 	request       ImageImportRequest
 	diskInspector disk.Inspector
+	logger        logging.Logger
 }
 
 func (p *defaultPlanner) plan(pd persistentDisk) (*processingPlan, error) {
@@ -80,7 +82,7 @@ func (p *defaultPlanner) plan(pd persistentDisk) (*processingPlan, error) {
 		if !requiresUEFI {
 			hybridGPTBootable := inspectionResults.GetUefiBootable() && inspectionResults.GetBiosBootable()
 			if hybridGPTBootable {
-				log.Printf("This disk can boot with either BIOS or a UEFI bootloader. The default setting for booting is BIOS. " +
+				p.logger.User("The boot disk can boot with either BIOS or a UEFI bootloader. The default setting for booting is BIOS. " +
 					"If you want to boot using UEFI, please see https://cloud.google.com/compute/docs/import/importing-virtual-disks#importing_a_virtual_disk_with_uefi_bootloader'.")
 			}
 			requiresUEFI = inspectionResults.GetUefiBootable() && !hybridGPTBootable
@@ -113,13 +115,12 @@ func (p *defaultPlanner) plan(pd persistentDisk) (*processingPlan, error) {
 }
 
 func (p *defaultPlanner) inspectDisk(uri string) (*pb.InspectionResults, error) {
-	log.Printf("Running disk inspections on %v.", uri)
+	p.logger.User("Inspecting disk for OS and bootloader")
 	ir, err := p.diskInspector.Inspect(uri)
 	if err != nil {
-		log.Printf("Disk inspection error=%v", err)
+		p.logger.Debug(fmt.Sprintf("Disk inspection error=%v", err))
 		return ir, daisy.Errf("Disk inspection error: %v", err)
 	}
-
-	log.Printf("Disk inspection result=%v", ir)
+	p.logger.User(fmt.Sprintf("Inspection result=%v", ir))
 	return ir, nil
 }

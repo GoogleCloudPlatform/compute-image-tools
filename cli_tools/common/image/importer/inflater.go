@@ -21,10 +21,10 @@ import (
 
 	"google.golang.org/api/compute/v1"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	string_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -170,11 +170,15 @@ type Inflater interface {
 // of inflating GCP disk images and qemu-img compatible disk files.
 type daisyInflater struct {
 	wf              *daisy.Workflow
+	source          Source
 	inflatedDiskURI string
 	logger          logging.Logger
 }
 
 func (inflater *daisyInflater) Inflate() (persistentDisk, shadowTestFields, error) {
+	if inflater.source != nil {
+		inflater.logger.User("Creating Google Compute Engine disk from " + inflater.source.Path())
+	}
 	startTime := time.Now()
 	err := inflater.wf.Run(context.Background())
 	if inflater.wf.Logger != nil {
@@ -182,6 +186,7 @@ func (inflater *daisyInflater) Inflate() (persistentDisk, shadowTestFields, erro
 			inflater.logger.Trace(trace)
 		}
 	}
+	inflater.logger.User("Finished creating Google Compute Engine disk")
 	// See `daisy_workflows/image_import/import_image.sh` for generation of these values.
 	targetSizeGB := inflater.wf.GetSerialConsoleOutputValue("target-size-gb")
 	sourceSizeGB := inflater.wf.GetSerialConsoleOutputValue("source-size-gb")
@@ -213,7 +218,7 @@ type shadowTestFields struct {
 	inflationType string
 }
 
-func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient storage.Client,
+func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient domain.StorageClientInterface,
 	inspector imagefile.Inspector, logger logging.Logger) (Inflater, error) {
 
 	di, err := NewDaisyInflater(request, inspector, logger)
@@ -262,7 +267,6 @@ func NewDaisyInflater(request ImageImportRequest, fileInspector imagefile.Inspec
 	for k, v := range vars {
 		wf.AddVar(k, v)
 	}
-
 	daisyUtils.UpdateAllInstanceNoExternalIP(wf, request.NoExternalIP)
 	if request.UefiCompatible {
 		addFeatureToDisk(wf, "UEFI_COMPATIBLE", inflationDiskIndex)
@@ -271,13 +275,16 @@ func NewDaisyInflater(request ImageImportRequest, fileInspector imagefile.Inspec
 		addFeatureToDisk(wf, "WINDOWS", inflationDiskIndex)
 	}
 
-	// Temporary fix to ensure gcloud shows daisy's output.
-	// A less fragile approach is tracked in b/161567644.
-	wf.Name = LogPrefix
+	logPrefix := request.DaisyLogLinePrefix
+	if logPrefix != "" {
+		logPrefix += "-"
+	}
+	wf.Name = logPrefix + "inflate"
 	return &daisyInflater{
 		wf:              wf,
 		inflatedDiskURI: fmt.Sprintf("zones/%s/disks/%s", request.Zone, diskName),
 		logger:          logger,
+		source:          request.Source,
 	}, nil
 }
 

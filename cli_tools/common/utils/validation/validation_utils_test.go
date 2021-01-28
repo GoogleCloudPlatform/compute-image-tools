@@ -92,6 +92,42 @@ func TestValidateImageName_ExpectInvalid(t *testing.T) {
 	}
 }
 
+func TestValidateProjectID_ExpectValid(t *testing.T) {
+	for _, projectID := range []string{
+		"abcdef", // equal to min length of 6
+		"dashes-allowed-inside",
+		"ending-numbers-allowed-1",
+		"a1-inside-numbers-allowed",
+		"o-----equal-to-max-30--------o",
+	} {
+		t.Run(projectID, func(t *testing.T) {
+			assert.NoError(t, ValidateProjectID(projectID))
+		})
+	}
+}
+
+func TestValidateProjectID_ExpectInvalid(t *testing.T) {
+	for _, projectID := range []string{
+		"abcde", // shorter than min length of 6
+		"-no-leading-dash",
+		"no-ending-dash-",
+		"1-no-leading-numbers",
+		"DontAllowCaps",
+		"o-----longer-than-max-30------o",
+	} {
+		t.Run(projectID, func(t *testing.T) {
+			err := ValidateProjectID(projectID)
+			assert.Regexp(t, "projectID .* must conform to https://cloud.google.com/resource-manager/reference/rest/v1/projects", err)
+			assert.Contains(t, err.Error(), projectID, "Raw error should include projectID")
+			realError := err.(daisy.DError)
+			for _, anonymizedErrs := range realError.AnonymizedErrs() {
+				assert.NotContains(t, anonymizedErrs, projectID,
+					"Anonymized error should not contain projectID")
+			}
+		})
+	}
+}
+
 func TestValidateStruct_SupportsCustomFieldNames(t *testing.T) {
 	type User struct {
 		Firstname string `name:"first_name" validate:"required"`

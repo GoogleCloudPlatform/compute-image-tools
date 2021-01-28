@@ -158,7 +158,6 @@ func (w *Workflow) uploadSources(ctx context.Context) DError {
 				}
 				return Errf("error copying from file %s: %v", origPath, err)
 			}
-
 			continue
 		}
 

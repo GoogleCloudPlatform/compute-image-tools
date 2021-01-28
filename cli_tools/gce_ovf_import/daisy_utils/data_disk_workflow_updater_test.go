@@ -17,11 +17,12 @@ package daisyovfutils
 import (
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
+	ovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 func TestAddDiskImportSteps(t *testing.T) {
@@ -132,6 +133,32 @@ func TestAddDiskImportStepsDiskNamesValidWhenInstanceNameLong(t *testing.T) {
 	assert.NoError(t, validation.ValidateRfc1035Label((*w.Steps["setup-data-disk-2"].CreateDisks)[0].Name))
 	assert.NoError(t, validation.ValidateRfc1035Label((*w.Steps["setup-data-disk-2"].CreateDisks)[1].Name))
 	assert.NoError(t, validation.ValidateRfc1035Label((*w.Steps["setup-data-disk-2"].CreateDisks)[2].Name))
+}
+
+func TestCreateDisksOnInstance(t *testing.T) {
+	wfPath := "../../../daisy_workflows/ovf_import/create_instance.wf.json"
+	wf, err := daisy.NewFromFile(wfPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	imageURIs := []string{
+		"uri-1",
+		"uri-2",
+	}
+	createInstanceStep := wf.Steps["create-instance"].CreateInstances.Instances[0]
+	CreateDisksOnInstance(createInstanceStep, "test-instance", imageURIs)
+	for i, expectedDiskName := range []string{
+		"test-instance-1",
+		"test-instance-2",
+	} {
+		// Offset by one since template includes the bootdisk as the first element in disk lists.
+		dataDiskIndex := i + 1
+		dataDisk := createInstanceStep.Disks[dataDiskIndex]
+		expectedSourceURI := imageURIs[i]
+		assert.True(t, dataDisk.AutoDelete)
+		assert.Equal(t, expectedDiskName, dataDisk.InitializeParams.DiskName)
+		assert.Equal(t, expectedSourceURI, dataDisk.InitializeParams.SourceImage)
+	}
 }
 
 func getMetadataValue(metadata *compute.Metadata, key string) string {

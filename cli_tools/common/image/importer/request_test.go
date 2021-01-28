@@ -124,6 +124,7 @@ func makeValidRequest() ImageImportRequest {
 		ComputeServiceAccount: "csa",
 		WorkflowDir:           "path/to/workflows",
 		DataDisk:              false,
+		DaisyLogLinePrefix:    "import-image",
 		Description:           "description",
 		Family:                "family",
 		GcsLogsDisabled:       true,
@@ -215,18 +216,20 @@ func Test_EnvironmentSettings(t *testing.T) {
 		CloudLogsDisabled:    true,
 		StdoutLogsDisabled:   true,
 		NoExternalIP:         true,
+		DaisyLogLinePrefix:   "disk-0",
 	}
 	expected := daisycommon.EnvironmentSettings{
-		Project:           "panda",
-		Zone:              "us-west",
-		GCSPath:           "gs://bucket/path",
-		OAuth:             "oauth-info",
-		Timeout:           "3h0m0s",
-		ComputeEndpoint:   "endpoint-uri",
-		DisableGCSLogs:    true,
-		DisableCloudLogs:  true,
-		DisableStdoutLogs: true,
-		NoExternalIP:      true,
+		Project:            "panda",
+		Zone:               "us-west",
+		GCSPath:            "gs://bucket/path",
+		OAuth:              "oauth-info",
+		Timeout:            "3h0m0s",
+		ComputeEndpoint:    "endpoint-uri",
+		DisableGCSLogs:     true,
+		DisableCloudLogs:   true,
+		DisableStdoutLogs:  true,
+		NoExternalIP:       true,
+		DaisyLogLinePrefix: "disk-0",
 	}
 	assert.Equal(t, expected, request.EnvironmentSettings())
 }

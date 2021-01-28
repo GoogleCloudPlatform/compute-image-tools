@@ -23,6 +23,7 @@ import (
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
@@ -49,14 +50,14 @@ func isCausedByAlphaAPIAccess(err error) bool {
 type apiInflater struct {
 	request         ImageImportRequest
 	computeClient   daisyCompute.Client
-	storageClient   storage.Client
+	storageClient   domain.StorageClientInterface
 	guestOsFeatures []*computeBeta.GuestOsFeature
 	wg              sync.WaitGroup
 	cancelChan      chan string
 	logger          logging.Logger
 }
 
-func createAPIInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient storage.Client, logger logging.Logger) Inflater {
+func createAPIInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient domain.StorageClientInterface, logger logging.Logger) Inflater {
 	inflater := apiInflater{
 		request:       request,
 		computeClient: computeClient,

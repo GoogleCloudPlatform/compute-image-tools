@@ -18,12 +18,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 func TestGetRegion(t *testing.T) {
@@ -136,6 +136,22 @@ func TestPopulateProjectIfMissingProjectWithErrorRetrievingFromGCE(t *testing.T)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, expectedProject, project)
+}
+
+func TestGetImageResourcePath_HappyCase(t *testing.T) {
+	assert.Equal(t, "projects/proj-12/global/images/ubuntu-19", GetImageResourcePath("proj-12", "ubuntu-19"))
+}
+
+func TestGetImageResourcePath_PanicWhenInvalidImageName(t *testing.T) {
+	assert.Panics(t, func() {
+		GetImageResourcePath("proj-12", "projects/proj-12/global/images/ubuntu-19")
+	})
+}
+
+func TestGetImageResourcePath_PanicWhenInvalidProjectID(t *testing.T) {
+	assert.Panics(t, func() {
+		GetImageResourcePath("", "ubuntu-19")
+	})
 }
 
 func TestGetGlobalResourcePathFromNameOnly(t *testing.T) {
