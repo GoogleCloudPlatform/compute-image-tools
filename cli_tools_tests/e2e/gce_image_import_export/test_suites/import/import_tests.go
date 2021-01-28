@@ -84,6 +84,12 @@ var basicCases = []*testCase{
 		os:                   "ubuntu-1804",
 		osConfigNotSupported: true,
 	},
+	{
+		caseName:             "vpc-ubuntu-1804",
+		source:               "gs://compute-image-tools-test-resources/ubuntu-1804.vpc",
+		os:                   "ubuntu-1804",
+		osConfigNotSupported: "true",
+	},
 
 	// Error messages
 	{

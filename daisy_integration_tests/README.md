@@ -5,7 +5,7 @@ To run against your local checkout (requires access to resources in
 compute-image-tools-test):
 
 ```bash
-go run cli_tools/daisy_test_runner/main.go -projects=<my project> -zone=us-central1-c daisy_integration_tests/daisy_e2e.test.gotmpl
+go run daisy/daisy_test_runner/main.go -projects=<my project> -zone=us-central1-c daisy_integration_tests/daisy_e2e.test.gotmpl
 ```
 
 Prow runs these tests periodically against HEAD.
