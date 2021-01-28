@@ -184,6 +184,27 @@ periodics:
        - name: compute-image-tools-test-service-account
          secret:
            secretName: compute-image-tools-test-service-account
+ - name: ci-ovf-export-e2e-tests-daily
+   interval: 12h
+   agent: kubernetes
+   spec:
+     containers:
+     - image: gcr.io/compute-image-tools-test/gce-ovf-export-tests:latest
+       args:
+       - "-out_dir=/artifacts"
+       - "-test_project_id=compute-image-test-pool-001"
+       - "-test_zone=us-central1-c"
+       env:
+       - name: ARTIFACTS
+         value: /artifacts
+       volumeMounts:
+       - name: compute-image-tools-test-service-account
+         mountPath: /etc/compute-image-tools-test-service-account
+         readOnly: true
+     volumes:
+     - name: compute-image-tools-test-service-account
+       secret:
+         secretName: compute-image-tools-test-service-account
  - name: ci-windows-upgrade-e2e-tests
    interval: 6h
    agent: kubernetes
