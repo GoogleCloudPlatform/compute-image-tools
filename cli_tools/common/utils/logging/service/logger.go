@@ -18,20 +18,23 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/minio/highwayhash"
+
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
-	"github.com/google/uuid"
-	"github.com/minio/highwayhash"
 )
 
 var (
@@ -229,7 +232,9 @@ func (l *Logger) runWithServerLogging(function func() (Loggable, error),
 		l.logStart()
 	}()
 
-	loggable, err := function()
+	capture := &safeRunner{inner: function}
+	capture.runInner()
+	loggable, err := capture.loggable, capture.err
 	l.updateParams(projectPointer)
 	if err != nil {
 		wg.Add(1)
@@ -379,6 +384,34 @@ func (l *Logger) constructLogRequest(logExtension *ComputeImageToolsLogExtension
 
 	reqStr, err := json.Marshal(req)
 	return reqStr, err
+}
+
+// safeRunner supports running a function that may panic. If there's a panic, execution is
+// recovered and the panic's details are captured.
+type safeRunner struct {
+	inner    func() (Loggable, error)
+	loggable Loggable
+	err      error
+}
+
+// runInner executes the function `inner`, and captures the results in the fields loggable and err.
+// If a panic occurs during the execution of `inner`, it is trapped, and the panic's contents are
+// used to create loggable and err.
+func (p *safeRunner) runInner() {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("Fatal error: %v", err)
+			p.loggable = literalLoggable{
+				traceLogs: []string{
+					fmt.Sprintf("Captured panic: %v", err),
+					"stacktrace from panic: \n" + string(debug.Stack()),
+				},
+			}
+			p.err = errors.New("A fatal error has occurred. " +
+				"Please submit an issue at https://github.com/GoogleCloudPlatform/compute-image-tools/issues")
+		}
+	}()
+	p.loggable, p.err = p.inner()
 }
 
 // Hash a given string for obfuscation
