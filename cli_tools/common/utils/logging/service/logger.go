@@ -232,9 +232,10 @@ func (l *Logger) runWithServerLogging(function func() (Loggable, error),
 		l.logStart()
 	}()
 
-	capture := &safeRunner{inner: function}
-	capture.runInner()
-	loggable, err := capture.loggable, capture.err
+	// Execute the closure and ensure that panic won't crash the program.
+	r := &panicSafeRunner{inner: function}
+	r.runInner()
+	loggable, err := r.loggable, r.err
 	l.updateParams(projectPointer)
 	if err != nil {
 		wg.Add(1)
@@ -386,9 +387,9 @@ func (l *Logger) constructLogRequest(logExtension *ComputeImageToolsLogExtension
 	return reqStr, err
 }
 
-// safeRunner supports running a function that may panic. If there's a panic, execution is
+// panicSafeRunner supports running a function that may panic. If there's a panic, execution is
 // recovered and the panic's details are captured.
-type safeRunner struct {
+type panicSafeRunner struct {
 	inner    func() (Loggable, error)
 	loggable Loggable
 	err      error
@@ -397,7 +398,7 @@ type safeRunner struct {
 // runInner executes the function `inner`, and captures the results in the fields loggable and err.
 // If a panic occurs during the execution of `inner`, it is trapped, and the panic's contents are
 // used to create loggable and err.
-func (p *safeRunner) runInner() {
+func (p *panicSafeRunner) runInner() {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Printf("Fatal error: %v", err)
