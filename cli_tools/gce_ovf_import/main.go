@@ -58,7 +58,7 @@ var (
 	bootDiskKmsKeyring          = flag.String("boot-disk-kms-keyring", "", "The KMS keyring of the key.")
 	bootDiskKmsLocation         = flag.String("boot-disk-kms-location", "", "The Cloud location for the key.")
 	bootDiskKmsProject          = flag.String("boot-disk-kms-project", "", "The Cloud project for the key.")
-	timeout                     = flag.String("timeout", "", "Maximum time a build can last before it is failed as TIMEOUT. For example, specifying 2h will fail the process after 2 hours. See `gcloud topic datetimes` for information on duration formats")
+	timeout                     = flag.String("timeout", "2h", "Maximum time a build can last before it is failed as TIMEOUT. For example, specifying 2h will fail the process after 2 hours. See `gcloud topic datetimes` for information on duration formats")
 	project                     = flag.String("project", "", "project to run in, overrides what is set in workflow")
 	scratchBucketGcsPath        = flag.String("scratch-bucket-gcs-path", "", "GCS scratch bucket to use, overrides what is set in workflow")
 	oauth                       = flag.String("oauth", "", "path to oauth json file, overrides what is set in workflow")
