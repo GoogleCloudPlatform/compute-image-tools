@@ -18,6 +18,11 @@ ping 127.0.0.1 -n 60
 
 echo "Translate: Starting image translate..." > COM1:
 
+REM Restart the system in 5 minutes. Translate.ps1 will cancel this restart when it starts.
+REM This is to address initial boot issues, mostly on 2008R2, where the network interface is not yet usable.
+echo "Scheduling restart in 5 minutes. Translate.ps1 will cancel this restart." > COM1:
+shutdown /r /t 300
+
 echo "Translate: Opening firewall ports for GCE metadata server." > COM1:
 REM Enable inbound communication from the metadata server.
 netsh advfirewall firewall add rule name="Allow incoming from GCE metadata server" protocol=ANY remoteip=169.254.169.254 dir=in action=allow
