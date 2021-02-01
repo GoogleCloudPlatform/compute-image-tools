@@ -232,10 +232,7 @@ func (l *Logger) runWithServerLogging(function func() (Loggable, error),
 		l.logStart()
 	}()
 
-	// Execute the closure and ensure that panic won't crash the program.
-	r := &panicSafeRunner{inner: function}
-	r.runInner()
-	loggable, err := r.loggable, r.err
+	loggable, err := runWithRecovery(function)
 	l.updateParams(projectPointer)
 	if err != nil {
 		wg.Add(1)
@@ -387,32 +384,23 @@ func (l *Logger) constructLogRequest(logExtension *ComputeImageToolsLogExtension
 	return reqStr, err
 }
 
-// panicSafeRunner supports running a function that may panic. If there's a panic, execution is
-// recovered and the panic's details are captured.
-type panicSafeRunner struct {
-	inner    func() (Loggable, error)
-	loggable Loggable
-	err      error
-}
-
-// runInner executes the function `inner`, and captures the results in the fields loggable and err.
-// If a panic occurs during the execution of `inner`, it is trapped, and the panic's contents are
-// used to create loggable and err.
-func (p *panicSafeRunner) runInner() {
+// runWithRecovery executes the function `inner`. If a panic occurs,
+// it is trapped, and the panic's contents are used to create loggable and err.
+func runWithRecovery(inner func() (Loggable, error)) (loggable Loggable, err error) {
 	defer func() {
-		if err := recover(); err != nil {
-			log.Printf("Fatal error: %v", err)
-			p.loggable = literalLoggable{
+		if recovered := recover(); recovered != nil {
+			log.Printf("Fatal error: %v", recovered)
+			loggable = literalLoggable{
 				traceLogs: []string{
-					fmt.Sprintf("Captured panic: %v", err),
+					fmt.Sprintf("Captured panic: %v", recovered),
 					"stacktrace from panic: \n" + string(debug.Stack()),
 				},
 			}
-			p.err = errors.New("A fatal error has occurred. " +
+			err = errors.New("A fatal error has occurred. " +
 				"Please submit an issue at https://github.com/GoogleCloudPlatform/compute-image-tools/issues")
 		}
 	}()
-	p.loggable, p.err = p.inner()
+	return inner()
 }
 
 // Hash a given string for obfuscation
