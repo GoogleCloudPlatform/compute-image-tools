@@ -16,9 +16,9 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"regexp"
 	"strings"
 	"time"
-	"regexp"
 
 	"google.golang.org/api/compute/v1"
 

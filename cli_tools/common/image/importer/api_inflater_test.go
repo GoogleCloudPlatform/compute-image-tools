@@ -44,8 +44,8 @@ func TestCreateInflater_File(t *testing.T) {
 		t:                 t,
 		expectedReference: "gs://bucket/vmdk",
 		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{
-			FileFormat:    "vpc",
+		metaToReturn: imagefile.Metadata{
+			FileFormat: "vpc",
 		},
 	}, nil)
 	assert.NoError(t, err)
