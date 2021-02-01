@@ -18,6 +18,7 @@ import (
 	"path"
 	"strings"
 	"time"
+	"regexp"
 
 	"google.golang.org/api/compute/v1"
 
@@ -59,6 +60,8 @@ const (
 	sigShadowInflaterDone = "shadow done"
 	sigShadowInflaterErr  = "shadow err"
 )
+
+var allowedAPIFormatsEx = regexp.MustCompile("^(vpc)$")
 
 func (facade *inflaterFacade) Inflate() (persistentDisk, shadowTestFields, error) {
 	inflaterChan := make(chan string)
@@ -230,7 +233,18 @@ func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, 
 		return di, nil
 	}
 
-	ai := createAPIInflater(request, computeClient, storageClient, logger)
+	deadline, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(inspectionTimeout))
+	defer cancelFunc()
+	metadata, inspectorErr := inspector.Inspect(deadline, request.Source.Path())
+	if inspectorErr != nil {
+		return nil, inspectorErr
+	}
+
+	if !allowedAPIFormatsEx.MatchString(metadata.FileFormat) {
+		return di, nil
+	}
+
+	ai := createAPIInflater(request, computeClient, storageClient, logger, metadata)
 	return &inflaterFacade{
 		mainInflater:   di,
 		shadowInflater: ai,
