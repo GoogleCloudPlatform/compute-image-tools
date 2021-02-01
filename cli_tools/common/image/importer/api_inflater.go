@@ -30,6 +30,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 )
 
 func isCausedByUnsupportedFormat(err error) bool {
@@ -55,15 +56,17 @@ type apiInflater struct {
 	wg              sync.WaitGroup
 	cancelChan      chan string
 	logger          logging.Logger
+	metadata        imagefile.Metadata
 }
 
-func createAPIInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient domain.StorageClientInterface, logger logging.Logger) Inflater {
+func createAPIInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient domain.StorageClientInterface, logger logging.Logger, metadata imagefile.Metadata) Inflater {
 	inflater := apiInflater{
 		request:       request,
 		computeClient: computeClient,
 		storageClient: storageClient,
 		cancelChan:    make(chan string, 1),
 		logger:        logger,
+		metadata:      metadata,
 	}
 	if request.UefiCompatible {
 		inflater.guestOsFeatures = []*computeBeta.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}}
@@ -119,7 +122,7 @@ func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error)
 		uri:        diskURI,
 		sizeGb:     cd.SizeGb,
 		sourceGb:   sourceFileSizeGb,
-		sourceType: "vmdk", // only vmdk is supported right now
+		sourceType: inflater.metadata.FileFormat,
 	}
 	ii := shadowTestFields{
 		inflationType: "api",

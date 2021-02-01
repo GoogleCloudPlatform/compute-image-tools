@@ -44,7 +44,9 @@ func TestCreateInflater_File(t *testing.T) {
 		t:                 t,
 		expectedReference: "gs://bucket/vmdk",
 		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{},
+		metaToReturn:      imagefile.Metadata{
+			FileFormat:    "vpc",
+		},
 	}, nil)
 	assert.NoError(t, err)
 	facade, ok := inflater.(*inflaterFacade)
@@ -71,7 +73,12 @@ func TestCreateInflater_Image(t *testing.T) {
 		Zone:        "us-west1-b",
 		ExecutionID: "1234",
 		WorkflowDir: daisyWorkflows,
-	}, nil, &storage.Client{}, nil, nil)
+	}, nil, &storage.Client{}, mockInspector{
+		t:                 t,
+		expectedReference: "",
+		errorToReturn:     nil,
+		metaToReturn:      imagefile.Metadata{},
+	}, nil)
 	assert.NoError(t, err)
 	realInflater, ok := inflater.(*daisyInflater)
 	assert.True(t, ok)
@@ -86,7 +93,7 @@ func TestCreateAPIInflater_IncludesUEFIGuestOSFeature(t *testing.T) {
 	request := ImageImportRequest{
 		UefiCompatible: true,
 	}
-	realInflater, _ := createAPIInflater(request, nil, &storage.Client{}, logging.NewToolLogger(t.Name())).(*apiInflater)
+	realInflater, _ := createAPIInflater(request, nil, &storage.Client{}, logging.NewToolLogger(t.Name()), imagefile.Metadata{}).(*apiInflater)
 	assert.Contains(t, realInflater.guestOsFeatures,
 		&computeBeta.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
 }
@@ -109,7 +116,7 @@ func TestAPIInflater_Inflate_CreateDiskFailed_CancelWithoutDeleteDisk(t *testing
 		ExecutionID:  "1234",
 		NoExternalIP: false,
 		WorkflowDir:  daisyWorkflows,
-	}, mockComputeClient, &storage.Client{}, mockLogger)
+	}, mockComputeClient, &storage.Client{}, mockLogger, imagefile.Metadata{})
 
 	apiInflater, ok := inflater.(*apiInflater)
 	assert.True(t, ok)
@@ -141,7 +148,7 @@ func TestAPIInflater_Inflate_CreateDiskSuccess_CancelWithDeleteDisk(t *testing.T
 		ExecutionID:  "1234",
 		NoExternalIP: false,
 		WorkflowDir:  daisyWorkflows,
-	}, mockComputeClient, &storage.Client{}, mockLogger)
+	}, mockComputeClient, &storage.Client{}, mockLogger, imagefile.Metadata{})
 
 	apiInflater, ok := inflater.(*apiInflater)
 	assert.True(t, ok)
@@ -171,7 +178,7 @@ func TestAPIInflater_Inflate_Cancel_CleanupFailedToVerify(t *testing.T) {
 		ExecutionID:  "1234",
 		NoExternalIP: false,
 		WorkflowDir:  daisyWorkflows,
-	}, mockComputeClient, &storage.Client{}, mockLogger)
+	}, mockComputeClient, &storage.Client{}, mockLogger, imagefile.Metadata{})
 
 	apiInflater, ok := inflater.(*apiInflater)
 	assert.True(t, ok)
@@ -197,7 +204,7 @@ func TestAPIInflater_Inflate_Cancel_CleanupFailed(t *testing.T) {
 		ExecutionID:  "1234",
 		NoExternalIP: false,
 		WorkflowDir:  daisyWorkflows,
-	}, mockComputeClient, &storage.Client{}, mockLogger)
+	}, mockComputeClient, &storage.Client{}, mockLogger, imagefile.Metadata{})
 
 	apiInflater, ok := inflater.(*apiInflater)
 	assert.True(t, ok)
@@ -215,7 +222,7 @@ func TestAPIInflater_getCalculateChecksumWorkflow(t *testing.T) {
 		ExecutionID:  "1234",
 		NoExternalIP: false,
 		WorkflowDir:  daisyWorkflows,
-	}, nil, &storage.Client{}, logging.NewToolLogger(t.Name()))
+	}, nil, &storage.Client{}, logging.NewToolLogger(t.Name()), imagefile.Metadata{})
 
 	apiInflater, ok := inflater.(*apiInflater)
 	assert.True(t, ok)
