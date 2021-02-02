@@ -108,8 +108,8 @@ func TestCreateDaisyInflater_File_HappyCase(t *testing.T) {
 		NoExternalIP: false,
 	}, imagefile.Metadata{
 		PhysicalSizeGB: 1,
-		VirtualSizeGB: 1,
-		FileFormat: "vmdk",
+		VirtualSizeGB:  1,
+		FileFormat:     "vmdk",
 	})
 
 	assert.Equal(t, "zones/us-west1-c/disks/disk-1234", inflater.inflatedDiskURI)
