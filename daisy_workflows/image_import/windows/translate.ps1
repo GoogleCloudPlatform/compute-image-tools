@@ -321,6 +321,10 @@ function Add-Warning {
 try {
   $script:warnings = ''
   Write-Output 'Translate: Beginning translate PowerShell script.'
+  # Aborting restart triggered in run_startup_scripts.cmd.
+  Start-Process -FilePath "shutdown.exe" -ArgumentList '/a' -ErrorAction SilentlyContinue
+  Write-Output "Scheduled restart aborted with return code $LASTEXITCODE. 0=Restart aborted 1116=No restart scheduled."
+
   $script:pn = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name ProductName).ProductName
   Write-Host "Translate: OS is $script:pn, version $([System.Environment]::OSVersion.Version.ToString())"
   Remove-VMWareTools
