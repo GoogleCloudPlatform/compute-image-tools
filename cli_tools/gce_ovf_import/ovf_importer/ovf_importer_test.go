@@ -215,18 +215,23 @@ func TestSetUpMachineImageWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 	assert.Equal(t, "us-west2", machineImage.StorageLocations[0])
 }
 
-type ModuleImportTestCase struct {
-	descriptorFilenames []string
-	fileURIs            []string
-	imageURIs           []string
-	diskURIs            []string
-}
-
 func Test_InstanceImport_SetupWorkflow_HappyCase_PreGA(t *testing.T) {
 	wfPath := "../../../daisy_workflows/" + createInstanceWorkflow
-	track := domain.Beta
-	project := defaultProject
-	noExternalIP := false
+	params := getAllInstanceImportParams()
+	params.ReleaseTrack = domain.Beta
+	createMachineImage := false
+	verifyModuleImport(t, wfPath, params, createMachineImage)
+}
+
+func Test_MachineImageImport_SetupWorkflow_HappyCase_PreGA(t *testing.T) {
+	wfPath := "../../../daisy_workflows/" + createGMIWorkflow
+	params := getAllMachineImageImportParams()
+	params.ReleaseTrack = domain.Beta
+	createMachineImage := true
+	verifyModuleImport(t, wfPath, params, createMachineImage)
+}
+
+func verifyModuleImport(t *testing.T, wfPath string, params *domain.OVFImportParams, createMachineImage bool) {
 	testCase := ModuleImportTestCase{
 		descriptorFilenames: []string{
 			"Ubuntu_for_Horizon71_1_1.0-disk1.vmdk",
@@ -243,39 +248,6 @@ func Test_InstanceImport_SetupWorkflow_HappyCase_PreGA(t *testing.T) {
 			"images/uri/data-disk-1",
 			"images/uri/data-disk-2",
 		},
-		diskURIs: []string{},
-	}
-
-	params := &domain.OVFImportParams{
-		ReleaseTrack:           track,
-		BuildID:                defaultBuildID,
-		InstanceNames:          "instance1",
-		ClientID:               "aClient", //
-		OvfOvaGcsPath:          "gs://ovfbucket/ovfpath/vmware.ova",
-		NoGuestEnvironment:     true, //
-		CanIPForward:           true,
-		DeletionProtection:     true,
-		Description:            "aDescription",
-		Labels:                 "userkey1=uservalue1,userkey2=uservalue2",
-		MachineType:            "n1-standard-2",
-		Network:                "aNetwork", //
-		Subnet:                 "aSubnet",  //
-		NetworkTier:            "PREMIUM",
-		PrivateNetworkIP:       "10.0.0.1",
-		NoExternalIP:           noExternalIP, //
-		NoRestartOnFailure:     true,
-		OsID:                   "ubuntu-1404", // this and descriptor OS
-		Zone:                   defaultZone,   //
-		Timeout:                "3h",          //
-		Deadline:               time.Now().Add(time.Hour * 3),
-		Project:                &project,             //
-		ScratchBucketGcsPath:   "gs://bucket/folder", //
-		Oauth:                  "oAuthFilePath",      //
-		Ce:                     "us-east1-c",         //
-		GcsLogsDisabled:        true,                 //
-		CloudLogsDisabled:      true,                 //
-		StdoutLogsDisabled:     true,                 //
-		NodeAffinityLabelsFlag: []string{"env,IN,prod,test"},
 	}
 
 	descriptor := createOVFDescriptor(testCase.descriptorFilenames)
@@ -288,11 +260,22 @@ func Test_InstanceImport_SetupWorkflow_HappyCase_PreGA(t *testing.T) {
 	assert.Equal(t, params.Oauth, w.OAuthPath)
 	assert.Equal(t, params.Ce, w.ComputeEndpoint)
 	assert.Equal(t, params.ScratchBucketGcsPath, w.GCSPath)
-	assert.Len(t, w.Steps, 2, "Expect two steps: create-instance and cleanup")
+	if createMachineImage {
+		// Creating the machine image adds two steps:
+		//  1. Stop the instance
+		//  2. Create the GMI
+		assert.Len(t, w.Steps, 4)
+	} else {
+		assert.Len(t, w.Steps, 2)
+	}
 	assert.Len(t, w.Steps["create-instance"].CreateInstances.Instances, 1, "Expect one instance created")
+	if createMachineImage {
+		assert.Len(t, *w.Steps["create-machine-image"].CreateMachineImages, 1, "Expect one GMI created")
+	}
 
 	// Final instance verification
 	instance := w.Steps["create-instance"].CreateInstances.Instances[0]
+
 	assert.Len(t, instance.Disks, len(descriptor.Disk.Disks))
 	cleanup := w.Steps["cleanup"].DeleteResources.Images
 	assert.Len(t, cleanup, len(testCase.imageURIs))
@@ -323,7 +306,6 @@ func Test_InstanceImport_SetupWorkflow_HappyCase_PreGA(t *testing.T) {
 	}
 	assert.Equal(t, params.NodeAffinities, instance.Scheduling.NodeAffinities)
 	assert.Equal(t, params.Hostname, instance.Hostname)
-	checkDaisyVariable(t, w, "instance_name", params.InstanceNames, instance.Name)
 	checkDaisyVariable(t, w, "description", params.Description, instance.Description)
 	checkDaisyVariable(t, w, "machine_type", params.MachineType, instance.MachineType)
 	assert.True(t, instance.ExactName, "Use the instance name provided by the user.")
@@ -350,6 +332,15 @@ func Test_InstanceImport_SetupWorkflow_HappyCase_PreGA(t *testing.T) {
 		accessConfig := networkInterface.AccessConfigs[0]
 		checkDaisyVariable(t, w, "network_tier", params.NetworkTier, accessConfig.NetworkTier)
 	}
+
+	if createMachineImage {
+		machineImage := []*daisy.MachineImage(*w.Steps["create-machine-image"].CreateMachineImages)[0]
+		checkDaisyVariable(t, w, "machine_image_name", params.MachineImageName, machineImage.Name)
+		assert.Equal(t, instance.Name, machineImage.SourceInstance)
+		checkDaisyVariable(t, w, "description", params.Description, machineImage.Description)
+		assert.True(t, machineImage.ExactName)
+		assert.True(t, machineImage.NoCleanup)
+	}
 }
 
 // checkDaisyVariable ensures that a variable is declared, the desired value is injected, and that it's
@@ -357,6 +348,12 @@ func Test_InstanceImport_SetupWorkflow_HappyCase_PreGA(t *testing.T) {
 func checkDaisyVariable(t *testing.T, w *daisy.Workflow, declaredVariableName string, expectedValue string, expectedLocationInTemplate string) {
 	assert.Equal(t, expectedValue, w.Vars[declaredVariableName].Value)
 	assert.Equal(t, fmt.Sprintf("${%s}", declaredVariableName), expectedLocationInTemplate)
+}
+
+type ModuleImportTestCase struct {
+	descriptorFilenames []string
+	fileURIs            []string
+	imageURIs           []string
 }
 
 func runImportWithModules(t *testing.T, params *domain.OVFImportParams, wfPath string, descriptor *ovf.Envelope, testCase ModuleImportTestCase) *daisy.Workflow {
