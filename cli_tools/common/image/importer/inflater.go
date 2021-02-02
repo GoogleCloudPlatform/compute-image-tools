@@ -61,7 +61,7 @@ const (
 	sigShadowInflaterErr  = "shadow err"
 )
 
-var allowedAPIFormatsEx = regexp.MustCompile("^(vpc)$")
+var allowedAPIFormatsEx = regexp.MustCompile("^(vmdk|vpc)$")
 
 func (facade *inflaterFacade) Inflate() (persistentDisk, shadowTestFields, error) {
 	inflaterChan := make(chan string)
