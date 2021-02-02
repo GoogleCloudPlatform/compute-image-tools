@@ -75,7 +75,7 @@ func TestCreateInflater_Image(t *testing.T) {
 		WorkflowDir: daisyWorkflows,
 	}, nil, &storage.Client{}, mockInspector{
 		t:                 t,
-		expectedReference: "",
+		expectedReference: "projects/test/uri/image",
 		errorToReturn:     nil,
 		metaToReturn:      imagefile.Metadata{},
 	}, nil)
