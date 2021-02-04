@@ -13,6 +13,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"fmt"
 	"runtime"
 	"strings"
@@ -36,7 +37,8 @@ func (s *sha2DriverSigningCheck) run() (*report, error) {
 		return r, nil
 	}
 
-	pkgs, err := packages.GetInstalledPackages()
+	ctx := context.Background()
+	pkgs, err := packages.GetInstalledPackages(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("GetInstalledPackages error: %s", err)
 	}

@@ -20,7 +20,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	computeBeta "google.golang.org/api/compute/v0.beta"
+	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
@@ -62,7 +62,7 @@ func TestCreateInflater_File(t *testing.T) {
 
 	realInflater, _ := facade.shadowInflater.(*apiInflater)
 	assert.NotContains(t, realInflater.guestOsFeatures,
-		&computeBeta.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
+		&compute.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
 }
 
 func TestCreateInflater_Image(t *testing.T) {
@@ -88,14 +88,14 @@ func TestCreateAPIInflater_IncludesUEFIGuestOSFeature(t *testing.T) {
 	}
 	realInflater, _ := createAPIInflater(request, nil, &storage.Client{}, logging.NewToolLogger(t.Name())).(*apiInflater)
 	assert.Contains(t, realInflater.guestOsFeatures,
-		&computeBeta.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
+		&compute.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
 }
 
 func TestAPIInflater_Inflate_CreateDiskFailed_CancelWithoutDeleteDisk(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
-	mockComputeClient.EXPECT().CreateDiskBeta(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("failed to create disk"))
+	mockComputeClient.EXPECT().CreateDisk(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("failed to create disk"))
 	mockComputeClient.EXPECT().GetDisk(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, &googleapi.Error{Code: 404})
 
 	mockLogger := mocks.NewMockLogger(mockCtrl)
@@ -126,7 +126,7 @@ func TestAPIInflater_Inflate_CreateDiskSuccess_CancelWithDeleteDisk(t *testing.T
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
-	mockComputeClient.EXPECT().CreateDiskBeta(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	mockComputeClient.EXPECT().CreateDisk(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 	mockComputeClient.EXPECT().DeleteDisk(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 	mockComputeClient.EXPECT().GetDisk(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, &googleapi.Error{Code: 404})
 
