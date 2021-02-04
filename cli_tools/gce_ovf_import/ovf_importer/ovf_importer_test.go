@@ -264,6 +264,8 @@ func verifyModuleImport(t *testing.T, wfPath string, params *domain.OVFImportPar
 		// Creating the machine image adds two steps:
 		//  1. Stop the instance
 		//  2. Create the GMI
+		//
+		// (It also updates the cleanup step to delete the instance.)
 		assert.Len(t, w.Steps, 4)
 	} else {
 		assert.Len(t, w.Steps, 2)
@@ -273,27 +275,25 @@ func verifyModuleImport(t *testing.T, wfPath string, params *domain.OVFImportPar
 		assert.Len(t, *w.Steps["create-machine-image"].CreateMachineImages, 1, "Expect one GMI created")
 	}
 
-	// Final instance verification
 	instance := w.Steps["create-instance"].CreateInstances.Instances[0]
-
-	assert.Len(t, instance.Disks, len(descriptor.Disk.Disks))
-	cleanup := w.Steps["cleanup"].DeleteResources.Images
-	assert.Len(t, cleanup, len(testCase.imageURIs))
+	cleanup := w.Steps["cleanup"].DeleteResources
 
 	// Boot Disk
 	bootDisk := instance.Disks[0]
 	checkDaisyVariable(t, w, "boot_disk_image_uri", testCase.imageURIs[0], bootDisk.InitializeParams.SourceImage)
 	assert.True(t, bootDisk.AutoDelete, "Delete boot disk when instance is deleted.")
 	assert.True(t, bootDisk.Boot, "Boot disk is configured to boot.")
-	assert.Contains(t, cleanup, "${boot_disk_image_uri}", "Delete the boot disk image after instance creation.")
+	assert.Contains(t, cleanup.Images, "${boot_disk_image_uri}", "Delete the boot disk image after instance creation.")
 
 	// Data Disks
+	assert.Len(t, instance.Disks, len(descriptor.Disk.Disks))
+	assert.Len(t, cleanup.Images, len(testCase.imageURIs))
 	for i, diskURI := range testCase.imageURIs[1:] {
 		dataDisk := instance.Disks[i+1]
 		assert.Equal(t, diskURI, dataDisk.InitializeParams.SourceImage, "Include data disk on final instance.")
 		assert.True(t, dataDisk.AutoDelete, "Delete the disk when the instance is deleted.")
 		assert.False(t, dataDisk.Boot, "Data disk are not configured to boot.")
-		assert.Contains(t, cleanup, testCase.imageURIs[i+1], "Delete the data disk image after instance creation.")
+		assert.Contains(t, cleanup.Images, testCase.imageURIs[i+1], "Delete the data disk image after instance creation.")
 	}
 
 	// Instance
@@ -333,6 +333,7 @@ func verifyModuleImport(t *testing.T, wfPath string, params *domain.OVFImportPar
 		checkDaisyVariable(t, w, "network_tier", params.NetworkTier, accessConfig.NetworkTier)
 	}
 
+	// Cleanup
 	if createMachineImage {
 		machineImage := []*daisy.MachineImage(*w.Steps["create-machine-image"].CreateMachineImages)[0]
 		checkDaisyVariable(t, w, "machine_image_name", params.MachineImageName, machineImage.Name)
@@ -340,6 +341,7 @@ func verifyModuleImport(t *testing.T, wfPath string, params *domain.OVFImportPar
 		checkDaisyVariable(t, w, "description", params.Description, machineImage.Description)
 		assert.True(t, machineImage.ExactName)
 		assert.True(t, machineImage.NoCleanup)
+		assert.Equal(t, []string{instance.Name}, cleanup.Instances)
 	}
 }
 
