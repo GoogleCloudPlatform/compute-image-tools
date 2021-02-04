@@ -19,7 +19,6 @@ import (
 	"sync"
 	"time"
 
-	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 
@@ -52,7 +51,7 @@ type apiInflater struct {
 	request         ImageImportRequest
 	computeClient   daisyCompute.Client
 	storageClient   domain.StorageClientInterface
-	guestOsFeatures []*computeBeta.GuestOsFeature
+	guestOsFeatures []*compute.GuestOsFeature
 	wg              sync.WaitGroup
 	cancelChan      chan string
 	logger          logging.Logger
@@ -69,7 +68,7 @@ func createAPIInflater(request ImageImportRequest, computeClient daisyCompute.Cl
 		metadata:      metadata,
 	}
 	if request.UefiCompatible {
-		inflater.guestOsFeatures = []*computeBeta.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}}
+		inflater.guestOsFeatures = []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}}
 	}
 	return &inflater
 }
@@ -83,13 +82,13 @@ func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error)
 	diskName := inflater.getShadowDiskName()
 
 	// Create shadow disk
-	cd := computeBeta.Disk{
+	cd := compute.Disk{
 		Name:                diskName,
 		SourceStorageObject: inflater.request.Source.Path(),
 		GuestOsFeatures:     inflater.guestOsFeatures,
 	}
 
-	err := inflater.computeClient.CreateDiskBeta(inflater.request.Project, inflater.request.Zone, &cd)
+	err := inflater.computeClient.CreateDisk(inflater.request.Project, inflater.request.Zone, &cd)
 	if err != nil {
 		return persistentDisk{}, shadowTestFields{}, daisy.Errf("Failed to create shadow disk: %v", err)
 	}

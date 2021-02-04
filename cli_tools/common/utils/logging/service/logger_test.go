@@ -17,13 +17,14 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -159,6 +160,31 @@ func TestRunWithServerLoggingFailed(t *testing.T) {
 	if logExtension.Status != statusFailure {
 		t.Errorf("Unexpected Status: %v, expect: %v", logExtension.Status, statusFailure)
 	}
+}
+
+func TestRunWithServerLogging_LogsFailure_WhenApplicationPanics(t *testing.T) {
+	prepareTestLogger(t, nil, buildLogResponses(deleteRequest, deleteRequest))
+
+	panicMessage := "client code panic"
+	logExtension, err := logger.runWithServerLogging(
+		func() (Loggable, error) {
+			panic(panicMessage)
+		}, nil)
+	assert.EqualError(t, err, "A fatal error has occurred. Please submit an issue at https://github.com/GoogleCloudPlatform/compute-image-tools/issues")
+	assert.Equal(t, statusFailure, logExtension.Status)
+
+	// Include stacktrace and panic message in serial outputs.
+	assertContainsSubstring(t, "stacktrace", logExtension.OutputInfo.SerialOutputs)
+	assertContainsSubstring(t, panicMessage, logExtension.OutputInfo.SerialOutputs)
+}
+
+func assertContainsSubstring(t *testing.T, sub string, arr []string) {
+	for _, s := range arr {
+		if strings.Contains(s, sub) {
+			return
+		}
+	}
+	t.Errorf("Substring %q not found in %v", sub, arr)
 }
 
 func TestRunWithServerLoggingSuccessWithUpdatedProject(t *testing.T) {

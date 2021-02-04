@@ -3,35 +3,40 @@ module github.com/GoogleCloudPlatform/compute-image-tools/cli_tools
 go 1.13
 
 require (
-	cloud.google.com/go v0.65.0
-	cloud.google.com/go/logging v1.1.0 // indirect
-	cloud.google.com/go/storage v1.11.0
-	github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20201214200241-d4736a0b5477
+	cloud.google.com/go v0.76.0
+	cloud.google.com/go/logging v1.2.0 // indirect
+	cloud.google.com/go/storage v1.13.0
+	cos.googlesource.com/cos/tools.git v0.0.0-20210104210903-4b3bc7d49b79 // indirect
+	github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20210204013302-8240807dedc1
 	github.com/GoogleCloudPlatform/compute-image-tools/mocks v0.0.0-20200414213327-359251a2c860
 	github.com/GoogleCloudPlatform/compute-image-tools/proto/go v0.0.0
-	github.com/GoogleCloudPlatform/osconfig v0.0.0-20200721210327-c9ab1b6aeb02
-	github.com/aws/aws-sdk-go v1.34.22
-	github.com/cenkalti/backoff/v4 v4.0.2
+	github.com/GoogleCloudPlatform/osconfig v0.0.0-20210202205636-8f5a30e8969f
+	github.com/aws/aws-sdk-go v1.37.3
+	github.com/cenkalti/backoff/v4 v4.1.0
 	github.com/dustin/go-humanize v1.0.0
-	github.com/go-ole/go-ole v1.2.4
+	github.com/go-ole/go-ole v1.2.5
 	github.com/go-playground/validator/v10 v10.4.1
+	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.3
-	github.com/google/go-cmp v0.5.2
+	github.com/google/go-cmp v0.5.4
 	github.com/google/logger v1.1.0
-	github.com/google/uuid v1.1.2
-	github.com/klauspost/compress v1.11.0 // indirect
+	github.com/google/uuid v1.2.0
+	github.com/klauspost/compress v1.11.7 // indirect
 	github.com/klauspost/pgzip v1.2.5
 	github.com/kylelemons/godebug v1.1.0
-	github.com/minio/highwayhash v1.0.0
-	github.com/stretchr/testify v1.5.1
-	github.com/vmware/govmomi v0.23.1
-	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
-	golang.org/x/sys v0.0.0-20200909081042-eff7692f9009
-	golang.org/x/tools v0.0.0-20200914161755-17fc728d0d1e // indirect
-	google.golang.org/api v0.31.0
-	google.golang.org/genproto v0.0.0-20200911024640-645f7a48b24f // indirect
-	google.golang.org/grpc v1.32.0 // indirect
+	github.com/leodido/go-urn v1.2.1 // indirect
+	github.com/minio/highwayhash v1.0.1
+	github.com/stretchr/testify v1.6.1
+	github.com/vmware/govmomi v0.24.0
+	go.chromium.org/luci v0.0.0-20210204170102-f25dc79418e4 // indirect
+	go.opencensus.io v0.22.6 // indirect
+	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect
+	golang.org/x/oauth2 v0.0.0-20210201163806-010130855d6c // indirect
+	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
+	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c
+	google.golang.org/api v0.39.0
+	google.golang.org/genproto v0.0.0-20210204154452-deb828366460 // indirect
 	google.golang.org/protobuf v1.25.0
 )
 

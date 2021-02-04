@@ -18,20 +18,23 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/minio/highwayhash"
+
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
-	"github.com/google/uuid"
-	"github.com/minio/highwayhash"
 )
 
 var (
@@ -229,7 +232,7 @@ func (l *Logger) runWithServerLogging(function func() (Loggable, error),
 		l.logStart()
 	}()
 
-	loggable, err := function()
+	loggable, err := runWithRecovery(function)
 	l.updateParams(projectPointer)
 	if err != nil {
 		wg.Add(1)
@@ -379,6 +382,25 @@ func (l *Logger) constructLogRequest(logExtension *ComputeImageToolsLogExtension
 
 	reqStr, err := json.Marshal(req)
 	return reqStr, err
+}
+
+// runWithRecovery executes the function `inner`. If a panic occurs,
+// it is trapped, and the panic's contents are used to create loggable and err.
+func runWithRecovery(inner func() (Loggable, error)) (loggable Loggable, err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			log.Printf("Fatal error: %v", recovered)
+			loggable = literalLoggable{
+				traceLogs: []string{
+					fmt.Sprintf("Captured panic: %v", recovered),
+					"stacktrace from panic: \n" + string(debug.Stack()),
+				},
+			}
+			err = errors.New("A fatal error has occurred. " +
+				"Please submit an issue at https://github.com/GoogleCloudPlatform/compute-image-tools/issues")
+		}
+	}()
+	return inner()
 }
 
 // Hash a given string for obfuscation
