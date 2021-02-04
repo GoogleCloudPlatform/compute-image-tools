@@ -48,6 +48,7 @@ import (
 const (
 	ovfWorkflowDir             = "ovf_import/"
 	createInstanceWorkflow     = ovfWorkflowDir + "create_instance.wf.json"
+	createGMIWorkflow          = ovfWorkflowDir + "create_gmi.wf.json"
 	instanceImportWorkflow     = ovfWorkflowDir + "import_ovf_to_instance.wf.json"
 	machineImageImportWorkflow = ovfWorkflowDir + "import_ovf_to_machine_image.wf.json"
 	logPrefix                  = "[import-ovf]"
@@ -115,20 +116,25 @@ func NewOVFImporter(params *ovfdomain.OVFImportParams) (*OVFImporter, error) {
 	return ovfImporter, nil
 }
 
-func getImportWorkflowPath(params *ovfdomain.OVFImportParams) string {
-	var workflow string
+func getImportWorkflowPath(params *ovfdomain.OVFImportParams) (workflow string) {
 	if useModulesForImport(params) {
-		workflow = createInstanceWorkflow
-	} else if params.IsInstanceImport() {
-		workflow = instanceImportWorkflow
+		if params.IsInstanceImport() {
+			workflow = createInstanceWorkflow
+		} else {
+			workflow = createGMIWorkflow
+		}
 	} else {
-		workflow = machineImageImportWorkflow
+		if params.IsInstanceImport() {
+			workflow = instanceImportWorkflow
+		} else {
+			workflow = machineImageImportWorkflow
+		}
 	}
 	return path.Join(params.WorkflowDir, workflow)
 }
 
 func useModulesForImport(params *ovfdomain.OVFImportParams) bool {
-	return params.IsInstanceImport() && (params.ReleaseTrack == ovfdomain.Beta || params.ReleaseTrack == ovfdomain.Alpha)
+	return params.ReleaseTrack == ovfdomain.Beta || params.ReleaseTrack == ovfdomain.Alpha
 }
 
 func (oi *OVFImporter) buildDaisyVars(translateWorkflowPath string, bootDiskGcsPath string, machineType string) map[string]string {
