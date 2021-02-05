@@ -23,62 +23,12 @@ import (
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 )
 
 const daisyWorkflows = "../../../../daisy_workflows"
-
-func TestCreateInflater_File(t *testing.T) {
-	inflater, err := newInflater(ImageImportRequest{
-		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
-		Subnet:       "projects/subnet/subnet",
-		Network:      "projects/network/network",
-		Zone:         "us-west1-c",
-		ExecutionID:  "1234",
-		NoExternalIP: false,
-		WorkflowDir:  daisyWorkflows,
-	}, nil, &storage.Client{}, mockInspector{
-		t:                 t,
-		expectedReference: "gs://bucket/vmdk",
-		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{},
-	}, nil)
-	assert.NoError(t, err)
-	facade, ok := inflater.(*inflaterFacade)
-	assert.True(t, ok)
-
-	assert.True(t, ok)
-	assert.Equal(t, "zones/us-west1-c/disks/disk-1234", facade.daisyInflater.inflatedDiskURI)
-	assert.Equal(t, "gs://bucket/vmdk", facade.daisyInflater.wf.Vars["source_disk_file"].Value)
-	assert.Equal(t, "projects/subnet/subnet", facade.daisyInflater.wf.Vars["import_subnet"].Value)
-	assert.Equal(t, "projects/network/network", facade.daisyInflater.wf.Vars["import_network"].Value)
-
-	network := getWorkerNetwork(t, facade.daisyInflater.wf)
-	assert.Nil(t, network.AccessConfigs, "AccessConfigs must be nil to allow ExternalIP to be allocated.")
-
-	assert.NotContains(t, facade.apiInflater.guestOsFeatures,
-		&compute.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
-}
-
-func TestCreateInflater_Image(t *testing.T) {
-	inflater, err := newInflater(ImageImportRequest{
-		Source:      imageSource{uri: "projects/test/uri/image"},
-		Zone:        "us-west1-b",
-		ExecutionID: "1234",
-		WorkflowDir: daisyWorkflows,
-	}, nil, &storage.Client{}, nil, nil)
-	assert.NoError(t, err)
-	realInflater, ok := inflater.(*daisyInflater)
-	assert.True(t, ok)
-	assert.Equal(t, "zones/us-west1-b/disks/disk-1234", realInflater.inflatedDiskURI)
-	assert.Equal(t, "projects/test/uri/image", realInflater.wf.Vars["source_image"].Value)
-	inflatedDisk := getDisk(realInflater.wf, 0)
-	assert.Contains(t, inflatedDisk.Licenses,
-		"projects/compute-image-tools/global/licenses/virtual-disk-import")
-}
 
 func TestCreateAPIInflater_IncludesUEFIGuestOSFeature(t *testing.T) {
 	request := ImageImportRequest{

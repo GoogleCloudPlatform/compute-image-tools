@@ -80,8 +80,8 @@ func (inflater *daisyInflater) Inflate() (persistentDisk, shadowTestFields, erro
 		}, err
 }
 
-// NewDaisyInflater returns an Inflater that uses a Daisy workflow.
-func NewDaisyInflater(request ImageImportRequest, fileInspector imagefile.Inspector, logger logging.Logger) (*daisyInflater, error) {
+// newDaisyInflater returns an inflater that uses a Daisy workflow.
+func newDaisyInflater(request ImageImportRequest, fileInspector imagefile.Inspector, logger logging.Logger) (*daisyInflater, error) {
 	diskName := "disk-" + request.ExecutionID
 	var wfPath string
 	var vars map[string]string

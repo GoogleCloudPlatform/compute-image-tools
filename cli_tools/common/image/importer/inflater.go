@@ -49,7 +49,7 @@ type shadowTestFields struct {
 func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient domain.StorageClientInterface,
 	inspector imagefile.Inspector, logger logging.Logger) (Inflater, error) {
 
-	di, err := NewDaisyInflater(request, inspector, logger)
+	di, err := newDaisyInflater(request, inspector, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +80,8 @@ func isShadowTestFormat(request ImageImportRequest) bool {
 
 // inflaterFacade implements an inflater using other concrete implementations.
 type inflaterFacade struct {
-	apiInflater   *apiInflater
-	daisyInflater *daisyInflater
+	apiInflater   Inflater
+	daisyInflater Inflater
 	logger        logging.Logger
 }
 
@@ -102,7 +102,7 @@ func (facade *inflaterFacade) Inflate() (persistentDisk, shadowTestFields, error
 
 	if !isCausedByUnsupportedFormat(err) {
 		facade.logger.Metric(&pb.OutputInfo{
-			InflationType:  "api_failed",
+			InflationType:   "api_failed",
 			InflationTimeMs: []int64{tf.inflationTime.Milliseconds()},
 		})
 		return pd, tf, err

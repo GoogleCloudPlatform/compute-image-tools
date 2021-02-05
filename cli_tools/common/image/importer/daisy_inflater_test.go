@@ -295,7 +295,7 @@ func TestCreateDaisyInflater_File_NotUEFI(t *testing.T) {
 func createDaisyInflaterSafe(t *testing.T, request ImageImportRequest,
 	inspector imagefile.Inspector) *daisyInflater {
 	request.WorkflowDir = "../../../../daisy_workflows"
-	daisyInflater, err := NewDaisyInflater(request, inspector, logging.NewToolLogger("test"))
+	daisyInflater, err := newDaisyInflater(request, inspector, logging.NewToolLogger("test"))
 	assert.NoError(t, err)
 	return daisyInflater
 }
