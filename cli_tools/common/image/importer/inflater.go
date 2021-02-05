@@ -13,40 +13,125 @@
 package importer
 
 import (
-	"context"
 	"fmt"
-	"path"
-	"strings"
 	"time"
-
-	"google.golang.org/api/compute/v1"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
-	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	string_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
 
-const (
-	inflateFilePath  = "image_import/inflate_file.wf.json"
-	inflateImagePath = "image_import/inflate_image.wf.json"
+// Inflater constructs a new persistentDisk, typically starting from a
+// frozen representation of a disk, such as a VMDK file or a GCP disk image.
+//
+// Implementers can expose detailed logs using the traceLogs() method.
+type Inflater interface {
+	Inflate() (persistentDisk, shadowTestFields, error)
+	Cancel(reason string) bool
+}
 
-	// When exceeded, we use default values for PDs, rather than more accurate
-	// values used by inspection. When using default values, the worker may
-	// need to resize the PDs, which requires escalated privileges.
-	inspectionTimeout = time.Second * 3
+type persistentDisk struct {
+	uri        string
+	sizeGb     int64
+	sourceGb   int64
+	sourceType string
+}
 
-	// 10GB is the default disk size used in inflate_file.wf.json.
-	defaultInflationDiskSizeGB = 10
-)
+type shadowTestFields struct {
+	// Below fields are for shadow API inflation metrics
+	checksum      string
+	inflationTime time.Duration
+	inflationType string
+}
+
+func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient domain.StorageClientInterface,
+	inspector imagefile.Inspector, logger logging.Logger) (Inflater, error) {
+
+	di, err := NewDaisyInflater(request, inspector, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	if isImage(request.Source) {
+		return di, nil
+	}
+
+	if isShadowTestFormat(request) {
+		return &shadowTestInflaterFacade{
+			mainInflater:   di,
+			shadowInflater: createAPIInflater(request, computeClient, storageClient, logger, true),
+			logger:         logger,
+		}, nil
+	}
+
+	return &inflaterFacade{
+		apiInflater:   createAPIInflater(request, computeClient, storageClient, logger, false),
+		daisyInflater: di,
+		logger:        logger,
+	}, nil
+}
+
+func isShadowTestFormat(request ImageImportRequest) bool {
+	// TODO: process VHD/VPC differently
+	return false
+}
 
 // inflaterFacade implements an inflater using other concrete implementations.
 type inflaterFacade struct {
+	apiInflater   *apiInflater
+	daisyInflater *daisyInflater
+	logger        logging.Logger
+}
+
+func (facade *inflaterFacade) Inflate() (persistentDisk, shadowTestFields, error) {
+	var pd persistentDisk
+	var tf shadowTestFields
+	var err error
+
+	//  Try with API inflater.
+	pd, tf, err = facade.apiInflater.Inflate()
+	if err == nil {
+		facade.logger.Metric(&pb.OutputInfo{
+			InflationType:   "api_success",
+			InflationTimeMs: []int64{tf.inflationTime.Milliseconds()},
+		})
+		return pd, tf, err
+	}
+
+	if !isCausedByUnsupportedFormat(err) {
+		facade.logger.Metric(&pb.OutputInfo{
+			InflationType:  "api_failed",
+			InflationTimeMs: []int64{tf.inflationTime.Milliseconds()},
+		})
+		return pd, tf, err
+	}
+
+	// Retry with daisy inflater.
+	pd, tf, err = facade.daisyInflater.Inflate()
+	if err == nil {
+		facade.logger.Metric(&pb.OutputInfo{
+			InflationType:   "qemu_success",
+			InflationTimeMs: []int64{tf.inflationTime.Milliseconds()},
+		})
+		return pd, tf, err
+	}
+
+	facade.logger.Metric(&pb.OutputInfo{
+		InflationType:   "qemu_failed",
+		InflationTimeMs: []int64{tf.inflationTime.Milliseconds()},
+	})
+	return pd, tf, err
+}
+
+func (facade *inflaterFacade) Cancel(reason string) bool {
+	// No need to cancel apiInflater.
+	return facade.daisyInflater.Cancel(reason)
+}
+
+// shadowTestInflaterFacade implements an inflater with shadow test support.
+type shadowTestInflaterFacade struct {
 	mainInflater   Inflater
 	shadowInflater Inflater
 	logger         logging.Logger
@@ -60,7 +145,7 @@ const (
 	sigShadowInflaterErr  = "shadow err"
 )
 
-func (facade *inflaterFacade) Inflate() (persistentDisk, shadowTestFields, error) {
+func (facade *shadowTestInflaterFacade) Inflate() (persistentDisk, shadowTestFields, error) {
 	inflaterChan := make(chan string)
 
 	// Launch main inflater.
@@ -136,12 +221,12 @@ func (facade *inflaterFacade) Inflate() (persistentDisk, shadowTestFields, error
 	return pd, ii, err
 }
 
-func (facade *inflaterFacade) Cancel(reason string) bool {
+func (facade *shadowTestInflaterFacade) Cancel(reason string) bool {
 	facade.shadowInflater.Cancel(reason)
 	return facade.mainInflater.Cancel(reason)
 }
 
-func (facade *inflaterFacade) compareWithShadowInflater(mainPd, shadowPd *persistentDisk, mainIi, shadowIi *shadowTestFields) string {
+func (facade *shadowTestInflaterFacade) compareWithShadowInflater(mainPd, shadowPd *persistentDisk, mainIi, shadowIi *shadowTestFields) string {
 	matchFormat := "sizeGb-%v,sourceGb-%v,content-%v"
 	sizeGbMatch := shadowPd.sizeGb == mainPd.sizeGb
 	sourceGbMatch := shadowPd.sourceGb == mainPd.sourceGb
@@ -155,210 +240,4 @@ func (facade *inflaterFacade) compareWithShadowInflater(mainPd, shadowPd *persis
 		result = fmt.Sprintf(matchFormat, sizeGbMatch, sourceGbMatch, contentMatch)
 	}
 	return result
-}
-
-// Inflater constructs a new persistentDisk, typically starting from a
-// frozen representation of a disk, such as a VMDK file or a GCP disk image.
-//
-// Implementers can expose detailed logs using the traceLogs() method.
-type Inflater interface {
-	Inflate() (persistentDisk, shadowTestFields, error)
-	Cancel(reason string) bool
-}
-
-// daisyInflater implements an inflater using daisy workflows, and is capable
-// of inflating GCP disk images and qemu-img compatible disk files.
-type daisyInflater struct {
-	wf              *daisy.Workflow
-	source          Source
-	inflatedDiskURI string
-	logger          logging.Logger
-}
-
-func (inflater *daisyInflater) Inflate() (persistentDisk, shadowTestFields, error) {
-	if inflater.source != nil {
-		inflater.logger.User("Creating Google Compute Engine disk from " + inflater.source.Path())
-	}
-	startTime := time.Now()
-	err := inflater.wf.Run(context.Background())
-	if inflater.wf.Logger != nil {
-		for _, trace := range inflater.wf.Logger.ReadSerialPortLogs() {
-			inflater.logger.Trace(trace)
-		}
-	}
-	inflater.logger.User("Finished creating Google Compute Engine disk")
-	// See `daisy_workflows/image_import/import_image.sh` for generation of these values.
-	targetSizeGB := inflater.wf.GetSerialConsoleOutputValue("target-size-gb")
-	sourceSizeGB := inflater.wf.GetSerialConsoleOutputValue("source-size-gb")
-	importFileFormat := inflater.wf.GetSerialConsoleOutputValue("import-file-format")
-	checksum := inflater.wf.GetSerialConsoleOutputValue("disk-checksum")
-	return persistentDisk{
-			uri:        inflater.inflatedDiskURI,
-			sizeGb:     string_utils.SafeStringToInt(targetSizeGB),
-			sourceGb:   string_utils.SafeStringToInt(sourceSizeGB),
-			sourceType: importFileFormat,
-		}, shadowTestFields{
-			checksum:      checksum,
-			inflationTime: time.Since(startTime),
-			inflationType: "qemu",
-		}, err
-}
-
-type persistentDisk struct {
-	uri        string
-	sizeGb     int64
-	sourceGb   int64
-	sourceType string
-}
-
-type shadowTestFields struct {
-	// Below fields are for shadow API inflation metrics
-	checksum      string
-	inflationTime time.Duration
-	inflationType string
-}
-
-func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient domain.StorageClientInterface,
-	inspector imagefile.Inspector, logger logging.Logger) (Inflater, error) {
-
-	di, err := NewDaisyInflater(request, inspector, logger)
-	if err != nil {
-		return nil, err
-	}
-
-	if isImage(request.Source) {
-		return di, nil
-	}
-
-	ai := createAPIInflater(request, computeClient, storageClient, logger)
-	return &inflaterFacade{
-		mainInflater:   di,
-		shadowInflater: ai,
-		logger:         logger,
-	}, nil
-}
-
-// NewDaisyInflater returns an Inflater that uses a Daisy workflow.
-func NewDaisyInflater(request ImageImportRequest, fileInspector imagefile.Inspector, logger logging.Logger) (Inflater, error) {
-	diskName := "disk-" + request.ExecutionID
-	var wfPath string
-	var vars map[string]string
-	var inflationDiskIndex int
-	if isImage(request.Source) {
-		wfPath = inflateImagePath
-		vars = map[string]string{
-			"source_image": request.Source.Path(),
-			"disk_name":    diskName,
-		}
-		inflationDiskIndex = 0 // Workflow only uses one disk.
-	} else {
-		wfPath = inflateFilePath
-		vars = createDaisyVarsForFile(request, fileInspector, diskName)
-		inflationDiskIndex = 1 // First disk is for the worker
-	}
-
-	wf, err := daisycommon.ParseWorkflow(path.Join(request.WorkflowDir, wfPath), vars,
-		request.Project, request.Zone, request.ScratchBucketGcsPath, request.Oauth, request.Timeout.String(), request.ComputeEndpoint,
-		request.GcsLogsDisabled, request.CloudLogsDisabled, request.StdoutLogsDisabled)
-	if err != nil {
-		return nil, err
-	}
-
-	for k, v := range vars {
-		wf.AddVar(k, v)
-	}
-	daisyUtils.UpdateAllInstanceNoExternalIP(wf, request.NoExternalIP)
-	if request.UefiCompatible {
-		addFeatureToDisk(wf, "UEFI_COMPATIBLE", inflationDiskIndex)
-	}
-	if strings.Contains(request.OS, "windows") {
-		addFeatureToDisk(wf, "WINDOWS", inflationDiskIndex)
-	}
-
-	logPrefix := request.DaisyLogLinePrefix
-	if logPrefix != "" {
-		logPrefix += "-"
-	}
-	wf.Name = logPrefix + "inflate"
-	return &daisyInflater{
-		wf:              wf,
-		inflatedDiskURI: fmt.Sprintf("zones/%s/disks/%s", request.Zone, diskName),
-		logger:          logger,
-		source:          request.Source,
-	}, nil
-}
-
-// addFeatureToDisk finds the first `CreateDisk` step, and adds `feature` as
-// a guestOsFeature to the disk at index `diskIndex`.
-func addFeatureToDisk(workflow *daisy.Workflow, feature string, diskIndex int) {
-	disk := getDisk(workflow, diskIndex)
-	disk.GuestOsFeatures = append(disk.GuestOsFeatures, &compute.GuestOsFeature{
-		Type: feature,
-	})
-}
-
-func getDisk(workflow *daisy.Workflow, diskIndex int) *daisy.Disk {
-	for _, step := range workflow.Steps {
-		if step.CreateDisks != nil {
-			disks := *step.CreateDisks
-			if diskIndex < len(disks) {
-				return disks[diskIndex]
-			}
-			panic(fmt.Sprintf("CreateDisks step did not have disk at index %d", diskIndex))
-		}
-	}
-
-	panic("Did not find CreateDisks step.")
-}
-
-func (inflater *daisyInflater) Cancel(reason string) bool {
-	inflater.wf.CancelWithReason(reason)
-	return true
-}
-
-func createDaisyVarsForFile(request ImageImportRequest,
-	fileInspector imagefile.Inspector, diskName string) map[string]string {
-	vars := map[string]string{
-		"source_disk_file": request.Source.Path(),
-		"import_network":   request.Network,
-		"import_subnet":    request.Subnet,
-		"disk_name":        diskName,
-	}
-
-	if request.ComputeServiceAccount != "" {
-		vars["compute_service_account"] = request.ComputeServiceAccount
-	}
-
-	// To reduce the runtime permissions used on the inflation worker, we pre-allocate
-	// disks sufficient to hold the disk file and the inflated disk. If inspection fails,
-	// then the default values in the daisy workflow will be used. The scratch disk gets
-	// a padding factor to account for filesystem overhead.
-	deadline, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(inspectionTimeout))
-	defer cancelFunc()
-	metadata, err := fileInspector.Inspect(deadline, request.Source.Path())
-	if err == nil {
-		vars["inflated_disk_size_gb"] = fmt.Sprintf("%d", calculateInflatedSize(metadata))
-		vars["scratch_disk_size_gb"] = fmt.Sprintf("%d", calculateScratchDiskSize(metadata))
-	}
-	return vars
-}
-
-// Allocate extra room for filesystem overhead, and
-// ensure a minimum of 10GB (the minimum size of a GCP disk).
-func calculateScratchDiskSize(metadata imagefile.Metadata) int64 {
-	// This uses the historic padding calculation from import_image.sh: add ten percent,
-	// and round up.
-	padded := int64(float64(metadata.PhysicalSizeGB)*1.1) + 1
-	if padded < defaultInflationDiskSizeGB {
-		return defaultInflationDiskSizeGB
-	}
-	return padded
-}
-
-// Ensure a minimum of 10GB (the minimum size of a GCP disk)
-func calculateInflatedSize(metadata imagefile.Metadata) int64 {
-	if metadata.VirtualSizeGB < defaultInflationDiskSizeGB {
-		return defaultInflationDiskSizeGB
-	}
-	return metadata.VirtualSizeGB
 }
