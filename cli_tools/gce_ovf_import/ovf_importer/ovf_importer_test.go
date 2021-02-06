@@ -291,6 +291,7 @@ func verifyModuleImport(t *testing.T, wfPath string, params *domain.OVFImportPar
 	for i, diskURI := range testCase.imageURIs[1:] {
 		dataDisk := instance.Disks[i+1]
 		assert.Equal(t, diskURI, dataDisk.InitializeParams.SourceImage, "Include data disk on final instance.")
+		assert.Regexp(t, "^[a-z].*", dataDisk.InitializeParams.DiskName, "Disk name should start with letter.")
 		assert.True(t, dataDisk.AutoDelete, "Delete the disk when the instance is deleted.")
 		assert.False(t, dataDisk.Boot, "Data disk are not configured to boot.")
 		assert.Contains(t, cleanup.Images, testCase.imageURIs[i+1], "Delete the data disk image after instance creation.")
