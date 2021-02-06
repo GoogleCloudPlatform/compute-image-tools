@@ -280,9 +280,16 @@ func (oi *OVFImporter) modifyWorkflowPreValidate(w *daisy.Workflow) {
 		createInstanceStepName := "create-instance"
 		cleanupStepName := "cleanup"
 
+		var dataDiskPrefix string
+		if oi.params.IsInstanceImport() {
+			dataDiskPrefix = oi.params.InstanceNames
+		} else {
+			dataDiskPrefix = oi.params.MachineImageName
+		}
+
 		daisyovfutils.CreateDisksOnInstance(
 			w.Steps[createInstanceStepName].CreateInstances.Instances[0],
-			oi.params.InstanceNames, oi.imageURIs[1:])
+			dataDiskPrefix, oi.imageURIs[1:])
 
 		// Delete the images after the instance is created.
 		w.Steps[cleanupStepName].DeleteResources.Images = append(
