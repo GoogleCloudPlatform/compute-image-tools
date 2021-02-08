@@ -51,7 +51,7 @@ online disk noerr
     }
   }
   if ($script:install_media_drive){break}
-  "Disk not ready yet - waiting"
+  Write-Host "Disk not ready yet - waiting"
   Start-Sleep -Seconds 5
   }
 
