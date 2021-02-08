@@ -116,9 +116,11 @@ func TestDistroFromComponents_HappyCasesLinux(t *testing.T) {
 		{"centos", "7", "5", "centos-7"},
 		{"opensuse", "15", "", "opensuse-15"},
 		{"opensuse", "15", "2", "opensuse-15"},
+		{"opensuse-leap", "15", "2", "opensuse-15"},
 		{"sles", "12", "", "sles-12"},
 		{"sles", "12", "1", "sles-12"},
 		{"sles-sap", "12", "", "sles-sap-12"},
+		{"SLES_SAP", "12", "", "sles-sap-12"},
 		{"rhel", "6", "", "rhel-6"},
 		{"rhel", "8", "2", "rhel-8"},
 		{"ubuntu", "14", "04", "ubuntu-1404"},
@@ -152,18 +154,78 @@ func TestDistroFromComponents_HappyCasesWindows(t *testing.T) {
 	}
 }
 
-func TestDistroFromComponents_ArchitectureValidation(t *testing.T) {
+func TestWindowsServerVersionforNTVersion(t *testing.T) {
 	var cases = []struct {
-		arch, expectErrorToContain string
+		major, minor                 string
+		expectedMajor, expectedMinor string
+		expectErrorToContain         string
 	}{
-		{arch: "x86"},
-		{arch: "x64"},
-		{arch: ""},
-		{arch: "mips", expectErrorToContain: "Architecture `mips` is not supported for import"},
+		{
+			major:         "6",
+			minor:         "0",
+			expectedMajor: "2008",
+			expectedMinor: "",
+		}, {
+			major:         "6",
+			minor:         "1",
+			expectedMajor: "2008",
+			expectedMinor: "r2",
+		}, {
+			major:         "6",
+			minor:         "2",
+			expectedMajor: "2012",
+			expectedMinor: "",
+		}, {
+			major:         "6",
+			minor:         "3",
+			expectedMajor: "2012",
+			expectedMinor: "r2",
+		}, {
+			major:         "10",
+			minor:         "0",
+			expectedMajor: "2016",
+			expectedMinor: "",
+		}, {
+			major:                "8",
+			minor:                "1",
+			expectErrorToContain: "`8.1` is not a recognized Windows NT version",
+		},
 	}
 	for _, tt := range cases {
-		t.Run(fmt.Sprintf("arch: %s", tt.arch), func(t *testing.T) {
-			d, e := FromComponents("ubuntu", "18", "04", tt.arch)
+		t.Run(fmt.Sprintf("%s-%s", tt.major, tt.minor), func(t *testing.T) {
+			actualMajor, actualMinor, actualError := WindowsServerVersionforNTVersion(tt.major, tt.minor)
+			if tt.expectErrorToContain == "" {
+				assert.NoError(t, actualError)
+				assert.Equal(t, tt.expectedMajor, actualMajor)
+				assert.Equal(t, tt.expectedMinor, actualMinor)
+			} else {
+				assert.Contains(t, actualError.Error(), tt.expectErrorToContain)
+			}
+		})
+	}
+}
+
+func TestDistroFromComponents_ArchitectureValidation(t *testing.T) {
+	var cases = []struct {
+		inputArch, expectedArch, expectErrorToContain string
+	}{
+		{inputArch: "x64", expectedArch: "x64"},
+		{inputArch: "X64", expectedArch: "x64"},
+		{inputArch: "amd64", expectedArch: "x64"},
+		{inputArch: "x86_64", expectedArch: "x64"},
+
+		{inputArch: "X86", expectedArch: "x86"},
+		{inputArch: "x86", expectedArch: "x86"},
+		{inputArch: "i386", expectedArch: "x86"},
+		{inputArch: "i686", expectedArch: "x86"},
+		{inputArch: "x86_32", expectedArch: "x86"},
+
+		{inputArch: "", expectedArch: ""},
+		{inputArch: "mips", expectErrorToContain: "Architecture `mips` is not supported for import"},
+	}
+	for _, tt := range cases {
+		t.Run(tt.inputArch, func(t *testing.T) {
+			d, e := FromComponents("ubuntu", "18", "04", tt.inputArch)
 			if tt.expectErrorToContain == "" {
 				assert.NotNil(t, d)
 				assert.NoError(t, e)
@@ -249,16 +311,8 @@ func TestDistroFromComponents_DistroNameErrors(t *testing.T) {
 			err:    "distro `a` is not importable",
 		},
 		{
-			distro: "rhel-based",
-			err:    "distro `rhel-based` is not importable",
-		},
-		{
 			distro: "unknown",
 			err:    "distro `unknown` is not importable",
-		},
-		{
-			distro: "SLESS-sap",
-			err:    "distro `sless-sap` is not importable",
 		},
 	}
 	for _, tt := range cases {

@@ -53,6 +53,15 @@ var osFlagExpression = regexp.MustCompile(
 		// License is optional. The only value is `byol`.
 		"(?:-(?P<license>byol))?$")
 
+var architectureLookup = map[string]string{
+	"amd64":  archX64,
+	"x86_64": archX64,
+
+	"i386":   archX86,
+	"i686":   archX86,
+	"x86_32": archX86,
+}
+
 var architectures = map[string]bool{
 	archX64: true,
 	archX86: true,
@@ -89,8 +98,8 @@ func FromComponents(distro string, major string, minor string, architecture stri
 	if distro == "" {
 		return nil, errors.New("distro name required")
 	}
-	distro = strings.ToLower(distro)
-	architecture = strings.ToLower(architecture)
+	distro = standardizeDistro(distro)
+	architecture = standardizeArchitecture(architecture)
 
 	if architecture != "" && !architectures[architecture] {
 		return nil, fmt.Errorf("Architecture `%s` is not supported for import", architecture)
@@ -101,6 +110,24 @@ func FromComponents(distro string, major string, minor string, architecture stri
 	}
 
 	return newLinuxRelease(distro, major, minor)
+}
+
+func standardizeArchitecture(arch string) string {
+	lower := strings.ToLower(arch)
+	if standard, found := architectureLookup[lower]; found {
+		return standard
+	}
+	return lower
+}
+
+func standardizeDistro(distro string) string {
+	d := strings.ReplaceAll(strings.ToLower(distro), "_", "-")
+	for _, known := range []string{centos, debian, opensuse, rhel, slesSAP, sles, ubuntu, windows} {
+		if strings.Contains(d, known) {
+			return known
+		}
+	}
+	return distro
 }
 
 func newLinuxRelease(distro string, major string, minor string) (Release, error) {
@@ -259,6 +286,34 @@ func newWindowsRelease(major string, minor string, architecture string) (Release
 		return nil, fmt.Errorf("`%s` is not a valid major version for Windows", major)
 	}
 	return windowsRelease{major, minor, architecture}, nil
+}
+
+// WindowsServerVersionforNTVersion returns the marketing version corresponding to an NT version.
+//
+// Careful: NT versions are shared across multiple Windows products, so this function is a
+// rough heuristic. It follows these rules for a collision:
+//   - Only returns server versions (not desktop).
+//   - If multiple server versions are possible, return the earliest.
+func WindowsServerVersionforNTVersion(major string, minor string) (marketingMajor, marketingMinor string, err error) {
+	// Mappings of NT version to marketing versions.
+	// Source: https://wikipedia.org/wiki/List_of_Microsoft_Windows_versions
+	for _, t := range []struct {
+		ntMajor        string
+		ntMinor        string
+		marketingMajor string
+		marketingMinor string
+	}{
+		{"6", "0", "2008", ""},
+		{"6", "1", "2008", "r2"},
+		{"6", "2", "2012", ""},
+		{"6", "3", "2012", "r2"},
+		{"10", "0", "2016", ""}, // NT 10.0 is also 2019
+	} {
+		if major == t.ntMajor && minor == t.ntMinor {
+			return t.marketingMajor, t.marketingMinor, nil
+		}
+	}
+	return "", "", fmt.Errorf("`%s.%s` is not a recognized Windows NT version", major, minor)
 }
 
 // slesRelease is a Release that represents the SLES distro and its variants (such as SLES for SAP).
