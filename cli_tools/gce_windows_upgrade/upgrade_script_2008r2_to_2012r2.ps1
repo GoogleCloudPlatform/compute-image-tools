@@ -43,12 +43,19 @@ online disk noerr
   }
 
   # Find the drive which contains install media.
-  $Drives = Get-WmiObject Win32_LogicalDisk
+  For ($i=0; $i -le 5; $i++) {
+    $Drives = Get-WmiObject Win32_LogicalDisk
   ForEach ($Drive in $Drives) {
     if (Test-Path "$($Drive.DeviceID)\Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English") {
       $script:install_media_drive = "$($Drive.DeviceID)"
     }
   }
+  if ($script:install_media_drive){break}
+  "Disk not ready yet - waiting"
+  Start-Sleep -Seconds 5
+  }
+
+
   if (!$script:install_media_drive) {
     throw "No install media found."
   }
