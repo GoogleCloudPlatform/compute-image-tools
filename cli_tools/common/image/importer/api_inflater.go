@@ -171,6 +171,8 @@ func (inflater *apiInflater) getShadowDiskName() string {
 
 func (inflater *apiInflater) Cancel(reason string) bool {
 	if !inflater.isShadowInflater {
+		// We don't have to do any actual cancellation for the single CreateDisk API call.
+		// Only the daisy workflow is worth cancelling.
 		return false
 	}
 

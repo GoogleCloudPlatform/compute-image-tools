@@ -25,8 +25,6 @@ import (
 
 // Inflater constructs a new persistentDisk, typically starting from a
 // frozen representation of a disk, such as a VMDK file or a GCP disk image.
-//
-// Implementers can expose detailed logs using the traceLogs() method.
 type Inflater interface {
 	Inflate() (persistentDisk, shadowTestFields, error)
 	Cancel(reason string) bool
