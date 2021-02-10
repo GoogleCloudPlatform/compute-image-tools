@@ -22,6 +22,10 @@ import (
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 )
 
+const (
+	docsURL = "https://cloud.google.com/sdk/gcloud/reference/compute/images/import"
+)
+
 type osVersionCheck struct {
 	osInfo *osinfo.OSInfo
 }
@@ -34,14 +38,13 @@ func (c *osVersionCheck) run() (*report, error) {
 	r := &report{name: c.getName()}
 	// Find osID from OS config's detection results.
 	major, minor := splitOSVersion(c.osInfo.Version)
-	osID, err := c.getOSID(major, minor, r)
-	if err != nil {
-		r.Info("Cannot determine OS. For supported versions, " +
-			"see https://cloud.google.com/sdk/gcloud/reference/compute/images/import")
+	osID := c.createOSID(major, minor, r)
+	if osID == "" {
+		r.Info("Unable to determine whether your system is supported for import. " +
+			"For supported versions, see " + docsURL)
 		r.skipped = true
 		return r, nil
 	}
-
 	// Check whether the osID is supported for import.
 	// Some systems are only available as BYOL, so check for both osID variants.
 	var supported bool
@@ -60,35 +63,49 @@ func (c *osVersionCheck) run() (*report, error) {
 			r.Info(fmt.Sprintf("Detected system: %s", osID))
 		}
 	} else {
-		r.Fatal(createFailureMessage(osID).Error())
+		r.Fatal(osID + " is not supported for import. For supported versions, see " + docsURL)
 	}
 	return r, nil
 }
 
-func (c *osVersionCheck) getOSID(major string, minor string, r *report) (osID string, err error) {
-	if c.osInfo.ShortName == osinfo.Windows {
-		maj, min, err := distro.WindowsServerVersionforNTVersion(major, minor)
+// createOSID creates the osID, as used in the `--os` flag of the CLI tools. An empty string is
+// return when unable to determine the osID.
+func (c *osVersionCheck) createOSID(originalMajor string, originalMinor string, r *report) string {
+	major, minor := originalMajor, originalMinor
+
+	switch c.osInfo.ShortName {
+	case "":
+		r.Info("Unable to determine OS.")
+		return ""
+	case osinfo.Linux:
+		// OS config returns "linux" as the distro when it can't find a more specific match.
+		r.Info("Detected generic Linux system.")
+		return ""
+	case osinfo.Windows:
+		r.Info("Detected Windows system.")
+		// OS config uses NT version numbers, while cli_tools/common/distro uses marketing verions.
+		windowsMajor, windowsMinor, err :=
+			distro.WindowsServerVersionforNTVersion(originalMajor, originalMinor)
 		if err == nil {
-			major, minor = maj, min
+			major, minor = windowsMajor, windowsMinor
 		}
 	}
+
 	release, err := distro.FromComponents(c.osInfo.ShortName, major, minor, c.osInfo.Architecture)
 	if err != nil {
-		return "", err
+		r.Info(err.Error())
+		return ""
 	}
-	if release == nil {
-		return "", createFailureMessage("Your OS")
+	osID := release.AsGcloudArg()
+	if osID != "" {
+		return osID
 	}
-	osID = release.AsGcloudArg()
-	if osID == "" {
-		return "", createFailureMessage("Your OS")
+	// If the distro package can't determine the osID, attempt to create one using
+	// the format "os-version".
+	if c.osInfo.ShortName != osinfo.Linux && c.osInfo.ShortName != "" && c.osInfo.Version != "" {
+		return fmt.Sprintf("%s-%s", c.osInfo.ShortName, c.osInfo.Version)
 	}
-	return osID, nil
-}
-
-func createFailureMessage(osID string) error {
-	return fmt.Errorf("%s is not supported for import. For supported versions, "+
-		"see https://cloud.google.com/sdk/gcloud/reference/compute/images/import", osID)
+	return ""
 }
 
 func splitOSVersion(version string) (major, minor string) {

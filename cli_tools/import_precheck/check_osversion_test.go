@@ -79,8 +79,8 @@ func Test_osVersionCheck(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r, e := (&osVersionCheck{osInfo: tt.osInfo}).run()
-			assert.Nil(t, e, "Function always returns nil for error")
-			assert.Contains(t, r.String(), tt.expectedLog)
+			assert.Nil(t, e, "nil is always returned")
+			assert.Regexp(t, tt.expectedLog, r)
 			assert.Equal(t, tt.expectFail, r.Failed())
 		})
 	}
@@ -88,8 +88,9 @@ func Test_osVersionCheck(t *testing.T) {
 
 func Test_osVersionCheck_skipWhenOSDetectionFails(t *testing.T) {
 	tests := []struct {
-		name   string
-		osInfo *osinfo.OSInfo
+		name        string
+		osInfo      *osinfo.OSInfo
+		expectedLog string
 	}{
 		{
 			name: "skip when shortName is unknown distro",
@@ -97,6 +98,7 @@ func Test_osVersionCheck_skipWhenOSDetectionFails(t *testing.T) {
 				ShortName: "distro-no-recognized",
 				Version:   "10",
 			},
+			expectedLog: "Unrecognized distro `distro-no-recognized`",
 		}, {
 			name: "skip when arch is unknown",
 			osInfo: &osinfo.OSInfo{
@@ -104,13 +106,22 @@ func Test_osVersionCheck_skipWhenOSDetectionFails(t *testing.T) {
 				Version:      "14.04",
 				Architecture: "mips",
 			},
+			expectedLog: "Unrecognized architecture `mips`",
+		}, {
+			name: "Skip when OS config returns 'linux'; don't emit message saying that linux isn't supported",
+			osInfo: &osinfo.OSInfo{
+				ShortName: "linux",
+			},
+			expectedLog: "Detected generic Linux system",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r, e := (&osVersionCheck{osInfo: tt.osInfo}).run()
-			assert.Nil(t, e, "Function always returns nil for error")
-			assert.Contains(t, r.String(), "Cannot determine OS. For supported versions, see https://cloud.google.com/sdk/gcloud/reference/compute/images/import")
+			assert.Nil(t, e, "nil is always returned")
+			assert.Contains(t, r.String(), tt.expectedLog)
+			assert.Contains(t, r.String(), "Unable to determine whether your system is supported for import. "+
+				"For supported versions, see https://cloud.google.com/sdk/gcloud/reference/compute/images/import")
 			assert.True(t, r.skipped)
 			t.Logf("\n%s", r)
 		})

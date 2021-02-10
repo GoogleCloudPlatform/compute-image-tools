@@ -55,10 +55,10 @@ func TestParseGcloudOsParam_DistroNameErrors(t *testing.T) {
 	}{
 		{"", "expected pattern of `distro-version`. Actual: ``"},
 		{"unknown", "expected pattern of `distro-version`. Actual: `unknown`"},
-		{"notSupported-18", "distro `notsupported` is not importable"},
-		{"notSupported-1804", "distro `notsupported` is not importable"},
+		{"notSupported-18", "Unrecognized distro `notsupported`"},
+		{"notSupported-1804", "Unrecognized distro `notsupported`"},
 		{"sles", "expected pattern of `distro-version`. Actual: `sles`"},
-		{"kali-12", "distro `kali` is not importable"},
+		{"kali-12", "Unrecognized distro `kali`"},
 		{"ubuntu", "expected pattern of `distro-version`"},
 		{"ubuntu-12", "expected version with length four"},
 		{"opensuse-15-leap", "expected pattern of `distro-version`. Actual: `opensuse-15-leap`"},
@@ -221,7 +221,7 @@ func TestDistroFromComponents_ArchitectureValidation(t *testing.T) {
 		{inputArch: "x86_32", expectedArch: "x86"},
 
 		{inputArch: "", expectedArch: ""},
-		{inputArch: "mips", expectErrorToContain: "Architecture `mips` is not supported for import"},
+		{inputArch: "mips", expectErrorToContain: "Unrecognized architecture `mips`"},
 	}
 	for _, tt := range cases {
 		t.Run(tt.inputArch, func(t *testing.T) {
@@ -308,11 +308,11 @@ func TestDistroFromComponents_DistroNameErrors(t *testing.T) {
 		},
 		{
 			distro: "a",
-			err:    "distro `a` is not importable",
+			err:    "Unrecognized distro `a`",
 		},
 		{
 			distro: "unknown",
-			err:    "distro `unknown` is not importable",
+			err:    "Unrecognized distro `unknown`",
 		},
 	}
 	for _, tt := range cases {

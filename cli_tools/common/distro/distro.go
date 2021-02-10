@@ -53,18 +53,18 @@ var osFlagExpression = regexp.MustCompile(
 		// License is optional. The only value is `byol`.
 		"(?:-(?P<license>byol))?$")
 
-var architectureLookup = map[string]string{
-	"amd64":  archX64,
-	"x86_64": archX64,
-
-	"i386":   archX86,
-	"i686":   archX86,
-	"x86_32": archX86,
-}
-
-var architectures = map[string]bool{
-	archX64: true,
-	archX86: true,
+// standardArchitectures contains the architectures that we support, along with possible synonyms.
+var standardArchitectures = []struct {
+	arch     string
+	synonyms []string
+}{
+	{
+		archX86,
+		[]string{"amd64", "x86_64"},
+	}, {
+		archX64,
+		[]string{"i386", "i686", "x86_32"},
+	},
 }
 
 // Flags that don't follow `osFlagExpression` and have been
@@ -95,39 +95,56 @@ type Release interface {
 // release that we *may* support. The caller is responsible for verifying
 // whether a translator is available elsewhere in the system.
 func FromComponents(distro string, major string, minor string, architecture string) (r Release, e error) {
+	standardArch, err := standardizeArchitecture(architecture)
+	if err != nil {
+		return nil, err
+	}
+	standardDistro, err := standardizeDistro(distro)
+	if err != nil {
+		return nil, err
+	}
+
+	if standardDistro == windows {
+		return newWindowsRelease(major, minor, standardArch)
+	}
+
+	return newLinuxRelease(standardDistro, major, minor)
+}
+
+// standardizeArchitecture maps a raw string to a known architecture. It's not an error to
+// have an empty architecture, but if it's specified, it has to match one of the
+// architectures in standardArchitectures.
+func standardizeArchitecture(architecture string) (string, error) {
+	if architecture == "" {
+		return "", nil
+	}
+	lowered := strings.ToLower(architecture)
+	for _, standardArch := range standardArchitectures {
+		if standardArch.arch == lowered {
+			return standardArch.arch, nil
+		}
+		for _, synonym := range standardArch.synonyms {
+			if synonym == lowered {
+				return standardArch.arch, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("Unrecognized architecture `%s`", architecture)
+}
+
+// standardizeDistro maps a raw string to a known distro.
+// It's an error if distro is empty, or if a match isn't found.
+func standardizeDistro(distro string) (string, error) {
 	if distro == "" {
-		return nil, errors.New("distro name required")
+		return "", errors.New("distro name required")
 	}
-	distro = standardizeDistro(distro)
-	architecture = standardizeArchitecture(architecture)
-
-	if architecture != "" && !architectures[architecture] {
-		return nil, fmt.Errorf("Architecture `%s` is not supported for import", architecture)
-	}
-
-	if distro == windows {
-		return newWindowsRelease(major, minor, architecture)
-	}
-
-	return newLinuxRelease(distro, major, minor)
-}
-
-func standardizeArchitecture(arch string) string {
-	lower := strings.ToLower(arch)
-	if standard, found := architectureLookup[lower]; found {
-		return standard
-	}
-	return lower
-}
-
-func standardizeDistro(distro string) string {
 	d := strings.ReplaceAll(strings.ToLower(distro), "_", "-")
 	for _, known := range []string{centos, debian, opensuse, rhel, slesSAP, sles, ubuntu, windows} {
 		if strings.Contains(d, known) {
-			return known
+			return known, nil
 		}
 	}
-	return distro
+	return "", fmt.Errorf("Unrecognized distro `%s`", distro)
 }
 
 func newLinuxRelease(distro string, major string, minor string) (Release, error) {
@@ -162,7 +179,7 @@ func newLinuxRelease(distro string, major string, minor string) (Release, error)
 	case slesSAP:
 		return newSLESRelease(distro, majorInt, minorInt)
 	default:
-		return nil, fmt.Errorf("distro `%s` is not importable", distro)
+		return nil, fmt.Errorf("Unrecognized distro `%s`", distro)
 	}
 }
 
