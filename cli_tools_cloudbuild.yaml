@@ -369,7 +369,7 @@ steps:
   - --destination=australia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$COMMIT_SHA
   - --context=/workspace
   - --dockerfile=gce_ovf_export.Dockerfile
-  -
+
 # Build gce_windows_upgrade.
 - name: 'golang'
   dir: 'cli_tools/gce_windows_upgrade'
