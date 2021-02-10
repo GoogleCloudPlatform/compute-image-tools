@@ -23,13 +23,14 @@ This library is motivated by subprocess.run, which returns an object
 containing stdout, stderr, and the return code of the process.
 """
 
+import logging
 import os
 import shlex
 import textwrap
 import typing
 
 
-def run(g: 'GuestFSInterface', command) -> 'CompletedProcess':
+def run(g: 'GuestFSInterface', command, check: bool=True) -> 'CompletedProcess':
   """Runs a process in a mounted GuestFS instance, ensuring that
   standard output and standard error is always retained.
 
@@ -37,12 +38,15 @@ def run(g: 'GuestFSInterface', command) -> 'CompletedProcess':
     g: Mounted GuestFS instance.
     command (str or List[str]): Script content that will be executed
     by a bash interpeter on the guest.
+    check (bool): When true and the process exits with a non-zero exit code,
+    a RuntimeError exception will be raised, using standard error as its message.
+    The process's standard out and standard error are written to debug.
 
   Examples:
     >>> run(g, 'date').stdout
     Thu 05 Nov 2020 06:53:55 PM PST
 
-    >>> run(g, 'printf hi; exit 1')
+    >>> run(g, 'printf hi; exit 1', check=False))
     {'stdout': 'hi', 'stderr': '', 'code': 1, 'cmd': 'printf hi; exit 1'}
   """
   tmp_dir = g.mkdtemp('/tmp/gprocXXXXXX')
@@ -56,13 +60,21 @@ def run(g: 'GuestFSInterface', command) -> 'CompletedProcess':
 
   program = _make_wrapping_program(command, stdout_path, stderr_path,
                                    return_code_path)
+
+  if check:
+    logging.debug('Running %s', command)
+
   g.write(program_path, program)
   g.command(['/bin/bash', program_path])
 
-  return CompletedProcess(cmd=command,
+  p = CompletedProcess(cmd=command,
                           stdout=g.cat(stdout_path),
                           stderr=g.cat(stderr_path),
                           code=int(g.cat(return_code_path)))
+  if p.code == 0 or not check:
+    return p
+  logging.debug(p)
+  raise RuntimeError(p.stderr)
 
 
 def _make_wrapping_program(

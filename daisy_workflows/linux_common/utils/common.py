@@ -31,6 +31,8 @@ import urllib.error
 import urllib.request
 import uuid
 
+from .guestfsprocess import run
+
 SUCCESS_LEVELNO = logging.ERROR - 5
 
 
@@ -781,10 +783,11 @@ class MetadataManager:
 
 @RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
 def install_apt_packages(g, *pkgs):
-  g.sh('DEBIAN_FRONTEND=noninteractive apt-get '
-       'install -y --no-install-recommends ' + ' '.join(pkgs))
+  cmd = 'DEBIAN_FRONTEND=noninteractive apt-get ' \
+          'install -y --no-install-recommends ' + ' '.join(pkgs)
+  run(g, cmd)
 
 
 @RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
 def update_apt(g):
-  g.sh('apt-get update')
+  run(g, 'apt-get update')
