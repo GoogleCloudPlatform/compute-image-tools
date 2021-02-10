@@ -4,7 +4,8 @@
     "machine_type": "n1-standard-4",
     "bare_metal_script": {"Value": "./bare_metal_image_preparer.sh", "Description": "Startup script to build the bare_metal image."},
     "workflow_root": {"Value": "/workflows", "Description": "Root of github workflows, defaults to /workflows in the container."},
-    "gcs_url": {"Required": true, "Description": "The GCS path that image raw file exported to."}
+    "gcs_url": {"Required": true, "Description": "The GCS path that image raw file exported to."},
+    "development": {"Required": false, "Description": "Whether to build a development image"}
   },
   "Sources": {
     "bare_metal.sh": "${bare_metal_script}"
@@ -31,8 +32,7 @@
           "Disks": [{"Source": "disk-build"}, {"Source": "disk-scratch"}],
           "MachineType": "${machine_type}",
           "MetaData": {
-            "block-project-ssh-keys": "TRUE",
-            "base-image": "${base_image}",
+            "development": "${development}",
             "startup-script": "${SOURCE:bare_metal.sh}"
           }
         }
