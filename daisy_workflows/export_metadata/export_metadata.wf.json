@@ -31,8 +31,7 @@
     }
   },
   "Sources": {
-    "export_metadata/utils/common.py": "../linux_common/utils/common.py",
-    "export_metadata/utils/__init__.py": "../linux_common/utils/__init__.py",
+    "export_metadata/utils": "../linux_common/utils",
     "export_metadata/export-metadata.py": "./export-metadata.py",
     "startup_script": "../linux_common/bootstrap.sh"
   },
