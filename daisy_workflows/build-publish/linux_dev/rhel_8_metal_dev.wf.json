@@ -8,7 +8,7 @@
     "build_date": "${DATE}",
     "workflow_root": {"Value": "/workflows", "Description": "Root of github workflows, defaults to /workflows in the container."},
     "gcs_url": {"Required": true, "Description": "The GCS path that image raw file exported to."},
-    "development": {"Value": "True", "Description": "Weather to build a development image"}
+    "development": {"Value": "True", "Description": "Whether to build a development image"}
   },
   "Steps": {
     "build-bare-metal": {

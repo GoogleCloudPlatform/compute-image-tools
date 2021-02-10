@@ -41,7 +41,7 @@ if [[ ${DEVELOPMENT} == "True" ]]; then
   # Temporary install of useful development tools.
   echo "Installing development tools."
   yum -y install net-tools pciutils tcpdump
-
+  # Auto login on root shell
   sed -i 's!ExecStart=-/sbin/agetty .*!# &\nExecStart=-/sbin/agetty -n --autologin root --keep-baud 115200,38400,9600 %I $TERM!' /lib/systemd/system/serial-getty@.service
   systemctl enable serial-getty@ttyS0.service
 fi

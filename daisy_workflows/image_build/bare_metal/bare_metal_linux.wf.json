@@ -5,7 +5,7 @@
     "bare_metal_script": {"Value": "./bare_metal_image_preparer.sh", "Description": "Startup script to build the bare_metal image."},
     "workflow_root": {"Value": "/workflows", "Description": "Root of github workflows, defaults to /workflows in the container."},
     "gcs_url": {"Required": true, "Description": "The GCS path that image raw file exported to."},
-    "development": {"Required": false, "Description": "Weather to build a development image"}
+    "development": {"Required": false, "Description": "Whether to build a development image"}
   },
   "Sources": {
     "bare_metal.sh": "${bare_metal_script}"
