@@ -232,6 +232,10 @@ func shouldRetryWithWait(tripper http.RoundTripper, err error, multiplier int) b
 	case apiErr.Code >= 429:
 		// Too many API requests.
 		retry = true
+	case apiErr.Code == 403 && strings.Contains(err.Error(), "rateLimitExceeded"):
+		// Quota errors are reported as 403.
+		// Generally we don't want to retry on quota errors, but if it's quota on rate (GetSerialPortOutput) - we should.
+		retry = true
 	case !tkValid:
 		// This was probably a failure to get new token from metadata server.
 		retry = true

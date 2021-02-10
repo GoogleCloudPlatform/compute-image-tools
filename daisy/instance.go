@@ -106,10 +106,12 @@ type InstanceBase struct {
 	// Should an existing instance of the same name be deleted, defaults to false
 	// which will fail validation.
 	OverWrite bool `json:",omitempty"`
+	// Serial port to log to GCS bucket, defaults to 1
+	SerialPortsToLog []int64 `json:",omitempty"`
 }
 
 // Instance is used to create a GCE instance using GA API.
-// Output of serial port 1 will be streamed to the daisy logs directory.
+// By default, output of serial port 1 will be streamed to the daisy logs directory.
 type Instance struct {
 	InstanceBase
 	compute.Instance
@@ -119,7 +121,7 @@ type Instance struct {
 }
 
 // InstanceBeta is used to create a GCE instance using Beta API.
-// Output of serial port 1 will be streamed to the daisy logs directory.
+// By default, output of serial port 1 will be streamed to the daisy logs directory.
 type InstanceBeta struct {
 	InstanceBase
 	computeBeta.Instance
@@ -347,6 +349,7 @@ func (ib *InstanceBase) populate(ctx context.Context, ii InstanceInterface, s *S
 	ii.setZone(zone)
 
 	ii.setDescription(strOr(ii.getDescription(), fmt.Sprintf("Instance created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username)))
+	errs = addErrs(errs, ib.populateSerialPortsToLog())
 	errs = addErrs(errs, ii.populateDisks(s.w))
 	errs = addErrs(errs, ib.populateMachineType(ii))
 	errs = addErrs(errs, ib.populateMetadata(ii, s.w))
@@ -450,6 +453,27 @@ func (i *InstanceBeta) populateDisks(w *Workflow) DError {
 		} else if d.DeviceName == "" {
 			d.DeviceName = path.Base(d.Source)
 		}
+	}
+	return nil
+}
+
+func uniqueSerialPortsToLog(slice []int64) []int64 {
+	keys := make(map[int64]bool)
+	list := []int64{}
+	for _, entry := range slice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
+}
+
+func (ib *InstanceBase) populateSerialPortsToLog() DError {
+	if ib.SerialPortsToLog == nil {
+		ib.SerialPortsToLog = append(ib.SerialPortsToLog, 1)
+	} else {
+		ib.SerialPortsToLog = uniqueSerialPortsToLog(ib.SerialPortsToLog)
 	}
 	return nil
 }
@@ -572,6 +596,7 @@ func (i *InstanceBeta) populateScopes() DError {
 func (ib *InstanceBase) validate(ctx context.Context, ii InstanceInterface, s *Step) DError {
 	pre := fmt.Sprintf("cannot create instance %q", ib.daisyName)
 	errs := ib.Resource.validateWithZone(ctx, s, ii.getZone(), pre)
+	errs = addErrs(errs, ib.validateSerialPortsToLog())
 	errs = addErrs(errs, ib.validateDisks(ii, s))
 	errs = addErrs(errs, ib.validateMachineType(ii, s.w))
 	errs = addErrs(errs, ii.validateNetworks(s))
@@ -630,6 +655,15 @@ func (i *InstanceBeta) getComputeDisks() []*computeDisk {
 		computeDisks = append(computeDisks, &computeDisk)
 	}
 	return computeDisks
+}
+
+func (ib *InstanceBase) validateSerialPortsToLog() (errs DError) {
+	for _, port := range ib.SerialPortsToLog {
+		if port < 0 || port > 4 {
+			errs = addErrs(errs, Errf("cannot create instance: SerialPortsToLog must be between 1-4, inclusive"))
+		}
+	}
+	return
 }
 
 func (ib *InstanceBase) validateDisks(ii InstanceInterface, s *Step) (errs DError) {
