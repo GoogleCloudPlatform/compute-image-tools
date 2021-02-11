@@ -1,5 +1,5 @@
 {
-  "Name": "rhel",
+  "Name": "rhel-8",
   "WorkProject": "gce-image-builder",
   "ComputeEndpoint": "https://www.googleapis.com/compute/beta/projects/",
   "DeleteAfter": "24h*30*6",
