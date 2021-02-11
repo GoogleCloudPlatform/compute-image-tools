@@ -23,37 +23,37 @@ from utils.guestfsprocess import CompletedProcess, GuestFSInterface, run
 class TestWithoutCheck:
   def test_capture_stdout(self):
     cmd = 'echo abc123'
-    result = run(_make_local_guestfs(), cmd, check=False)
+    result = run(_make_local_guestfs(), cmd, raiseOnError=False)
     assert result == CompletedProcess('abc123\n', '', 0, cmd)
 
   def test_capture_stderr(self):
     cmd = 'echo error msg > /dev/stderr'
-    result = run(_make_local_guestfs(), cmd, check=False)
+    result = run(_make_local_guestfs(), cmd, raiseOnError=False)
     assert result == CompletedProcess('', 'error msg\n', 0, cmd)
 
   def test_support_positive_code(self):
     cmd = 'exit 100'
-    result = run(_make_local_guestfs(), cmd, check=False)
+    result = run(_make_local_guestfs(), cmd, raiseOnError=False)
     assert result == CompletedProcess('', '', 100, cmd)
 
   def test_support_array_args(self):
-    result = run(_make_local_guestfs(), ['echo', 'hi'], check=False)
+    result = run(_make_local_guestfs(), ['echo', 'hi'], raiseOnError=False)
     assert result == CompletedProcess('hi\n', '', 0, 'echo hi')
 
   def test_escape_array_members(self):
     result = run(_make_local_guestfs(),
-                 ['echo', 'hello', '; ls *'], check=False)
+                 ['echo', 'hello', '; ls *'], raiseOnError=False)
     assert result == CompletedProcess('hello ; ls *\n', '', 0,
                                       "echo hello '; ls *'")
 
   def test_capture_runtime_errors(self):
-    result = run(_make_local_guestfs(), 'not-a-command', check=False)
+    result = run(_make_local_guestfs(), 'not-a-command', raiseOnError=False)
     assert result.code != 0
     assert 'not-a-command' in result.stderr
 
   def test_capture_output_when_non_zero_return(self):
     cmd = 'printf content; printf err > /dev/stderr; exit 1'
-    result = run(_make_local_guestfs(), cmd, check=False)
+    result = run(_make_local_guestfs(), cmd, raiseOnError=False)
     assert result == CompletedProcess('content', 'err', 1, cmd)
 
 

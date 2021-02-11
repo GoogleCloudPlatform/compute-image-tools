@@ -31,7 +31,7 @@ import typing
 
 
 def run(g: 'GuestFSInterface', command,
-        check: bool = True) -> 'CompletedProcess':
+        raiseOnError: bool = True) -> 'CompletedProcess':
   """Runs a process in a mounted GuestFS instance, ensuring that
   standard output and standard error is always retained.
 
@@ -39,15 +39,15 @@ def run(g: 'GuestFSInterface', command,
     g: Mounted GuestFS instance.
     command (str or List[str]): Script content that will be executed
     by a bash interpeter on the guest.
-    check (bool): When true and the process exits with a non-zero exit code,
-    a RuntimeError exception will be raised, using standard error as its
+    raiseOnError (bool): When true and the process exits with a non-zero exit
+    code, a RuntimeError exception will be raised, using standard error as its
     message. The process's stdout and stderr are written to logging.debug.
 
   Examples:
     >>> run(g, 'date').stdout
     Thu 05 Nov 2020 06:53:55 PM PST
 
-    >>> run(g, 'printf hi; exit 1', check=False))
+    >>> run(g, 'printf hi; exit 1', raiseOnError=False))
     {'stdout': 'hi', 'stderr': '', 'code': 1, 'cmd': 'printf hi; exit 1'}
   """
   tmp_dir = g.mkdtemp('/tmp/gprocXXXXXX')
@@ -62,7 +62,7 @@ def run(g: 'GuestFSInterface', command,
   program = _make_wrapping_program(command, stdout_path, stderr_path,
                                    return_code_path)
 
-  if check:
+  if raiseOnError:
     logging.debug('Running %s', command)
 
   g.write(program_path, program)
@@ -72,7 +72,7 @@ def run(g: 'GuestFSInterface', command,
                        stdout=g.cat(stdout_path),
                        stderr=g.cat(stderr_path),
                        code=int(g.cat(return_code_path)))
-  if check and p.code != 0:
+  if raiseOnError and p.code != 0:
     logging.debug(p)
     raise RuntimeError(p.stderr)
   return p

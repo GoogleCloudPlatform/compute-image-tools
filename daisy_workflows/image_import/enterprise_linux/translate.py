@@ -110,11 +110,11 @@ def check_repos(spec: TranslateSpec) -> str:
   YUM fails if any of its repos are unreachable. Running `yum updateinfo`
   will have a non-zero return code when it fail to update any of its repos.
   """
-  if run(spec.g, 'yum --help | grep updateinfo', check=False).code != 0:
+  if run(spec.g, 'yum --help | grep updateinfo', raiseOnError=False).code != 0:
     logging.debug('command `yum updateinfo` not available. skipping test.')
     return ''
   v = 'yum updateinfo -v'
-  p = run(spec.g, v, check=False)
+  p = run(spec.g, v, raiseOnError=False)
   logging.debug('yum updateinfo -v: {}'.format(p))
   if p.code != 0:
     return 'Ensure all configured repos are reachable.'
@@ -125,7 +125,7 @@ def check_yum_on_path(spec: TranslateSpec) -> str:
 
   If `yum` isn't found, errs is updated.
   """
-  p = run(spec.g, 'yum --version', check=False)
+  p = run(spec.g, 'yum --version', raiseOnError=False)
   logging.debug('yum --version: {}'.format(p))
   if p.code != 0:
     return 'Verify the disk\'s OS: `yum` not found.'
@@ -139,7 +139,7 @@ def check_rhel_license(spec: TranslateSpec) -> str:
   if spec.distro != Distro.RHEL or spec.use_rhel_gce_license:
     return ''
 
-  p = run(spec.g, 'subscription-manager status', check=False)
+  p = run(spec.g, 'subscription-manager status', raiseOnError=False)
   logging.debug('subscription-manager: {}'.format(p))
   if p.code != 0:
     return 'subscription-manager did not find an active subscription. ' \
@@ -190,8 +190,8 @@ def DistroSpecific(spec: TranslateSpec):
       # The `--disablerepo` flag does the following:
       #  1. Skip the epel repo for *this* operation only.
       #  2. Block update if the epel repo isn't found.
-      p = run(g,
-              'yum update -y ca-certificates --disablerepo=epel', check=False)
+      p = run(g, 'yum update -y ca-certificates --disablerepo=epel',
+              raiseOnError=False)
       logging.debug('Attempted conditional update of '
                     'ca-certificates. Success expected only '
                     'if epel repo is installed. Result={}'.format(p))
@@ -314,7 +314,7 @@ def yum_install(g, *packages):
     #   proxy=_none_: Disables proxies set in /etc/yum.conf.
     cmd = 'no_proxy="*" yum install --setopt=proxy=_none_ -y ' + ' '.join(
         '"{0}"'.format(p) for p in packages)
-    p = run(g, cmd, check=False)
+    p = run(g, cmd, raiseOnError=False)
     if p.code == 0:
       return
     logging.debug('Yum install failed: {}'.format(p))
