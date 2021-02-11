@@ -25,17 +25,16 @@ import (
 const logPath = "out.log"
 
 var (
-	log    *logger.Logger
-	osInfo *osinfo.OSInfo
+	log *logger.Logger
 )
 
-func getChecks() []check {
+func getChecks(osInfo *osinfo.OSInfo) []check {
 	return []check{
-		&osVersionCheck{},
+		&osVersionCheck{osInfo},
 		&disksCheck{},
 		&sshCheck{},
 		&powershellCheck{},
-		&sha2DriverSigningCheck{},
+		&sha2DriverSigningCheck{osInfo},
 	}
 }
 
@@ -54,12 +53,12 @@ func main() {
 		logger.Fatal(err)
 	}
 
-	osInfo, err = osinfo.Get()
+	osInfo, err := osinfo.Get()
 	if err != nil {
 		logger.Fatal(err)
 	}
 
-	checks := getChecks()
+	checks := getChecks(osInfo)
 	wg := sync.WaitGroup{}
 	for _, c := range checks {
 		wg.Add(1)

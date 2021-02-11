@@ -18,12 +18,15 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/osconfig/osinfo"
 	"github.com/GoogleCloudPlatform/osconfig/packages"
 )
 
 const sha2Windows2008R2KB = "KB4474419"
 
-type sha2DriverSigningCheck struct{}
+type sha2DriverSigningCheck struct {
+	osInfo *osinfo.OSInfo
+}
 
 func (s *sha2DriverSigningCheck) getName() string {
 	return "SHA2 Driver Signing Check"
@@ -31,7 +34,7 @@ func (s *sha2DriverSigningCheck) getName() string {
 
 func (s *sha2DriverSigningCheck) run() (*report, error) {
 	r := &report{name: s.getName()}
-	if runtime.GOOS != "windows" || !strings.Contains(osInfo.Version, "6.1") {
+	if runtime.GOOS != "windows" || !strings.Contains(s.osInfo.Version, "6.1") {
 		r.skipped = true
 		r.Info("Only applicable on Windows 2008 systems.")
 		return r, nil
