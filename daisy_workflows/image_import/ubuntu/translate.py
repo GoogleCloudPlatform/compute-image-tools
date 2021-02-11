@@ -22,6 +22,7 @@ install_gce_packages: True if GCE agent and SDK should be installed
 """
 
 import logging
+import os
 
 import guestfs
 import utils
@@ -43,6 +44,14 @@ cloud_init_cloud_sdk = '''
 snap:
    commands:
       00: snap install google-cloud-sdk --classic
+'''
+
+# systemd drop-in to include /snap/bin on the path for a systemd service.
+# This path was included in the Python guest agent's unit files, but
+# was removed in the NGA's unit files.
+systemd_snap_dropin = '''
+[Service]
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
 '''
 
 apt_cloud_sdk = '''
@@ -145,6 +154,16 @@ def install_cloud_sdk(g: guestfs.GuestFS, ubuntu_release: str) -> None:
             cloud_init_cloud_sdk)
     logging.info(
         'Google Cloud SDK will be installed using snap with cloud-init.')
+
+    # Include /snap/bin in the PATH for startup and shutdown scripts.
+    # This was present in the old guest agent, but lost in the new guest
+    # agent.
+    for drop_dir in ['/lib/systemd/system/google-shutdown-scripts.service.d',
+                     '/lib/systemd/system/google-startup-scripts.service.d']:
+      if not g.exists(drop_dir):
+        g.mkdir(drop_dir)
+      g.write(os.path.join(drop_dir, '90-env.conf'), systemd_snap_dropin)
+
   else:
     g.write('/etc/apt/sources.list.d/partner.list',
             apt_cloud_sdk.format(ubuntu_release=ubuntu_release))
