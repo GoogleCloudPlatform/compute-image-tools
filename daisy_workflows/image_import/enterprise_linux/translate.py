@@ -110,11 +110,11 @@ def check_repos(spec: TranslateSpec) -> str:
   YUM fails if any of its repos are unreachable. Running `yum updateinfo`
   will have a non-zero return code when it fail to update any of its repos.
   """
-  if run(spec.g, 'yum --help | grep updateinfo').code != 0:
+  if run(spec.g, 'yum --help | grep updateinfo', raiseOnError=False).code != 0:
     logging.debug('command `yum updateinfo` not available. skipping test.')
     return ''
   v = 'yum updateinfo -v'
-  p = run(spec.g, v)
+  p = run(spec.g, v, raiseOnError=False)
   logging.debug('yum updateinfo -v: {}'.format(p))
   if p.code != 0:
     return 'Ensure all configured repos are reachable.'
@@ -125,7 +125,7 @@ def check_yum_on_path(spec: TranslateSpec) -> str:
 
   If `yum` isn't found, errs is updated.
   """
-  p = run(spec.g, 'yum --version')
+  p = run(spec.g, 'yum --version', raiseOnError=False)
   logging.debug('yum --version: {}'.format(p))
   if p.code != 0:
     return 'Verify the disk\'s OS: `yum` not found.'
@@ -139,7 +139,7 @@ def check_rhel_license(spec: TranslateSpec) -> str:
   if spec.distro != Distro.RHEL or spec.use_rhel_gce_license:
     return ''
 
-  p = run(spec.g, 'subscription-manager status')
+  p = run(spec.g, 'subscription-manager status', raiseOnError=False)
   logging.debug('subscription-manager: {}'.format(p))
   if p.code != 0:
     return 'subscription-manager did not find an active subscription. ' \
@@ -171,13 +171,13 @@ def DistroSpecific(spec: TranslateSpec):
 
   if spec.distro == Distro.RHEL:
     if spec.use_rhel_gce_license:
-      g.command(['yum', 'remove', '-y', '*rhui*'])
+      run(g, ['yum', 'remove', '-y', '*rhui*'])
       logging.info('Adding in GCE RHUI package.')
       g.write('/etc/yum.repos.d/google-cloud.repo', repo_compute % el_release)
       yum_install(g, 'google-rhui-client-rhel' + el_release)
 
   # Historically, translations have failed for corrupt dbcache and rpmdb.
-  g.sh('yum clean -y all')
+  run(g, 'yum clean -y all')
 
   if spec.install_gce:
     logging.info('Installing GCE packages.')
@@ -190,7 +190,8 @@ def DistroSpecific(spec: TranslateSpec):
       # The `--disablerepo` flag does the following:
       #  1. Skip the epel repo for *this* operation only.
       #  2. Block update if the epel repo isn't found.
-      p = run(g, 'yum update -y ca-certificates --disablerepo=epel')
+      p = run(g, 'yum update -y ca-certificates --disablerepo=epel',
+              raiseOnError=False)
       logging.debug('Attempted conditional update of '
                     'ca-certificates. Success expected only '
                     'if epel repo is installed. Result={}'.format(p))
@@ -204,7 +205,7 @@ def DistroSpecific(spec: TranslateSpec):
       sdk_base_tar = '%s/google-cloud-sdk.tar.gz' % sdk_base_url
       tar = utils.HttpGet(sdk_base_tar)
       g.write('/tmp/google-cloud-sdk.tar.gz', tar)
-      g.command(['tar', 'xzf', '/tmp/google-cloud-sdk.tar.gz', '-C', '/tmp'])
+      run(g, ['tar', 'xzf', '/tmp/google-cloud-sdk.tar.gz', '-C', '/tmp'])
       sdk_version = g.cat('/tmp/google-cloud-sdk/VERSION').strip()
 
       logging.info('Getting Cloud SDK Version %s', sdk_version)
@@ -216,8 +217,8 @@ def DistroSpecific(spec: TranslateSpec):
       sdk_version_tar_file = os.path.join('/tmp', sdk_version_tar)
       g.write(sdk_version_tar_file, tar)
       g.mkdir_p('/usr/local/share/google')
-      g.command(['tar', 'xzf', sdk_version_tar_file, '-C',
-                 '/usr/local/share/google', '--no-same-owner'])
+      run(g, ['tar', 'xzf', sdk_version_tar_file, '-C',
+              '/usr/local/share/google', '--no-same-owner'])
 
       logging.info('Creating CloudSDK SCL symlinks.')
       sdk_bin_path = '/usr/local/share/google/google-cloud-sdk/bin'
@@ -255,7 +256,7 @@ def DistroSpecific(spec: TranslateSpec):
       continue
     if not g.exists(os.path.join('/lib/modules', kver, 'modules.dep')):
       try:
-        g.command(['depmod', kver])
+        run(g, ['depmod', kver])
       except RuntimeError as e:
         logging.info('Failed to write initramfs for {kver}. If image fails to '
                      'boot, verify that depmod /lib/modules/{kver} runs on '
@@ -264,15 +265,15 @@ def DistroSpecific(spec: TranslateSpec):
         continue
     if el_release == '6':
       # Version 6 doesn't have option --kver
-      g.command(['dracut', '-v', '-f', kver])
+      run(g, ['dracut', '-v', '-f', kver])
     else:
-      g.command(['dracut', '--stdlog=1', '-f', '--kver', kver])
+      run(g, ['dracut', '--stdlog=1', '-f', '--kver', kver])
 
   logging.info('Update grub configuration')
   if el_release == '6':
     # Version 6 doesn't have grub2, file grub.conf needs to be updated by hand
     g.write('/tmp/grub_gce_generated', grub_cfg)
-    g.sh(
+    run(g,
         r'grep -P "^[\t ]*initrd|^[\t ]*root|^[\t ]*kernel|^[\t ]*title" '
         r'/boot/grub/grub.conf >> /tmp/grub_gce_generated;'
         r'sed -i "s/console=ttyS0[^ ]*//g" /tmp/grub_gce_generated;'
@@ -281,14 +282,14 @@ def DistroSpecific(spec: TranslateSpec):
         r'mv /tmp/grub_gce_generated /boot/grub/grub.conf')
   else:
     g.write('/etc/default/grub', grub2_cfg)
-    g.command(['grub2-mkconfig', '-o', '/boot/grub2/grub.cfg'])
+    run(g, ['grub2-mkconfig', '-o', '/boot/grub2/grub.cfg'])
 
   # Reset network for DHCP.
   logging.info('Resetting network to DHCP for eth0.')
   # Remove NetworkManager-config-server if it's present. The package configures
   # NetworkManager to *not* use DHCP.
   #  https://access.redhat.com/solutions/894763
-  g.command(['yum', 'remove', '-y', 'NetworkManager-config-server'])
+  run(g, ['yum', 'remove', '-y', 'NetworkManager-config-server'])
   g.write('/etc/sysconfig/network-scripts/ifcfg-eth0', ifcfg_eth0)
 
 
@@ -313,7 +314,7 @@ def yum_install(g, *packages):
     #   proxy=_none_: Disables proxies set in /etc/yum.conf.
     cmd = 'no_proxy="*" yum install --setopt=proxy=_none_ -y ' + ' '.join(
         '"{0}"'.format(p) for p in packages)
-    p = run(g, cmd)
+    p = run(g, cmd, raiseOnError=False)
     if p.code == 0:
       return
     logging.debug('Yum install failed: {}'.format(p))

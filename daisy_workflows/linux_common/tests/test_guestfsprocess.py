@@ -16,48 +16,57 @@ import subprocess
 import tempfile
 from unittest.mock import MagicMock
 
+import pytest
 from utils.guestfsprocess import CompletedProcess, GuestFSInterface, run
 
 
-def test_capture_stdout():
-  cmd = 'echo abc123'
-  result = run(_make_local_guestfs(), cmd)
-  assert result == CompletedProcess('abc123\n', '', 0, cmd)
+class TestWithoutCheck:
+  def test_capture_stdout(self):
+    cmd = 'echo abc123'
+    result = run(_make_local_guestfs(), cmd, raiseOnError=False)
+    assert result == CompletedProcess('abc123\n', '', 0, cmd)
+
+  def test_capture_stderr(self):
+    cmd = 'echo error msg > /dev/stderr'
+    result = run(_make_local_guestfs(), cmd, raiseOnError=False)
+    assert result == CompletedProcess('', 'error msg\n', 0, cmd)
+
+  def test_support_positive_code(self):
+    cmd = 'exit 100'
+    result = run(_make_local_guestfs(), cmd, raiseOnError=False)
+    assert result == CompletedProcess('', '', 100, cmd)
+
+  def test_support_array_args(self):
+    result = run(_make_local_guestfs(), ['echo', 'hi'], raiseOnError=False)
+    assert result == CompletedProcess('hi\n', '', 0, 'echo hi')
+
+  def test_escape_array_members(self):
+    result = run(_make_local_guestfs(),
+                 ['echo', 'hello', '; ls *'], raiseOnError=False)
+    assert result == CompletedProcess('hello ; ls *\n', '', 0,
+                                      "echo hello '; ls *'")
+
+  def test_capture_runtime_errors(self):
+    result = run(_make_local_guestfs(), 'not-a-command', raiseOnError=False)
+    assert result.code != 0
+    assert 'not-a-command' in result.stderr
+
+  def test_capture_output_when_non_zero_return(self):
+    cmd = 'printf content; printf err > /dev/stderr; exit 1'
+    result = run(_make_local_guestfs(), cmd, raiseOnError=False)
+    assert result == CompletedProcess('content', 'err', 1, cmd)
 
 
-def test_capture_stderr():
-  cmd = 'echo error msg > /dev/stderr'
-  result = run(_make_local_guestfs(), cmd)
-  assert result == CompletedProcess('', 'error msg\n', 0, cmd)
+class TestWithCheck:
+  def test_return_completed_process_when_success(self):
+    cmd = 'echo abc123'
+    result = run(_make_local_guestfs(), cmd)
+    assert result == CompletedProcess('abc123\n', '', 0, cmd)
 
-
-def test_support_positive_code():
-  cmd = 'exit 100'
-  result = run(_make_local_guestfs(), cmd)
-  assert result == CompletedProcess('', '', 100, cmd)
-
-
-def test_support_array_args():
-  result = run(_make_local_guestfs(), ['echo', 'hi'])
-  assert result == CompletedProcess('hi\n', '', 0, 'echo hi')
-
-
-def test_escape_array_members():
-  result = run(_make_local_guestfs(), ['echo', 'hello', '; ls *'])
-  assert result == CompletedProcess('hello ; ls *\n', '', 0,
-                                    "echo hello '; ls *'")
-
-
-def test_capture_runtime_errors():
-  result = run(_make_local_guestfs(), 'not-a-command')
-  assert result.code != 0
-  assert 'not-a-command' in result.stderr
-
-
-def test_capture_output_when_non_zero_return():
-  cmd = 'printf content; printf err > /dev/stderr; exit 1'
-  result = run(_make_local_guestfs(), cmd)
-  assert result == CompletedProcess('content', 'err', 1, cmd)
+  def test_raise_error_when_failure(self):
+    cmd = '>&2 echo stderr msg; exit 1'
+    with pytest.raises(RuntimeError, match='stderr msg'):
+        run(_make_local_guestfs(), cmd)
 
 
 def _make_local_guestfs():
