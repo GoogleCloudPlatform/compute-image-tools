@@ -42,6 +42,9 @@ def run(g: 'GuestFSInterface', command,
     raiseOnError (bool): When true and the process exits with a non-zero exit
     code, a RuntimeError exception will be raised, using standard error as its
     message. The process's stdout and stderr are written to logging.debug.
+    raiseOnError=True is good for commands where you don't inspect the output
+    and you want the failure to propagate automatically. For example:
+    `yum install package`; if it's successful you don't need the output.
 
   Examples:
     >>> run(g, 'date').stdout
