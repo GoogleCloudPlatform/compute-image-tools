@@ -25,7 +25,7 @@ import (
 )
 
 func main() {
-	log.SetPrefix("[import-image-from-cloud] ")
+	log.SetPrefix("[import-image-from-external-cloud] ")
 	// 1. Parse flags
 	importerArgs, err := importer.NewOneStepImportArguments(os.Args[1:])
 	if err != nil {
