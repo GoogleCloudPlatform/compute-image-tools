@@ -25,6 +25,7 @@ import logging
 
 import utils
 import utils.diskutils as diskutils
+from utils.guestfsprocess import run
 
 google_cloud = '''
 deb http://packages.cloud.google.com/apt cloud-sdk-{deb_release} main
@@ -51,17 +52,17 @@ def DistroSpecific(g):
     utils.update_apt(g)
     utils.install_apt_packages(g, 'gnupg')
 
-    g.command(
+    run(g,
         ['wget', 'https://packages.cloud.google.com/apt/doc/apt-key.gpg',
         '-O', '/tmp/gce_key'])
-    g.command(['apt-key', 'add', '/tmp/gce_key'])
+    run(g, ['apt-key', 'add', '/tmp/gce_key'])
     g.rm('/tmp/gce_key')
     g.write(
         '/etc/apt/sources.list.d/google-cloud.list',
         google_cloud.format(deb_release=deb_release))
     # Remove Azure agent.
     try:
-      g.command(['apt-get', 'remove', '-y', '-f', 'waagent', 'walinuxagent'])
+      run(g, ['apt-get', 'remove', '-y', '-f', 'waagent', 'walinuxagent'])
     except Exception as e:
       logging.debug(str(e))
       logging.warn('Could not uninstall Azure agent. Continuing anyway.')
@@ -84,19 +85,19 @@ def DistroSpecific(g):
     utils.install_apt_packages(g, *pkgs)
 
   # Update grub config to log to console.
-  g.command(
+  run(g,
       ['sed', '-i""',
       r'/GRUB_CMDLINE_LINUX/s#"$# console=ttyS0,38400n8"#',
       '/etc/default/grub'])
 
   # Disable predictive network interface naming in Stretch.
   if deb_release == 'stretch':
-    g.command(
+    run(g,
         ['sed', '-i',
         r's#^\(GRUB_CMDLINE_LINUX=".*\)"$#\1 net.ifnames=0 biosdevname=0"#',
         '/etc/default/grub'])
 
-  g.command(['update-grub2'])
+  run(g, ['update-grub2'])
 
   # Reset network for DHCP.
   logging.info('Resetting network to DHCP for eth0.')

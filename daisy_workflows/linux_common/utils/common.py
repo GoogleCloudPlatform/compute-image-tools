@@ -784,7 +784,7 @@ class MetadataManager:
 @RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
 def install_apt_packages(g, *pkgs):
   cmd = 'DEBIAN_FRONTEND=noninteractive apt-get ' \
-          'install -y --no-install-recommends ' + ' '.join(pkgs)
+        'install -y --no-install-recommends ' + ' '.join(pkgs)
   run(g, cmd)
 
 

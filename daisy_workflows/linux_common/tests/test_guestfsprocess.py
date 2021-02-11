@@ -17,7 +17,6 @@ import tempfile
 from unittest.mock import MagicMock
 
 import pytest
-
 from utils.guestfsprocess import CompletedProcess, GuestFSInterface, run
 
 
@@ -27,23 +26,19 @@ class TestWithoutCheck:
     result = run(_make_local_guestfs(), cmd, check=False)
     assert result == CompletedProcess('abc123\n', '', 0, cmd)
 
-
   def test_capture_stderr(self):
     cmd = 'echo error msg > /dev/stderr'
     result = run(_make_local_guestfs(), cmd, check=False)
     assert result == CompletedProcess('', 'error msg\n', 0, cmd)
-
 
   def test_support_positive_code(self):
     cmd = 'exit 100'
     result = run(_make_local_guestfs(), cmd, check=False)
     assert result == CompletedProcess('', '', 100, cmd)
 
-
   def test_support_array_args(self):
     result = run(_make_local_guestfs(), ['echo', 'hi'], check=False)
     assert result == CompletedProcess('hi\n', '', 0, 'echo hi')
-
 
   def test_escape_array_members(self):
     result = run(_make_local_guestfs(),
@@ -51,12 +46,10 @@ class TestWithoutCheck:
     assert result == CompletedProcess('hello ; ls *\n', '', 0,
                                       "echo hello '; ls *'")
 
-
   def test_capture_runtime_errors(self):
     result = run(_make_local_guestfs(), 'not-a-command', check=False)
     assert result.code != 0
     assert 'not-a-command' in result.stderr
-
 
   def test_capture_output_when_non_zero_return(self):
     cmd = 'printf content; printf err > /dev/stderr; exit 1'
@@ -69,7 +62,6 @@ class TestWithCheck:
     cmd = 'echo abc123'
     result = run(_make_local_guestfs(), cmd)
     assert result == CompletedProcess('abc123\n', '', 0, cmd)
-
 
   def test_raise_error_when_failure(self):
     cmd = '>&2 echo stderr msg; exit 1'
