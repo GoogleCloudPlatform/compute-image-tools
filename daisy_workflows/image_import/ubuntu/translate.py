@@ -21,8 +21,9 @@ ubuntu_release: The nickname of the distro (eg: trusty).
 install_gce_packages: True if GCE agent and SDK should be installed
 """
 
+from difflib import Differ
 import logging
-import os
+import re
 
 import guestfs
 import utils
@@ -46,13 +47,17 @@ snap:
       00: snap install google-cloud-sdk --classic
 '''
 
-# systemd drop-in to include /snap/bin on the path for a systemd service.
+# Ubuntu standard path, from https://wiki.ubuntu.com/PATH.
+std_path = (
+  '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin')
+
+# systemd directive to include /snap/bin on the path for a systemd service.
 # This path was included in the Python guest agent's unit files, but
 # was removed in the NGA's unit files.
-systemd_snap_dropin = '''
-[Service]
-Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
-'''
+snap_env_directive = '\n'.join([
+  '[Service]',
+  'Environment=PATH=' + std_path
+])
 
 apt_cloud_sdk = '''
 # Enabled for Google Cloud SDK
@@ -146,30 +151,46 @@ def install_cloud_sdk(g: guestfs.GuestFS, ubuntu_release: str) -> None:
   except RuntimeError:
     logging.info('Did not find previous install of gcloud.')
 
-  if g.gcp_image_major >= '18':
-    # Starting at 18.04, the ubuntu-os-cloud images install the sdk
-    # using snap. Running `snap install` directly is not an option
-    # here since it requires the snapd daemon to be running on the guest.
-    g.write('/etc/cloud/cloud.cfg.d/91-google-cloud-sdk.cfg',
-            cloud_init_cloud_sdk)
-    logging.info(
-        'Google Cloud SDK will be installed using snap with cloud-init.')
-
-    # Include /snap/bin in the PATH for startup and shutdown scripts.
-    # This was present in the old guest agent, but lost in the new guest
-    # agent.
-    for drop_dir in ['/lib/systemd/system/google-shutdown-scripts.service.d',
-                     '/lib/systemd/system/google-startup-scripts.service.d']:
-      if not g.exists(drop_dir):
-        g.mkdir(drop_dir)
-      g.write(os.path.join(drop_dir, '90-env.conf'), systemd_snap_dropin)
-
-  else:
+  if g.gcp_image_major < '18':
     g.write('/etc/apt/sources.list.d/partner.list',
             apt_cloud_sdk.format(ubuntu_release=ubuntu_release))
     utils.update_apt(g)
     utils.install_apt_packages(g, 'google-cloud-sdk')
     logging.info('Installed Google Cloud SDK with apt.')
+    return
+
+  # Starting at 18.04, Canonical installs the sdk using snap.
+  # Running `snap install` directly is not an option here since it
+  # requires the snapd daemon to be running on the guest.
+  g.write('/etc/cloud/cloud.cfg.d/91-google-cloud-sdk.cfg',
+          cloud_init_cloud_sdk)
+  logging.info(
+    'Google Cloud SDK will be installed using snap with cloud-init.')
+
+  # Include /snap/bin in the PATH for startup and shutdown scripts.
+  # This was present in the old guest agent, but lost in the new guest
+  # agent.
+  for p in ['/lib/systemd/system/google-shutdown-scripts.service',
+            '/lib/systemd/system/google-startup-scripts.service']:
+    logging.debug('[%s] Checking whether /bin/snap is on PATH.', p)
+    if not g.exists(p):
+      logging.debug('[%s] Skipping: Unit not found.', p)
+      continue
+    original_unit = g.cat(p)
+    # Check whether the PATH is already set; if so, skip patching to avoid
+    # overwriting existing directive.
+    match = re.search('Environment=[\'"]?PATH.*', original_unit,
+                      flags=re.IGNORECASE)
+    if match:
+      logging.debug('[%s] Skipping: PATH already defined in unit file: %s.', p,
+                    match.group())
+      continue
+    # Add Environment directive to unit file, and show diff in debug log.
+    patched_unit = original_unit.replace('[Service]', snap_env_directive)
+    g.write(p, patched_unit)
+    diff = '\n'.join(Differ().compare(original_unit.splitlines(),
+                                      patched_unit.splitlines()))
+    logging.debug('[%s] PATH not defined. Added:\n%s', p, diff)
 
 
 def DistroSpecific(g):
