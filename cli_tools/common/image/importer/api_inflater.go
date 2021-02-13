@@ -47,22 +47,24 @@ func isCausedByAlphaAPIAccess(err error) bool {
 
 // apiInflater implements `importer.inflater` using the Compute Engine API
 type apiInflater struct {
-	request         ImageImportRequest
-	computeClient   daisyCompute.Client
-	storageClient   domain.StorageClientInterface
-	guestOsFeatures []*compute.GuestOsFeature
-	wg              sync.WaitGroup
-	cancelChan      chan string
-	logger          logging.Logger
+	request          ImageImportRequest
+	computeClient    daisyCompute.Client
+	storageClient    domain.StorageClientInterface
+	guestOsFeatures  []*compute.GuestOsFeature
+	wg               sync.WaitGroup
+	cancelChan       chan string
+	logger           logging.Logger
+	isShadowInflater bool
 }
 
-func createAPIInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient domain.StorageClientInterface, logger logging.Logger) Inflater {
+func createAPIInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient domain.StorageClientInterface, logger logging.Logger, isShadowInflater bool) *apiInflater {
 	inflater := apiInflater{
-		request:       request,
-		computeClient: computeClient,
-		storageClient: storageClient,
-		cancelChan:    make(chan string, 1),
-		logger:        logger,
+		request:          request,
+		computeClient:    computeClient,
+		storageClient:    storageClient,
+		cancelChan:       make(chan string, 1),
+		logger:           logger,
+		isShadowInflater: isShadowInflater,
 	}
 	if request.UefiCompatible {
 		inflater.guestOsFeatures = []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}}
@@ -71,6 +73,23 @@ func createAPIInflater(request ImageImportRequest, computeClient daisyCompute.Cl
 }
 
 func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error) {
+	if inflater.isShadowInflater {
+		return inflater.inflateForShadowTest()
+	}
+
+	ctx := context.Background()
+	startTime := time.Now()
+	diskName := "disk-" + inflater.request.ExecutionID
+
+	cd, err := inflater.createDisk(diskName)
+	if err != nil {
+		return persistentDisk{}, shadowTestFields{}, daisy.Errf("Failed to create disk by api inflater: %v", err)
+	}
+
+	return inflater.getDiskAttributes(ctx, diskName, cd, startTime)
+}
+
+func (inflater *apiInflater) inflateForShadowTest() (persistentDisk, shadowTestFields, error) {
 	inflater.wg.Add(1)
 	defer inflater.wg.Done()
 
@@ -78,14 +97,7 @@ func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error)
 	startTime := time.Now()
 	diskName := inflater.getShadowDiskName()
 
-	// Create shadow disk
-	cd := compute.Disk{
-		Name:                diskName,
-		SourceStorageObject: inflater.request.Source.Path(),
-		GuestOsFeatures:     inflater.guestOsFeatures,
-	}
-
-	err := inflater.computeClient.CreateDisk(inflater.request.Project, inflater.request.Zone, &cd)
+	cd, err := inflater.createDisk(diskName)
 	if err != nil {
 		return persistentDisk{}, shadowTestFields{}, daisy.Errf("Failed to create shadow disk: %v", err)
 	}
@@ -101,6 +113,31 @@ func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error)
 	default:
 	}
 
+	pd, ii, err := inflater.getDiskAttributes(ctx, diskName, cd, startTime)
+	if err != nil {
+		return pd, ii, err
+	}
+
+	// Calculate checksum by daisy workflow
+	inflater.logger.Debug("Started checksum calculation.")
+	ii.checksum, err = inflater.calculateChecksum(ctx, pd.uri)
+	if err != nil {
+		err = daisy.Errf("Failed to calculate checksum: %v", err)
+	}
+	return pd, ii, err
+}
+
+func (inflater *apiInflater) createDisk(diskName string) (compute.Disk, error) {
+	cd := compute.Disk{
+		Name:                diskName,
+		SourceStorageObject: inflater.request.Source.Path(),
+		GuestOsFeatures:     inflater.guestOsFeatures,
+	}
+	err := inflater.computeClient.CreateDisk(inflater.request.Project, inflater.request.Zone, &cd)
+	return cd, err
+}
+
+func (inflater *apiInflater) getDiskAttributes(ctx context.Context, diskName string, cd compute.Disk, startTime time.Time) (persistentDisk, shadowTestFields, error) {
 	// Prepare return value
 	bkt, objPath, err := storage.GetGCSObjectPathElements(inflater.request.Source.Path())
 	if err != nil {
@@ -125,13 +162,7 @@ func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error)
 		inflationTime: time.Since(startTime),
 	}
 
-	// Calculate checksum by daisy workflow
-	inflater.logger.Debug("Started checksum calculation.")
-	ii.checksum, err = inflater.calculateChecksum(ctx, diskURI)
-	if err != nil {
-		err = daisy.Errf("Failed to calculate checksum: %v", err)
-	}
-	return pd, ii, err
+	return pd, ii, nil
 }
 
 func (inflater *apiInflater) getShadowDiskName() string {
@@ -139,6 +170,12 @@ func (inflater *apiInflater) getShadowDiskName() string {
 }
 
 func (inflater *apiInflater) Cancel(reason string) bool {
+	if !inflater.isShadowInflater {
+		// We don't have to do any actual cancellation for the single CreateDisk API call.
+		// Only the daisy workflow is worth cancelling.
+		return false
+	}
+
 	// Send cancel signal
 	inflater.cancelChan <- reason
 
