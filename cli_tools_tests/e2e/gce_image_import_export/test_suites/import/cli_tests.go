@@ -516,7 +516,7 @@ func runImageImportOSWithDisabledDefaultServiceAccountServiceFailTest(ctx contex
 		},
 	}
 
-	e2e.RunTestCommandAssertErrorMessage(cmds[testType], argsMap[testType], "ImportFailed: Failed to download image to worker instance", logger, testCase)
+	e2e.RunTestCommandAssertErrorMessage(cmds[testType], argsMap[testType], "Failed to download GCS path", logger, testCase)
 }
 
 // With insufficient permissions on default service account, import failed.
