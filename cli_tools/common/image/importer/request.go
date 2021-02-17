@@ -109,17 +109,20 @@ type ImageImportRequest struct {
 // a daisy workflow.
 func (args ImageImportRequest) EnvironmentSettings() daisycommon.EnvironmentSettings {
 	return daisycommon.EnvironmentSettings{
-		Project:            args.Project,
-		Zone:               args.Zone,
-		GCSPath:            args.ScratchBucketGcsPath,
-		OAuth:              args.Oauth,
-		Timeout:            args.Timeout.String(),
-		ComputeEndpoint:    args.ComputeEndpoint,
-		DaisyLogLinePrefix: args.DaisyLogLinePrefix,
-		DisableGCSLogs:     args.GcsLogsDisabled,
-		DisableCloudLogs:   args.CloudLogsDisabled,
-		DisableStdoutLogs:  args.StdoutLogsDisabled,
-		NoExternalIP:       args.NoExternalIP,
-		WorkflowDirectory:  args.WorkflowDir,
+		Project:               args.Project,
+		Zone:                  args.Zone,
+		GCSPath:               args.ScratchBucketGcsPath,
+		OAuth:                 args.Oauth,
+		Timeout:               args.Timeout.String(),
+		ComputeEndpoint:       args.ComputeEndpoint,
+		DaisyLogLinePrefix:    args.DaisyLogLinePrefix,
+		DisableGCSLogs:        args.GcsLogsDisabled,
+		DisableCloudLogs:      args.CloudLogsDisabled,
+		DisableStdoutLogs:     args.StdoutLogsDisabled,
+		Network:               args.Network,
+		Subnet:                args.Subnet,
+		ComputeServiceAccount: args.ComputeServiceAccount,
+		NoExternalIP:          args.NoExternalIP,
+		WorkflowDirectory:     args.WorkflowDir,
 	}
 }
