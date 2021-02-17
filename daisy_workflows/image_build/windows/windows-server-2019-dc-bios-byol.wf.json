@@ -14,6 +14,11 @@
       "Required": true,
       "Description": "GCS or local path to Microsoft .NET Framework 4.8 offline installer"
     },
+    "cloudsdk": {
+      "Required": true,
+      "Value": "gs://gce-image-build-resources/windows/GoogleCloudSDKInstaller.exe",
+      "Description": "GCS or local path to Cloud SDK installer"
+    },
     "description": {
       "Value": "Microsoft, Windows Server, 2019 Datacenter, Server with Desktop Experience, x64 built on ${TIMESTAMP}"
     },
@@ -53,9 +58,10 @@
           "updates": "${updates}",
           "drivers_bucket": "gs://gce-windows-drivers-public/release/win6.3/",
           "dotnet48": "${dotnet48}",
+          "pwsh": "${pwsh}",
           "edition": "Windows Server 2019 SERVERDATACENTER",
           "media": "${media}",
-          "cloud_sdk": "gs://gce-image-build-resources/windows/GoogleCloudSDKInstaller.exe",
+          "cloud_sdk": "${cloudsdk}",
           "product_key": "WMDGN-G9PQG-XVVXX-R3X43-63DFG",
           "uefi_build": "false",
           "google_cloud_repo": "${google_cloud_repo}",
