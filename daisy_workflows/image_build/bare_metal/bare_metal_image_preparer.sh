@@ -34,9 +34,17 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
-# Temporary install of useful development tools.
-echo "Installing development tools."
-yum -y install net-tools pciutils tcpdump
+URL="http://metadata/computeMetadata/v1/instance/attributes"
+DEVELOPMENT=$(curl -f -H Metadata-Flavor:Google ${URL}/development)
+
+if [[ ${DEVELOPMENT} == "True" ]]; then
+  # Temporary install of useful development tools.
+  echo "Installing development tools."
+  yum -y install net-tools pciutils tcpdump
+  # Auto login on root shell
+  sed -i 's!ExecStart=-/sbin/agetty .*!# &\nExecStart=-/sbin/agetty -n --autologin root --keep-baud 115200,38400,9600 %I $TERM!' /lib/systemd/system/serial-getty@.service
+  systemctl enable serial-getty@ttyS0.service
+fi
 
 # Temporary boot fix for RHEL 8.
 # Removes grub2 in place of a BootLoaderSpec which is loaded from the firmware.

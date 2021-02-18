@@ -21,11 +21,14 @@ ubuntu_release: The nickname of the distro (eg: trusty).
 install_gce_packages: True if GCE agent and SDK should be installed
 """
 
+from difflib import Differ
 import logging
+import re
 
 import guestfs
 import utils
 import utils.diskutils as diskutils
+from utils.guestfsprocess import run
 
 # Google Cloud SDK
 #
@@ -43,6 +46,18 @@ snap:
    commands:
       00: snap install google-cloud-sdk --classic
 '''
+
+# Ubuntu standard path, from https://wiki.ubuntu.com/PATH.
+std_path = (
+  '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin')
+
+# systemd directive to include /snap/bin on the path for a systemd service.
+# This path was included in the Python guest agent's unit files, but
+# was removed in the NGA's unit files.
+snap_env_directive = '\n'.join([
+  '[Service]',
+  'Environment=PATH=' + std_path
+])
 
 apt_cloud_sdk = '''
 # Enabled for Google Cloud SDK
@@ -130,26 +145,52 @@ def install_cloud_sdk(g: guestfs.GuestFS, ubuntu_release: str) -> None:
     ubuntu_release: The release nickname (eg: trusty).
   """
   try:
-    g.sh('gcloud --version')
+    run(g, 'gcloud --version')
     logging.info('Found gcloud. Skipping installation of Google Cloud SDK.')
     return
   except RuntimeError:
     logging.info('Did not find previous install of gcloud.')
 
-  if g.gcp_image_major >= '18':
-    # Starting at 18.04, the ubuntu-os-cloud images install the sdk
-    # using snap. Running `snap install` directly is not an option
-    # here since it requires the snapd daemon to be running on the guest.
-    g.write('/etc/cloud/cloud.cfg.d/91-google-cloud-sdk.cfg',
-            cloud_init_cloud_sdk)
-    logging.info(
-        'Google Cloud SDK will be installed using snap with cloud-init.')
-  else:
+  if g.gcp_image_major < '18':
     g.write('/etc/apt/sources.list.d/partner.list',
             apt_cloud_sdk.format(ubuntu_release=ubuntu_release))
     utils.update_apt(g)
     utils.install_apt_packages(g, 'google-cloud-sdk')
     logging.info('Installed Google Cloud SDK with apt.')
+    return
+
+  # Starting at 18.04, Canonical installs the sdk using snap.
+  # Running `snap install` directly is not an option here since it
+  # requires the snapd daemon to be running on the guest.
+  g.write('/etc/cloud/cloud.cfg.d/91-google-cloud-sdk.cfg',
+          cloud_init_cloud_sdk)
+  logging.info(
+    'Google Cloud SDK will be installed using snap with cloud-init.')
+
+  # Include /snap/bin in the PATH for startup and shutdown scripts.
+  # This was present in the old guest agent, but lost in the new guest
+  # agent.
+  for p in ['/lib/systemd/system/google-shutdown-scripts.service',
+            '/lib/systemd/system/google-startup-scripts.service']:
+    logging.debug('[%s] Checking whether /bin/snap is on PATH.', p)
+    if not g.exists(p):
+      logging.debug('[%s] Skipping: Unit not found.', p)
+      continue
+    original_unit = g.cat(p)
+    # Check whether the PATH is already set; if so, skip patching to avoid
+    # overwriting existing directive.
+    match = re.search('Environment=[\'"]?PATH.*', original_unit,
+                      flags=re.IGNORECASE)
+    if match:
+      logging.debug('[%s] Skipping: PATH already defined in unit file: %s.', p,
+                    match.group())
+      continue
+    # Add Environment directive to unit file, and show diff in debug log.
+    patched_unit = original_unit.replace('[Service]', snap_env_directive)
+    g.write(p, patched_unit)
+    diff = '\n'.join(Differ().compare(original_unit.splitlines(),
+                                      patched_unit.splitlines()))
+    logging.debug('[%s] PATH not defined. Added:\n%s', p, diff)
 
 
 def DistroSpecific(g):
@@ -161,7 +202,7 @@ def DistroSpecific(g):
   # https://askubuntu.com/questions/157154
   if g.exists('/etc/resolvconf/resolv.conf.d/base'):
     logging.info('Resetting resolvconf base.')
-    g.sh('echo "" > /etc/resolvconf/resolv.conf.d/base')
+    run(g, 'echo "" > /etc/resolvconf/resolv.conf.d/base')
 
   # Reset the network to DHCP.
   if ubuntu_release == 'trusty':
@@ -169,9 +210,9 @@ def DistroSpecific(g):
   elif ubuntu_release == 'xenial':
     g.write('/etc/network/interfaces', network_xenial)
   elif g.is_dir('/etc/netplan'):
-    g.sh('rm -f /etc/netplan/*')
+    run(g, 'rm -f /etc/netplan/*')
     g.write('/etc/netplan/config.yaml', network_netplan)
-    g.sh('netplan apply')
+    run(g, 'netplan apply')
 
   if install_gce == 'true':
     utils.update_apt(g)
@@ -179,7 +220,7 @@ def DistroSpecific(g):
     utils.install_apt_packages(g, 'cloud-init')
     # Ubuntu 14.04's version of cloud-init doesn't have `clean`.
     if g.gcp_image_major > '14':
-      g.sh('cloud-init clean')
+      run(g, 'cloud-init clean')
 
     # Remove cloud-init configs that may conflict with GCE's.
     #
@@ -189,7 +230,7 @@ def DistroSpecific(g):
         'azure', 'curtin', 'waagent', 'walinuxagent', 'aws', 'amazon',
         'subiquity'
     ]:
-      g.sh('rm -f /etc/cloud/cloud.cfg.d/*%s*' % cfg)
+      run(g, 'rm -f /etc/cloud/cloud.cfg.d/*%s*' % cfg)
 
     remove_azure_agents(g)
 
@@ -199,22 +240,22 @@ def DistroSpecific(g):
     install_cloud_sdk(g, ubuntu_release)
 
   # Update grub config to log to console.
-  g.command([
+  run(g, [
       'sed', '-i',
       r's#^\(GRUB_CMDLINE_LINUX=".*\)"$#\1 console=ttyS0,38400n8"#',
       '/etc/default/grub'
   ])
-  g.command(['update-grub2'])
+  run(g, ['update-grub2'])
 
 
 def remove_azure_agents(g):
   try:
-    g.command(['apt-get', 'remove', '-y', '-f', 'walinuxagent'])
+    run(g, ['apt-get', 'remove', '-y', '-f', 'walinuxagent'])
   except Exception as e:
     logging.debug(str(e))
 
   try:
-    g.command(['apt-get', 'remove', '-y', '-f', 'waagent'])
+    run(g, ['apt-get', 'remove', '-y', '-f', 'waagent'])
   except Exception as e:
     logging.debug(str(e))
 
@@ -227,4 +268,4 @@ def main():
 
 
 if __name__ == '__main__':
-  utils.RunTranslate(main)
+  utils.RunTranslate(main, run_with_tracing=False)

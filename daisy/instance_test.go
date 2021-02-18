@@ -75,6 +75,14 @@ func TestInstancePopulate(t *testing.T) {
 	}
 }
 
+func TestInstancePopulateSerialPortsToLog(t *testing.T) {
+	ib := InstanceBase{}
+	ib.populateSerialPortsToLog()
+	if !reflect.DeepEqual(ib.SerialPortsToLog, []int64{1}) {
+		t.Errorf("SerialPortsToLog should default to 1")
+	}
+}
+
 func TestInstancePopulateDisks(t *testing.T) {
 	w := testWorkflow()
 
@@ -478,6 +486,41 @@ func TestInstancesValidate(t *testing.T) {
 			t.Errorf("%s: should have returned an error", tt.desc)
 		} else if !tt.shouldErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+	}
+}
+
+func TestInstanceValidateSerialPortsToLog(t *testing.T) {
+	// Test:
+	// - 0 good case
+	// - 1 good case
+	// - 4 good case
+	// - -1 bad case
+	// - 5 bad case
+
+	tests := []struct {
+		desc          string
+		ports         []int64
+		expectedPorts []int64
+		shouldErr     bool
+	}{
+		{"success 1", []int64{1}, []int64{1}, false},
+		{"success 1 1 4 4", []int64{1, 1, 4, 4}, []int64{1, 4}, false},
+		{"success 4", []int64{4}, []int64{4}, false},
+		{"error -1", []int64{-1}, nil, true},
+		{"error 1 5", []int64{1, 5}, nil, true},
+	}
+
+	for _, tt := range tests {
+		ib := &InstanceBase{SerialPortsToLog: tt.ports}
+		ib.populateSerialPortsToLog()
+		if err := ib.validateSerialPortsToLog(); tt.shouldErr && err == nil {
+			t.Errorf("%s: should have returned an error", tt.desc)
+		} else if !tt.shouldErr && err != nil {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+		if !tt.shouldErr && !reflect.DeepEqual(ib.SerialPortsToLog, tt.expectedPorts) {
+			t.Errorf("%s: unexpected ports. got: %v, expected: %v", tt.desc, ib.SerialPortsToLog, tt.expectedPorts)
 		}
 	}
 }

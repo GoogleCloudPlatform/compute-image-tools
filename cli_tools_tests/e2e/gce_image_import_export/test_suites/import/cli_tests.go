@@ -81,8 +81,6 @@ func CLITestSuite(
 			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import with different network param styles"))
 		imageImportWithSubnetWithoutNetworkSpecifiedTestCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import with subnet but without network"))
-		imageImportShadowDiskCleanedUpWhenMainInflaterFails := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import shadow disk is cleaned up when main inflater fails"))
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, e2e.CLITestType){}
@@ -92,7 +90,11 @@ func CLITestSuite(
 		testsMap[testType][imageImportWithRichParamsTestCase] = runImageImportWithRichParamsTest
 		testsMap[testType][imageImportWithDifferentNetworkParamStylesTestCase] = runImageImportWithDifferentNetworkParamStyles
 		testsMap[testType][imageImportWithSubnetWithoutNetworkSpecifiedTestCase] = runImageImportWithSubnetWithoutNetworkSpecified
-		testsMap[testType][imageImportShadowDiskCleanedUpWhenMainInflaterFails] = runImageImportShadowDiskCleanedUpWhenMainInflaterFails
+
+		// TODO: recover this test only when shadow test is enabled.
+		//imageImportShadowDiskCleanedUpWhenMainInflaterFails := junitxml.NewTestCase(
+		//	testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import shadow disk is cleaned up when main inflater fails"))
+		//testsMap[testType][imageImportShadowDiskCleanedUpWhenMainInflaterFails] = runImageImportShadowDiskCleanedUpWhenMainInflaterFails
 	}
 
 	// Only test service account scenario for wrapper, till gcloud support it.
@@ -514,7 +516,7 @@ func runImageImportOSWithDisabledDefaultServiceAccountServiceFailTest(ctx contex
 		},
 	}
 
-	e2e.RunTestCommandAssertErrorMessage(cmds[testType], argsMap[testType], "ImportFailed: Failed to download image to worker instance", logger, testCase)
+	e2e.RunTestCommandAssertErrorMessage(cmds[testType], argsMap[testType], "Failed to download GCS path", logger, testCase)
 }
 
 // With insufficient permissions on default service account, import failed.

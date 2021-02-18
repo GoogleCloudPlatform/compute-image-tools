@@ -19,263 +19,142 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"google.golang.org/api/compute/v1"
-
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/api/compute/v1"
 )
 
-// gcloud expects log lines to start with the substring "[import". Daisy
-// constructs the log prefix using the workflow's name.
-func TestCreateDaisyInflater_SetsWorkflowNameToGcloudPrefix(t *testing.T) {
-	inflater := createDaisyInflaterForImageSafe(t, ImageImportRequest{
-		Source:             imageSource{uri: "projects/test/uri/image"},
-		DaisyLogLinePrefix: "disk-1",
-	})
-	assert.Equal(t, "disk-1-inflate", inflater.wf.Name)
-}
-
-func TestCreateDaisyInflater_Image_HappyCase(t *testing.T) {
-	inflater := createDaisyInflaterForImageSafe(t, ImageImportRequest{
-		Source:      imageSource{uri: "projects/test/uri/image"},
-		Zone:        "us-west1-b",
-		ExecutionID: "1234",
-	})
-
-	assert.Equal(t, "zones/us-west1-b/disks/disk-1234", inflater.inflatedDiskURI)
-	assert.Equal(t, "projects/test/uri/image", inflater.wf.Vars["source_image"].Value)
-	inflatedDisk := getDisk(inflater.wf, 0)
-	assert.Contains(t, inflatedDisk.Licenses,
-		"projects/compute-image-tools/global/licenses/virtual-disk-import")
-}
-
-func TestCreateDaisyInflater_Image_Windows(t *testing.T) {
-	inflater := createDaisyInflaterForImageSafe(t, ImageImportRequest{
-		Source: imageSource{uri: "image/uri"},
-		OS:     "windows-2019",
-	})
-
-	assert.Contains(t, getDisk(inflater.wf, 0).GuestOsFeatures, &compute.GuestOsFeature{
-		Type: "WINDOWS",
-	})
-}
-
-func TestCreateDaisyInflater_Image_NotWindows(t *testing.T) {
-	inflater := createDaisyInflaterForImageSafe(t, ImageImportRequest{
-		Source: imageSource{uri: "image/uri"},
-		OS:     "ubuntu-1804",
-	})
-
-	assert.NotContains(t, getDisk(inflater.wf, 0).GuestOsFeatures, &compute.GuestOsFeature{
-		Type: "WINDOWS",
-	})
-}
-
-func TestCreateDaisyInflater_Image_UEFI(t *testing.T) {
-	inflater := createDaisyInflaterForImageSafe(t, ImageImportRequest{
-		Source:         imageSource{uri: "image/uri"},
-		OS:             "ubuntu-1804",
-		UefiCompatible: true,
-	})
-
-	assert.Contains(t, getDisk(inflater.wf, 0).GuestOsFeatures, &compute.GuestOsFeature{
-		Type: "UEFI_COMPATIBLE",
-	})
-}
-
-func TestCreateDaisyInflater_Image_NotUEFI(t *testing.T) {
-	inflater := createDaisyInflaterForImageSafe(t, ImageImportRequest{
-		Source:         imageSource{uri: "image/uri"},
-		OS:             "ubuntu-1804",
-		UefiCompatible: false,
-	})
-
-	assert.NotContains(t, getDisk(inflater.wf, 0).GuestOsFeatures, &compute.GuestOsFeature{
-		Type: "UEFI_COMPATIBLE",
-	})
-}
-
-func TestCreateDaisyInflater_File_HappyCase(t *testing.T) {
-	source := fileSource{gcsPath: "gs://bucket/vmdk"}
-	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
-		Source:       source,
+func TestCreateInflater_File(t *testing.T) {
+	inflater, err := newInflater(ImageImportRequest{
+		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:       "projects/subnet/subnet",
 		Network:      "projects/network/network",
 		Zone:         "us-west1-c",
 		ExecutionID:  "1234",
 		NoExternalIP: false,
-	}, imagefile.Metadata{
-		PhysicalSizeGB: 1,
-		VirtualSizeGB:  1,
-		FileFormat:     "vmdk",
-	})
+		WorkflowDir:  daisyWorkflows,
+	}, nil, &storage.Client{}, mockInspector{
+		t:                 t,
+		expectedReference: "gs://bucket/vmdk",
+		errorToReturn:     nil,
+		metaToReturn:      imagefile.Metadata{},
+	}, nil)
+	assert.NoError(t, err)
+	facade, ok := inflater.(*inflaterFacade)
+	assert.True(t, ok)
 
-	assert.Equal(t, "zones/us-west1-c/disks/disk-1234", inflater.inflatedDiskURI)
-	assert.Equal(t, "gs://bucket/vmdk", inflater.wf.Vars["source_disk_file"].Value)
-	assert.Equal(t, "projects/subnet/subnet", inflater.wf.Vars["import_subnet"].Value)
-	assert.Equal(t, "projects/network/network", inflater.wf.Vars["import_network"].Value)
-	assert.Equal(t, "default", inflater.wf.Vars["compute_service_account"].Value)
+	daisyInflater, ok := facade.daisyInflater.(*daisyInflater)
+	assert.True(t, ok)
+	assert.Equal(t, "zones/us-west1-c/disks/disk-1234", daisyInflater.inflatedDiskURI)
+	assert.Equal(t, "gs://bucket/vmdk", daisyInflater.wf.Vars["source_disk_file"].Value)
+	assert.Equal(t, "projects/subnet/subnet", daisyInflater.wf.Vars["import_subnet"].Value)
+	assert.Equal(t, "projects/network/network", daisyInflater.wf.Vars["import_network"].Value)
 
-	network := getWorkerNetwork(t, inflater.wf)
+	network := getWorkerNetwork(t, daisyInflater.wf)
 	assert.Nil(t, network.AccessConfigs, "AccessConfigs must be nil to allow ExternalIP to be allocated.")
+
+	apiInflater, ok := facade.apiInflater.(*apiInflater)
+	assert.True(t, ok)
+	assert.NotContains(t, apiInflater.guestOsFeatures,
+		&compute.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
 }
 
-func TestCreateDaisyInflater_File_ComputeServiceAcount(t *testing.T) {
-	source := fileSource{gcsPath: "gs://bucket/vmdk"}
-	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
-		Source:                source,
-		ComputeServiceAccount: "csa",
-	}, imagefile.Metadata{})
-
-	assert.Equal(t, "csa", inflater.wf.Vars["compute_service_account"].Value)
-}
-
-func TestCreateDaisyInflater_File_NoExternalIP(t *testing.T) {
-	source := fileSource{gcsPath: "gs://bucket/vmdk"}
-	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
-		Source:       source,
-		NoExternalIP: true,
-	}, imagefile.Metadata{})
-
-	network := getWorkerNetwork(t, inflater.wf)
-	assert.NotNil(t, network.AccessConfigs, "To disable external IPs, AccessConfigs must be non-nil.")
-}
-
-func TestCreateDaisyInflater_File_UsesFallbackSizes_WhenInspectionFails(t *testing.T) {
-	source := fileSource{gcsPath: "gs://bucket/vmdk"}
-	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
-		Source:       source,
-		NoExternalIP: true,
-	}, imagefile.Metadata{})
-
-	// The 10GB defaults are hardcoded in inflate_file.wf.json.
-	assert.Equal(t, "10", inflater.wf.Vars["scratch_disk_size_gb"].Value)
-	assert.Equal(t, "10", inflater.wf.Vars["inflated_disk_size_gb"].Value)
-}
-
-func TestCreateDaisyInflater_File_SetsSizesFromInspectedFile(t *testing.T) {
-	tests := []struct {
-		physicalSize     int64
-		virtualSize      int64
-		expectedInflated string
-		expectedScratch  string
-	}{
-		{
-			virtualSize:      1,
-			expectedInflated: "10",
-			expectedScratch:  "10",
-		},
-		{
-			physicalSize:     8,
-			virtualSize:      9,
-			expectedInflated: "10",
-			expectedScratch:  "10",
-		},
-		{
-			physicalSize:     1008,
-			virtualSize:      1024,
-			expectedInflated: "1024",
-			expectedScratch:  "1109",
-		},
-	}
-	for i, tt := range tests {
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			source := fileSource{gcsPath: "gs://bucket/vmdk"}
-			inflater := createDaisyInflaterSafe(t, ImageImportRequest{
-				Source:       source,
-				NoExternalIP: true,
-			}, imagefile.Metadata{
-				VirtualSizeGB:  tt.virtualSize,
-				PhysicalSizeGB: tt.physicalSize,
-			})
-
-			assert.Equal(t, tt.expectedInflated, inflater.wf.Vars["inflated_disk_size_gb"].Value)
-			assert.Equal(t, tt.expectedScratch, inflater.wf.Vars["scratch_disk_size_gb"].Value)
-		})
-	}
-}
-
-func TestCreateDaisyInflater_File_Windows(t *testing.T) {
-	source := fileSource{gcsPath: "gs://bucket/vmdk"}
-	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
-		Source: source,
-		OS:     "windows-2019",
-	}, imagefile.Metadata{})
-
-	inflatedDisk := getDisk(inflater.wf, 1)
-	assert.Contains(t, inflatedDisk.GuestOsFeatures, &compute.GuestOsFeature{
-		Type: "WINDOWS",
-	})
-}
-
-func TestCreateDaisyInflater_File_NotWindows(t *testing.T) {
-	source := fileSource{gcsPath: "gs://bucket/vmdk"}
-	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
-		Source: source,
-		OS:     "ubuntu-1804",
-	}, imagefile.Metadata{})
-
-	inflatedDisk := getDisk(inflater.wf, 1)
-	assert.NotContains(t, inflatedDisk.GuestOsFeatures, &compute.GuestOsFeature{
-		Type: "WINDOWS",
-	})
-}
-
-func TestCreateDaisyInflater_File_UEFI(t *testing.T) {
-	source := fileSource{gcsPath: "gs://bucket/vmdk"}
-	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
-		Source:         source,
-		OS:             "ubuntu-1804",
-		UefiCompatible: true,
-	}, imagefile.Metadata{})
-
-	inflatedDisk := getDisk(inflater.wf, 1)
-	assert.Contains(t, inflatedDisk.GuestOsFeatures, &compute.GuestOsFeature{
-		Type: "UEFI_COMPATIBLE",
-	})
-}
-
-func TestCreateDaisyInflater_File_NotUEFI(t *testing.T) {
-	source := fileSource{gcsPath: "gs://bucket/vmdk"}
-	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
-		Source:         source,
-		OS:             "ubuntu-1804",
-		UefiCompatible: false,
-	}, imagefile.Metadata{})
-
-	inflatedDisk := getDisk(inflater.wf, 1)
-	assert.NotContains(t, inflatedDisk.GuestOsFeatures, &compute.GuestOsFeature{
-		Type: "UEFI_COMPATIBLE",
-	})
-}
-
-func createDaisyInflaterSafe(t *testing.T, request ImageImportRequest,
-	metadata imagefile.Metadata) *daisyInflater {
-	request.WorkflowDir = "../../../../daisy_workflows"
-	inflater, err := NewDaisyInflater(request, metadata, logging.NewToolLogger("test"))
+func TestCreateInflater_Image(t *testing.T) {
+	inflater, err := newInflater(ImageImportRequest{
+		Source:      imageSource{uri: "projects/test/uri/image"},
+		Zone:        "us-west1-b",
+		ExecutionID: "1234",
+		WorkflowDir: daisyWorkflows,
+	}, nil, &storage.Client{}, mockInspector{
+		t:                 t,
+		expectedReference: "projects/test/uri/image",
+		errorToReturn:     nil,
+		metaToReturn:      imagefile.Metadata{},
+	}, nil)
 	assert.NoError(t, err)
 	realInflater, ok := inflater.(*daisyInflater)
 	assert.True(t, ok)
-	return realInflater
+	assert.Equal(t, "zones/us-west1-b/disks/disk-1234", realInflater.inflatedDiskURI)
+	assert.Equal(t, "projects/test/uri/image", realInflater.wf.Vars["source_image"].Value)
+	inflatedDisk := getDisk(realInflater.wf, 0)
+	assert.Contains(t, inflatedDisk.Licenses,
+		"projects/compute-image-tools/global/licenses/virtual-disk-import")
 }
 
-func createDaisyInflaterForImageSafe(t *testing.T, request ImageImportRequest) *daisyInflater {
-	return createDaisyInflaterSafe(t, request, imagefile.Metadata{})
-}
-
-func getWorkerNetwork(t *testing.T, workflow *daisy.Workflow) *compute.NetworkInterface {
-	for _, step := range workflow.Steps {
-		if step.CreateInstances != nil {
-			instances := step.CreateInstances.Instances
-			assert.Len(t, instances, 1)
-			network := instances[0].NetworkInterfaces
-			assert.Len(t, network, 1)
-			return network[0]
-		}
+func TestInflaterFacade_SuccessOnApiInflater(t *testing.T) {
+	facade := inflaterFacade{
+		apiInflater: &mockInflater{
+			pd: persistentDisk{
+				uri: "disk1",
+			},
+		},
+		daisyInflater: &mockInflater{
+			pd: persistentDisk{
+				uri: "disk2",
+			},
+		},
+		logger: logging.NewToolLogger(t.Name()),
 	}
-	panic("expected create instance step with single network")
+
+	pd, _, err := facade.Inflate()
+	assert.NoError(t, err)
+	assert.Equal(t, "disk1", pd.uri)
+}
+
+func TestInflaterFacade_FailedOnApiInflater(t *testing.T) {
+	apiError := fmt.Errorf("any failure")
+	facade := inflaterFacade{
+		apiInflater: &mockInflater{
+			err: apiError,
+		},
+		daisyInflater: &mockInflater{
+			pd: persistentDisk{
+				uri: "disk2",
+			},
+		},
+		logger: logging.NewToolLogger(t.Name()),
+	}
+
+	_, _, err := facade.Inflate()
+	assert.Equal(t, apiError, err)
+}
+
+func TestInflaterFacade_SuccessOnDaisyInflater(t *testing.T) {
+	apiError := fmt.Errorf("failed on INVALID_IMAGE_FILE")
+	facade := inflaterFacade{
+		apiInflater: &mockInflater{
+			err: apiError,
+		},
+		daisyInflater: &mockInflater{
+			pd: persistentDisk{
+				uri: "disk2",
+			},
+		},
+		logger: logging.NewToolLogger(t.Name()),
+	}
+
+	pd, _, err := facade.Inflate()
+	assert.NoError(t, err)
+	assert.Equal(t, "disk2", pd.uri)
+}
+
+func TestInflaterFacade_FailedOnDaisyInflater(t *testing.T) {
+	apiError := fmt.Errorf("failed on INVALID_IMAGE_FILE")
+	daisyError := fmt.Errorf("failed on daisy")
+	facade := inflaterFacade{
+		apiInflater: &mockInflater{
+			err: apiError,
+		},
+		daisyInflater: &mockInflater{
+			err: daisyError,
+		},
+		logger: logging.NewToolLogger(t.Name()),
+	}
+
+	_, _, err := facade.Inflate()
+	assert.Equal(t, daisyError, err)
 }
 
 type mockInspector struct {
