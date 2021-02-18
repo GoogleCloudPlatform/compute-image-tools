@@ -4,6 +4,7 @@
   "PublishProject": "bct-staging-images",
   "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_beta/projects/",
   "DeleteAfter": "24h*30*6",
+  {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
       "Prefix": "rhel-7-metal-dev",
