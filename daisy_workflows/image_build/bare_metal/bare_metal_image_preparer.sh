@@ -38,9 +38,13 @@ URL="http://metadata/computeMetadata/v1/instance/attributes"
 DEVELOPMENT=$(curl -f -H Metadata-Flavor:Google ${URL}/development)
 
 if [[ ${DEVELOPMENT} == "True" ]]; then
+  if [[ ${RELEASE} == "el8" ]]; then
+    echo "Adding EPEL for RHEL 8."
+    dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+  fi
   # Temporary install of useful development tools.
   echo "Installing development tools."
-  yum -y install net-tools pciutils tcpdump
+  yum -y install net-tools pciutils tcpdump strongswan hping3
   # Auto login on root shell
   sed -i 's!ExecStart=-/sbin/agetty .*!# &\nExecStart=-/sbin/agetty -n --autologin root --keep-baud 115200,38400,9600 %I $TERM!' /lib/systemd/system/serial-getty@.service
   systemctl enable serial-getty@ttyS0.service
