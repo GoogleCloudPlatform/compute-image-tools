@@ -52,17 +52,14 @@ function Run-Command {
 }
 
 function Export-ImageMetadata {
-    $computer_info = Get-ComputerInfo
-    $version = $computer_info.OsVersion
-    $family = 'windows-' + $computer_info.windowsversion
-    $name =  $computer_info.OSName
-    $release_date = (Get-Date).ToUniversalTime()
-    $image_metadata = @{'family' = $family;
-    'version' = $edition;
-    'name' = $name;
-    'location' = ${script:outs_dir};
-    'build_date' = $release_date;
-    'packages' = @()}
+    $version = Get-Date -Format "yyyyMMdd"
+    $build_date = (Get-Date).ToUniversalTime()
+    $image_metadata = @{'id' = $image_id;
+                        'name' = $image_name;
+                        'family' = $image_family;
+                        'version' = $version;
+                        'build_date' = $build_date;
+                        'packages' = @()}
 
     # Get Googet packages.
     $out = & 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed'
@@ -76,8 +73,8 @@ function Export-ImageMetadata {
         $version = $info[2]
         $source = $info[6]
         $package_metadata = @{'name' = $name;
-        'version' = $version;
-        'commmit_hash' = $source}
+                            'version' = $version;
+                            'commmit_hash' = $source}
         $image_metadata['packages'] += $package_metadata
     }
 
@@ -89,6 +86,9 @@ function Export-ImageMetadata {
 try {
     Write-Host 'Beginning export windows package metadata'
     $metadata_dest = Get-MetadataValue -key 'metadata_dest'
+    $image_id = Get-MetadataValue -key 'image_id'
+    $image_name = Get-MetadataValue -key 'image_name'
+    $image_family = Get-MetadataValue -key 'image_family'
     Export-ImageMetadata
 }
 catch {
