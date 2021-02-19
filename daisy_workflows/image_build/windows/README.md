@@ -52,10 +52,9 @@ any required variable will need to be provided when calling daisy using the -var
 | updates | (Optional) Directory or GCS location containing updates to be included in install |
 | product_key | (Optional) Windows product key to use. Volume license media by default include the Generic Volume License Key. |
 
-### Selecting a pre-built workflow
+### Selecting a workflow
 
-We have provided multiple workflows files per operating system to provide
-that meet some different needs that cannot be changed using a workflow variable.
+We have provided multiple workflows per operating system to provide different configurations of each image.
 
 The workflow files use the following naming convention.
 
@@ -77,12 +76,12 @@ Here are some example of what each filename means:
 * windows-server-2019-dc-uefi-byol.wf.json
   * Windows Server 2019 Data Center using UEFI with an GPT formatted boot disk that is
     using a [bring your own license](https://cloud.google.com/compute/docs/nodes/bringing-your-own-licenses)
-* windows-server-2019-dc-bios-byol.wf.json
-  * Windows Server 2019 Data Center using BIOS with an MBR formatted boot disk that is
+* windows-10-20h2-ent-x86-bios-byol.wf.json
+  * Windows 10 Enterprise 20h2 x86 using BIOS with an MBR formatted boot disk that is
     using a [bring your own license](https://cloud.google.com/compute/docs/nodes/bringing-your-own-licenses)
-* windows-server-2019-dc-bios-payg.wf.json
-  * Windows Server 2019 Data Center using BIOS with an MBR formatted boot disk that is
-    using an [on-demand Windows Server license](https://cloud.google.com/compute/docs/instances/windows/ms-licensing#on-demand)
+* windows-10-20h2-ent-x64-uefi-byol.wf.json
+  * Windows 10 Enterprise 20h2 x64 using using UEFI with an GPT formatted boot disk that is
+    using a [bring your own license](https://cloud.google.com/compute/docs/nodes/bringing-your-own-licenses)
 
 
 ### Starting a build workflow
