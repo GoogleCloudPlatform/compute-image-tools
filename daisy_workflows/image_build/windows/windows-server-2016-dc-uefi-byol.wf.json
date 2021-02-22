@@ -57,6 +57,7 @@
           "updates": "${updates}",
           "drivers_bucket": "gs://gce-windows-drivers-public/release/win6.3-signed/",
           "dotnet48": "${dotnet48}",
+          "pwsh": "${pwsh}",
           "edition": "Windows Server 2016 SERVERDATACENTER",
           "media": "${media}",
           "cloud_sdk": "${cloudsdk}",
