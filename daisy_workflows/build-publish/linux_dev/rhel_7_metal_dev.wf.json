@@ -14,12 +14,15 @@
     "build-bare-metal": {
       "Timeout": "70m",
       "IncludeWorkflow": {
-        "Path": "../../image_build/bare_metal/bare_metal_linux.wf.json",
+        "Path": "development.wf.json",
         "Vars": {
           "base_image": "projects/${source_image_project}/global/images/family/rhel-7",
           "workflow_root": "${workflow_root}",
+          "build_date": "${build_date}",
           "gcs_url": "${gcs_url}",
-          "development": "${development}"
+          "image_prefix": "rhel-7-metal-dev",
+          "development": "${development}",
+          "dev_script": "../../image_build/bare_metal/bare_metal_image_preparer.sh"
         }
       }
     }
