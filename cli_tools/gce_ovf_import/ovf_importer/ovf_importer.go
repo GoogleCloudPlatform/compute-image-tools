@@ -338,7 +338,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (workflow *daisy.Workflow, err erro
 
 	oi.Logger.User(fmt.Sprintf("Will create instance of `%v` machine type.", machineTypeStr))
 
-	if err := oi.importWithModule(osIDValue, &diskInfos); err != nil {
+	if err := oi.importDisks(osIDValue, &diskInfos); err != nil {
 		return nil, err
 	}
 
@@ -405,7 +405,7 @@ func (oi *OVFImporter) CleanUp() {
 	}
 }
 
-func (oi *OVFImporter) importWithModule(osID string, diskInfos *[]ovfutils.DiskInfo) error {
+func (oi *OVFImporter) importDisks(osID string, diskInfos *[]ovfutils.DiskInfo) error {
 	var dataDiskURIs []string
 	for _, info := range *diskInfos {
 		dataDiskURIs = append(dataDiskURIs, info.FilePath)
@@ -432,10 +432,16 @@ func (oi *OVFImporter) getOsIDValue(descriptor *ovf.Envelope) (osIDValue string,
 
 	if userOS != "" {
 		osIDValue = userOS
+		if descriptorOS != "" && userOS != descriptorOS {
+			oi.Logger.User(
+				fmt.Sprintf("WARNING: The OS info in the OVF descriptor was `%v`, "+
+					"but you specified `%v`. Continuing import using your specified OS `%v`.",
+					descriptorOS, userOS, userOS))
+		}
 	} else if descriptorOS != "" {
 		osIDValue = descriptorOS
 	} else {
-		oi.Logger.User("OS will be detected from boot disk.")
+		oi.Logger.User("Didn't find valid OS info in OVF descriptor. OS will be detected from boot disk.")
 		return "", nil
 	}
 
