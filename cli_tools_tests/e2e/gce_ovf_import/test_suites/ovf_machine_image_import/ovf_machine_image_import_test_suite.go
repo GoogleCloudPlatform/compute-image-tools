@@ -231,6 +231,7 @@ func buildTestArgs(props *ovfMachineImageImportTestProperties, testProjectConfig
 		fmt.Sprintf("-machine-image-name=%s", props.machineImageName),
 		fmt.Sprintf("-ovf-gcs-path=%v", props.sourceURI),
 		fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+		fmt.Sprintf("-build-id=%v", path.RandString(10)),
 	}
 
 	if props.os != "" {
