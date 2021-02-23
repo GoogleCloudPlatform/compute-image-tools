@@ -1,5 +1,5 @@
 {
-  "Name": "windows-10-20h2-ent-x86",
+  "Name": "windows-10-20h2-ent-x86-bios-byol",
   "Vars": {
     "install_disk": "install-disk",
     "media": {
@@ -22,7 +22,7 @@
       "Value": "Microsoft, Windows 10 Enterprise 20h2, x86 built on ${TIMESTAMP}"
     },
     "family": {
-      "Value": "windows-10-20h2-ent-x86",
+      "Value": "windows-10-20h2-ent-x86-byol",
       "Description": "Desired image family of the output image."
     },
     "google_cloud_repo": {
@@ -30,7 +30,7 @@
       "Description": "Google Cloud repo to retrieve packages from during the build."
     },
     "name": {
-      "Value": "windows-10-20h2-ent-x86-v${TIMESTAMP}",
+      "Value": "windows-10-20h2-ent-x86-byol-v${TIMESTAMP}",
       "Description": "The name of the output image."
     },
     "project": {

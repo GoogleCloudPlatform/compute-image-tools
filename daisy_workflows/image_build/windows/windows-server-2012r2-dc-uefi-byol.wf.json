@@ -1,5 +1,5 @@
 {
-  "Name": "windows-2012-r2-dc-uefi",
+  "Name": "windows-2012-r2-dc-uefi-byol",
   "Vars": {
     "install_disk": "install-disk",
     "media": {
@@ -22,7 +22,7 @@
       "Value": "Microsoft, Windows Server, 2012 R2 Datacenter, Server with Desktop Experience, x64 built on ${TIMESTAMP}, supports Shielded VM features"
     },
     "family": {
-      "Value": "windows-server-2012-r2-dc",
+      "Value": "windows-server-2012-r2-dc-byol",
       "Description": "Desired image family of the output image."
     },
     "google_cloud_repo": {
@@ -30,7 +30,7 @@
       "Description": "Google Cloud repo to retrieve packages from during the build."
     },
     "name": {
-      "Value": "windows-server-2012-r2-dc-v${TIMESTAMP}",
+      "Value": "windows-server-2012-r2-dc-byol-v${TIMESTAMP}",
       "Description": "The name of the output image."
     },
     "project": {
@@ -48,7 +48,7 @@
   },
   "Steps": {
     "windows-build": {
-      "Timeout": "3h",
+      "Timeout": "5h",
       "IncludeWorkflow": {
         "Path": "./windows-build-uefi.wf.json",
         "Vars": {
@@ -58,7 +58,7 @@
           "drivers_bucket": "gs://gce-windows-drivers-public/release/win6.3-signed/",
           "dotnet48": "${dotnet48}",
           "pwsh": "${pwsh}",
-          "edition": "Windows Server 2012R2 SERVERDATACENTER",
+          "edition": "Windows Server 2012 R2 SERVERDATACENTER",
           "media": "${media}",
           "cloud_sdk": "${cloudsdk}",
           "google_cloud_repo": "${google_cloud_repo}",
