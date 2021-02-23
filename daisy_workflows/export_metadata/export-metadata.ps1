@@ -57,7 +57,8 @@ function Export-ImageMetadata {
         # Get Package Info for each package
         $info = & 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed' '-info' $name
         $version = $info[4].Split(":")[1].Trim()
-        $source = $info[8].Split(":")[1].Trim()
+        $source = $info[8].Split(":")
+        $source = [String]::Concat($source[1..$source.length])
         $package_metadata = @{'name' = $name;
                             'version' = $version;
                             'commmit_hash' = $source}
