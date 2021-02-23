@@ -37,27 +37,13 @@ function Get-MetadataValue {
     }
 }
 
-function Run-Command {
-    [CmdletBinding(SupportsShouldProcess=$true)]
-    param (
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-        [string]$Executable,
-        [Parameter(ValueFromRemainingArguments=$true,
-                ValueFromPipelineByPropertyName=$true)]
-        $Arguments = $null
-    )
-    Write-Host "Running $Executable with arguments $Arguments."
-    $out = &$executable $arguments 2>&1 | Out-String
-    $out.Trim()
-}
-
 function Export-ImageMetadata {
-    $version = Get-Date -Format "yyyyMMdd"
-    $build_date = (Get-Date).ToUniversalTime()
+    $image_version = Get-Date -Format "yyyyMMdd"
+    $build_date = Get-Date -Format "o"
     $image_metadata = @{'id' = $image_id;
                         'name' = $image_name;
                         'family' = $image_family;
-                        'version' = $version;
+                        'version' = $image_version;
                         'build_date' = $build_date;
                         'packages' = @()}
 
@@ -69,9 +55,9 @@ function Export-ImageMetadata {
     foreach ($package_line in $out) {
         $name = $package_line.Trim().Split(' ')[0]
         # Get Package Info for each package
-        $info = Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed' '-info' $name
-        $version = $info[2]
-        $source = $info[6]
+        $info = & 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed' '-info' $name
+        $version = $info[4].Split(":")[1].Trim()
+        $source = $info[8].Split(":")[1].Trim()
         $package_metadata = @{'name' = $name;
                             'version' = $version;
                             'commmit_hash' = $source}
@@ -80,7 +66,7 @@ function Export-ImageMetadata {
 
     # Save the JSON image_metadata.
     $image_metadata_json = $image_metadata | ConvertTo-Json -Compress
-    $image_metadata_json | & 'gsutil' -m cp - "${metadata_dest}/metadata.json"
+    $image_metadata_json | & 'gsutil' cp - "${metadata_dest}/metadata.json"
 }
 
 try {

@@ -23,11 +23,11 @@
     },
     "uefi": {
       "Required":false,
-      "Description": "Whether RHEL is an UEFI image."
+      "Description": "Whether windows is an UEFI image."
     }
   },
   "Sources": {
-    "startup_script": "./export-metadata.ps1"
+    "export-metadata.ps1": "./export-metadata.ps1"
   },
   "Steps": {
     "setup-disks": {
@@ -50,14 +50,13 @@
             "image_id": "${image_id}",
             "image_name": "${image_name}",
             "image_family": "${image_family}",
-            "windows-startup-script-ps1": "startup_script",
             "prefix": "Export",
             "uefi": "${uefi}"
           },
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_write"
           ],
-          "StartupScript": "startup_script"
+          "StartupScript": "export-metadata.ps1"
         }
       ]
     },
