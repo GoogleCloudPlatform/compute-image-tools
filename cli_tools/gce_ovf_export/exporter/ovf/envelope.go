@@ -42,8 +42,7 @@ type Envelope struct {
 	DeploymentOption   *DeploymentOptionSection   `xml:"DeploymentOptionSection"`
 
 	// Content: A VirtualSystem or a VirtualSystemCollection
-	VirtualSystem           *VirtualSystem           `xml:"VirtualSystem"`
-	VirtualSystemCollection *VirtualSystemCollection `xml:"VirtualSystemCollection"`
+	VirtualSystem *VirtualSystem `xml:"VirtualSystem"`
 }
 
 // VirtualSystem represents OVF virtual system
@@ -55,13 +54,6 @@ type VirtualSystem struct {
 	OperatingSystem []OperatingSystemSection `xml:"OperatingSystemSection"`
 	Eula            []EulaSection            `xml:"EulaSection"`
 	VirtualHardware []VirtualHardwareSection `xml:"VirtualHardwareSection"`
-}
-
-// VirtualSystemCollection represents a collection OVF virtual systems
-type VirtualSystemCollection struct {
-	Content
-
-	VirtualSystem []VirtualSystem `xml:"VirtualSystem"`
 }
 
 // File represents file element

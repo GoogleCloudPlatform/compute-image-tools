@@ -21,6 +21,7 @@ import (
 	"regexp"
 	"sync"
 
+	ovfinstanceimporttestsuite "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e/gce_ovf_import/test_suites/ovf_instance_import"
 	ovfmachineimageimporttestsuite "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e/gce_ovf_import/test_suites/ovf_machine_image_import"
 	e2etestutils "github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
@@ -28,14 +29,14 @@ import (
 )
 
 func main() {
-	//ovfInstanceImportTestSuccess := e2etestutils.RunTestsWithArgsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
-	//	*regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string){ovfinstanceimporttestsuite.TestSuite},
-	//	"[OVFInstanceImportTests]")
+	ovfInstanceImportTestSuccess := e2etestutils.RunTestsWithArgsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
+		*regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string){ovfinstanceimporttestsuite.TestSuite},
+		"[OVFInstanceImportTests]")
 	ovfMachineImageImportTestSuccess := e2etestutils.RunTestsWithArgsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
 		*regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string){ovfmachineimageimporttestsuite.TestSuite},
 		"[OVFMachineImageImportTests]")
 
-	if /*!ovfInstanceImportTestSuccess || */ !ovfMachineImageImportTestSuccess {
+	if !ovfInstanceImportTestSuccess || !ovfMachineImageImportTestSuccess {
 		os.Exit(1)
 	}
 }
