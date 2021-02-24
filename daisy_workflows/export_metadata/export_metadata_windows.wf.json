@@ -21,6 +21,10 @@
       "Required": true,
       "Description": "The image that need to export metadata"
     },
+    "distribution": {
+      "Required":true,
+      "Description": "Use image distribution, enterprise_linux, debian, centos"
+    },
     "uefi": {
       "Required":false,
       "Description": "Whether windows is an UEFI image."
@@ -50,6 +54,7 @@
             "image_id": "${image_id}",
             "image_name": "${image_name}",
             "image_family": "${image_family}",
+            "distribution": "${distribution}",
             "prefix": "Export",
             "uefi": "${uefi}"
           },
