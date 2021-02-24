@@ -286,7 +286,7 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 		// paramModifier allows test cases to customize parameters prior to validation.
 		paramModifier func(params *domain.OVFImportParams)
 		// checkResult is called after validation to determine whether the case passed.
-		checkResult func(t *testing.T, params *domain.OVFImportParams)
+		checkResult func(t *testing.T, params *domain.OVFImportParams, importType string)
 	}
 
 	cases := []testCase{
@@ -296,7 +296,7 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 				params.Network = ""
 				params.Subnet = ""
 			},
-			checkResult: func(t *testing.T, params *domain.OVFImportParams) {
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
 				assert.Equal(t, "global/networks/default", params.Network)
 				assert.Equal(t, "", params.Subnet)
 			},
@@ -306,7 +306,7 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 				params.Network = ""
 				params.Subnet = "secure-sub"
 			},
-			checkResult: func(t *testing.T, params *domain.OVFImportParams) {
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
 				assert.Equal(t, "", params.Network)
 				assert.Equal(t, "regions/us-west2/subnetworks/secure-sub", params.Subnet)
 			},
@@ -316,7 +316,7 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 				params.Network = "secure"
 				params.Subnet = "secure-sub"
 			},
-			checkResult: func(t *testing.T, params *domain.OVFImportParams) {
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
 				assert.Equal(t, "global/networks/secure", params.Network)
 				assert.Equal(t, "regions/us-west2/subnetworks/secure-sub", params.Subnet)
 			},
@@ -325,7 +325,7 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 			paramModifier: func(params *domain.OVFImportParams) {
 				params.Zone = ""
 			},
-			checkResult: func(t *testing.T, params *domain.OVFImportParams) {
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
 				assert.Equal(t, defaultZone, params.Zone)
 			},
 		}, {
@@ -334,7 +334,7 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 				empty := ""
 				params.Project = &empty
 			},
-			checkResult: func(t *testing.T, params *domain.OVFImportParams) {
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
 				assert.Equal(t, defaultProject, *params.Project)
 			},
 		}, {
@@ -342,7 +342,7 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 			paramModifier: func(params *domain.OVFImportParams) {
 				params.Region = ""
 			},
-			checkResult: func(t *testing.T, params *domain.OVFImportParams) {
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
 				assert.Equal(t, "us-west2", params.Region)
 			},
 		}, {
@@ -350,7 +350,7 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 			paramModifier: func(params *domain.OVFImportParams) {
 				params.OvfOvaGcsPath = "gs://bucket"
 			},
-			checkResult: func(t *testing.T, params *domain.OVFImportParams) {
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
 				assert.Equal(t, "gs://bucket", params.OvfOvaGcsPath)
 			},
 		}, {
@@ -358,7 +358,7 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 			paramModifier: func(params *domain.OVFImportParams) {
 				params.OvfOvaGcsPath = "gs://bucket/"
 			},
-			checkResult: func(t *testing.T, params *domain.OVFImportParams) {
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
 				assert.Equal(t, "gs://bucket/", params.OvfOvaGcsPath)
 			},
 		}, {
@@ -366,7 +366,7 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 			paramModifier: func(params *domain.OVFImportParams) {
 				params.NodeAffinityLabelsFlag = []string{"env,IN,prod,test"}
 			},
-			checkResult: func(t *testing.T, params *domain.OVFImportParams) {
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
 				assert.Len(t, params.NodeAffinities, 1)
 				assert.Len(t, params.NodeAffinitiesBeta, 1)
 			},
@@ -375,7 +375,7 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 			paramModifier: func(params *domain.OVFImportParams) {
 				params.Labels = "env=test,region=us"
 			},
-			checkResult: func(t *testing.T, params *domain.OVFImportParams) {
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
 				assert.Equal(t, map[string]string{"env": "test", "region": "us"}, params.UserLabels)
 			},
 		}, {
@@ -383,7 +383,7 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 			paramModifier: func(params *domain.OVFImportParams) {
 				params.ReleaseTrack = ""
 			},
-			checkResult: func(t *testing.T, params *domain.OVFImportParams) {
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
 				assert.Equal(t, domain.GA, params.ReleaseTrack)
 			},
 		}, {
@@ -391,7 +391,7 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 			paramModifier: func(params *domain.OVFImportParams) {
 				params.BuildID = ""
 			},
-			checkResult: func(t *testing.T, params *domain.OVFImportParams) {
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
 				assert.NotEmpty(t, params.BuildID)
 			},
 		}, {
@@ -399,7 +399,7 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 			paramModifier: func(params *domain.OVFImportParams) {
 				params.BuildID = "abcd"
 			},
-			checkResult: func(t *testing.T, params *domain.OVFImportParams) {
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
 				assert.Equal(t, "abcd", params.BuildID)
 			},
 		}, {
@@ -411,7 +411,7 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 				}
 				params.BuildID = ""
 			},
-			checkResult: func(t *testing.T, params *domain.OVFImportParams) {
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
 				assert.Equal(t, "xyz", params.BuildID)
 				err := os.Unsetenv("BUILD_ID")
 				if err != nil {
@@ -423,13 +423,39 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 			paramModifier: func(params *domain.OVFImportParams) {
 				params.Timeout = "20h"
 			},
-			checkResult: func(t *testing.T, params *domain.OVFImportParams) {
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
 				now := time.Now()
 				expectedDeadline := now.Add(20 * time.Hour).Unix()
 				actualDeadline := params.Deadline.Unix()
 
 				diff := int(math.Abs(float64(expectedDeadline - actualDeadline)))
 				assert.LessOrEqual(t, diff, 100)
+			},
+		},
+		{
+			name: "import params sanitized",
+			paramModifier: func(params *domain.OVFImportParams) {
+				if params.InstanceNames != "" {
+					params.InstanceNames = " INSTANCE 	"
+				}
+				if params.MachineImageName != "" {
+					params.MachineImageName = " GMI 	"
+				}
+				params.Description = "   desc   	"
+				params.PrivateNetworkIP = "127.0.0.1			 "
+				params.NetworkTier = " PREMIUM "
+				params.ComputeServiceAccount = " ce@project.google.com		"
+			},
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
+				if importType == "instance" {
+					assert.Equal(t, "instance", params.InstanceNames)
+				} else {
+					assert.Equal(t, params.MachineImageName, "gmi")
+				}
+				assert.Equal(t, "desc", params.Description)
+				assert.Equal(t, "127.0.0.1", params.PrivateNetworkIP)
+				assert.Equal(t, "PREMIUM", params.NetworkTier)
+				assert.Equal(t, "ce@project.google.com", params.ComputeServiceAccount)
 			},
 		},
 	}
@@ -445,7 +471,7 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 				}
 				tt.paramModifier(params)
 				assertNoErrorOnValidate(t, params)
-				tt.checkResult(t, params)
+				tt.checkResult(t, params, importType)
 			})
 		}
 	}

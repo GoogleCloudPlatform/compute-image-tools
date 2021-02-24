@@ -130,6 +130,9 @@ func (oi *OVFImporter) buildDaisyVars(bootDiskImageURI string, machineType strin
 	} else {
 		varMap["machine_image_name"] = oi.params.MachineImageName
 	}
+	if oi.params.ComputeServiceAccount != "" {
+		varMap["compute_service_account"] = oi.params.ComputeServiceAccount
+	}
 
 	if oi.params.Subnet != "" {
 		varMap["subnet"] = oi.params.Subnet
@@ -153,6 +156,7 @@ func (oi *OVFImporter) buildDaisyVars(bootDiskImageURI string, machineType strin
 	if oi.params.NetworkTier != "" {
 		varMap["network_tier"] = oi.params.NetworkTier
 	}
+
 	return varMap
 }
 

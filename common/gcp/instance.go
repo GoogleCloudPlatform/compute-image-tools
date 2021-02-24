@@ -183,8 +183,9 @@ func BuildInstanceMetadataItem(key, value string) *api.MetadataItems {
 	}
 }
 
-// CreateInstanceBeta creates an image object to be operated by Beta API client
-func CreateInstanceBeta(ctx context.Context, project string, zone string, name string, isWindows bool, machineImageName string) (*InstanceBeta, error) {
+// CreateInstanceBeta creates a VM instance (not just an object representing an existing VM) using Beta API
+func CreateInstanceBeta(ctx context.Context, project string, zone string, name string,
+	isWindows bool, machineImageName string, computeServiceAccount string) (*InstanceBeta, error) {
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
 		return nil, err
@@ -195,6 +196,12 @@ func CreateInstanceBeta(ctx context.Context, project string, zone string, name s
 		SourceMachineImage: fmt.Sprintf("projects/%s/global/machineImages/%s", project, machineImageName),
 		Name:               name,
 		Zone:               zone,
+		ServiceAccounts: []*apiBeta.ServiceAccount{
+			{
+				Email:  computeServiceAccount,
+				Scopes: []string{"https://www.googleapis.com/auth/devstorage.read_write"},
+			},
+		},
 	}
 	i := &InstanceBeta{apiBetaInstance, client, project, zone, isWindows}
 

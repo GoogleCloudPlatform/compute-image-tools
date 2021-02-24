@@ -75,6 +75,7 @@ type OVFImportParams struct {
 	ScratchBucketGcsPath        string
 	Oauth                       string
 	Ce                          string
+	ComputeServiceAccount       string
 	GcsLogsDisabled             bool
 	CloudLogsDisabled           bool
 	StdoutLogsDisabled          bool
