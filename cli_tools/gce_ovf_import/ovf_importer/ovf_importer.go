@@ -127,11 +127,11 @@ func (oi *OVFImporter) buildDaisyVars(bootDiskImageURI string, machineType strin
 	varMap["boot_disk_image_uri"] = bootDiskImageURI
 	if oi.params.IsInstanceImport() {
 		varMap["instance_name"] = oi.params.InstanceNames
-		if oi.params.ComputeServiceAccount != "" {
-			varMap["compute_service_account"] = oi.params.ComputeServiceAccount
-		}
 	} else {
 		varMap["machine_image_name"] = oi.params.MachineImageName
+	}
+	if oi.params.ComputeServiceAccount != "" {
+		varMap["compute_service_account"] = oi.params.ComputeServiceAccount
 	}
 
 	if oi.params.Subnet != "" {

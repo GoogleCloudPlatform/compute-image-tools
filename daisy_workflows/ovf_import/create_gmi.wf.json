@@ -31,6 +31,10 @@
     "network_tier": {
       "Value": "PREMIUM",
       "Description": "Network tier that will be used to configure the instance"
+    },
+    "compute_service_account": {
+      "Value": "default",
+      "Description": "Service account that will be used by the created instance"
     }
   },
   "Steps": {
@@ -63,7 +67,12 @@
           ],
           "Description": "${description}",
           "ExactName": true,
-          "NoCleanup": true
+          "NoCleanup": true,
+          "ServiceAccounts": [
+            {
+              "Email": "${compute_service_account}"
+            }
+          ]
         }
       ]
     },
