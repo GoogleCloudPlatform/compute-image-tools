@@ -46,16 +46,21 @@ function Export-ImageMetadata {
     [array]::sort($out)
 
     foreach ($package_line in $out) {
-        $name = $package_line.Trim().Split(' ')[0]
-        # Get Package Info for each package
-        $info = & 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed' '-info' $name
-        $version = $info[4].Split(":")[1].Trim()
-        $source = $info[8].Split(":")
-        $source = [String]::Concat($source[1..$source.length])
-        $package_metadata = @{'name' = $name;
-                            'version' = $version;
-                            'commmit_hash' = $source}
-        $image_metadata['packages'] += $package_metadata
+        try {
+            $name = $package_line.Trim().Split(' ')[0]
+            # Get Package Info for each package
+            $info = & 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed' '-info' $name
+            $version = $info[4].Split(":")[1].Trim()
+            $source = $info[8].Split(":")
+            $source = [String]::Concat($source[1..$source.length])
+            $package_metadata = @{'name' = $name;
+                                'version' = $version;
+                                'commmit_hash' = $source}
+            $image_metadata['packages'] += $package_metadata
+        }
+        catch {
+            Write-Host "Failed to retrieve metadata for $package_line, skiping."
+        }
     }
 
     # Save the JSON image_metadata.
