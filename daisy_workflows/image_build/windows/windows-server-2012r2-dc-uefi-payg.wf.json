@@ -1,5 +1,5 @@
 {
-  "Name": "windows-2016-dc-uefi",
+  "Name": "windows-2012-r2-dc-uefi",
   "Vars": {
     "install_disk": "install-disk",
     "media": {
@@ -48,7 +48,7 @@
   },
   "Steps": {
     "windows-build": {
-      "Timeout": "3h",
+      "Timeout": "5h",
       "IncludeWorkflow": {
         "Path": "./windows-build-uefi.wf.json",
         "Vars": {
@@ -58,7 +58,7 @@
           "drivers_bucket": "gs://gce-windows-drivers-public/release/win6.3-signed/",
           "dotnet48": "${dotnet48}",
           "pwsh": "${pwsh}",
-          "edition": "Windows Server 2016 SERVERDATACENTER",
+          "edition": "Windows Server 2012 R2 SERVERDATACENTER",
           "media": "${media}",
           "cloud_sdk": "${cloudsdk}",
           "google_cloud_repo": "${google_cloud_repo}",

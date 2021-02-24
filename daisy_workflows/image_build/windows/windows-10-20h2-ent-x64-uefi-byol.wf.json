@@ -1,5 +1,5 @@
 {
-  "Name": "windows-10-20h2-ent-x64-uefi",
+  "Name": "windows-10-20h2-ent-x64-uefi-byol",
   "Vars": {
     "install_disk": "install-disk",
     "media": {
@@ -30,7 +30,7 @@
       "Description": "Google Cloud repo to retrieve packages from during the build."
     },
     "name": {
-      "Value": "windows-10-20h2-ent-x64-v${TIMESTAMP}",
+      "Value": "windows-10-20h2-ent-x64-byol-v${TIMESTAMP}",
       "Description": "The name of the output image."
     },
     "project": {

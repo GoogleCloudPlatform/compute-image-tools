@@ -1,5 +1,5 @@
 {
-  "Name": "windows-2016-dc-uefi",
+  "Name": "windows-2016-dc-uefi-byol",
   "Vars": {
     "install_disk": "install-disk",
     "media": {
@@ -30,7 +30,7 @@
       "Description": "Google Cloud repo to retrieve packages from during the build."
     },
     "name": {
-      "Value": "windows-server-2016-dc-v${TIMESTAMP}",
+      "Value": "windows-server-2016-dc-byol-v${TIMESTAMP}",
       "Description": "The name of the output image."
     },
     "project": {
