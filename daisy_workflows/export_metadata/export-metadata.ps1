@@ -1,17 +1,4 @@
 function Get-MetadataValue {
-    <#
-    .SYNOPSIS
-      Returns a value for a given metadata key.
-
-    .PARAMETER $key
-      The metadata key to retrieve.
-
-    .PARAMETER $default
-      The value to return if the key is not found.
-
-    .RETURNS
-      The value for the key or null.
-  #>
     param (
         [parameter(Mandatory=$true)]
         [string]$key,
@@ -21,20 +8,26 @@ function Get-MetadataValue {
 
     # Returns the provided metadata value for a given key.
     $url = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/$key"
-    try {
-        $client = New-Object Net.WebClient
-        $client.Headers.Add('Metadata-Flavor', 'Google')
-        return ($client.DownloadString($url)).Trim()
-    }
-    catch [System.Net.WebException] {
-        if ($default) {
-            return $default
+    $max_attemps = 30
+    for ($i=0; $i -le $max_attemps; $i++) {
+        try {
+            $client = New-Object Net.WebClient
+            $client.Headers.Add('Metadata-Flavor', 'Google')
+            $value = ($client.DownloadString($url)).Trim()
+            Write-Host "Retrieved metadata for key $key with value $value."
+            return $value
         }
-        else {
-            Write-Host "Failed to retrieve value for $key."
-            return $null
+        catch [System.Net.WebException] {
+            if ($default) {
+                Write-Host "Failed to retrieve metadata for $key, returning default $default."
+                return $default
+            }
+            # Sleep after each failure with no default value to give the network adapters time to become functional.
+            Start-Sleep -s 1
         }
     }
+    Write-Host "Failed $max_attemps times to retrieve value from metadata for $key, returning null."
+    return $null
 }
 
 function Export-ImageMetadata {
@@ -77,6 +70,7 @@ try {
     $image_name = Get-MetadataValue -key 'image_name'
     $image_family = Get-MetadataValue -key 'image_family'
     Export-ImageMetadata
+    Write-Host 'Endding export windows package metadata'
 }
 catch {
     Write-Host 'Exception caught in script:'
