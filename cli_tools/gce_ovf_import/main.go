@@ -63,6 +63,7 @@ var (
 	scratchBucketGcsPath        = flag.String("scratch-bucket-gcs-path", "", "GCS scratch bucket to use, overrides what is set in workflow")
 	oauth                       = flag.String("oauth", "", "path to oauth json file, overrides what is set in workflow")
 	ce                          = flag.String("compute-endpoint-override", "", "API endpoint to override default")
+	computeServiceAccount       = flag.String("compute-service-account", "", "Compute service account to be used by importer Virtual Machine and the resulting VM or Machine Image. When empty, the Compute Engine default service account is used.")
 	gcsLogsDisabled             = flag.Bool("disable-gcs-logging", false, "do not stream logs to GCS")
 	cloudLogsDisabled           = flag.Bool("disable-cloud-logging", false, "do not stream logs to Cloud Logging")
 	stdoutLogsDisabled          = flag.Bool("disable-stdout-logging", false, "do not display individual workflow logs on stdout")
@@ -99,7 +100,8 @@ func buildOVFImportParams() *domain.OVFImportParams {
 		ShieldedVtpm: *shieldedVtpm, Tags: *tags, Zone: *zoneFlag, BootDiskKmskey: *bootDiskKmskey,
 		BootDiskKmsKeyring: *bootDiskKmsKeyring, BootDiskKmsLocation: *bootDiskKmsLocation,
 		BootDiskKmsProject: *bootDiskKmsProject, Timeout: *timeout, Project: project,
-		ScratchBucketGcsPath: *scratchBucketGcsPath, Oauth: *oauth, Ce: *ce,
+		ScratchBucketGcsPath: *scratchBucketGcsPath, Oauth: *oauth,
+		Ce: *ce, ComputeServiceAccount: *computeServiceAccount,
 		GcsLogsDisabled: *gcsLogsDisabled, CloudLogsDisabled: *cloudLogsDisabled,
 		StdoutLogsDisabled: *stdoutLogsDisabled, NodeAffinityLabelsFlag: nodeAffinityLabelsFlag,
 		CurrentExecutablePath: currentExecutablePath, ReleaseTrack: *releaseTrack,

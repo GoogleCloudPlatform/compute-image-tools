@@ -21,20 +21,19 @@ import (
 	"regexp"
 	"sync"
 
+	ovfinstanceimporttestsuite "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e/gce_ovf_import/test_suites/ovf_instance_import"
+	ovfmachineimageimporttestsuite "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e/gce_ovf_import/test_suites/ovf_machine_image_import"
 	e2etestutils "github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
-
-	ovfinstanceimporttestsuite "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e/gce_ovf_import/test_suites/ovf_instance_import"
-	ovfmachineimageimporttestsuite "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e/gce_ovf_import/test_suites/ovf_machine_image_import"
 )
 
 func main() {
-	ovfInstanceImportTestSuccess := e2etestutils.RunTestsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
-		*regexp.Regexp, *regexp.Regexp, *testconfig.Project){ovfinstanceimporttestsuite.TestSuite},
+	ovfInstanceImportTestSuccess := e2etestutils.RunTestsWithArgsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
+		*regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string){ovfinstanceimporttestsuite.TestSuite},
 		"[OVFInstanceImportTests]")
-	ovfMachineImageImportTestSuccess := e2etestutils.RunTestsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
-		*regexp.Regexp, *regexp.Regexp, *testconfig.Project){ovfmachineimageimporttestsuite.TestSuite},
+	ovfMachineImageImportTestSuccess := e2etestutils.RunTestsWithArgsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
+		*regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string){ovfmachineimageimporttestsuite.TestSuite},
 		"[OVFMachineImageImportTests]")
 
 	if !ovfInstanceImportTestSuccess || !ovfMachineImageImportTestSuccess {
