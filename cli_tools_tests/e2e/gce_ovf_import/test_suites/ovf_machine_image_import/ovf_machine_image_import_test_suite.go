@@ -343,9 +343,9 @@ func buildTestArgs(props *ovfMachineImageImportTestProperties, testProjectConfig
 	gcloudBetaArgs := []string{
 		"beta", "compute", "machine-images", "import", props.machineImageName, "--quiet",
 		"--docker-image-tag=latest",
-		fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+		fmt.Sprintf("--project=%v", project),
 		fmt.Sprintf("--source-uri=%v", props.sourceURI),
-		fmt.Sprintf("--zone=%v", project),
+		fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
 	}
 	gcloudArgs := []string{
 		"compute", "machine-images", "import", props.machineImageName, "--quiet",
