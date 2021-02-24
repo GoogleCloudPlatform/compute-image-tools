@@ -100,6 +100,7 @@ func (p *ParamValidatorAndPopulator) ValidateAndPopulate(params *ovfdomain.OVFIm
 	params.Description = strings.TrimSpace(params.Description)
 	params.PrivateNetworkIP = strings.TrimSpace(params.PrivateNetworkIP)
 	params.NetworkTier = strings.TrimSpace(params.NetworkTier)
+	params.ComputeServiceAccount = strings.TrimSpace(params.ComputeServiceAccount)
 
 	if params.InstanceNames == "" && params.MachineImageName == "" {
 		return daisy.Errf("Either the flag -%v or -%v must be provided", InstanceNameFlagKey, MachineImageNameFlagKey)
