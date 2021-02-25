@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -261,6 +262,18 @@ func Test_ValidateAndParseParams_ErrorMessages(t *testing.T) {
 				params.ReleaseTrack = "garbage"
 			},
 			expectErrorToContain: "invalid value for release-track flag",
+		}, {
+			name: "validate scopes, first invalid, second valid",
+			paramModifier: func(params *domain.OVFImportParams) {
+				params.InstanceAccessScopesFlag = "garbage," + instanceAccessScopePrefix + "pubsub"
+			},
+			expectErrorToContain: "is invalid because it doesn't start with",
+		}, {
+			name: "validate scopes, one invalid",
+			paramModifier: func(params *domain.OVFImportParams) {
+				params.InstanceAccessScopesFlag = "garbage"
+			},
+			expectErrorToContain: "is invalid because it doesn't start with",
 		},
 	}
 
@@ -456,6 +469,16 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 				assert.Equal(t, "127.0.0.1", params.PrivateNetworkIP)
 				assert.Equal(t, "PREMIUM", params.NetworkTier)
 				assert.Equal(t, "ce@project.google.com", params.ComputeServiceAccount)
+			},
+		}, {
+			name: "instance access scopes parsed",
+			paramModifier: func(params *domain.OVFImportParams) {
+				params.InstanceAccessScopesFlag = " https://www.googleapis.com/auth/compute,https://www.googleapis.com/auth/datastore		"
+			},
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
+				assert.True(t, reflect.DeepEqual(
+					[]string{"https://www.googleapis.com/auth/compute", "https://www.googleapis.com/auth/datastore"},
+					params.InstanceAccessScopes))
 			},
 		},
 	}

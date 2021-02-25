@@ -133,7 +133,6 @@ func (oi *OVFImporter) buildDaisyVars(bootDiskImageURI string, machineType strin
 	if oi.params.ComputeServiceAccount != "" {
 		varMap["compute_service_account"] = oi.params.ComputeServiceAccount
 	}
-
 	if oi.params.Subnet != "" {
 		varMap["subnet"] = oi.params.Subnet
 		// When subnet is set, we need to grant a value to network to avoid fallback to default
@@ -184,6 +183,14 @@ func (oi *OVFImporter) updateImportedInstance(w *daisy.Workflow) {
 	if oi.params.Hostname != "" {
 		instance.Hostname = oi.params.Hostname
 		instanceBeta.Hostname = oi.params.Hostname
+	}
+	if len(oi.params.InstanceAccessScopes) > 0 {
+		for _, serviceAccount := range instance.ServiceAccounts {
+			serviceAccount.Scopes = oi.params.InstanceAccessScopes
+		}
+		for _, serviceAccount := range instanceBeta.ServiceAccounts {
+			serviceAccount.Scopes = oi.params.InstanceAccessScopes
+		}
 	}
 }
 
