@@ -36,7 +36,7 @@ import utils
 
 utils.AptGetInstall(
     ['python-pip', 'python-termcolor', 'python-fysom', 'python-jsonschema',
-     'python-yaml', 'python-docopt'])
+     'python-yaml', 'python3-yaml', 'python-docopt', 'python-requests'])
 utils.PipInstall(
     ['json_minify'])
 
