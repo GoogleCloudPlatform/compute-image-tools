@@ -50,9 +50,15 @@ function Export-ImageMetadata {
             $name = $package_line.Trim().Split(' ')[0]
             # Get Package Info for each package
             $info = & 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed' '-info' $name
-            $version = $info[4].Split(":")[1].Trim()
-            $source = $info[8].Split(":")
-            $source = [String]::Concat($source[1..$source.length])
+            foreach ($line in $info) {
+                if ($line -match "Version") {
+                    $version = $line.Split(":")[1].Trim()
+                }
+                if ($line -match "Source") {
+                    $source = $line.Split(":")
+                    $source = [String]::Concat($source[1..$source.length]).Trim()
+                }
+            }
             $package_metadata = @{'name' = $name;
                                 'version' = $version;
                                 'commmit_hash' = $source}
@@ -69,13 +75,13 @@ function Export-ImageMetadata {
 }
 
 try {
-    Write-Host 'Beginning export windows package metadata'
+    Write-Host 'Beginning export windows image metadata'
     $metadata_dest = Get-MetadataValue -key 'metadata_dest'
     $image_id = Get-MetadataValue -key 'image_id'
     $image_name = Get-MetadataValue -key 'image_name'
     $image_family = Get-MetadataValue -key 'image_family'
     Export-ImageMetadata
-    Write-Host 'Endding export windows package metadata'
+    Write-Host 'Finished export windows image metadata'
 }
 catch {
     Write-Host 'Exception caught in script:'
