@@ -155,26 +155,29 @@ var basicCases = []*testCase{
 	},
 
 	// SLES: BYOL
+	// Uses a mixture of tactics for specifying BYOL, all of which should be successful.
 	{
 		caseName:             "sles-12-5-byol",
 		source:               "projects/compute-image-tools-test/global/images/sles-12-5-registered",
 		expectLicense:        "https://www.googleapis.com/compute/v1/projects/suse-byos-cloud/global/licenses/sles-12-byos",
-		extraArgs:            []string{"-byol"},
+		extraArgs:            []string{"-byol"}, // -byol with OS detection
 		osConfigNotSupported: true,
 	}, {
 		caseName:             "sles-sap-12-5-byol",
 		source:               "projects/compute-image-tools-test/global/images/sles-sap-12-5-registered",
 		os:                   "sles-sap-12-byol",
+		extraArgs:            []string{"-byol"}, // -byol specified when not required
 		osConfigNotSupported: true,
 	}, {
 		caseName:             "sles-15-2-byol",
 		source:               "projects/compute-image-tools-test/global/images/sles-15-2-registered",
-		os:                   "sles-15-byol",
+		os:                   "sles-15",
+		extraArgs:            []string{"-byol"}, // -byol transforms sles-15 to sles-15-byol
 		osConfigNotSupported: true,
 	}, {
 		caseName:             "sles-sap-15-2-byol",
 		source:               "projects/compute-image-tools-test/global/images/sles-sap-15-2-registered",
-		os:                   "sles-sap-15-byol",
+		os:                   "sles-sap-15-byol", // No -byol flag
 		osConfigNotSupported: true,
 	},
 

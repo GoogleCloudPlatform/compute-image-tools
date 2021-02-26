@@ -37,18 +37,12 @@ func (r *requestBuilder) buildRequests(params *ovfdomain.OVFImportParams, fileUR
 			return nil, err
 		}
 		imageName := fmt.Sprintf("ovf-%s-%d", params.BuildID, i+1)
-		var os string
-		bootable := i == 0
-		if bootable {
-			os = params.OsID
-		}
-		requests = append(requests, importer.ImageImportRequest{
+		request := importer.ImageImportRequest{
 			ExecutionID:           imageName,
 			CloudLogsDisabled:     params.CloudLogsDisabled,
 			ComputeEndpoint:       params.Ce,
 			ComputeServiceAccount: params.ComputeServiceAccount,
 			WorkflowDir:           r.workflowDir,
-			DataDisk:              !bootable,
 			DaisyLogLinePrefix:    fmt.Sprintf("disk-%d", i+1),
 			GcsLogsDisabled:       params.GcsLogsDisabled,
 			ImageName:             imageName,
@@ -56,7 +50,6 @@ func (r *requestBuilder) buildRequests(params *ovfdomain.OVFImportParams, fileUR
 			NoExternalIP:          params.NoExternalIP,
 			NoGuestEnvironment:    params.NoGuestEnvironment,
 			Oauth:                 params.Oauth,
-			OS:                    os,
 			Project:               *params.Project,
 			ScratchBucketGcsPath:  path.JoinURL(params.ScratchBucketGcsPath, imageName),
 			Source:                source,
@@ -65,7 +58,14 @@ func (r *requestBuilder) buildRequests(params *ovfdomain.OVFImportParams, fileUR
 			Timeout:               params.Deadline.Sub(time.Now()),
 			UefiCompatible:        params.UefiCompatible,
 			Zone:                  params.Zone,
-		})
+		}
+		bootable := i == 0
+		if bootable {
+			request.OS, request.BYOL = importer.MergeBYOLIntoOSID(params.OsID, params.BYOL)
+		} else {
+			request.DataDisk = true
+		}
+		requests = append(requests, request)
 	}
 	return requests, nil
 }

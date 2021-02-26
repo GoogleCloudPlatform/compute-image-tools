@@ -49,6 +49,7 @@ var (
 	noExternalIP                = flag.Bool("no-external-ip", false, "Specifies that VPC into which instances is being imported doesn't allow external IPs.")
 	noRestartOnFailure          = flag.Bool("no-restart-on-failure", false, "the instance will not be restarted if it’s terminated by Compute Engine. This does not affect terminations performed by the user.")
 	osID                        = flag.String("os", "", "Specifies the OS of the image being imported. OS must be one of: "+strings.Join(daisy.GetSortedOSIDs(), ", ")+".")
+	byol                        = flag.Bool("byol", false, "Import using an existing license. These are equivalent: `-os=rhel-8 -byol`, `-os=rhel-8-byol -byol`, and `-os=rhel-8-byol`")
 	shieldedIntegrityMonitoring = flag.Bool("shielded-integrity-monitoring", false, "Enables monitoring and attestation of the boot integrity of the instance. The attestation is performed against the integrity policy baseline. This baseline is initially derived from the implicitly trusted boot image when the instance is created. This baseline can be updated by using --shielded-vm-learn-integrity-policy.")
 	shieldedSecureBoot          = flag.Bool("shielded-secure-boot", false, "The instance will boot with secure boot enabled.")
 	shieldedVtpm                = flag.Bool("shielded-vtpm", false, "The instance will boot with the TPM (Trusted Platform Module) enabled. A TPM is a hardware module that can be used for different security operations such as remote attestation, encryption and sealing of keys.")
@@ -95,7 +96,7 @@ func buildOVFImportParams() *domain.OVFImportParams {
 		CanIPForward: *canIPForward, DeletionProtection: *deletionProtection, Description: *description,
 		Labels: *labels, MachineType: *machineType, Network: *network, NetworkTier: *networkTier,
 		Subnet: *subnet, PrivateNetworkIP: *privateNetworkIP, NoExternalIP: *noExternalIP,
-		NoRestartOnFailure: *noRestartOnFailure, OsID: *osID,
+		NoRestartOnFailure: *noRestartOnFailure, OsID: *osID, BYOL: *byol,
 		ShieldedIntegrityMonitoring: *shieldedIntegrityMonitoring, ShieldedSecureBoot: *shieldedSecureBoot,
 		ShieldedVtpm: *shieldedVtpm, Tags: *tags, Zone: *zoneFlag, BootDiskKmskey: *bootDiskKmskey,
 		BootDiskKmsKeyring: *bootDiskKmsKeyring, BootDiskKmsLocation: *bootDiskKmsLocation,
