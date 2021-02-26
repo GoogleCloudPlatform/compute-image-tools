@@ -26,47 +26,45 @@ import (
 )
 
 func Test_FixBYOLAndOSFlags(t *testing.T) {
-	type test struct {
+	for _, tt := range []struct {
 		originalOSID, expectedOSID string
 		originalBYOL, expectedBYOL bool
-	}
-	for _, tc := range []test{
-		{
-			originalOSID: "rhel-8",
-			originalBYOL: true,
-			expectedOSID: "rhel-8-byol",
-			expectedBYOL: false,
-		}, {
-			originalOSID: "rhel-8-byol",
-			originalBYOL: true,
-			expectedOSID: "rhel-8-byol",
-			expectedBYOL: false,
-		}, {
-			originalOSID: "rhel-8",
-			originalBYOL: false,
-			expectedOSID: "rhel-8",
-			expectedBYOL: false,
-		}, {
-			originalOSID: "rhel-8-byol",
-			originalBYOL: false,
-			expectedOSID: "rhel-8-byol",
-			expectedBYOL: false,
-		}, {
-			originalOSID: "",
-			originalBYOL: true,
-			expectedOSID: "",
-			expectedBYOL: true,
-		}, {
-			originalOSID: "",
-			originalBYOL: false,
-			expectedOSID: "",
-			expectedBYOL: false,
-		},
+	}{{
+		originalOSID: "rhel-8",
+		originalBYOL: true,
+		expectedOSID: "rhel-8-byol",
+		expectedBYOL: false,
+	}, {
+		originalOSID: "rhel-8-byol",
+		originalBYOL: true,
+		expectedOSID: "rhel-8-byol",
+		expectedBYOL: false,
+	}, {
+		originalOSID: "rhel-8",
+		originalBYOL: false,
+		expectedOSID: "rhel-8",
+		expectedBYOL: false,
+	}, {
+		originalOSID: "rhel-8-byol",
+		originalBYOL: false,
+		expectedOSID: "rhel-8-byol",
+		expectedBYOL: false,
+	}, {
+		originalOSID: "",
+		originalBYOL: true,
+		expectedOSID: "",
+		expectedBYOL: true,
+	}, {
+		originalOSID: "",
+		originalBYOL: false,
+		expectedOSID: "",
+		expectedBYOL: false,
+	},
 	} {
-		t.Run(fmt.Sprintf("%+v", tc), func(t *testing.T) {
-			actualOSID, actualBYOL := FixBYOLAndOSFlags(tc.originalOSID, tc.originalBYOL)
-			assert.Equal(t, tc.expectedOSID, actualOSID)
-			assert.Equal(t, tc.expectedBYOL, actualBYOL)
+		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
+			FixBYOLAndOSArguments(&tt.originalOSID, &tt.originalBYOL)
+			assert.Equal(t, tt.expectedOSID, tt.originalOSID)
+			assert.Equal(t, tt.expectedBYOL, tt.originalBYOL)
 		})
 	}
 }

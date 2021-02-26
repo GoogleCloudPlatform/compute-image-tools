@@ -105,25 +105,20 @@ type ImageImportRequest struct {
 	Zone                  string `name:"zone" validate:"required"`
 }
 
-// FixBYOLAndOSFlags fixes the user's --os and --byol flags to follow the invariants from ImageImportRequest's
-// validation where --byol may only be specified when --os is empty (implying that detection is being used).
+// FixBYOLAndOSArguments fixes the user's arguments for the --os and --byol flags
+// to follow the invariants from ImageImportRequest's validation where --byol
+// may only be specified when --os is empty (implying that detection is being used).
 //
-// For example, given `--byol --os=rhel-8`, this will return `--os=rhel-8-byol`.
-func FixBYOLAndOSFlags(osID string, byol bool) (fixedOSID string, fixedBYOL bool) {
-	if osID == "" {
-		// User wants OS detection, so keep the `--byol` flag unchanged.
-		return "", byol
+// For example, `--byol --os=rhel-8` will be changed to `--os=rhel-8-byol`.
+func FixBYOLAndOSArguments(osIDArgument *string, byolArgument *bool) {
+	if *byolArgument && *osIDArgument != "" {
+		// User wants OS override. Clear `-byol`, and ensure `--os` has the
+		// suffix "-byol" if that's what the user intended.
+		*byolArgument = false
+		if !strings.HasSuffix(*osIDArgument, "byol") {
+			*osIDArgument += "-byol"
+		}
 	}
-
-	// User wants OS override. If they set --byol, clear it, and
-	// update osID to include the `-byol` suffix.
-	fixedBYOL = false
-	fixedOSID = osID
-	if byol && !strings.HasSuffix(osID, "byol") {
-		fixedOSID += "-byol"
-	}
-
-	return fixedOSID, false
 }
 
 // EnvironmentSettings returns the subset of EnvironmentSettings that are required to instantiate

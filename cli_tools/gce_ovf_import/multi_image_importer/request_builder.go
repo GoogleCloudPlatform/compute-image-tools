@@ -61,7 +61,9 @@ func (r *requestBuilder) buildRequests(params *ovfdomain.OVFImportParams, fileUR
 		}
 		bootable := i == 0
 		if bootable {
-			request.OS, request.BYOL = importer.FixBYOLAndOSFlags(params.OsID, params.BYOL)
+			request.OS = params.OsID
+			request.BYOL = params.BYOL
+			importer.FixBYOLAndOSArguments(&request.OS, &request.BYOL)
 		} else {
 			request.DataDisk = true
 		}
