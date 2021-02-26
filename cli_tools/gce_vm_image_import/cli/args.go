@@ -70,7 +70,7 @@ func (args *imageImportArgs) populateAndValidate(populator param.Populator,
 		return fmt.Errorf("%s has to be specified", importer.ClientFlag)
 	}
 
-	args.OS, args.BYOL = importer.MergeBYOLIntoOSID(args.OS, args.BYOL)
+	args.OS, args.BYOL = importer.FixBYOLAndOSFlags(args.OS, args.BYOL)
 
 	args.Source, err = sourceFactory.Init(args.SourceFile, args.SourceImage)
 	if err != nil {

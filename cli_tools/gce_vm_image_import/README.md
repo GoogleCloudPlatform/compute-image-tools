@@ -77,8 +77,8 @@ Exactly one of these must be specified:
   see the list of currently-supported operating systems.
 + `-byol` Import using an [existing license](https://cloud.google.com/compute/docs/nodes/bringing-your-own-licenses).
   These are functionally equivalent:
-  * `-os=rhel-8 -byol`
-  * `-os=rhel-8-byol -byol`
+  * `-byol -os=rhel-8`
+  * `-byol -os=rhel-8-byol`
   * `-os=rhel-8-byol`
   
 ### Usage

@@ -25,7 +25,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
 
-func Test_MergeBYOLIntoOSID(t *testing.T) {
+func Test_FixBYOLAndOSFlags(t *testing.T) {
 	type test struct {
 		originalOSID, expectedOSID string
 		originalBYOL, expectedBYOL bool
@@ -64,7 +64,7 @@ func Test_MergeBYOLIntoOSID(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("%+v", tc), func(t *testing.T) {
-			actualOSID, actualBYOL := MergeBYOLIntoOSID(tc.originalOSID, tc.originalBYOL)
+			actualOSID, actualBYOL := FixBYOLAndOSFlags(tc.originalOSID, tc.originalBYOL)
 			assert.Equal(t, tc.expectedOSID, actualOSID)
 			assert.Equal(t, tc.expectedBYOL, actualBYOL)
 		})

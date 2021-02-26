@@ -105,19 +105,25 @@ type ImageImportRequest struct {
 	Zone                  string `name:"zone" validate:"required"`
 }
 
-// MergeBYOLIntoOSID interprets the user's --os and --byol flags, and returns a semantically-equivalent
-// tuple. The returned values follow the invariants from ImageImportRequest's validation where --byol may only
-// be specified when --os is empty (implying that detection is being used).
+// FixBYOLAndOSFlags fixes the user's --os and --byol flags to follow the invariants from ImageImportRequest's
+// validation where --byol may only be specified when --os is empty (implying that detection is being used).
 //
 // For example, given `--byol --os=rhel-8`, this will return `--os=rhel-8-byol`.
-func MergeBYOLIntoOSID(osID string, byol bool) (resolvedOSID string, resolvedBYOL bool) {
-	if osID == "" || !byol {
-		return osID, byol
+func FixBYOLAndOSFlags(osID string, byol bool) (fixedOSID string, fixedBYOL bool) {
+	if osID == "" {
+		// User wants OS detection, so keep the `--byol` flag unchanged.
+		return "", byol
 	}
-	if strings.HasSuffix(osID, "byol") {
-		return osID, false
+
+	// User wants OS override. If they set --byol, clear it, and
+	// update osID to include the `-byol` suffix.
+	fixedBYOL = false
+	fixedOSID = osID
+	if byol && !strings.HasSuffix(osID, "byol") {
+		fixedOSID += "-byol"
 	}
-	return osID + "-byol", false
+
+	return fixedOSID, false
 }
 
 // EnvironmentSettings returns the subset of EnvironmentSettings that are required to instantiate

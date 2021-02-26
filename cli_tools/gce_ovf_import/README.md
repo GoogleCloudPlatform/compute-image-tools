@@ -63,8 +63,8 @@ Exactly one of these must be specified:
 + `-os=OS` Specifies the OS of the image being imported. Execute the tool with `-help` to
   see the list of currently-supported operating systems. When omitted, the tool detects the OS.
 + `-byol` Import using an [existing license](https://cloud.google.com/compute/docs/nodes/bringing-your-own-licenses). These are equivalent:
-  * `-os=rhel-8 -byol`
-  * `-os=rhel-8-byol -byol`
+  * `-byol -os=rhel-8`
+  * `-byol -os=rhel-8-byol`
   * `-os=rhel-8-byol`
 + `-shielded-integrity-monitoring` Enables monitoring and attestation of the boot integrity of the
   instance. The attestation is performed against the integrity policy baseline. This baseline is
