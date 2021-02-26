@@ -53,6 +53,9 @@ const (
 
 	// HostnameFlagKey is key for hostname CLI flag
 	HostnameFlagKey = "hostname"
+
+	// Prefix for valid instance access config scopes
+	instanceAccessScopePrefix = "https://www.googleapis.com/auth/"
 )
 
 // ParamValidatorAndPopulator validates parameters and infers missing values.
@@ -101,6 +104,17 @@ func (p *ParamValidatorAndPopulator) ValidateAndPopulate(params *ovfdomain.OVFIm
 	params.PrivateNetworkIP = strings.TrimSpace(params.PrivateNetworkIP)
 	params.NetworkTier = strings.TrimSpace(params.NetworkTier)
 	params.ComputeServiceAccount = strings.TrimSpace(params.ComputeServiceAccount)
+	params.InstanceAccessScopesFlag = strings.TrimSpace(params.InstanceAccessScopesFlag)
+	if params.InstanceAccessScopesFlag != "" {
+		params.InstanceAccessScopes = strings.Split(params.InstanceAccessScopesFlag, ",")
+		for _, scope := range params.InstanceAccessScopes {
+			if !strings.HasPrefix(scope, instanceAccessScopePrefix) {
+				return daisy.Errf("Scope `%v` is invalid because it doesn't start with `%v`", scope, instanceAccessScopePrefix)
+			}
+		}
+	} else {
+		params.InstanceAccessScopes = GetDefaultInstanceAccessScopes()
+	}
 
 	if params.InstanceNames == "" && params.MachineImageName == "" {
 		return daisy.Errf("Either the flag -%v or -%v must be provided", InstanceNameFlagKey, MachineImageNameFlagKey)

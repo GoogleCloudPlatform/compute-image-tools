@@ -22,11 +22,14 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 
+	ovfimporter "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/common/gcp"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
@@ -74,6 +77,7 @@ type ovfMachineImageImportTestProperties struct {
 	instanceMetadata          map[string]string
 	project                   string
 	computeServiceAccount     string
+	instanceAccessScopes      string
 }
 
 // TestSuite is image import test suite.
@@ -122,10 +126,13 @@ func TestSuite(
 		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Machine image import without default service account failed"))
 	machineImageImportDefaultServiceAccountWithMissingPermissionsFailTestCase := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Machine image import without permission on default service account failed"))
+	machineImageImportDefaultServiceAccountAccessScopeTestCase := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Machine image import with default service account access scopes set"))
 	testsMap[e2e.Wrapper][machineImageImportDisabledDefaultServiceAccountSuccessTestCase] = runMachineImageImportDisabledDefaultServiceAccountSuccessTest
 	testsMap[e2e.Wrapper][machineImageImportDefaultServiceAccountWithMissingPermissionsSuccessTestCase] = runMachineImageImportOSDefaultServiceAccountWithMissingPermissionsSuccessTest
 	testsMap[e2e.Wrapper][machineImageImportDisabledDefaultServiceAccountFailTestCase] = runMachineImageImportWithDisabledDefaultServiceAccountFailTest
 	testsMap[e2e.Wrapper][machineImageImportDefaultServiceAccountWithMissingPermissionsFailTestCase] = runMachineImageImportDefaultServiceAccountWithMissingPermissionsFailTest
+	testsMap[e2e.Wrapper][machineImageImportDefaultServiceAccountAccessScopeTestCase] = runMachineImageImportDefaultServiceAccountAccessScopeTestCaseSuccessTest
 
 	e2e.CLITestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
 		testProjectConfig, testSuiteName, testsMap)
@@ -254,6 +261,7 @@ func runMachineImageImportDisabledDefaultServiceAccountSuccessTest(ctx context.C
 		machineType:           "n1-standard-4",
 		project:               testVariables.ProjectID,
 		computeServiceAccount: testVariables.ComputeServiceAccount,
+		instanceAccessScopes:  "https://www.googleapis.com/auth/compute,https://www.googleapis.com/auth/datastore",
 	}
 	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
@@ -331,6 +339,31 @@ func runMachineImageImportDefaultServiceAccountWithMissingPermissionsFailTest(ct
 	e2e.RunTestCommandAssertErrorMessage(cmds[testType], buildTestArgs(props, testProjectConfig)[testType], "Failed to download GCS path", logger, testCase)
 }
 
+// Ensure custom access scopes are set on the machine image even when default service account is used
+func runMachineImageImportDefaultServiceAccountAccessScopeTestCaseSuccessTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+	testVariables, ok := e2e.GetServiceAccountTestVariables(argMap, false)
+	if !ok {
+		e2e.Failure(testCase, logger, fmt.Sprintln("Failed to get service account test args"))
+		return
+	}
+	suffix := path.RandString(5)
+	props := &ovfMachineImageImportTestProperties{
+		machineImageName: fmt.Sprintf("test-custom-scopes-on-default-cse-%v", suffix),
+		verificationStartupScript: loadScriptContent(
+			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
+		zone:                  testProjectConfig.TestZone,
+		expectedStartupOutput: "All tests passed!",
+		failureMatches:        []string{"FAILED:", "TestFailed:"},
+		sourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+		os:                    "centos-7",
+		machineType:           "n1-standard-4",
+		project:               testVariables.ProjectID,
+		instanceAccessScopes:  "https://www.googleapis.com/auth/compute,https://www.googleapis.com/auth/datastore",
+	}
+	e2e.RunTestCommandAssertErrorMessage(cmds[testType], buildTestArgs(props, testProjectConfig)[testType], "Failed to download GCS path", logger, testCase)
+}
+
 func getProject(props *ovfMachineImageImportTestProperties, testProjectConfig *testconfig.Project) string {
 	if props.project != "" {
 		return props.project
@@ -390,6 +423,11 @@ func buildTestArgs(props *ovfMachineImageImportTestProperties, testProjectConfig
 		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--compute-service-account=%v", props.computeServiceAccount))
 		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-compute-service-account=%v", props.computeServiceAccount))
 	}
+	if props.instanceAccessScopes != "" {
+		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--scopes=%v", props.instanceAccessScopes))
+		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--scopes=%v", props.instanceAccessScopes))
+		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-scopes=%v", props.instanceAccessScopes))
+	}
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper:                       wrapperArgs,
@@ -423,12 +461,9 @@ func verifyImportedMachineImage(
 	logger.Printf("Verifying imported machine image...")
 	testInstanceName := props.machineImageName + "-test-instance"
 	logger.Printf("Creating `%v` test instance.", testInstanceName)
-	computeServiceAccount := "default"
-	if props.computeServiceAccount != "" {
-		computeServiceAccount = props.computeServiceAccount
-	}
+
 	instance, err := gcp.CreateInstanceBeta(
-		ctx, project, props.zone, testInstanceName, props.isWindows, props.machineImageName, computeServiceAccount)
+		ctx, project, props.zone, testInstanceName, props.isWindows, props.machineImageName)
 	if err != nil {
 		e2e.Failure(testCase, logger, fmt.Sprintf("Error when creating test instance `%v` from machine image '%v': %v", testInstanceName, props.machineImageName, err))
 		return
@@ -487,6 +522,38 @@ func verifyImportedMachineImage(
 		e2e.Failure(testCase, logger, fmt.Sprintf("Instance zone `%v` doesn't match requested zone `%v`",
 			instance.Zone, props.zone))
 		return
+	}
+
+	if props.computeServiceAccount != "" {
+		serviceAccountMatch := false
+		var instanceServiceAccountEmails []string
+		for _, instanceServiceAccount := range instance.ServiceAccounts {
+			instanceServiceAccountEmails = append(instanceServiceAccountEmails, instanceServiceAccount.Email)
+			if instanceServiceAccount.Email == props.computeServiceAccount {
+				serviceAccountMatch = true
+			}
+		}
+		if !serviceAccountMatch {
+			e2e.Failure(testCase, logger, fmt.Sprintf("Instance service accounts (`%v`) don't contain custom service account `%v`",
+				strings.Join(instanceServiceAccountEmails, ","), props.computeServiceAccount))
+			return
+		}
+	}
+
+	scopes := ovfimporter.GetDefaultInstanceAccessScopes()
+	if props.instanceAccessScopes != "" {
+		scopes = strings.Split(props.instanceAccessScopes, ",")
+	}
+	sort.Strings(scopes)
+
+	for _, instanceServiceAccount := range instance.ServiceAccounts {
+		sort.Strings(instanceServiceAccount.Scopes)
+		if !reflect.DeepEqual(scopes, instanceServiceAccount.Scopes) {
+			e2e.Failure(testCase, logger, fmt.Sprintf(
+				"Instance access scopes (%v) for service account `%v` don't match expected scopes: `%v`",
+				strings.Join(instanceServiceAccount.Scopes, ","), instanceServiceAccount.Email, strings.Join(scopes, ",")))
+			return
+		}
 	}
 
 	if props.verificationStartupScript == "" {

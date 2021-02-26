@@ -21,16 +21,18 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/common/gcp"
-
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	ovfimporter "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e"
+	"github.com/GoogleCloudPlatform/compute-image-tools/common/gcp"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
@@ -70,6 +72,7 @@ type ovfInstanceImportTestProperties struct {
 	subnet                    string
 	project                   string
 	computeServiceAccount     string
+	instanceAccessScopes      string
 	instanceMetadata          map[string]string
 }
 
@@ -134,11 +137,14 @@ func TestSuite(
 	instanceImportDisabledDefaultServiceAccountFailTestCase := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Instance import without default service account failed"))
 	instanceImportDefaultServiceAccountWithMissingPermissionsFailTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Instance mport without permission on default service account failed"))
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Instance import without permission on default service account failed"))
+	instanceImportDefaultServiceAccountAccessScopeTestCase := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Instance import with default service account access scopes set"))
 	testsMap[e2e.Wrapper][instanceImportDisabledDefaultServiceAccountSuccessTestCase] = runInstanceImportDisabledDefaultServiceAccountSuccessTest
 	testsMap[e2e.Wrapper][instanceImportDefaultServiceAccountWithMissingPermissionsSuccessTestCase] = runInstanceImportDefaultServiceAccountWithMissingPermissionsSuccessTest
 	testsMap[e2e.Wrapper][instanceImportDisabledDefaultServiceAccountFailTestCase] = runInstanceImportWithDisabledDefaultServiceAccountFailTest
 	testsMap[e2e.Wrapper][instanceImportDefaultServiceAccountWithMissingPermissionsFailTestCase] = runInstanceImportDefaultServiceAccountWithMissingPermissionsFailTest
+	testsMap[e2e.Wrapper][instanceImportDefaultServiceAccountAccessScopeTestCase] = runInstanceImportDefaultServiceAccountAccessScopeTestCaseSuccessTest
 
 	e2e.CLITestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
 		testProjectConfig, testSuiteName, testsMap)
@@ -357,6 +363,7 @@ func runInstanceImportDisabledDefaultServiceAccountSuccessTest(ctx context.Conte
 		machineType:           "n1-standard-4",
 		project:               testVariables.ProjectID,
 		computeServiceAccount: testVariables.ComputeServiceAccount,
+		instanceAccessScopes:  "https://www.googleapis.com/auth/compute,https://www.googleapis.com/auth/datastore",
 	}
 	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
@@ -434,6 +441,26 @@ func runInstanceImportDefaultServiceAccountWithMissingPermissionsFailTest(ctx co
 	e2e.RunTestCommandAssertErrorMessage(cmds[testType], buildTestArgs(props, testProjectConfig)[testType], "Failed to download GCS path", logger, testCase)
 }
 
+// Ensure custom access scopes are set on the instance even when default service account is used
+func runInstanceImportDefaultServiceAccountAccessScopeTestCaseSuccessTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+	suffix := path.RandString(5)
+	props := &ovfInstanceImportTestProperties{
+		instanceName: fmt.Sprintf("test-scopes-on-default-cse-%v", suffix),
+		verificationStartupScript: loadScriptContent(
+			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
+		zone:                  testProjectConfig.TestZone,
+		expectedStartupOutput: "All tests passed!",
+		failureMatches:        []string{"FAILED:", "TestFailed:"},
+		sourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+		os:                    "centos-7",
+		machineType:           "n1-standard-4",
+		project:               testProjectConfig.TestProjectID,
+		instanceAccessScopes:  "https://www.googleapis.com/auth/compute,https://www.googleapis.com/auth/datastore",
+	}
+	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
+}
+
 func getProject(props *ovfInstanceImportTestProperties, testProjectConfig *testconfig.Project) string {
 	if props.project != "" {
 		return props.project
@@ -489,6 +516,11 @@ func buildTestArgs(props *ovfInstanceImportTestProperties, testProjectConfig *te
 		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--compute-service-account=%v", props.computeServiceAccount))
 		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--compute-service-account=%v", props.computeServiceAccount))
 		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-compute-service-account=%v", props.computeServiceAccount))
+	}
+	if props.instanceAccessScopes != "" {
+		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--scopes=%v", props.instanceAccessScopes))
+		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--scopes=%v", props.instanceAccessScopes))
+		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-scopes=%v", props.instanceAccessScopes))
 	}
 
 	argsMap := map[e2e.CLITestType][]string{
@@ -587,6 +619,24 @@ func verifyImportedInstance(
 		if !serviceAccountMatch {
 			e2e.Failure(testCase, logger, fmt.Sprintf("Instance service accounts (`%v`) don't contain custom service account `%v`",
 				strings.Join(instanceServiceAccountEmails, ","), props.computeServiceAccount))
+			return
+		}
+	}
+
+	// Validate instance access scopes
+	scopes := ovfimporter.GetDefaultInstanceAccessScopes()
+	if props.instanceAccessScopes != "" {
+		scopes = strings.Split(props.instanceAccessScopes, ",")
+	}
+	sort.Strings(scopes)
+
+	var instanceServiceAccountScopes []string
+	for _, instanceServiceAccount := range instance.ServiceAccounts {
+		sort.Strings(instanceServiceAccount.Scopes)
+		if !reflect.DeepEqual(scopes, instanceServiceAccount.Scopes) {
+			e2e.Failure(testCase, logger, fmt.Sprintf(
+				"Instance access scopes (%v) for service account `%v` don't match expected scopes: `%v`",
+				strings.Join(instanceServiceAccountScopes, ","), instanceServiceAccount.Email, strings.Join(scopes, ",")))
 			return
 		}
 	}
