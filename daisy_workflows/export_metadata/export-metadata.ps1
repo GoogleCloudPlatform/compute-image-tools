@@ -32,12 +32,12 @@ function Get-MetadataValue {
 
 function Export-ImageMetadata {
     $image_version = Get-Date -Format "yyyyMMdd"
-    $build_date = Get-Date -Format "o"
+    $publish_date = Get-Date -Format "o"
     $image_metadata = @{'id' = $image_id;
                         'name' = $image_name;
                         'family' = $image_family;
                         'version' = $image_version;
-                        'build_date' = $build_date;
+                        'publish_date' = $publish_date;
                         'packages' = @()}
 
     # Get Googet packages.
