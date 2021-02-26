@@ -112,6 +112,8 @@ func (p *ParamValidatorAndPopulator) ValidateAndPopulate(params *ovfdomain.OVFIm
 				return daisy.Errf("Scope `%v` is invalid because it doesn't start with `%v`", scope, instanceAccessScopePrefix)
 			}
 		}
+	} else {
+		params.InstanceAccessScopes = GetDefaultInstanceAccessScopes()
 	}
 
 	if params.InstanceNames == "" && params.MachineImageName == "" {

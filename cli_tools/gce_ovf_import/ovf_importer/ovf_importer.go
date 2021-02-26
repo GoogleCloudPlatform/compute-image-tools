@@ -55,6 +55,26 @@ const (
 	instanceConstructionTime = 10 * time.Minute
 )
 
+var (
+	//default instance scopes https://cloud.google.com/sdk/gcloud/reference/compute/instances/create#--scopes
+	defaultInstanceAccessScopes = []string{
+		"https://www.googleapis.com/auth/devstorage.read_only",
+		"https://www.googleapis.com/auth/logging.write",
+		"https://www.googleapis.com/auth/monitoring.write",
+		"https://www.googleapis.com/auth/pubsub",
+		"https://www.googleapis.com/auth/service.management.readonly",
+		"https://www.googleapis.com/auth/servicecontrol",
+		"https://www.googleapis.com/auth/trace.append",
+	}
+)
+
+// GetDefaultInstanceAccessScopes returns default VM instance access scopes
+func GetDefaultInstanceAccessScopes() []string {
+	tmp := make([]string, len(defaultInstanceAccessScopes))
+	copy(tmp, defaultInstanceAccessScopes)
+	return tmp
+}
+
 // OVFImporter is responsible for importing OVF into GCE
 type OVFImporter struct {
 	ctx                 context.Context

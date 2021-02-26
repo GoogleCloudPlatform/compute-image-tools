@@ -29,6 +29,7 @@ import (
 	"sync"
 	"time"
 
+	ovfimporter "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/common/gcp"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
@@ -539,19 +540,19 @@ func verifyImportedMachineImage(
 		}
 	}
 
+	scopes := ovfimporter.GetDefaultInstanceAccessScopes()
 	if props.instanceAccessScopes != "" {
-		scopes := strings.Split(props.instanceAccessScopes, ",")
+		scopes = strings.Split(props.instanceAccessScopes, ",")
+	}
+	sort.Strings(scopes)
 
-		var instanceServiceAccountScopes []string
-		for _, instanceServiceAccount := range instance.ServiceAccounts {
-			sort.Strings(scopes)
-			sort.Strings(instanceServiceAccount.Scopes)
-			if !reflect.DeepEqual(scopes, instanceServiceAccount.Scopes) {
-				e2e.Failure(testCase, logger, fmt.Sprintf(
-					"Instance access scopes (%v) for service account `%v` don't match expected scopes: `%v`",
-					strings.Join(instanceServiceAccountScopes, ","), instanceServiceAccount.Email, strings.Join(scopes, ",")))
-				return
-			}
+	for _, instanceServiceAccount := range instance.ServiceAccounts {
+		sort.Strings(instanceServiceAccount.Scopes)
+		if !reflect.DeepEqual(scopes, instanceServiceAccount.Scopes) {
+			e2e.Failure(testCase, logger, fmt.Sprintf(
+				"Instance access scopes (%v) for service account `%v` don't match expected scopes: `%v`",
+				strings.Join(instanceServiceAccount.Scopes, ","), instanceServiceAccount.Email, strings.Join(scopes, ",")))
+			return
 		}
 	}
 

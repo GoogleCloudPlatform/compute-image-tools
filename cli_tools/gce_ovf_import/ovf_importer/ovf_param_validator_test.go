@@ -480,6 +480,11 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 					[]string{"https://www.googleapis.com/auth/compute", "https://www.googleapis.com/auth/datastore"},
 					params.InstanceAccessScopes))
 			},
+		}, {
+			name: "instance access scopes defaults set",
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
+				assert.True(t, reflect.DeepEqual(GetDefaultInstanceAccessScopes(), params.InstanceAccessScopes))
+			},
 		},
 	}
 
@@ -492,7 +497,9 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 				} else {
 					params = getAllMachineImageImportParams()
 				}
-				tt.paramModifier(params)
+				if tt.paramModifier != nil {
+					tt.paramModifier(params)
+				}
 				assertNoErrorOnValidate(t, params)
 				tt.checkResult(t, params, importType)
 			})
