@@ -38,13 +38,13 @@ def main():
 
   utc_time = datetime.datetime.now(datetime.timezone.utc)
   image_version = utc_time.strftime('%Y%m%d')
-  build_date = utc_time.astimezone().isoformat()
+  publish_date = utc_time.astimezone().isoformat()
   image = {
       'id': image_id,
       'name': image_name,
       'family': image_family,
       'version': image_version,
-      'build_date': build_date,
+      'publish_date': publish_date,
       'packages': [],
   }
   # All the guest environment packages maintained by guest-os team.
