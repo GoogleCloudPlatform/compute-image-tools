@@ -105,6 +105,22 @@ type ImageImportRequest struct {
 	Zone                  string `name:"zone" validate:"required"`
 }
 
+// FixBYOLAndOSArguments fixes the user's arguments for the --os and --byol flags
+// to follow the invariants from ImageImportRequest's validation where --byol
+// may only be specified when --os is empty (implying that detection is being used).
+//
+// For example, `--byol --os=rhel-8` will be changed to `--os=rhel-8-byol`.
+func FixBYOLAndOSArguments(osIDArgument *string, byolArgument *bool) {
+	if *byolArgument && *osIDArgument != "" {
+		// User wants OS override. Clear `-byol`, and ensure `--os` has the
+		// suffix "-byol" if that's what the user intended.
+		*byolArgument = false
+		if !strings.HasSuffix(*osIDArgument, "byol") {
+			*osIDArgument += "-byol"
+		}
+	}
+}
+
 // EnvironmentSettings returns the subset of EnvironmentSettings that are required to instantiate
 // a daisy workflow.
 func (args ImageImportRequest) EnvironmentSettings() daisycommon.EnvironmentSettings {

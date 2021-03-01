@@ -70,6 +70,7 @@ func (args *imageImportArgs) populateAndValidate(populator param.Populator,
 		return fmt.Errorf("%s has to be specified", importer.ClientFlag)
 	}
 
+	importer.FixBYOLAndOSArguments(&args.OS, &args.BYOL)
 	args.Source, err = sourceFactory.Init(args.SourceFile, args.SourceImage)
 	if err != nil {
 		return err
@@ -177,7 +178,8 @@ func (args *imageImportArgs) registerFlags(flagSet *flag.FlagSet) {
 		"An existing Compute Engine image from which to import.")
 
 	flagSet.BoolVar(&args.BYOL, importer.BYOLFlag, false,
-		"Specifies that a BYOL license should be applied.")
+		"Import using an existing license. These are equivalent: "+
+			"`-os=rhel-8 -byol`, `-os=rhel-8-byol -byol`, and `-os=rhel-8-byol`")
 
 	flagSet.BoolVar(&args.DataDisk, importer.DataDiskFlag, false,
 		"Specifies that the disk has no bootable OS installed on it. "+

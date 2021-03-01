@@ -15,6 +15,7 @@
 package importer
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -23,6 +24,50 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
+
+func Test_FixBYOLAndOSFlags(t *testing.T) {
+	for _, tt := range []struct {
+		originalOSID, expectedOSID string
+		originalBYOL, expectedBYOL bool
+	}{{
+		originalOSID: "rhel-8",
+		originalBYOL: true,
+		expectedOSID: "rhel-8-byol",
+		expectedBYOL: false,
+	}, {
+		originalOSID: "rhel-8-byol",
+		originalBYOL: true,
+		expectedOSID: "rhel-8-byol",
+		expectedBYOL: false,
+	}, {
+		originalOSID: "rhel-8",
+		originalBYOL: false,
+		expectedOSID: "rhel-8",
+		expectedBYOL: false,
+	}, {
+		originalOSID: "rhel-8-byol",
+		originalBYOL: false,
+		expectedOSID: "rhel-8-byol",
+		expectedBYOL: false,
+	}, {
+		originalOSID: "",
+		originalBYOL: true,
+		expectedOSID: "",
+		expectedBYOL: true,
+	}, {
+		originalOSID: "",
+		originalBYOL: false,
+		expectedOSID: "",
+		expectedBYOL: false,
+	},
+	} {
+		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
+			FixBYOLAndOSArguments(&tt.originalOSID, &tt.originalBYOL)
+			assert.Equal(t, tt.expectedOSID, tt.originalOSID)
+			assert.Equal(t, tt.expectedBYOL, tt.originalBYOL)
+		})
+	}
+}
 
 func Test_validate_RequiresImageName(t *testing.T) {
 	request := makeValidRequest()

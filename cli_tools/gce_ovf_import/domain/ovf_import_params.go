@@ -61,6 +61,7 @@ type OVFImportParams struct {
 	NoExternalIP                bool
 	NoRestartOnFailure          bool
 	OsID                        string
+	BYOL                        bool
 	ShieldedIntegrityMonitoring bool
 	ShieldedSecureBoot          bool
 	ShieldedVtpm                bool

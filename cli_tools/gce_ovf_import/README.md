@@ -61,7 +61,11 @@ Exactly one of these must be specified:
 + `-no-restart-on-failure` the instance will not be restarted if it’s terminated by Compute Engine.
   This does not affect terminations performed by the user.
 + `-os=OS` Specifies the OS of the image being imported. Execute the tool with `-help` to
-  see the list of currently-supported operating systems.
+  see the list of currently-supported operating systems. When omitted, the tool detects the OS.
++ `-byol` Import using an [existing license](https://cloud.google.com/compute/docs/nodes/bringing-your-own-licenses). These are equivalent:
+  * `-byol -os=rhel-8`
+  * `-byol -os=rhel-8-byol`
+  * `-os=rhel-8-byol`
 + `-shielded-integrity-monitoring` Enables monitoring and attestation of the boot integrity of the
   instance. The attestation is performed against the integrity policy baseline. This baseline is
   initially derived from the implicitly trusted boot image when the instance is created. This
@@ -125,7 +129,7 @@ gce_ovf_import -instance-names=INSTANCE_NAME -client-id=CLIENT_ID
 [-network=NETWORK] [-network-interface=[PROPERTY=VALUE,…]]
 [-network-tier=NETWORK_TIER]  [-subnet=SUBNET]
 [-private-network-ip=PRIVATE_NETWORK_IP] [-no-external-ip]
-[-no-restart-on-failure] [-os=OS]
+[-no-restart-on-failure] [-os=OS] [-byol]
 [-shielded-integrity-monitoring] [-shielded-secure-boot] [-shielded-vtpm]
 [-tags=TAG,[TAG,…]] [-zone=ZONE] [-address=ADDRESS    | -no-address]
 [-boot-disk-kms-key=KMS_KEY : -boot-disk-kms-keyring=KMS_KEYRING
@@ -148,7 +152,7 @@ gce_ovf_import -machine-image-name=MACHINE_IMAGE_NAME -client-id=CLIENT_ID
 [-network=NETWORK] [-network-interface=[PROPERTY=VALUE,…]]
 [-network-tier=NETWORK_TIER]  [-subnet=SUBNET]
 [-private-network-ip=PRIVATE_NETWORK_IP] [-no-external-ip]
-[-no-restart-on-failure] [-os=OS]
+[-no-restart-on-failure] [-os=OS] [-byol]
 [-shielded-integrity-monitoring] [-shielded-secure-boot] [-shielded-vtpm]
 [-tags=TAG,[TAG,…]] [-zone=ZONE] [-address=ADDRESS    | -no-address]
 [-boot-disk-kms-key=KMS_KEY : -boot-disk-kms-keyring=KMS_KEYRING
