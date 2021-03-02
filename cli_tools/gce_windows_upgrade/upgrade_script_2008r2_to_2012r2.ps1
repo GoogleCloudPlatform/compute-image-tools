@@ -50,14 +50,16 @@ online disk noerr
         $script:install_media_drive = "$($Drive.DeviceID)"
       }
     }
-    if ($script:install_media_drive){break}
-    Write-Host "Disk not ready yet - waiting"
+    if ($script:install_media_drive) {
+      break
+    }
+    Write-Host "Install media not found, retrying in 5 seconds. Attempt $i of 5."
     Start-Sleep -Seconds 5
   }
 
 
   if (!$script:install_media_drive) {
-    throw "No install media found."
+    throw "No install media found after 5 attempts."
   }
   Write-Host "Detected install media folder drive letter: $script:install_media_drive"
 
