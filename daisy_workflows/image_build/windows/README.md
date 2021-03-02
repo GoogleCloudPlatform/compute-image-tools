@@ -5,6 +5,7 @@ To build Microsoft Windows images for use in Google Compute Engine, the followin
 * Microsoft OS Volume license media in ISO format
 * [PowerShell 7.0 or greater MSI installer](https://github.com/PowerShell/PowerShell#get-powershell)
 * [Microsoft .NET Framework 4.8 offline installer for Windows](https://support.microsoft.com/en-us/help/4503548/microsoft-net-framework-4-8-offline-installer-for-windows)
+* [Google Cloud SDK Installer](https://dl.google.com/dl/cloudsdk/channels/rapid/GoogleCloudSDKInstaller.exe)
 
 The following resources are optional:
 
@@ -47,8 +48,9 @@ any required variable will need to be provided when calling daisy using the -var
 | project | Project to allocate resources from during build [Project docs](https://cloud.google.com/resource-manager/docs/creating-managing-projects) |
 | zone | Zone to use for GCE build instance [Zone docs](https://cloud.google.com/compute/docs/regions-zones/) |
 | media | Absolute path to or GCS resource name of the ISO file |
-| pwsh | Absolute path to or GCS resource name of the PowerShell 7+ installer |
-| dotnet48 | Absolute path to or GCS resource name of the Microsoft .NET Framework 4.8 offline installer |
+| pwsh | Absolute path to or GCS resource name of the [PowerShell 7.0 or greater MSI installer](https://github.com/PowerShell/PowerShell#get-powershell) |
+| dotnet48 | Absolute path to or GCS resource name of the [Microsoft .NET Framework 4.8 offline installer](https://support.microsoft.com/en-us/help/4503548/microsoft-net-framework-4-8-offline-installer-for-windows) |
+| cloudsdk | Absolute path to or GCS resource name of the [Google Cloud SDK Installer](https://dl.google.com/dl/cloudsdk/channels/rapid/GoogleCloudSDKInstaller.exe) |
 | updates | (Optional) Directory or GCS location containing updates to be included in install |
 | product_key | (Optional) Windows product key to use. Volume license media by default include the Generic Volume License Key. |
 
@@ -89,32 +91,40 @@ Here are some example of what each filename means:
 Below are some example of how to call daisy using the provided workflows and required variables.
 
 #### Build a Windows Server 2016 Data Center edition with UEFI Support using local files
-* The windows media will be in the same directory and is named WindowServer2016_DataCenter.ISO.
-* The PowerShell 7+ installer will be in the same directory and is named PowerShell-7.0.3-win-x64.msi.
-* The Microsoft .NET Framework 4.8 offline installer will be in the same directory and is named ndp48-x86-x64-allos-enu.exe.
-* The windows updates for Windows Server 2016 are located in a subfolder called Updates.
+
+Place the following resources in a local folder, for this example we'll use `c:\example-build-resources`
+* The windows media ISO file.
+* [PowerShell 7.0 or greater MSI installer](https://github.com/PowerShell/PowerShell#get-powershell)
+* [Microsoft .NET Framework 4.8 offline installer for Windows](https://support.microsoft.com/en-us/help/4503548/microsoft-net-framework-4-8-offline-installer-for-windows)
+* [Google Cloud SDK Installer](https://dl.google.com/dl/cloudsdk/channels/rapid/GoogleCloudSDKInstaller.exe)
+* (Optional) To slipstream any Windows update, places the .msu files in c:\example-build-resources\2016_updates.
 
 ```shell
 $ daisy -project my_project -zone us-west1-c \
--var:media="WindowServer2016.ISO" \
--var:updates=updates/ \
--var:pwsh=PowerShell-7.0.3-win-x64.msi \
--var:dotnet48=ndp48-x86-x64-allos-enu.exe \
+-var:media="c:\example-build-resources\WindowServer2016.ISO" \
+-var:updates="c:\example-build-resources\2016_updates" \
+-var:pwsh="c:\example-build-resources\PowerShell-7.0.3-win-x64.msi" \
+-var:dotnet48="c:\example-build-resources\ndp48-x86-x64-allos-enu.exe" \
+-var:cloudsdk="c:\example-build-resources\GoogleCloudSDKInstaller.exe" \
 windows-server-2016-dc-uefi.wf.json
 ```
 
 #### Build a Windows Server 2019 Data Center edition with UEFI Support using files in a GCS bucket
-* The windows media is stores in a GCS.
-* The PowerShell 7+ installer is stores in a GCS.
-* The Microsoft .NET Framework 4.8 offline installer is stores in a GCS.
-* The windows updates for Windows Server 2019 are stores in a GCS.
+
+Place the following resources in a GCS bucket, for this example we'll use `gs://example-build-resources`
+* The windows media ISO file.
+* [PowerShell 7.0 or greater MSI installer](https://github.com/PowerShell/PowerShell#get-powershell)
+* [Microsoft .NET Framework 4.8 offline installer for Windows](https://support.microsoft.com/en-us/help/4503548/microsoft-net-framework-4-8-offline-installer-for-windows)
+* [Google Cloud SDK Installer](https://dl.google.com/dl/cloudsdk/channels/rapid/GoogleCloudSDKInstaller.exe)
+* (Optional) To slipstream any Windows update, places the .msu files in gs://example-build-resources/2019_updates.
 
 ```shell
 $ daisy -project my_project -zone us-west1-c \
--var:media="gs://example-build-resources/2019/WindowServer2019.ISO" \
--var:updates="gs://example-build-resources/2019/updates" \
+-var:media="gs://example-build-resources/WindowServer2019.ISO" \
+-var:updates="gs://example-build-resources/2019_updates" \
 -var:pwsh="gs://example-build-resources/PowerShell-7.0.3-win-x64.msi" \
 -var:dotnet48="gs://example-build-resources/ndp48-x86-x64-allos-enu.exe" \
+-var:cloudsdk="gs://example-build-resources/GoogleCloudSDKInstaller.exe" \
 windows-server-2019-dc-uefi.wf.json
 ```
 
