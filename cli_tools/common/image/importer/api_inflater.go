@@ -280,9 +280,11 @@ func (inflater *apiInflater) getCalculateChecksumWorkflow(diskURI string) *daisy
 	env := inflater.request.EnvironmentSettings()
 	env.Timeout = "20m"
 	env.ApplyToWorkflow(w)
+	computeServiceAccount := "default"
 	if inflater.request.ComputeServiceAccount != "" {
-		w.AddVar("compute_service_account", inflater.request.ComputeServiceAccount)
+		computeServiceAccount = inflater.request.ComputeServiceAccount
 	}
+	w.AddVar("compute_service_account", computeServiceAccount)
 	return w
 }
 

@@ -154,8 +154,7 @@ func TestAPIInflater_getCalculateChecksumWorkflow(t *testing.T) {
 	}, nil, &storage.Client{}, logging.NewToolLogger(t.Name()), true)
 
 	w := apiInflater.getCalculateChecksumWorkflow("")
-	_, ok := w.Vars["compute_service_account"]
-	assert.False(t, ok)
+	assert.Equal(t, "default", w.Vars["compute_service_account"].Value)
 
 	apiInflater.request.ComputeServiceAccount = "email"
 	w = apiInflater.getCalculateChecksumWorkflow("")
