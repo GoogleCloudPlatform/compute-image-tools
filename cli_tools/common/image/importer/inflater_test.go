@@ -39,7 +39,7 @@ func TestCreateInflater_File(t *testing.T) {
 		t:                 t,
 		expectedReference: "gs://bucket/vmdk",
 		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{ FileFormat: "vmdk" },
+		metaToReturn:      imagefile.Metadata{FileFormat: "vmdk"},
 	}, nil)
 	assert.NoError(t, err)
 	facade, ok := inflater.(*inflaterFacade)
