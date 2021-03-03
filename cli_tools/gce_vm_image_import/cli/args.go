@@ -26,7 +26,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
 
 // imageImportArgs receives arguments passed by the user and facilitates creating
@@ -71,6 +70,7 @@ func (args *imageImportArgs) populateAndValidate(populator param.Populator,
 		return fmt.Errorf("%s has to be specified", importer.ClientFlag)
 	}
 
+	importer.FixBYOLAndOSArguments(&args.OS, &args.BYOL)
 	args.Source, err = sourceFactory.Init(args.SourceFile, args.SourceImage)
 	if err != nil {
 		return err
@@ -178,7 +178,8 @@ func (args *imageImportArgs) registerFlags(flagSet *flag.FlagSet) {
 		"An existing Compute Engine image from which to import.")
 
 	flagSet.BoolVar(&args.BYOL, importer.BYOLFlag, false,
-		"Specifies that a BYOL license should be applied.")
+		"Import using an existing license. These are equivalent: "+
+			"`-os=rhel-8 -byol`, `-os=rhel-8-byol -byol`, and `-os=rhel-8-byol`")
 
 	flagSet.BoolVar(&args.DataDisk, importer.DataDiskFlag, false,
 		"Specifies that the disk has no bootable OS installed on it. "+
@@ -205,25 +206,4 @@ func (args *imageImportArgs) registerFlags(flagSet *flag.FlagSet) {
 
 	flagSet.BoolVar(&args.SysprepWindows, "sysprep_windows", false,
 		"Generalize image using Windows Sysprep. Only applicable to Windows.")
-}
-
-// EnvironmentSettings creates an EnvironmentSettings instance from the fields
-// in this struct.
-func (args imageImportArgs) EnvironmentSettings() daisycommon.EnvironmentSettings {
-	return daisycommon.EnvironmentSettings{
-		Project:               args.Project,
-		Zone:                  args.Zone,
-		GCSPath:               args.ScratchBucketGcsPath,
-		OAuth:                 args.Oauth,
-		Timeout:               args.Timeout.String(),
-		ComputeEndpoint:       args.ComputeEndpoint,
-		DisableGCSLogs:        args.GcsLogsDisabled,
-		DisableCloudLogs:      args.CloudLogsDisabled,
-		DisableStdoutLogs:     args.StdoutLogsDisabled,
-		NoExternalIP:          args.NoExternalIP,
-		WorkflowDirectory:     args.WorkflowDir,
-		Network:               args.Network,
-		Subnet:                args.Subnet,
-		ComputeServiceAccount: args.ComputeServiceAccount,
-	}
 }

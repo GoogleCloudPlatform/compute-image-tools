@@ -27,7 +27,6 @@ import (
 	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
@@ -281,17 +280,9 @@ func (inflater *apiInflater) getCalculateChecksumWorkflow(diskURI string) *daisy
 	}
 
 	// Calculate checksum within 20min.
-	daisycommon.EnvironmentSettings{
-		Project:           inflater.request.Project,
-		Zone:              inflater.request.Zone,
-		GCSPath:           inflater.request.ScratchBucketGcsPath,
-		OAuth:             inflater.request.Oauth,
-		Timeout:           "20m",
-		ComputeEndpoint:   inflater.request.ComputeEndpoint,
-		DisableGCSLogs:    inflater.request.GcsLogsDisabled,
-		DisableCloudLogs:  inflater.request.CloudLogsDisabled,
-		DisableStdoutLogs: inflater.request.StdoutLogsDisabled,
-	}.ApplyToWorkflow(w)
+	env := inflater.request.EnvironmentSettings()
+	env.Timeout = "20m"
+	env.ApplyToWorkflow(w)
 	if inflater.request.ComputeServiceAccount != "" {
 		w.AddVar("compute_service_account", inflater.request.ComputeServiceAccount)
 	}

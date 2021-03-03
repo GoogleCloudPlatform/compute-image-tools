@@ -81,7 +81,28 @@ func TestBuildRequests_InitsFields(t *testing.T) {
 	assertAllEqual(t, params.Zone, boot.Zone, data.Zone)
 	assertAllEqual(t, *params.Project, boot.Project, data.Project)
 	assertAllEqual(t, builder.workflowDir, boot.WorkflowDir, data.WorkflowDir)
+}
 
+func TestBuildRequests_PropagatesBYOLToBootDisk(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	params := makeDefaultParams()
+	params.BYOL = true
+	params.OsID = ""
+
+	fileURIs := []string{"gs://bucket/disk1.vmdk", "gs://bucket/disk2.vmdk"}
+	requests, actualError := (&requestBuilder{
+		workflowDir:   "/daisy/workflows",
+		sourceFactory: initSourceFactory(ctrl, fileURIs),
+	}).buildRequests(params, fileURIs)
+	assert.NoError(t, actualError)
+	assert.Len(t, requests, len(fileURIs))
+
+	boot := requests[0]
+	data := requests[1]
+
+	assert.True(t, boot.BYOL, "Boot disk should have BYOL flag enabled")
+	assert.False(t, data.BYOL, "Data disk should not have BYOL flag enabled")
 }
 
 func TestBuildRequests_CreatesTimeout_FromDeadline(t *testing.T) {

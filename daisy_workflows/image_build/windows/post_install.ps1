@@ -618,7 +618,7 @@ function Install-PowerShell {
     Write-Host 'Installing PowerShell v7.'
     Start-Process -FilePath msiexec.exe -ArgumentList '/i',"$script:components_path\PowerShell.msi",'/quiet','REGISTER_MANIFEST=1' -Wait
     Write-Host 'PowerShell v7 installed, rebooting.'
-    shutdown /r /t 00
+    shutdown /r /t 120
     exit
   }
 }

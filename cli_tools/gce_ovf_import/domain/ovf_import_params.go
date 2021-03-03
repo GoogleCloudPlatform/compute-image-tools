@@ -61,6 +61,7 @@ type OVFImportParams struct {
 	NoExternalIP                bool
 	NoRestartOnFailure          bool
 	OsID                        string
+	BYOL                        bool
 	ShieldedIntegrityMonitoring bool
 	ShieldedSecureBoot          bool
 	ShieldedVtpm                bool
@@ -75,6 +76,8 @@ type OVFImportParams struct {
 	ScratchBucketGcsPath        string
 	Oauth                       string
 	Ce                          string
+	ComputeServiceAccount       string
+	InstanceAccessScopesFlag    string
 	GcsLogsDisabled             bool
 	CloudLogsDisabled           bool
 	StdoutLogsDisabled          bool
@@ -87,12 +90,15 @@ type OVFImportParams struct {
 	// Non-flags
 
 	// Deadline of when timeout will occur.
-	Deadline              time.Time
+	Deadline time.Time
+
 	UserLabels            map[string]string
 	NodeAffinities        []*compute.SchedulingNodeAffinity
 	NodeAffinitiesBeta    []*computeBeta.SchedulingNodeAffinity
+	InstanceAccessScopes  []string
 	CurrentExecutablePath string
 	Region                string
+
 	// Path to daisy_workflows directory.
 	WorkflowDir string
 }

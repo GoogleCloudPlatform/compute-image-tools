@@ -1,5 +1,5 @@
 {
-  "Name": "windows-2019-dc-bios",
+  "Name": "windows-2012-r2-dc-uefi-byol",
   "Vars": {
     "install_disk": "install-disk",
     "media": {
@@ -14,11 +14,15 @@
       "Required": true,
       "Description": "GCS or local path to Microsoft .NET Framework 4.8 offline installer"
     },
+    "cloudsdk": {
+      "Required": true,
+      "Description": "GCS or local path to Cloud SDK installer"
+    },
     "description": {
-      "Value": "Microsoft, Windows Server, 2019 Datacenter, Server with Desktop Experience, x64 built on ${TIMESTAMP}"
+      "Value": "Microsoft, Windows Server, 2012 R2 Datacenter, Server with Desktop Experience, x64 built on ${TIMESTAMP}, supports Shielded VM features"
     },
     "family": {
-      "Value": "windows-2019",
+      "Value": "windows-server-2012-r2-dc-byol",
       "Description": "Desired image family of the output image."
     },
     "google_cloud_repo": {
@@ -26,7 +30,7 @@
       "Description": "Google Cloud repo to retrieve packages from during the build."
     },
     "name": {
-      "Value": "windows-server-2019-dc-v${TIMESTAMP}",
+      "Value": "windows-server-2012-r2-dc-byol-v${TIMESTAMP}",
       "Description": "The name of the output image."
     },
     "project": {
@@ -44,20 +48,19 @@
   },
   "Steps": {
     "windows-build": {
-      "Timeout": "3h",
+      "Timeout": "5h",
       "IncludeWorkflow": {
-        "Path": "./windows-build.wf.json",
+        "Path": "./windows-build-uefi.wf.json",
         "Vars": {
           "install_disk": "${install_disk}",
           "install_disk_size": "50",
           "updates": "${updates}",
-          "drivers_bucket": "gs://gce-windows-drivers-public/release/win6.3/",
+          "drivers_bucket": "gs://gce-windows-drivers-public/release/win6.3-signed/",
           "dotnet48": "${dotnet48}",
-          "edition": "Windows Server 2019 SERVERDATACENTER",
+          "pwsh": "${pwsh}",
+          "edition": "Windows Server 2012 R2 SERVERDATACENTER",
           "media": "${media}",
-          "cloud_sdk": "gs://gce-image-build-resources/windows/GoogleCloudSDKInstaller.exe",
-          "product_key": "WMDGN-G9PQG-XVVXX-R3X43-63DFG",
-          "uefi_build": "false",
+          "cloud_sdk": "${cloudsdk}",
           "google_cloud_repo": "${google_cloud_repo}",
           "workflow_root": "${workflow_root}"
         }
@@ -72,7 +75,7 @@
           "Family": "${family}",
           "Description": "${description}",
           "Licenses": [
-            "projects/windows-cloud/global/licenses/windows-server-2019-dc"
+            "projects/windows-cloud/global/licenses/windows-server-2012-r2-byol"
           ],
           "GuestOsFeatures": [
             {
@@ -83,6 +86,9 @@
             },
             {
               "Type": "MULTI_IP_SUBNET"
+            },
+            {
+              "Type": "UEFI_COMPATIBLE"
             }
           ],
           "NoCleanup": true,

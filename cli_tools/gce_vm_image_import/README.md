@@ -22,12 +22,6 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image
   `pantheon`.
   
 Exactly one of these must be specified:
-+ `-data_disk` Specifies that the disk has no bootable OS installed on it. 
-   Imports the disk without making it bootable or installing Google tools on it.   
-+ `-os=OS` Specifies the OS of the image being imported. Execute the tool with `-help` to
-  see the list of currently-supported operating systems.
-  
-Exactly one of these must be specified:
 + `-source_file=SOURCE_FILE` Google Cloud Storage URI of the virtual disk file
   to import. For example: gs://my-bucket/my-image.vmdk.
 + `-source_image=SOURCE_IMAGE` An existing Compute Engine image from which to 
@@ -74,14 +68,23 @@ Exactly one of these must be specified:
   Virtual Machine. When empty, the default Compute Engine service account is used.
 + `-uefi_compatible` Enables UEFI booting, which is an alternative system boot method. 
 + `-sysprep_windows` Generalize image using Windows Sysprep. Only applicable to Windows.
-+ `-byol` Specifies that a BYOL license should be applied.
 + `-client_version` Identifies the version of the client of the importer.
 + `-execution_id` The execution ID to differentiate GCE resources of each imports.
++ `-data_disk` Specifies that the disk has no bootable OS installed on it.
+    Imports the disk without making it bootable or installing Google tools on it.
+    It's an error to specify `-os` or `-byol` when `-data_disk` is specified.
++ `-os=OS` Specifies the OS of the image being imported. Execute the tool with `-help` to
+  see the list of currently-supported operating systems.
++ `-byol` Import using an [existing license](https://cloud.google.com/compute/docs/nodes/bringing-your-own-licenses).
+  These are functionally equivalent:
+  * `-byol -os=rhel-8`
+  * `-byol -os=rhel-8-byol`
+  * `-os=rhel-8-byol`
   
 ### Usage
 
 ```
-gce_vm_image_import -image_name=IMAGE_NAME -client_id=CLIENT_ID (-data-disk | -os=OS)
+gce_vm_image_import -image_name=IMAGE_NAME -client_id=CLIENT_ID [--data-disk | --byol --os=OS]
         (-source-file=SOURCE_FILE | -source-image=SOURCE_IMAGE) [-no-guest-environment] 
         [-family=FAMILY] [-description=DESCRIPTION] [-network=NETWORK] [-subnet=SUBNET]
         [-zone=ZONE] [-timeout=TIMEOUT] [-project=PROJECT] [-scratch_bucket_gcs_path=PATH]
@@ -91,6 +94,6 @@ gce_vm_image_import -image_name=IMAGE_NAME -client_id=CLIENT_ID (-data-disk | -o
         -kms-project=KMS_PROJECT] [-no_external_ip] [-labels=KEY=VALUE,...] 
         [-storage_location=STORAGE_LOCATION]
         [-compute_service_account=COMPUTE_SERVICE_ACCOUNT] 
-        [-uefi_compatible] [-sysprep_windows] [-byol] 
+        [-uefi_compatible] [-sysprep_windows]
         [-client_version=CLIENT_VERSION] [-execution_id=EXECUTION_ID]
 ```

@@ -56,14 +56,6 @@
     "bginfo": {
       "Description": "GCS or local path to BGInfo installer"
     },
-    "uefi_build": {
-      "Value": "true",
-      "Description": "Is this a UEFI build"
-    },
-    "x86_build": {
-      "Value": "false",
-      "Description": "A build of a Windows 32-bit OS"
-    },
     "wu_server_url": {
       "Description": "The URL of the windows update server, such as http://wsus.company.com"
     },
@@ -90,13 +82,23 @@
           "Name": "bootstrap-disk",
           "SourceImage": "${bootstrap_source_image}",
           "SizeGb": "200",
-          "Type": "pd-ssd"
+          "Type": "pd-ssd",
+          "GuestOsFeatures": [
+            {
+              "type": "UEFI_COMPATIBLE"
+            }
+          ]
         },
         {
           "Name": "${install_disk}",
           "SourceImage": "${install_source_image}",
           "SizeGb": "${install_disk_size}",
-          "Type": "pd-ssd"
+          "Type": "pd-ssd",
+          "GuestOsFeatures": [
+            {
+              "type": "UEFI_COMPATIBLE"
+            }
+          ]
         }
       ]
     },
@@ -119,8 +121,8 @@
             "edition": "${edition}",
             "product-key": "${product_key}",
             "google-cloud-repo": "${google_cloud_repo}",
-            "uefi-build": "${uefi_build}",
-            "x86-build": "${x86_build}"
+            "uefi-build": "true",
+            "x86-build": "false"
           },
           "StartupScript": "bootstrap_install.ps1"
         }
@@ -132,13 +134,18 @@
         {
           "Name": "bootstrap",
           "Stopped": true,
-          "SerialOutput": {"Port": 1, "FailureMatch": "Windows build failed"}
+          "SerialOutput": {
+            "Port": 1,
+            "FailureMatch": "Windows build failed"
+          }
         }
       ]
     },
     "delete-bootstrap": {
       "DeleteResources": {
-        "Instances": ["bootstrap"]
+        "Instances": [
+          "bootstrap"
+        ]
       }
     },
     "run-install": {
@@ -154,10 +161,12 @@
             }
           ],
           "MachineType": "n1-standard-4",
-          "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
+          "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_write"
+          ],
           "Metadata": {
             "windows-startup-script-cmd": "ping 127.0.0.1 -n 60",
-            "x86-build": "${x86_build}",
+            "x86-build": "false",
             "wu_server_port": "${wu_server_port}",
             "wu_server_url": "${wu_server_url}"
           },
@@ -180,16 +189,30 @@
     },
     "delete-install": {
       "DeleteResources": {
-        "Instances": ["install"]
+        "Instances": [
+          "install"
+        ]
       }
     }
   },
   "Dependencies": {
-    "run-bootstrap": ["setup-disks"],
-    "wait-for-bootstrap": ["run-bootstrap"],
-    "delete-bootstrap": ["wait-for-bootstrap"],
-    "run-install": ["delete-bootstrap"],
-    "wait-for-install": ["run-install"],
-    "delete-install": ["wait-for-install"]
+    "run-bootstrap": [
+      "setup-disks"
+    ],
+    "wait-for-bootstrap": [
+      "run-bootstrap"
+    ],
+    "delete-bootstrap": [
+      "wait-for-bootstrap"
+    ],
+    "run-install": [
+      "delete-bootstrap"
+    ],
+    "wait-for-install": [
+      "run-install"
+    ],
+    "delete-install": [
+      "wait-for-install"
+    ]
   }
 }

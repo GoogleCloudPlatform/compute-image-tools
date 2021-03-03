@@ -20,7 +20,6 @@ import (
 	"log"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -46,17 +45,35 @@ import (
 )
 
 const (
-	ovfWorkflowDir             = "ovf_import/"
-	createInstanceWorkflow     = ovfWorkflowDir + "create_instance.wf.json"
-	createGMIWorkflow          = ovfWorkflowDir + "create_gmi.wf.json"
-	instanceImportWorkflow     = ovfWorkflowDir + "import_ovf_to_instance.wf.json"
-	machineImageImportWorkflow = ovfWorkflowDir + "import_ovf_to_machine_image.wf.json"
-	logPrefix                  = "[import-ovf]"
+	ovfWorkflowDir         = "ovf_import/"
+	createInstanceWorkflow = ovfWorkflowDir + "create_instance.wf.json"
+	createGMIWorkflow      = ovfWorkflowDir + "create_gmi.wf.json"
+	logPrefix              = "[import-ovf]"
 
 	// Amount of time required after disk files have been imported. Used to calculate the
 	// timeout budget for disk file import.
 	instanceConstructionTime = 10 * time.Minute
 )
+
+var (
+	//default instance scopes https://cloud.google.com/sdk/gcloud/reference/compute/instances/create#--scopes
+	defaultInstanceAccessScopes = []string{
+		"https://www.googleapis.com/auth/devstorage.read_only",
+		"https://www.googleapis.com/auth/logging.write",
+		"https://www.googleapis.com/auth/monitoring.write",
+		"https://www.googleapis.com/auth/pubsub",
+		"https://www.googleapis.com/auth/service.management.readonly",
+		"https://www.googleapis.com/auth/servicecontrol",
+		"https://www.googleapis.com/auth/trace.append",
+	}
+)
+
+// GetDefaultInstanceAccessScopes returns default VM instance access scopes
+func GetDefaultInstanceAccessScopes() []string {
+	tmp := make([]string, len(defaultInstanceAccessScopes))
+	copy(tmp, defaultInstanceAccessScopes)
+	return tmp
+}
 
 // OVFImporter is responsible for importing OVF into GCE
 type OVFImporter struct {
@@ -69,7 +86,6 @@ type OVFImporter struct {
 	Logger              logging.Logger
 	gcsPathToClean      string
 	workflowPath        string
-	diskInfos           *[]ovfutils.DiskInfo
 	params              *ovfdomain.OVFImportParams
 	imageLocation       string
 	paramValidator      *ParamValidatorAndPopulator
@@ -117,48 +133,25 @@ func NewOVFImporter(params *ovfdomain.OVFImportParams) (*OVFImporter, error) {
 }
 
 func getImportWorkflowPath(params *ovfdomain.OVFImportParams) (workflow string) {
-	if useModulesForImport(params) {
-		if params.IsInstanceImport() {
-			workflow = createInstanceWorkflow
-		} else {
-			workflow = createGMIWorkflow
-		}
+	if params.IsInstanceImport() {
+		workflow = createInstanceWorkflow
 	} else {
-		if params.IsInstanceImport() {
-			workflow = instanceImportWorkflow
-		} else {
-			workflow = machineImageImportWorkflow
-		}
+		workflow = createGMIWorkflow
 	}
 	return path.Join(params.WorkflowDir, workflow)
 }
 
-func useModulesForImport(params *ovfdomain.OVFImportParams) bool {
-	return params.ReleaseTrack == ovfdomain.Beta || params.ReleaseTrack == ovfdomain.Alpha
-}
-
-func (oi *OVFImporter) buildDaisyVars(translateWorkflowPath string, bootDiskGcsPath string, machineType string) map[string]string {
+func (oi *OVFImporter) buildDaisyVars(bootDiskImageURI string, machineType string) map[string]string {
 
 	varMap := map[string]string{}
+	varMap["boot_disk_image_uri"] = bootDiskImageURI
 	if oi.params.IsInstanceImport() {
-		// instance import specific vars
 		varMap["instance_name"] = oi.params.InstanceNames
 	} else {
-		// machine image import specific vars
 		varMap["machine_image_name"] = oi.params.MachineImageName
 	}
-
-	if !useModulesForImport(oi.params) {
-		// common vars
-		if translateWorkflowPath != "" {
-			varMap["translate_workflow"] = translateWorkflowPath
-			varMap["install_gce_packages"] = strconv.FormatBool(!oi.params.NoGuestEnvironment)
-			varMap["is_windows"] = strconv.FormatBool(
-				strings.Contains(strings.ToLower(translateWorkflowPath), "windows"))
-		}
-		if bootDiskGcsPath != "" {
-			varMap["boot_disk_file"] = bootDiskGcsPath
-		}
+	if oi.params.ComputeServiceAccount != "" {
+		varMap["compute_service_account"] = oi.params.ComputeServiceAccount
 	}
 	if oi.params.Subnet != "" {
 		varMap["subnet"] = oi.params.Subnet
@@ -179,10 +172,10 @@ func (oi *OVFImporter) buildDaisyVars(translateWorkflowPath string, bootDiskGcsP
 	if oi.params.PrivateNetworkIP != "" {
 		varMap["private_network_ip"] = oi.params.PrivateNetworkIP
 	}
-
 	if oi.params.NetworkTier != "" {
 		varMap["network_tier"] = oi.params.NetworkTier
 	}
+
 	return varMap
 }
 
@@ -210,6 +203,14 @@ func (oi *OVFImporter) updateImportedInstance(w *daisy.Workflow) {
 	if oi.params.Hostname != "" {
 		instance.Hostname = oi.params.Hostname
 		instanceBeta.Hostname = oi.params.Hostname
+	}
+	if len(oi.params.InstanceAccessScopes) > 0 {
+		for _, serviceAccount := range instance.ServiceAccounts {
+			serviceAccount.Scopes = oi.params.InstanceAccessScopes
+		}
+		for _, serviceAccount := range instanceBeta.ServiceAccounts {
+			serviceAccount.Scopes = oi.params.InstanceAccessScopes
+		}
 	}
 }
 
@@ -275,28 +276,24 @@ func (oi *OVFImporter) getOvfGcsPath(tmpGcsPath string) (string, bool, error) {
 
 func (oi *OVFImporter) modifyWorkflowPreValidate(w *daisy.Workflow) {
 	w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
-	if useModulesForImport(oi.params) {
-		// See workflows in `ovfWorkflowDir` for variable name declaration.
-		createInstanceStepName := "create-instance"
-		cleanupStepName := "cleanup"
+	// See workflows in `ovfWorkflowDir` for variable name declaration.
+	createInstanceStepName := "create-instance"
+	cleanupStepName := "cleanup"
 
-		var dataDiskPrefix string
-		if oi.params.IsInstanceImport() {
-			dataDiskPrefix = oi.params.InstanceNames
-		} else {
-			dataDiskPrefix = oi.params.MachineImageName
-		}
-
-		daisyovfutils.CreateDisksOnInstance(
-			w.Steps[createInstanceStepName].CreateInstances.Instances[0],
-			dataDiskPrefix, oi.imageURIs[1:])
-
-		// Delete the images after the instance is created.
-		w.Steps[cleanupStepName].DeleteResources.Images = append(
-			w.Steps[cleanupStepName].DeleteResources.Images, oi.imageURIs[1:]...)
+	var dataDiskPrefix string
+	if oi.params.IsInstanceImport() {
+		dataDiskPrefix = oi.params.InstanceNames
 	} else {
-		daisyovfutils.AddDiskImportSteps(w, (*oi.diskInfos)[1:])
+		dataDiskPrefix = oi.params.MachineImageName
 	}
+
+	daisyovfutils.CreateDisksOnInstance(
+		w.Steps[createInstanceStepName].CreateInstances.Instances[0],
+		dataDiskPrefix, oi.imageURIs[1:])
+
+	// Delete the images after the instance is created.
+	w.Steps[cleanupStepName].DeleteResources.Images = append(
+		w.Steps[cleanupStepName].DeleteResources.Images, oi.imageURIs[1:]...)
 	oi.updateImportedInstance(w)
 	if oi.params.IsMachineImageImport() {
 		oi.updateMachineImage(w)
@@ -359,27 +356,12 @@ func (oi *OVFImporter) setUpImportWorkflow() (workflow *daisy.Workflow, err erro
 	if err != nil {
 		return nil, err
 	}
-	oi.diskInfos = &diskInfos
 
-	var osIDValue string
-	if oi.params.OsID == "" {
-		if osIDValue, err = ovfutils.GetOSId(ovfDescriptor); err != nil {
-			return nil, err
-		}
-		oi.Logger.User(
-			fmt.Sprintf("Found valid OS info in OVF descriptor, importing VM with `%v` as OS.",
-				osIDValue))
-	} else if err = daisyutils.ValidateOS(oi.params.OsID); err != nil {
-		return nil, err
-	} else {
-		osIDValue = oi.params.OsID
-	}
-
-	settings, err := daisyutils.GetTranslationSettings(osIDValue)
+	osIDValue, err := oi.getOsIDValue(ovfDescriptor)
 	if err != nil {
 		return nil, err
 	}
-	translateWorkflowPath := "../image_import/" + settings.WorkflowPath
+
 	machineTypeStr, err := oi.getMachineType(ovfDescriptor, *oi.params.Project, oi.params.Zone)
 	if err != nil {
 		return nil, err
@@ -387,17 +369,11 @@ func (oi *OVFImporter) setUpImportWorkflow() (workflow *daisy.Workflow, err erro
 
 	oi.Logger.User(fmt.Sprintf("Will create instance of `%v` machine type.", machineTypeStr))
 
-	if useModulesForImport(oi.params) {
-		if err := oi.importWithModule(settings.GcloudOsFlag); err != nil {
-			return nil, err
-		}
+	if err := oi.importDisks(osIDValue, &diskInfos); err != nil {
+		return nil, err
 	}
 
-	varMap := oi.buildDaisyVars(translateWorkflowPath, diskInfos[0].FilePath, machineTypeStr)
-
-	if useModulesForImport(oi.params) {
-		varMap["boot_disk_image_uri"] = oi.imageURIs[0]
-	}
+	varMap := oi.buildDaisyVars(oi.imageURIs[0], machineTypeStr)
 
 	workflow, err = daisycommon.ParseWorkflow(oi.workflowPath, varMap, *oi.params.Project,
 		oi.params.Zone, oi.params.ScratchBucketGcsPath, oi.params.Oauth, oi.params.Timeout, oi.params.Ce,
@@ -460,17 +436,53 @@ func (oi *OVFImporter) CleanUp() {
 	}
 }
 
-func (oi *OVFImporter) importWithModule(osID string) error {
+func (oi *OVFImporter) importDisks(osID string, diskInfos *[]ovfutils.DiskInfo) error {
 	var dataDiskURIs []string
-	for _, info := range *oi.diskInfos {
+	for _, info := range *diskInfos {
 		dataDiskURIs = append(dataDiskURIs, info.FilePath)
 	}
 	params := *oi.params
 	params.OsID = osID
 	params.Deadline = params.Deadline.Add(-1 * instanceConstructionTime)
-	imageURIs, err := oi.multiImageImporter.Import(oi.ctx, oi.params, dataDiskURIs)
+	imageURIs, err := oi.multiImageImporter.Import(oi.ctx, &params, dataDiskURIs)
 	if err == nil {
 		oi.imageURIs = imageURIs
 	}
 	return err
+}
+
+// getOsIDValue determines the osID to use when importing the boot disk.
+func (oi *OVFImporter) getOsIDValue(descriptor *ovf.Envelope) (osIDValue string, err error) {
+	userOS := oi.params.OsID
+	descriptorOS, err := ovfutils.GetOSId(descriptor)
+	if err != nil {
+		oi.Logger.Debug(fmt.Sprintf("Didn't find valid osID in descriptor. Error=%q", err))
+		descriptorOS = ""
+	}
+	oi.Logger.Debug(fmt.Sprintf("osID candidates: from-user=%q, ovf-descriptor=%q", userOS, descriptorOS))
+
+	if userOS != "" {
+		osIDValue = userOS
+		if descriptorOS != "" && userOS != descriptorOS {
+			oi.Logger.User(
+				fmt.Sprintf("WARNING: The OS info in the OVF descriptor was `%v`, "+
+					"but you specified `%v`. Continuing import using your specified OS `%v`.",
+					descriptorOS, userOS, userOS))
+		}
+	} else if descriptorOS != "" {
+		osIDValue = descriptorOS
+	} else {
+		oi.Logger.User("Didn't find valid OS info in OVF descriptor. OS will be detected from boot disk.")
+		return "", nil
+	}
+
+	if err = daisyutils.ValidateOS(osIDValue); err != nil {
+		return "", err
+	}
+	if osIDValue == descriptorOS {
+		oi.Logger.User(
+			fmt.Sprintf("Found valid OS info in OVF descriptor, importing VM with `%v` as OS.",
+				osIDValue))
+	}
+	return osIDValue, nil
 }

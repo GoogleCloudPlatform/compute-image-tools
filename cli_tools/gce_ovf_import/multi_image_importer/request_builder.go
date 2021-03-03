@@ -37,34 +37,37 @@ func (r *requestBuilder) buildRequests(params *ovfdomain.OVFImportParams, fileUR
 			return nil, err
 		}
 		imageName := fmt.Sprintf("ovf-%s-%d", params.BuildID, i+1)
-		var os string
+		request := importer.ImageImportRequest{
+			ExecutionID:           imageName,
+			CloudLogsDisabled:     params.CloudLogsDisabled,
+			ComputeEndpoint:       params.Ce,
+			ComputeServiceAccount: params.ComputeServiceAccount,
+			WorkflowDir:           r.workflowDir,
+			DaisyLogLinePrefix:    fmt.Sprintf("disk-%d", i+1),
+			GcsLogsDisabled:       params.GcsLogsDisabled,
+			ImageName:             imageName,
+			Network:               params.Network,
+			NoExternalIP:          params.NoExternalIP,
+			NoGuestEnvironment:    params.NoGuestEnvironment,
+			Oauth:                 params.Oauth,
+			Project:               *params.Project,
+			ScratchBucketGcsPath:  path.JoinURL(params.ScratchBucketGcsPath, imageName),
+			Source:                source,
+			StdoutLogsDisabled:    params.StdoutLogsDisabled,
+			Subnet:                params.Subnet,
+			Timeout:               params.Deadline.Sub(time.Now()),
+			UefiCompatible:        params.UefiCompatible,
+			Zone:                  params.Zone,
+		}
 		bootable := i == 0
 		if bootable {
-			os = params.OsID
+			request.OS = params.OsID
+			request.BYOL = params.BYOL
+			importer.FixBYOLAndOSArguments(&request.OS, &request.BYOL)
+		} else {
+			request.DataDisk = true
 		}
-		requests = append(requests, importer.ImageImportRequest{
-			ExecutionID:          imageName,
-			CloudLogsDisabled:    params.CloudLogsDisabled,
-			ComputeEndpoint:      params.Ce,
-			WorkflowDir:          r.workflowDir,
-			DataDisk:             !bootable,
-			DaisyLogLinePrefix:   fmt.Sprintf("disk-%d", i+1),
-			GcsLogsDisabled:      params.GcsLogsDisabled,
-			ImageName:            imageName,
-			Network:              params.Network,
-			NoExternalIP:         params.NoExternalIP,
-			NoGuestEnvironment:   params.NoGuestEnvironment,
-			Oauth:                params.Oauth,
-			OS:                   os,
-			Project:              *params.Project,
-			ScratchBucketGcsPath: path.JoinURL(params.ScratchBucketGcsPath, imageName),
-			Source:               source,
-			StdoutLogsDisabled:   params.StdoutLogsDisabled,
-			Subnet:               params.Subnet,
-			Timeout:              params.Deadline.Sub(time.Now()),
-			UefiCompatible:       params.UefiCompatible,
-			Zone:                 params.Zone,
-		})
+		requests = append(requests, request)
 	}
 	return requests, nil
 }

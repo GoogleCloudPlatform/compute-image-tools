@@ -16,6 +16,7 @@ package cli
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -169,6 +170,33 @@ func Test_populateAndValidate_DefaultsBYOLToFalse(t *testing.T) {
 
 func Test_populateAndValidate_SupportsBYOL(t *testing.T) {
 	assert.True(t, parseAndPopulate(t, "-byol").BYOL)
+}
+
+func Test_populateAndValidate_simplifyBYOLInputs(t *testing.T) {
+	// The import module rejects requests when both BYOL and osID are specified.
+	// This test ensures we simplify the user's request to follow this requirement.
+	type test struct {
+		args         []string
+		expectedOSID string
+	}
+	for _, tc := range []test{
+		{
+			args:         []string{"-os=rhel-8", "-byol"},
+			expectedOSID: "rhel-8-byol",
+		}, {
+			args:         []string{"-os=rhel-8-byol", "-byol"},
+			expectedOSID: "rhel-8-byol",
+		}, {
+			args:         []string{"-os=xyz", "-byol"},
+			expectedOSID: "xyz-byol",
+		},
+	} {
+		t.Run(fmt.Sprintf("%+v", tc), func(t *testing.T) {
+			result := parseAndPopulate(t, tc.args...)
+			assert.Equal(t, tc.expectedOSID, result.OS)
+			assert.False(t, result.BYOL, "Only enable BYOL when osID is empty, which causes OS detection")
+		})
+	}
 }
 
 func Test_populateAndValidate_TimeoutHasDefaultValue(t *testing.T) {

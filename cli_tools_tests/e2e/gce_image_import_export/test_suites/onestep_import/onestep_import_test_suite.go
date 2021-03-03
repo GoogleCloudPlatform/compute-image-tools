@@ -62,18 +62,22 @@ func OnestepImageImportSuite(
 			testSuiteName, fmt.Sprintf("[%v][OnestepImageImport] %v", testType, "Onestep image import from AWS Ubuntu-1804 AMI"))
 		onestepImageImportFromAWSUbuntuVMDK := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][OnestepImageImport] %v", testType, "Onestep image import from AWS Ubuntu-1804 VMDK"))
-		onestepImageImportFromAWSWindowsAMI := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OnestepImageImport] %v", testType, "Onestep image import from AWS Windows-2019 AMI"))
-		onestepImageImportFromAWSWindowsVMDK := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OnestepImageImport] %v", testType, "Onestep image import from AWS Windows-2019 VMDK"))
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, e2e.CLITestType){}
 		testsMap[testType][onestepImageImportFromAWSUbuntuAMI] = runOnestepImageImportFromAWSLinuxAMI
 		testsMap[testType][onestepImageImportFromAWSUbuntuVMDK] = runOnestepImageImportFromAWSLinuxVMDK
-		testsMap[testType][onestepImageImportFromAWSWindowsAMI] = runOnestepImageImportFromAWSWindowsAMI
-		testsMap[testType][onestepImageImportFromAWSWindowsVMDK] = runOnestepImageImportFromAWSWindowsVMDK
 	}
+
+	// Only test windows for wrapper to reduce the test time. The aws-related code
+	// logic for windows are exactly the same as for linux, so no need to
+	// duplicate them too much.
+	onestepImageImportFromAWSWindowsAMI := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][OnestepImageImport] %v", e2e.Wrapper, "Onestep image import from AWS Windows-2019 AMI"))
+	onestepImageImportFromAWSWindowsVMDK := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][OnestepImageImport] %v", e2e.Wrapper, "Onestep image import from AWS Windows-2019 VMDK"))
+	testsMap[e2e.Wrapper][onestepImageImportFromAWSWindowsAMI] = runOnestepImageImportFromAWSWindowsAMI
+	testsMap[e2e.Wrapper][onestepImageImportFromAWSWindowsVMDK] = runOnestepImageImportFromAWSWindowsVMDK
 
 	// Only test service account scenario for wrapper, till gcloud support it.
 	onestepImageImportWithDisabledDefaultServiceAccountSuccess := junitxml.NewTestCase(

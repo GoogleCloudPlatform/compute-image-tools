@@ -21,16 +21,18 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/common/gcp"
-
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	ovfimporter "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e"
+	"github.com/GoogleCloudPlatform/compute-image-tools/common/gcp"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
@@ -51,6 +53,9 @@ var (
 	// Apply this as instance metadata if the OS config agent is not
 	// supported for the platform or version being imported.
 	skipOSConfigMetadata = map[string]string{"osconfig_not_supported": "true"}
+
+	// argMap stores test args from e2e test CLI.
+	argMap map[string]string
 )
 
 type ovfInstanceImportTestProperties struct {
@@ -65,6 +70,9 @@ type ovfInstanceImportTestProperties struct {
 	machineType               string
 	network                   string
 	subnet                    string
+	project                   string
+	computeServiceAccount     string
+	instanceAccessScopes      string
 	instanceMetadata          map[string]string
 }
 
@@ -72,7 +80,9 @@ type ovfInstanceImportTestProperties struct {
 func TestSuite(
 	ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
 	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp,
-	testProjectConfig *testconfig.Project) {
+	testProjectConfig *testconfig.Project, argMapInput map[string]string) {
+
+	argMap = argMapInput
 
 	testsMap := map[e2e.CLITestType]map[*junitxml.TestCase]func(
 		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, e2e.CLITestType){}
@@ -118,6 +128,23 @@ func TestSuite(
 		testsMap[testType][instanceImportNetworkSettingsName] = runOVFInstanceImportNetworkSettingsName
 		testsMap[testType][instanceImportNetworkSettingsPath] = runOVFInstanceImportNetworkSettingsPath
 	}
+
+	// Only test service account scenario for wrapper, till gcloud supports it.
+	instanceImportDisabledDefaultServiceAccountSuccessTestCase := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Instance import without default service account, success by specifying a custom Compute service account"))
+	instanceImportDefaultServiceAccountWithMissingPermissionsSuccessTestCase := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Instance import without permission on default service account, success by specifying a custom Compute service account"))
+	instanceImportDisabledDefaultServiceAccountFailTestCase := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Instance import without default service account failed"))
+	instanceImportDefaultServiceAccountWithMissingPermissionsFailTestCase := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Instance import without permission on default service account failed"))
+	instanceImportDefaultServiceAccountAccessScopeTestCase := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Instance import with default service account access scopes set"))
+	testsMap[e2e.Wrapper][instanceImportDisabledDefaultServiceAccountSuccessTestCase] = runInstanceImportDisabledDefaultServiceAccountSuccessTest
+	testsMap[e2e.Wrapper][instanceImportDefaultServiceAccountWithMissingPermissionsSuccessTestCase] = runInstanceImportDefaultServiceAccountWithMissingPermissionsSuccessTest
+	testsMap[e2e.Wrapper][instanceImportDisabledDefaultServiceAccountFailTestCase] = runInstanceImportWithDisabledDefaultServiceAccountFailTest
+	testsMap[e2e.Wrapper][instanceImportDefaultServiceAccountWithMissingPermissionsFailTestCase] = runInstanceImportDefaultServiceAccountWithMissingPermissionsFailTest
+	testsMap[e2e.Wrapper][instanceImportDefaultServiceAccountAccessScopeTestCase] = runInstanceImportDefaultServiceAccountAccessScopeTestCaseSuccessTest
 
 	e2e.CLITestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
 		testProjectConfig, testSuiteName, testsMap)
@@ -316,21 +343,148 @@ func runOVFInstanceImportNetworkSettingsPath(ctx context.Context, testCase *juni
 	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
+func runInstanceImportDisabledDefaultServiceAccountSuccessTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+	testVariables, ok := e2e.GetServiceAccountTestVariables(argMap, true)
+	if !ok {
+		e2e.Failure(testCase, logger, fmt.Sprintln("Failed to get service account test args"))
+		return
+	}
+	suffix := path.RandString(5)
+	props := &ovfInstanceImportTestProperties{
+		instanceName: fmt.Sprintf("test-without-service-account-%v", suffix),
+		verificationStartupScript: loadScriptContent(
+			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
+		zone:                  testProjectConfig.TestZone,
+		expectedStartupOutput: "All tests passed!",
+		failureMatches:        []string{"FAILED:", "TestFailed:"},
+		sourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+		os:                    "centos-7",
+		machineType:           "n1-standard-4",
+		project:               testVariables.ProjectID,
+		computeServiceAccount: testVariables.ComputeServiceAccount,
+		instanceAccessScopes:  "https://www.googleapis.com/auth/compute,https://www.googleapis.com/auth/datastore",
+	}
+	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
+}
+
+// With insufficient permissions on default service account, import success by specifying a custom account.
+func runInstanceImportDefaultServiceAccountWithMissingPermissionsSuccessTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+	testVariables, ok := e2e.GetServiceAccountTestVariables(argMap, false)
+	if !ok {
+		e2e.Failure(testCase, logger, fmt.Sprintln("Failed to get service account test args"))
+		return
+	}
+	suffix := path.RandString(5)
+	props := &ovfInstanceImportTestProperties{
+		instanceName: fmt.Sprintf("test-missing-ce-permissions-%v", suffix),
+		verificationStartupScript: loadScriptContent(
+			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
+		zone:                  testProjectConfig.TestZone,
+		expectedStartupOutput: "All tests passed!",
+		failureMatches:        []string{"FAILED:", "TestFailed:"},
+		sourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+		os:                    "centos-7",
+		machineType:           "n1-standard-4",
+		project:               testVariables.ProjectID,
+		computeServiceAccount: testVariables.ComputeServiceAccount,
+	}
+	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
+}
+
+// With insufficient permissions on default service account, import failed.
+func runInstanceImportWithDisabledDefaultServiceAccountFailTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+	testVariables, ok := e2e.GetServiceAccountTestVariables(argMap, true)
+	if !ok {
+		e2e.Failure(testCase, logger, fmt.Sprintln("Failed to get service account test args"))
+		return
+	}
+	suffix := path.RandString(5)
+	props := &ovfInstanceImportTestProperties{
+		instanceName: fmt.Sprintf("test-missing-permission-on-default-csa-fail-%v", suffix),
+		verificationStartupScript: loadScriptContent(
+			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
+		zone:                  testProjectConfig.TestZone,
+		expectedStartupOutput: "All tests passed!",
+		failureMatches:        []string{"FAILED:", "TestFailed:"},
+		sourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+		os:                    "centos-7",
+		machineType:           "n1-standard-4",
+		project:               testVariables.ProjectID,
+	}
+	e2e.RunTestCommandAssertErrorMessage(cmds[testType], buildTestArgs(props, testProjectConfig)[testType], "Failed to download GCS path", logger, testCase)
+}
+
+// With insufficient permissions on default service account, import failed.
+func runInstanceImportDefaultServiceAccountWithMissingPermissionsFailTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+	testVariables, ok := e2e.GetServiceAccountTestVariables(argMap, false)
+	if !ok {
+		e2e.Failure(testCase, logger, fmt.Sprintln("Failed to get service account test args"))
+		return
+	}
+	suffix := path.RandString(5)
+	props := &ovfInstanceImportTestProperties{
+		instanceName: fmt.Sprintf("test-insufficient-permission-default-csa-fail-%v", suffix),
+		verificationStartupScript: loadScriptContent(
+			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
+		zone:                  testProjectConfig.TestZone,
+		expectedStartupOutput: "All tests passed!",
+		failureMatches:        []string{"FAILED:", "TestFailed:"},
+		sourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+		os:                    "centos-7",
+		machineType:           "n1-standard-4",
+		project:               testVariables.ProjectID,
+	}
+	e2e.RunTestCommandAssertErrorMessage(cmds[testType], buildTestArgs(props, testProjectConfig)[testType], "Failed to download GCS path", logger, testCase)
+}
+
+// Ensure custom access scopes are set on the instance even when default service account is used
+func runInstanceImportDefaultServiceAccountAccessScopeTestCaseSuccessTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+	suffix := path.RandString(5)
+	props := &ovfInstanceImportTestProperties{
+		instanceName: fmt.Sprintf("test-scopes-on-default-cse-%v", suffix),
+		verificationStartupScript: loadScriptContent(
+			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
+		zone:                  testProjectConfig.TestZone,
+		expectedStartupOutput: "All tests passed!",
+		failureMatches:        []string{"FAILED:", "TestFailed:"},
+		sourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+		os:                    "centos-7",
+		machineType:           "n1-standard-4",
+		project:               testProjectConfig.TestProjectID,
+		instanceAccessScopes:  "https://www.googleapis.com/auth/compute,https://www.googleapis.com/auth/datastore",
+	}
+	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
+}
+
+func getProject(props *ovfInstanceImportTestProperties, testProjectConfig *testconfig.Project) string {
+	if props.project != "" {
+		return props.project
+	}
+	return testProjectConfig.TestProjectID
+}
+
 func buildTestArgs(props *ovfInstanceImportTestProperties, testProjectConfig *testconfig.Project) map[e2e.CLITestType][]string {
+	project := getProject(props, testProjectConfig)
 	gcloudBetaArgs := []string{
 		"beta", "compute", "instances", "import", props.instanceName, "--quiet",
 		"--docker-image-tag=latest",
-		fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+		fmt.Sprintf("--project=%v", project),
 		fmt.Sprintf("--source-uri=%v", props.sourceURI),
 		fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
 	}
 	gcloudArgs := []string{
 		"compute", "instances", "import", props.instanceName, "--quiet",
-		fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+		fmt.Sprintf("--project=%v", project),
 		fmt.Sprintf("--source-uri=%v", props.sourceURI),
 		fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
 	}
-	wrapperArgs := []string{"-client-id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
+	wrapperArgs := []string{"-client-id=e2e",
+		fmt.Sprintf("-project=%v", project),
 		fmt.Sprintf("-instance-names=%s", props.instanceName),
 		fmt.Sprintf("-ovf-gcs-path=%v", props.sourceURI),
 		fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
@@ -358,6 +512,17 @@ func buildTestArgs(props *ovfInstanceImportTestProperties, testProjectConfig *te
 		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-subnet=%v", props.subnet))
 	}
 
+	if props.computeServiceAccount != "" {
+		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--compute-service-account=%v", props.computeServiceAccount))
+		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--compute-service-account=%v", props.computeServiceAccount))
+		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-compute-service-account=%v", props.computeServiceAccount))
+	}
+	if props.instanceAccessScopes != "" {
+		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--scopes=%v", props.instanceAccessScopes))
+		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--scopes=%v", props.instanceAccessScopes))
+		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-scopes=%v", props.instanceAccessScopes))
+	}
+
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper:                       wrapperArgs,
 		e2e.GcloudBetaProdWrapperLatest:   gcloudBetaArgs,
@@ -380,6 +545,7 @@ func verifyImportedInstance(
 	ctx context.Context, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project,
 	logger *log.Logger, props *ovfInstanceImportTestProperties) {
 
+	project := getProject(props, testProjectConfig)
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
 		e2e.Failure(testCase, logger, fmt.Sprintf("Error creating client: %v", err))
@@ -387,7 +553,7 @@ func verifyImportedInstance(
 	}
 
 	logger.Printf("Verifying imported instance...")
-	instance, err := gcp.CreateInstanceObject(ctx, testProjectConfig.TestProjectID, props.zone, props.instanceName, props.isWindows)
+	instance, err := gcp.CreateInstanceObject(ctx, project, props.zone, props.instanceName, props.isWindows)
 	if err != nil {
 		e2e.Failure(testCase, logger, fmt.Sprintf("Image '%v' doesn't exist after import: %v", props.instanceName, err))
 		return
@@ -441,9 +607,42 @@ func verifyImportedInstance(
 		return
 	}
 
+	if props.computeServiceAccount != "" {
+		serviceAccountMatch := false
+		var instanceServiceAccountEmails []string
+		for _, instanceServiceAccount := range instance.ServiceAccounts {
+			instanceServiceAccountEmails = append(instanceServiceAccountEmails, instanceServiceAccount.Email)
+			if instanceServiceAccount.Email == props.computeServiceAccount {
+				serviceAccountMatch = true
+			}
+		}
+		if !serviceAccountMatch {
+			e2e.Failure(testCase, logger, fmt.Sprintf("Instance service accounts (`%v`) don't contain custom service account `%v`",
+				strings.Join(instanceServiceAccountEmails, ","), props.computeServiceAccount))
+			return
+		}
+	}
+
+	// Validate instance access scopes
+	scopes := ovfimporter.GetDefaultInstanceAccessScopes()
+	if props.instanceAccessScopes != "" {
+		scopes = strings.Split(props.instanceAccessScopes, ",")
+	}
+	sort.Strings(scopes)
+
+	var instanceServiceAccountScopes []string
+	for _, instanceServiceAccount := range instance.ServiceAccounts {
+		sort.Strings(instanceServiceAccount.Scopes)
+		if !reflect.DeepEqual(scopes, instanceServiceAccount.Scopes) {
+			e2e.Failure(testCase, logger, fmt.Sprintf(
+				"Instance access scopes (%v) for service account `%v` don't match expected scopes: `%v`",
+				strings.Join(instanceServiceAccountScopes, ","), instanceServiceAccount.Email, strings.Join(scopes, ",")))
+			return
+		}
+	}
+
 	logger.Printf("[%v] Stopping instance before restarting with test startup script", props.instanceName)
-	err = client.StopInstance(
-		testProjectConfig.TestProjectID, props.zone, props.instanceName)
+	err = client.StopInstance(project, props.zone, props.instanceName)
 
 	if err != nil {
 		testCase.WriteFailure("Error stopping imported instance: %v", err)

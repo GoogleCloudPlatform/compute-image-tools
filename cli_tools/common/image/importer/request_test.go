@@ -15,6 +15,7 @@
 package importer
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -23,6 +24,50 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
+
+func Test_FixBYOLAndOSFlags(t *testing.T) {
+	for _, tt := range []struct {
+		originalOSID, expectedOSID string
+		originalBYOL, expectedBYOL bool
+	}{{
+		originalOSID: "rhel-8",
+		originalBYOL: true,
+		expectedOSID: "rhel-8-byol",
+		expectedBYOL: false,
+	}, {
+		originalOSID: "rhel-8-byol",
+		originalBYOL: true,
+		expectedOSID: "rhel-8-byol",
+		expectedBYOL: false,
+	}, {
+		originalOSID: "rhel-8",
+		originalBYOL: false,
+		expectedOSID: "rhel-8",
+		expectedBYOL: false,
+	}, {
+		originalOSID: "rhel-8-byol",
+		originalBYOL: false,
+		expectedOSID: "rhel-8-byol",
+		expectedBYOL: false,
+	}, {
+		originalOSID: "",
+		originalBYOL: true,
+		expectedOSID: "",
+		expectedBYOL: true,
+	}, {
+		originalOSID: "",
+		originalBYOL: false,
+		expectedOSID: "",
+		expectedBYOL: false,
+	},
+	} {
+		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
+			FixBYOLAndOSArguments(&tt.originalOSID, &tt.originalBYOL)
+			assert.Equal(t, tt.expectedOSID, tt.originalOSID)
+			assert.Equal(t, tt.expectedBYOL, tt.originalBYOL)
+		})
+	}
+}
 
 func Test_validate_RequiresImageName(t *testing.T) {
 	request := makeValidRequest()
@@ -206,30 +251,38 @@ func Test_validate_ChecksForConflictingArguments(t *testing.T) {
 
 func Test_EnvironmentSettings(t *testing.T) {
 	request := ImageImportRequest{
-		Project:              "panda",
-		Zone:                 "us-west",
-		ScratchBucketGcsPath: "gs://bucket/path",
-		Oauth:                "oauth-info",
-		Timeout:              time.Hour * 3,
-		ComputeEndpoint:      "endpoint-uri",
-		GcsLogsDisabled:      true,
-		CloudLogsDisabled:    true,
-		StdoutLogsDisabled:   true,
-		NoExternalIP:         true,
-		DaisyLogLinePrefix:   "disk-0",
+		Project:               "panda",
+		Zone:                  "us-west",
+		ScratchBucketGcsPath:  "gs://bucket/path",
+		Oauth:                 "oauth-info",
+		Timeout:               time.Hour * 3,
+		ComputeEndpoint:       "endpoint-uri",
+		DaisyLogLinePrefix:    "disk-0",
+		GcsLogsDisabled:       true,
+		CloudLogsDisabled:     true,
+		StdoutLogsDisabled:    true,
+		Network:               "network",
+		Subnet:                "subnet",
+		ComputeServiceAccount: "email@example.com",
+		NoExternalIP:          true,
+		WorkflowDir:           "workflow-dir",
 	}
 	expected := daisycommon.EnvironmentSettings{
-		Project:            "panda",
-		Zone:               "us-west",
-		GCSPath:            "gs://bucket/path",
-		OAuth:              "oauth-info",
-		Timeout:            "3h0m0s",
-		ComputeEndpoint:    "endpoint-uri",
-		DisableGCSLogs:     true,
-		DisableCloudLogs:   true,
-		DisableStdoutLogs:  true,
-		NoExternalIP:       true,
-		DaisyLogLinePrefix: "disk-0",
+		Project:               "panda",
+		Zone:                  "us-west",
+		GCSPath:               "gs://bucket/path",
+		OAuth:                 "oauth-info",
+		Timeout:               "3h0m0s",
+		ComputeEndpoint:       "endpoint-uri",
+		DaisyLogLinePrefix:    "disk-0",
+		DisableGCSLogs:        true,
+		DisableCloudLogs:      true,
+		DisableStdoutLogs:     true,
+		Network:               "network",
+		Subnet:                "subnet",
+		ComputeServiceAccount: "email@example.com",
+		NoExternalIP:          true,
+		WorkflowDirectory:     "workflow-dir",
 	}
 	assert.Equal(t, expected, request.EnvironmentSettings())
 }
