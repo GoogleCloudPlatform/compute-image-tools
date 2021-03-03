@@ -13,7 +13,9 @@
 package importer
 
 import (
+	"context"
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
@@ -22,6 +24,8 @@ import (
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
+
+var allowedAPIFormatsEx = regexp.MustCompile("^(vpc)$")
 
 // Inflater constructs a new persistentDisk, typically starting from a
 // frozen representation of a disk, such as a VMDK file or a GCP disk image.
@@ -47,7 +51,14 @@ type shadowTestFields struct {
 func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient domain.StorageClientInterface,
 	inspector imagefile.Inspector, logger logging.Logger) (Inflater, error) {
 
-	di, err := newDaisyInflater(request, inspector, logger)
+	deadline, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(inspectionTimeout))
+	defer cancelFunc()
+	metadata, inspectorErr := inspector.Inspect(deadline, request.Source.Path())
+	if inspectorErr != nil {
+		metadata = imagefile.Metadata{}
+	}
+
+	di, err := newDaisyInflater(request, metadata, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -56,24 +67,23 @@ func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, 
 		return di, nil
 	}
 
-	if isShadowTestFormat(request) {
+	if isShadowTestFormat(metadata) {
 		return &shadowTestInflaterFacade{
 			mainInflater:   di,
-			shadowInflater: createAPIInflater(request, computeClient, storageClient, logger, true),
+			shadowInflater: createAPIInflater(request, computeClient, storageClient, logger, metadata, true),
 			logger:         logger,
 		}, nil
 	}
 
 	return &inflaterFacade{
-		apiInflater:   createAPIInflater(request, computeClient, storageClient, logger, false),
+		apiInflater:   createAPIInflater(request, computeClient, storageClient, logger, metadata, false),
 		daisyInflater: di,
 		logger:        logger,
 	}, nil
 }
 
-func isShadowTestFormat(request ImageImportRequest) bool {
-	// TODO: process VHD/VPC differently
-	return false
+func isShadowTestFormat(metadata imagefile.Metadata) bool {
+	return allowedAPIFormatsEx.MatchString(metadata.FileFormat)
 }
 
 // inflaterFacade implements an inflater using other concrete implementations.

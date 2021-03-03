@@ -15,6 +15,7 @@
 package importer
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -38,7 +39,7 @@ func TestCreateInflater_File(t *testing.T) {
 		t:                 t,
 		expectedReference: "gs://bucket/vmdk",
 		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{},
+		metaToReturn:      imagefile.Metadata{FileFormat: "vmdk"},
 	}, nil)
 	assert.NoError(t, err)
 	facade, ok := inflater.(*inflaterFacade)
@@ -58,6 +59,7 @@ func TestCreateInflater_File(t *testing.T) {
 	assert.True(t, ok)
 	assert.NotContains(t, apiInflater.guestOsFeatures,
 		&compute.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
+	assert.Equal(t, "vmdk", apiInflater.metadata.FileFormat)
 }
 
 func TestCreateInflater_Image(t *testing.T) {
@@ -66,7 +68,12 @@ func TestCreateInflater_Image(t *testing.T) {
 		Zone:        "us-west1-b",
 		ExecutionID: "1234",
 		WorkflowDir: daisyWorkflows,
-	}, nil, &storage.Client{}, nil, nil)
+	}, nil, &storage.Client{}, mockInspector{
+		t:                 t,
+		expectedReference: "projects/test/uri/image",
+		errorToReturn:     nil,
+		metaToReturn:      imagefile.Metadata{},
+	}, nil)
 	assert.NoError(t, err)
 	realInflater, ok := inflater.(*daisyInflater)
 	assert.True(t, ok)
@@ -149,4 +156,17 @@ func TestInflaterFacade_FailedOnDaisyInflater(t *testing.T) {
 
 	_, _, err := facade.Inflate()
 	assert.Equal(t, daisyError, err)
+}
+
+type mockInspector struct {
+	t                 *testing.T
+	expectedReference string
+	errorToReturn     error
+	metaToReturn      imagefile.Metadata
+}
+
+func (m mockInspector) Inspect(
+	ctx context.Context, reference string) (imagefile.Metadata, error) {
+	assert.Equal(m.t, m.expectedReference, reference)
+	return m.metaToReturn, m.errorToReturn
 }

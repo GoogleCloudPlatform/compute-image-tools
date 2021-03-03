@@ -15,8 +15,6 @@
 package importer
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"testing"
 
@@ -107,12 +105,7 @@ func TestCreateDaisyInflater_File_HappyCase(t *testing.T) {
 		Zone:         "us-west1-c",
 		ExecutionID:  "1234",
 		NoExternalIP: false,
-	}, mockInspector{
-		t:                 t,
-		expectedReference: source.gcsPath,
-		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{},
-	})
+	}, imagefile.Metadata{})
 
 	assert.Equal(t, "zones/us-west1-c/disks/disk-1234", inflater.inflatedDiskURI)
 	assert.Equal(t, "gs://bucket/vmdk", inflater.wf.Vars["source_disk_file"].Value)
@@ -129,12 +122,7 @@ func TestCreateDaisyInflater_File_ComputeServiceAcount(t *testing.T) {
 	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 		Source:                source,
 		ComputeServiceAccount: "csa",
-	}, mockInspector{
-		t:                 t,
-		expectedReference: source.gcsPath,
-		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{},
-	})
+	}, imagefile.Metadata{})
 
 	assert.Equal(t, "csa", inflater.wf.Vars["compute_service_account"].Value)
 }
@@ -144,12 +132,7 @@ func TestCreateDaisyInflater_File_NoExternalIP(t *testing.T) {
 	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 		Source:       source,
 		NoExternalIP: true,
-	}, mockInspector{
-		t:                 t,
-		expectedReference: source.gcsPath,
-		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{},
-	})
+	}, imagefile.Metadata{})
 
 	network := getWorkerNetwork(t, inflater.wf)
 	assert.NotNil(t, network.AccessConfigs, "To disable external IPs, AccessConfigs must be non-nil.")
@@ -160,12 +143,7 @@ func TestCreateDaisyInflater_File_UsesFallbackSizes_WhenInspectionFails(t *testi
 	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 		Source:       source,
 		NoExternalIP: true,
-	}, mockInspector{
-		t:                 t,
-		expectedReference: source.gcsPath,
-		errorToReturn:     errors.New("inspection failed"),
-		metaToReturn:      imagefile.Metadata{},
-	})
+	}, imagefile.Metadata{})
 
 	// The 10GB defaults are hardcoded in inflate_file.wf.json.
 	assert.Equal(t, "10", inflater.wf.Vars["scratch_disk_size_gb"].Value)
@@ -203,14 +181,11 @@ func TestCreateDaisyInflater_File_SetsSizesFromInspectedFile(t *testing.T) {
 			inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 				Source:       source,
 				NoExternalIP: true,
-			}, mockInspector{
-				t:                 t,
-				expectedReference: source.gcsPath,
-				metaToReturn: imagefile.Metadata{
-					VirtualSizeGB:  tt.virtualSize,
-					PhysicalSizeGB: tt.physicalSize,
-				},
-			})
+			}, imagefile.Metadata{
+				VirtualSizeGB:  tt.virtualSize,
+				PhysicalSizeGB: tt.physicalSize,
+			},
+			)
 
 			assert.Equal(t, tt.expectedInflated, inflater.wf.Vars["inflated_disk_size_gb"].Value)
 			assert.Equal(t, tt.expectedScratch, inflater.wf.Vars["scratch_disk_size_gb"].Value)
@@ -223,12 +198,7 @@ func TestCreateDaisyInflater_File_Windows(t *testing.T) {
 	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 		Source: source,
 		OS:     "windows-2019",
-	}, mockInspector{
-		t:                 t,
-		expectedReference: source.gcsPath,
-		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{},
-	})
+	}, imagefile.Metadata{})
 
 	inflatedDisk := getDisk(inflater.wf, 1)
 	assert.Contains(t, inflatedDisk.GuestOsFeatures, &compute.GuestOsFeature{
@@ -241,12 +211,7 @@ func TestCreateDaisyInflater_File_NotWindows(t *testing.T) {
 	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 		Source: source,
 		OS:     "ubuntu-1804",
-	}, mockInspector{
-		t:                 t,
-		expectedReference: source.gcsPath,
-		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{},
-	})
+	}, imagefile.Metadata{})
 
 	inflatedDisk := getDisk(inflater.wf, 1)
 	assert.NotContains(t, inflatedDisk.GuestOsFeatures, &compute.GuestOsFeature{
@@ -260,12 +225,7 @@ func TestCreateDaisyInflater_File_UEFI(t *testing.T) {
 		Source:         source,
 		OS:             "ubuntu-1804",
 		UefiCompatible: true,
-	}, mockInspector{
-		t:                 t,
-		expectedReference: source.gcsPath,
-		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{},
-	})
+	}, imagefile.Metadata{})
 
 	inflatedDisk := getDisk(inflater.wf, 1)
 	assert.Contains(t, inflatedDisk.GuestOsFeatures, &compute.GuestOsFeature{
@@ -279,12 +239,7 @@ func TestCreateDaisyInflater_File_NotUEFI(t *testing.T) {
 		Source:         source,
 		OS:             "ubuntu-1804",
 		UefiCompatible: false,
-	}, mockInspector{
-		t:                 t,
-		expectedReference: source.gcsPath,
-		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{},
-	})
+	}, imagefile.Metadata{})
 
 	inflatedDisk := getDisk(inflater.wf, 1)
 	assert.NotContains(t, inflatedDisk.GuestOsFeatures, &compute.GuestOsFeature{
@@ -293,15 +248,15 @@ func TestCreateDaisyInflater_File_NotUEFI(t *testing.T) {
 }
 
 func createDaisyInflaterSafe(t *testing.T, request ImageImportRequest,
-	inspector imagefile.Inspector) *daisyInflater {
+	metadata imagefile.Metadata) *daisyInflater {
 	request.WorkflowDir = "../../../../daisy_workflows"
-	daisyInflater, err := newDaisyInflater(request, inspector, logging.NewToolLogger("test"))
+	daisyInflater, err := newDaisyInflater(request, metadata, logging.NewToolLogger("test"))
 	assert.NoError(t, err)
 	return daisyInflater
 }
 
 func createDaisyInflaterForImageSafe(t *testing.T, request ImageImportRequest) *daisyInflater {
-	return createDaisyInflaterSafe(t, request, nil)
+	return createDaisyInflaterSafe(t, request, imagefile.Metadata{})
 }
 
 func getWorkerNetwork(t *testing.T, workflow *daisy.Workflow) *compute.NetworkInterface {
@@ -315,17 +270,4 @@ func getWorkerNetwork(t *testing.T, workflow *daisy.Workflow) *compute.NetworkIn
 		}
 	}
 	panic("expected create instance step with single network")
-}
-
-type mockInspector struct {
-	t                 *testing.T
-	expectedReference string
-	errorToReturn     error
-	metaToReturn      imagefile.Metadata
-}
-
-func (m mockInspector) Inspect(
-	ctx context.Context, reference string) (imagefile.Metadata, error) {
-	assert.Equal(m.t, m.expectedReference, reference)
-	return m.metaToReturn, m.errorToReturn
 }

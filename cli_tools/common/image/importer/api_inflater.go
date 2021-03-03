@@ -23,6 +23,7 @@ import (
 	"google.golang.org/api/googleapi"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
@@ -53,16 +54,18 @@ type apiInflater struct {
 	wg               sync.WaitGroup
 	cancelChan       chan string
 	logger           logging.Logger
+	metadata         imagefile.Metadata
 	isShadowInflater bool
 }
 
-func createAPIInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient domain.StorageClientInterface, logger logging.Logger, isShadowInflater bool) *apiInflater {
+func createAPIInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient domain.StorageClientInterface, logger logging.Logger, metadata imagefile.Metadata, isShadowInflater bool) *apiInflater {
 	inflater := apiInflater{
 		request:          request,
 		computeClient:    computeClient,
 		storageClient:    storageClient,
 		cancelChan:       make(chan string, 1),
 		logger:           logger,
+		metadata:         metadata,
 		isShadowInflater: isShadowInflater,
 	}
 	if request.UefiCompatible {
@@ -154,7 +157,7 @@ func (inflater *apiInflater) getDiskAttributes(ctx context.Context, diskName str
 		uri:        diskURI,
 		sizeGb:     cd.SizeGb,
 		sourceGb:   sourceFileSizeGb,
-		sourceType: "vmdk", // only vmdk is supported right now
+		sourceType: inflater.metadata.FileFormat,
 	}
 	ii := shadowTestFields{
 		inflationType: "api",
