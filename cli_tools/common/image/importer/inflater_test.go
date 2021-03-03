@@ -39,7 +39,7 @@ func TestCreateInflater_File(t *testing.T) {
 		t:                 t,
 		expectedReference: "gs://bucket/vmdk",
 		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{},
+		metaToReturn:      imagefile.Metadata{ FileFormat: "vmdk" },
 	}, nil)
 	assert.NoError(t, err)
 	facade, ok := inflater.(*inflaterFacade)
@@ -59,6 +59,7 @@ func TestCreateInflater_File(t *testing.T) {
 	assert.True(t, ok)
 	assert.NotContains(t, apiInflater.guestOsFeatures,
 		&compute.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
+	assert.Equal(t, "vmdk", apiInflater.metadata.FileFormat)
 }
 
 func TestCreateInflater_Image(t *testing.T) {
