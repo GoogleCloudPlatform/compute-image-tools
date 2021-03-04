@@ -84,6 +84,8 @@ function Setup-ScriptRunner {
   # Garbage collect before unmounting.
   [gc]::collect()
 
+  # Delay to ensure registry changes are completed.
+  Start-Sleep -s 5
   Run-Command reg unload 'HKLM\MountedSoftware'
 }
 
@@ -227,6 +229,9 @@ try {
   # See http://support.microsoft.com/kb/2955372/en-us
   Run-Command reg load 'HKLM\MountedSoftware' "${script:os_drive}\Windows\System32\config\SOFTWARE"
   Run-Command reg add 'HKLM\MountedSoftware\Microsoft\Windows\CurrentVersion\Authentication\LogonUI' /v 'AnimationDisabled' /t 'REG_DWORD' /d 1 /f
+
+  # Delay to ensure reg add is completed.
+  Start-Sleep -s 5
   Run-Command reg unload 'HKLM\MountedSoftware'
 
   Write-Output 'TranslateBootstrap: Rewriting boot files.'

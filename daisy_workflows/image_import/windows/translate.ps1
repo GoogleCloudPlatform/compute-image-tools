@@ -176,7 +176,8 @@ function Configure-Network {
     # because it will recursively add any necessary subkeys.
     Run-Command reg add $WPAD /v AutoDetect /t REG_DWORD /d 0 /f
   }
-
+  # Delay to ensure registry changes are completed.
+  Start-Sleep -s 5
   # Unmount default user hive.
   Run-Command reg unload 'HKLM\DefaultUser'
 
