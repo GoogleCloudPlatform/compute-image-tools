@@ -65,13 +65,13 @@ function Export-ImageMetadata {
             $image_metadata['packages'] += $package_metadata
         }
         catch {
-            Write-Host "Failed to retrieve metadata for $package_line, skiping."
+            Write-Host "ExportFailed: Failed to retrieve metadata for $package_line, skiping."
         }
     }
 
     # Save the JSON image_metadata.
     $image_metadata_json = $image_metadata | ConvertTo-Json -Compress
-    $image_metadata_json | & 'gsutil' cp - "${metadata_dest}/metadata.json"
+    $image_metadata_json | & 'gsutil' cp - "${metadata_dest}"
 }
 
 try {
@@ -81,7 +81,7 @@ try {
     $image_name = Get-MetadataValue -key 'image_name'
     $image_family = Get-MetadataValue -key 'image_family'
     Export-ImageMetadata
-    Write-Host 'Finished export windows image metadata'
+    Write-Host 'ExportSuccess: Finished export windows image metadata'
 }
 catch {
     Write-Host 'Exception caught in script:'
