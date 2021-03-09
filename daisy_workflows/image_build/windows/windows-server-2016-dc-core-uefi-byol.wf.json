@@ -1,5 +1,5 @@
 {
-  "Name": "windows-2016-dc-uefi-byol",
+  "Name": "windows-2016-dc-core-uefi-byol",
   "Vars": {
     "install_disk": "install-disk",
     "media": {
@@ -22,7 +22,7 @@
       "Value": "Microsoft, Windows Server, 2016 Datacenter, Server with Desktop Experience, x64 built on ${TIMESTAMP}, supports Shielded VM features"
     },
     "family": {
-      "Value": "windows-2016-byol",
+      "Value": "windows-2016-core-byol",
       "Description": "Desired image family of the output image."
     },
     "google_cloud_repo": {
@@ -30,7 +30,7 @@
       "Description": "Google Cloud repo to retrieve packages from during the build."
     },
     "name": {
-      "Value": "windows-server-2016-dc-byol-v${TIMESTAMP}",
+      "Value": "windows-server-2016-dc-core-byol-v${TIMESTAMP}",
       "Description": "The name of the output image."
     },
     "project": {
@@ -53,12 +53,12 @@
         "Path": "./windows-build-uefi.wf.json",
         "Vars": {
           "install_disk": "${install_disk}",
-          "install_disk_size": "50",
+          "install_disk_size": "32",
           "updates": "${updates}",
           "drivers_bucket": "gs://gce-windows-drivers-public/release/win6.3-signed/",
           "dotnet48": "${dotnet48}",
           "pwsh": "${pwsh}",
-          "edition": "Windows Server 2016 SERVERDATACENTER",
+          "edition": "Windows Server 2016 SERVERDATACENTERCORE",
           "media": "${media}",
           "cloud_sdk": "${cloudsdk}",
           "product_key": "CB7KF-BWN84-R7R2Y-793K2-8XDDG",
@@ -76,7 +76,8 @@
           "Family": "${family}",
           "Description": "${description}",
           "Licenses": [
-            "projects/windows-cloud/global/licenses/windows-server-2016-byol"
+            "projects/windows-cloud/global/licenses/windows-server-2016-byol",
+            "projects/windows-cloud/global/licenses/windows-server-core"
           ],
           "GuestOsFeatures": [
             {

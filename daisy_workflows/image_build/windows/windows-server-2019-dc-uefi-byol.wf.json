@@ -22,7 +22,7 @@
       "Value": "Microsoft, Windows Server, 2019 Datacenter, Server with Desktop Experience, x64 built on ${TIMESTAMP}, supports Shielded VM features"
     },
     "family": {
-      "Value": "windows-2016",
+      "Value": "windows-2019-byol",
       "Description": "Desired image family of the output image."
     },
     "google_cloud_repo": {
