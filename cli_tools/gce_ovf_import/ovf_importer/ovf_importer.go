@@ -142,7 +142,6 @@ func getImportWorkflowPath(params *ovfdomain.OVFImportParams) (workflow string) 
 }
 
 func (oi *OVFImporter) buildDaisyVars(bootDiskImageURI string, machineType string) map[string]string {
-
 	varMap := map[string]string{}
 	varMap["boot_disk_image_uri"] = bootDiskImageURI
 	if oi.params.IsInstanceImport() {
@@ -150,8 +149,8 @@ func (oi *OVFImporter) buildDaisyVars(bootDiskImageURI string, machineType strin
 	} else {
 		varMap["machine_image_name"] = oi.params.MachineImageName
 	}
-	if oi.params.ComputeServiceAccount != "" {
-		varMap["compute_service_account"] = oi.params.ComputeServiceAccount
+	if oi.params.InstanceServiceAccount != "" {
+		varMap["instance_service_account"] = oi.params.InstanceServiceAccount
 	}
 	if oi.params.Subnet != "" {
 		varMap["subnet"] = oi.params.Subnet

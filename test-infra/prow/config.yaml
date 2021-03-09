@@ -175,6 +175,8 @@ periodics:
        - "-test_zone=us-central1-c"
        - "-variables=compute_service_account_without_default_service_account=pool-001-1-sa@compute-image-test-pool-001-1.iam.gserviceaccount.com,\
            compute_service_account_without_default_service_account_permission=pool-001-2-sa@compute-image-test-pool-001-2.iam.gserviceaccount.com,\
+           instance_service_account_without_default_service_account=pool-001-1-sa-2@compute-image-test-pool-001-1.iam.gserviceaccount.com,\
+           instance_service_account_without_default_service_account_permission=pool-001-2-sa-2@compute-image-test-pool-001-2.iam.gserviceaccount.com,\
            project_id_without_default_service_account=compute-image-test-pool-001-1,\
            project_id_without_default_service_account_permission=compute-image-test-pool-001-2"
        env:

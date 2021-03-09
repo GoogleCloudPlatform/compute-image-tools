@@ -458,6 +458,7 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 				params.PrivateNetworkIP = "127.0.0.1			 "
 				params.NetworkTier = " PREMIUM "
 				params.ComputeServiceAccount = " ce@project.google.com		"
+				params.InstanceServiceAccount = " ins-se@project.google.com		"
 			},
 			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
 				if importType == "instance" {
@@ -469,6 +470,7 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 				assert.Equal(t, "127.0.0.1", params.PrivateNetworkIP)
 				assert.Equal(t, "PREMIUM", params.NetworkTier)
 				assert.Equal(t, "ce@project.google.com", params.ComputeServiceAccount)
+				assert.Equal(t, "ins-se@project.google.com", params.InstanceServiceAccount)
 			},
 		}, {
 			name: "instance access scopes parsed",

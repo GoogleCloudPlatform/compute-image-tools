@@ -64,7 +64,8 @@ var (
 	scratchBucketGcsPath        = flag.String("scratch-bucket-gcs-path", "", "GCS scratch bucket to use, overrides what is set in workflow")
 	oauth                       = flag.String("oauth", "", "path to oauth json file, overrides what is set in workflow")
 	ce                          = flag.String("compute-endpoint-override", "", "API endpoint to override default")
-	computeServiceAccount       = flag.String("compute-service-account", "", "Compute service account to be used by importer Virtual Machine and the resulting VM or Machine Image. When empty, the Compute Engine default service account is used.")
+	computeServiceAccount       = flag.String("compute-service-account", "", "Compute service account to be used by importer Virtual Machine. When empty, the Compute Engine default service account is used.")
+	serviceAccount              = flag.String("service-account", "", "A service account is an identity attached to the instance. If not provided, the instance will use the project's default service account.")
 	scopes                      = flag.String("scopes", "", "Access scopes to be assigned to the instance. A comma separated list of either full URI of the scope or an alias.")
 	gcsLogsDisabled             = flag.Bool("disable-gcs-logging", false, "do not stream logs to GCS")
 	cloudLogsDisabled           = flag.Bool("disable-cloud-logging", false, "do not stream logs to Cloud Logging")
@@ -103,8 +104,8 @@ func buildOVFImportParams() *domain.OVFImportParams {
 		BootDiskKmsKeyring: *bootDiskKmsKeyring, BootDiskKmsLocation: *bootDiskKmsLocation,
 		BootDiskKmsProject: *bootDiskKmsProject, Timeout: *timeout, Project: project,
 		ScratchBucketGcsPath: *scratchBucketGcsPath, Oauth: *oauth,
-		Ce: *ce, ComputeServiceAccount: *computeServiceAccount, InstanceAccessScopesFlag: *scopes,
-		GcsLogsDisabled: *gcsLogsDisabled, CloudLogsDisabled: *cloudLogsDisabled,
+		Ce: *ce, ComputeServiceAccount: *computeServiceAccount, InstanceServiceAccount: *serviceAccount,
+		InstanceAccessScopesFlag: *scopes, GcsLogsDisabled: *gcsLogsDisabled, CloudLogsDisabled: *cloudLogsDisabled,
 		StdoutLogsDisabled: *stdoutLogsDisabled, NodeAffinityLabelsFlag: nodeAffinityLabelsFlag,
 		CurrentExecutablePath: currentExecutablePath, ReleaseTrack: *releaseTrack,
 		UefiCompatible: *uefiCompatible, Hostname: *hostname,
