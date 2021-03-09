@@ -22,7 +22,7 @@
       "Value": "Microsoft, Windows Server, 2012 R2 Datacenter, Server with Desktop Experience, x64 built on ${TIMESTAMP}, supports Shielded VM features"
     },
     "family": {
-      "Value": "windows-server-2012-r2-dc",
+      "Value": "windows-2012-r2",
       "Description": "Desired image family of the output image."
     },
     "google_cloud_repo": {
