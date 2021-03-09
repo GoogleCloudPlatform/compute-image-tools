@@ -77,6 +77,7 @@ type ovfMachineImageImportTestProperties struct {
 	instanceMetadata          map[string]string
 	project                   string
 	computeServiceAccount     string
+	instanceServiceAccount    string
 	instanceAccessScopes      string
 }
 
@@ -253,15 +254,16 @@ func runMachineImageImportDisabledDefaultServiceAccountSuccessTest(ctx context.C
 		machineImageName: fmt.Sprintf("test-without-service-account-%v", suffix),
 		verificationStartupScript: loadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-		zone:                  testProjectConfig.TestZone,
-		expectedStartupOutput: "All tests passed!",
-		failureMatches:        []string{"FAILED:", "TestFailed:"},
-		sourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
-		os:                    "centos-7",
-		machineType:           "n1-standard-4",
-		project:               testVariables.ProjectID,
-		computeServiceAccount: testVariables.ComputeServiceAccount,
-		instanceAccessScopes:  "https://www.googleapis.com/auth/compute,https://www.googleapis.com/auth/datastore",
+		zone:                   testProjectConfig.TestZone,
+		expectedStartupOutput:  "All tests passed!",
+		failureMatches:         []string{"FAILED:", "TestFailed:"},
+		sourceURI:              fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+		os:                     "centos-7",
+		machineType:            "n1-standard-4",
+		project:                testVariables.ProjectID,
+		computeServiceAccount:  testVariables.ComputeServiceAccount,
+		instanceServiceAccount: testVariables.InstanceServiceAccount,
+		instanceAccessScopes:   "https://www.googleapis.com/auth/compute,https://www.googleapis.com/auth/datastore",
 	}
 	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
@@ -279,14 +281,15 @@ func runMachineImageImportOSDefaultServiceAccountWithMissingPermissionsSuccessTe
 		machineImageName: fmt.Sprintf("test-missing-ce-permissions-%v", suffix),
 		verificationStartupScript: loadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-		zone:                  testProjectConfig.TestZone,
-		expectedStartupOutput: "All tests passed!",
-		failureMatches:        []string{"FAILED:", "TestFailed:"},
-		sourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
-		os:                    "centos-7",
-		machineType:           "n1-standard-4",
-		project:               testVariables.ProjectID,
-		computeServiceAccount: testVariables.ComputeServiceAccount,
+		zone:                   testProjectConfig.TestZone,
+		expectedStartupOutput:  "All tests passed!",
+		failureMatches:         []string{"FAILED:", "TestFailed:"},
+		sourceURI:              fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+		os:                     "centos-7",
+		machineType:            "n1-standard-4",
+		project:                testVariables.ProjectID,
+		computeServiceAccount:  testVariables.ComputeServiceAccount,
+		instanceServiceAccount: testVariables.InstanceServiceAccount,
 	}
 	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
@@ -423,6 +426,11 @@ func buildTestArgs(props *ovfMachineImageImportTestProperties, testProjectConfig
 		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--compute-service-account=%v", props.computeServiceAccount))
 		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-compute-service-account=%v", props.computeServiceAccount))
 	}
+	if props.instanceServiceAccount != "" {
+		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--service-account=%v", props.instanceServiceAccount))
+		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--service-account=%v", props.instanceServiceAccount))
+		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-service-account=%v", props.instanceServiceAccount))
+	}
 	if props.instanceAccessScopes != "" {
 		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--scopes=%v", props.instanceAccessScopes))
 		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--scopes=%v", props.instanceAccessScopes))
@@ -524,18 +532,18 @@ func verifyImportedMachineImage(
 		return
 	}
 
-	if props.computeServiceAccount != "" {
+	if props.instanceServiceAccount != "" {
 		serviceAccountMatch := false
 		var instanceServiceAccountEmails []string
 		for _, instanceServiceAccount := range instance.ServiceAccounts {
 			instanceServiceAccountEmails = append(instanceServiceAccountEmails, instanceServiceAccount.Email)
-			if instanceServiceAccount.Email == props.computeServiceAccount {
+			if instanceServiceAccount.Email == props.instanceServiceAccount {
 				serviceAccountMatch = true
 			}
 		}
 		if !serviceAccountMatch {
 			e2e.Failure(testCase, logger, fmt.Sprintf("Instance service accounts (`%v`) don't contain custom service account `%v`",
-				strings.Join(instanceServiceAccountEmails, ","), props.computeServiceAccount))
+				strings.Join(instanceServiceAccountEmails, ","), props.instanceServiceAccount))
 			return
 		}
 	}

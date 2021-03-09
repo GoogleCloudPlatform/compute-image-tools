@@ -104,6 +104,7 @@ func (p *ParamValidatorAndPopulator) ValidateAndPopulate(params *ovfdomain.OVFIm
 	params.PrivateNetworkIP = strings.TrimSpace(params.PrivateNetworkIP)
 	params.NetworkTier = strings.TrimSpace(params.NetworkTier)
 	params.ComputeServiceAccount = strings.TrimSpace(params.ComputeServiceAccount)
+	params.InstanceServiceAccount = strings.TrimSpace(params.InstanceServiceAccount)
 	params.InstanceAccessScopesFlag = strings.TrimSpace(params.InstanceAccessScopesFlag)
 	if params.InstanceAccessScopesFlag != "" {
 		params.InstanceAccessScopes = strings.Split(params.InstanceAccessScopesFlag, ",")

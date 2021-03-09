@@ -32,7 +32,7 @@
       "Value": "PREMIUM",
       "Description": "Network tier that will be used to configure the instance"
     },
-    "compute_service_account": {
+    "instance_service_account": {
       "Value": "default",
       "Description": "Service account that will be used by the created instance"
     }
@@ -70,7 +70,7 @@
           "NoCleanup": true,
           "ServiceAccounts": [
             {
-              "Email": "${compute_service_account}"
+              "Email": "${instance_service_account}"
             }
           ]
         }

@@ -15,16 +15,19 @@
 package e2e
 
 const (
-	projectIDWithoutDefaultServiceAccountFlag                       = "project_id_without_default_service_account"
-	projectIDWithoutDefaultServiceAccountPermissionFlag             = "project_id_without_default_service_account_permission"
-	computeServiceAccountWithoutDefaultServiceAccountFlag           = "compute_service_account_without_default_service_account"
-	computeServiceAccountWithoutDefaultServiceAccountPermissionFlag = "compute_service_account_without_default_service_account_permission"
+	projectIDWithoutDefaultServiceAccountFlag                        = "project_id_without_default_service_account"
+	projectIDWithoutDefaultServiceAccountPermissionFlag              = "project_id_without_default_service_account_permission"
+	computeServiceAccountWithoutDefaultServiceAccountFlag            = "compute_service_account_without_default_service_account"
+	computeServiceAccountWithoutDefaultServiceAccountPermissionFlag  = "compute_service_account_without_default_service_account_permission"
+	instanceServiceAccountWithoutDefaultServiceAccountFlag           = "instance_service_account_without_default_service_account"
+	instanceServiceAccountWithoutDefaultServiceAccountPermissionFlag = "instance_service_account_without_default_service_account_permission"
 )
 
 // ServiceAccountTestVariables contains service-account related test variables.
 type ServiceAccountTestVariables struct {
-	ProjectID             string
-	ComputeServiceAccount string
+	ProjectID              string
+	ComputeServiceAccount  string
+	InstanceServiceAccount string
 }
 
 // GetServiceAccountTestVariables extract extra test variables related to service account from input variable map.
@@ -36,6 +39,8 @@ func GetServiceAccountTestVariables(argMap map[string]string, isDefaultServiceAc
 				v.ProjectID = val
 			case computeServiceAccountWithoutDefaultServiceAccountFlag:
 				v.ComputeServiceAccount = val
+			case instanceServiceAccountWithoutDefaultServiceAccountFlag:
+				v.InstanceServiceAccount = val
 			default:
 				// args not related
 			}
@@ -45,6 +50,8 @@ func GetServiceAccountTestVariables(argMap map[string]string, isDefaultServiceAc
 				v.ProjectID = val
 			case computeServiceAccountWithoutDefaultServiceAccountPermissionFlag:
 				v.ComputeServiceAccount = val
+			case instanceServiceAccountWithoutDefaultServiceAccountPermissionFlag:
+				v.InstanceServiceAccount = val
 			default:
 				// args not related
 			}

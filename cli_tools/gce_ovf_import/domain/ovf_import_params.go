@@ -77,6 +77,7 @@ type OVFImportParams struct {
 	Oauth                       string
 	Ce                          string
 	ComputeServiceAccount       string
+	InstanceServiceAccount      string
 	InstanceAccessScopesFlag    string
 	GcsLogsDisabled             bool
 	CloudLogsDisabled           bool
