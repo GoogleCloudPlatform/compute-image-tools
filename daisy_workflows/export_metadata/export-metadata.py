@@ -37,7 +37,7 @@ def main():
   logging.info('Creating upload metadata of the image and packages.')
 
   utc_time = datetime.datetime.now(datetime.timezone.utc)
-  image_version = utc_time.strftime('%Y%m%d')
+  image_version = image_name.rsplit("v")[-1]
   publish_date = utc_time.astimezone().isoformat()
   image = {
       'id': image_id,
