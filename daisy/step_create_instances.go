@@ -111,7 +111,7 @@ Loop:
 				continue
 			}
 
-			if w.isCanceled() {
+			if w.isCanceled {
 				break Loop
 			}
 		}

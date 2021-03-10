@@ -155,6 +155,43 @@ func TestGetSourceGCSAPIPath(t *testing.T) {
 	}
 }
 
+func TestCancelWorkflow_IsIdempotent(t *testing.T) {
+	w := testWorkflow()
+	if w.isCanceled {
+		t.Error("Didn't expect workflow to be canceled.")
+	}
+	w.CancelWorkflow()
+	w.CancelWorkflow()
+	if !w.isCanceled {
+		t.Error("Expect workflow to be canceled.")
+	}
+}
+
+func TestCancelWithReason_IsIdempotent(t *testing.T) {
+	w := testWorkflow()
+	reason := "reason"
+	w.CancelWithReason(reason)
+	w.CancelWithReason(reason)
+	if !w.isCanceled {
+		t.Error("Expect workflow to be canceled.")
+	}
+	if w.getCancelReason() != reason {
+		t.Errorf("Expected reason mismatch. got=%q, want=%q", w.getCancelReason(), reason)
+	}
+}
+
+func TestCancelWorkflow_RecoversFromManuallyClosedChannel(t *testing.T) {
+	w := testWorkflow()
+	if w.isCanceled {
+		t.Error("Didn't expect workflow to be canceled.")
+	}
+	close(w.Cancel)
+	w.CancelWorkflow()
+	if !w.isCanceled {
+		t.Error("Expect workflow to be canceled.")
+	}
+}
+
 func TestNewFromFileError(t *testing.T) {
 	td, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
