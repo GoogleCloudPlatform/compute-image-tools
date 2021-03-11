@@ -19,6 +19,10 @@
     "source_image": {
       "Required": true,
       "Description": "Base image family to build devcluster image from."
+    },
+    "timeout": {
+      "Value": "2h",
+      "Description": "The timeout to set for the image build."
     }
   },
   "Sources": {
@@ -57,6 +61,7 @@
       ]
     },
     "wait-for-inst-install": {
+      "TimeOut": "${timeout}",
       "waitForInstancesSignal": [
         {
           "Name": "inst-install",
