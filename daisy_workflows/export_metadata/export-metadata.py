@@ -84,16 +84,17 @@ def main():
     if 'centos-6' in image_family or 'rhel-6' in image_family:
       # centos-6 and rhel-6 doesn't support vcs tag
       cmd_prefix = ['chroot', '/mnt', 'rpm', '-q', '--queryformat',
-                    '%{NAME}\n%{VERSION}-%{RELEASE}']
+                    '%{NAME}\n%{EPOCH}\n%{VERSION}-%{RELEASE}']
       has_commit_hash = False
     else:
       cmd_prefix = ['chroot', '/mnt', 'rpm', '-q', '--queryformat',
-                    '%{NAME}\n%{VERSION}-%{RELEASE}\n%{VCS}']
+                    '%{NAME}\n%{EPOCH}\n%{VERSION}-%{RELEASE}\n%{VCS}']
   else:
     logging.error('Unknown Linux distribution.')
     return
 
-  version, commit_hash = '', ''
+  version = ''
+  commit_hash = ''
   for package in guest_packages:
     cmd = cmd_prefix + [package]
     try:
@@ -104,12 +105,12 @@ def main():
       logging.error('Fail to execute cmd. %s', e)
       return
     if has_commit_hash:
-      package, version, commit_hash = stdout.split('\n', 2)
+      package, epoch, version, commit_hash = stdout.split('\n', 3)
     else:
-      package, version = stdout.split('\n', 1)
+      package, epoch, version = stdout.split('\n', 2)
     package_metadata = {
         'name': package,
-        'version': version,
+        'version': '{}:{}'.format(epoch, version) if epoch else version,
         'commit_hash': commit_hash,
     }
     image['packages'].append(package_metadata)
