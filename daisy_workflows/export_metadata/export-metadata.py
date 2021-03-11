@@ -33,6 +33,7 @@ def main():
   distribution = utils.GetMetadataAttribute('distribution',
                                             raise_on_not_found=True)
   uefi = utils.GetMetadataAttribute('uefi', 'false').lower() == 'true'
+  outs_path = utils.GetMetadataAttribute('daisy-outs-path')
 
   logging.info('Creating upload metadata of the image and packages.')
 
@@ -47,9 +48,9 @@ def main():
       'publish_date': publish_date,
       'packages': [],
   }
+
   # All the guest environment packages maintained by guest-os team.
   guest_packages = [
-      'google-cloud-packages-archive-keyring',
       'google-compute-engine',
       'google-compute-engine-oslogin',
       'google-guest-agent',
@@ -60,7 +61,8 @@ def main():
   # This assumes that:
   # 1. /dev/sdb1 is the EFI system partition.
   # 2. /dev/sdb2 is the root mount for the installed system.
-  if uefi:
+  # Except for debian 10, which has out-of-order partitions.
+  if uefi and 'debian-10' not in image_family:
     mount_disk = '/dev/sdb2'
   else:
     mount_disk = '/dev/sdb1'
@@ -75,6 +77,8 @@ def main():
 
   has_commit_hash = True
   if distribution == 'debian':
+    #  This package is debian-only.
+    guest_packages.append('google-cloud-packages-archive-keyring')
     cmd_prefix = ['chroot', '/mnt', 'dpkg-query', '-W', '--showformat',
                   '${Package}\n${Version}\n${Git}']
   elif distribution == 'enterprise_linux':
@@ -88,7 +92,7 @@ def main():
                     '%{NAME}\n%{VERSION}-%{RELEASE}\n%{VCS}']
   else:
     logging.error('Unknown Linux distribution.')
-    return Exception
+    return
 
   version, commit_hash = '', ''
   for package in guest_packages:
@@ -98,8 +102,8 @@ def main():
       stdout = stdout.decode()
       logging.info('Package metadata is %s', stdout)
     except subprocess.CalledProcessError as e:
-      logging.warning('Fail to execute cmd. %s', e)
-      continue
+      logging.error('Fail to execute cmd. %s', e)
+      return
     if has_commit_hash:
       package, version, commit_hash = stdout.split('\n', 2)
     else:
@@ -115,14 +119,23 @@ def main():
   with tempfile.NamedTemporaryFile(mode='w', dir='/tmp', delete=False) as f:
     f.write(json.dumps(image))
 
-  logging.info('Uploading image metadata.')
+  # We upload the result to the daisy outs path as well, to aid in
+  # troubleshooting.
+  logging.info('Uploading image metadata to daisy outs path.')
+  try:
+    utils.UploadFile(f.name, outs_path + "/metadata.json")
+  except ValueError as e:
+    logging.error('Failed uploading metadata file %s', e)
+    return
+
+  logging.info('Uploading image metadata to destination.')
   try:
     utils.UploadFile(f.name, metadata_dest)
   except ValueError as e:
-    logging.exception('ExportFailed: Failed uploading metadata file %s', e)
-    sys.exit(1)
+    logging.error('Failed uploading metadata file %s', e)
+    return
 
-  logging.info('ExportSuccess: Export metadata was successful!')
+  logging.success('Export metadata was successful!')
 
 
 if __name__ == '__main__':
