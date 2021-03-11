@@ -74,19 +74,12 @@ def main():
     # error: Failed to initialize NSS library.
     subprocess.run(['mount', '-o', 'bind', '/dev', '/mnt/dev'], check=False)
 
-  has_commit_hash = True
   if distribution == 'debian':
     #  This package is debian-only.
     guest_packages.append('google-cloud-packages-archive-keyring')
     cmd_prefix = ['chroot', '/mnt', 'dpkg-query', '-W', '--showformat',
                   '${Package}\n${Version}\n${Git}']
   elif distribution == 'enterprise_linux':
-    if 'centos-6' in image_family or 'rhel-6' in image_family:
-      # centos-6 and rhel-6 doesn't support vcs tag
-      cmd_prefix = ['chroot', '/mnt', 'rpm', '-q', '--queryformat',
-                    '%{NAME}\n%{EPOCH}\n%{VERSION}-%{RELEASE}']
-      has_commit_hash = False
-    else:
       cmd_prefix = ['chroot', '/mnt', 'rpm', '-q', '--queryformat',
                     '%{NAME}\n%{EPOCH}\n%{VERSION}-%{RELEASE}\n%{VCS}']
   else:
@@ -104,12 +97,15 @@ def main():
     except subprocess.CalledProcessError as e:
       logging.error('Fail to execute cmd. %s', e)
       return
-    if has_commit_hash:
-      package, epoch, version, commit_hash = stdout.split('\n', 3)
-    else:
-      package, epoch, version = stdout.split('\n', 2)
+
+    package, epoch, version, commit_hash = stdout.split('\n', 3)
+    if 'none' in epoch:
+      # The epoch field is only present in certain packages and will return
+      # '(none)' otherwise.
+      epoch = ''
     package_metadata = {
         'name': package,
+        # Match debian version formatting of epoch, if present.
         'version': '{}:{}'.format(epoch, version) if epoch else version,
         'commit_hash': commit_hash,
     }
