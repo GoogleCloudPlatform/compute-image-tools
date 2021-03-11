@@ -1,5 +1,6 @@
 {
   "Name": "export-metadata",
+  "DefaultTimeout": "30m",
   "Vars": {
     "metadata_dest": {
       "Required": true,
