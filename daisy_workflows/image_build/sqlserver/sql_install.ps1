@@ -76,94 +76,89 @@ function Install-WindowsUpdates {
       Check for updates, returns true if restart is required.
   #>
 
-  Write-Host 'Starting Windows update.'
-  if (-not (Test-Connection download.microsoft.com -Count 1 -ErrorAction SilentlyContinue)) {
-    throw 'Windows update server is not reachable. Cannot complete image build.'
+  # https://support.microsoft.com/en-us/help/4072698/windows-server-guidance-to-protect-against-the-speculative-execution
+  if (-not (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\QualityCompat')) {
+    New-Item -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\QualityCompat' -Type Directory | Out-Null
   }
+  New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\QualityCompat' -Name 'cadca5fe-87d3-4b96-b7fb-a231484277cc' -Value 0  -PropertyType DWORD -Force | Out-Null
 
-  # If MSFT_WUOperationsSession exists use that.
-  $ci = New-CimInstance -Namespace root/Microsoft/Windows/WindowsUpdate -ClassName MSFT_WUOperationsSession -ErrorAction SilentlyContinue
-  if ($ci) {
-    $scan = $ci | Invoke-CimMethod -MethodName ScanForUpdates -Arguments @{SearchCriteria='IsInstalled=0';OnlineScan=$true}
-    if ($scan.Updates.Count -eq 0) {
-      Write-Host 'No updates to install'
-      return $false
-    }
-    Write-Host "Downloading $($scan.Updates.Count) updates"
-    $download = $ci | Invoke-CimMethod -MethodName DownloadUpdates -Arguments @{Updates=$scan.Updates}
-    Write-Host "Download finished with HResult: $($download.HResult)"
-    Write-Host "Installing $($scan.Updates.Count) updates"
-    $install = $ci | Invoke-CimMethod -MethodName InstallUpdates -Arguments @{Updates=$scan.Updates}
-    Write-Host "Install finished with HResult: $($install.HResult)"
-    Write-Host 'Finished Windows update.'
+  Write-Host 'Install-WindowsUpdates: Starting Windows update.'
 
-    return (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')
-  }
-
-  # In 2008 R2 the initial search can fail with error 0x80244010, something
-  # to do with the number of trips the client is making to the WSUS server.
-  # Trying the search again fixes this. Searching around the net didn't
-  # yield any actual fixes other than trying again. It does seem to be a
-  # somewhat common issue that has been around for years and has no other fix.
-  # http://blogs.technet.com/b/sus/archive/2008/09/18/wsus-clients-fail-with-warning-syncserverupdatesinternal-failed-0x80244010.aspx
+  # In 2008R2 the initial search can fail with error 0x80244010. Retrying the search again generally resolves the issueis.
   $session = New-Object -ComObject 'Microsoft.Update.Session'
   $query = 'IsInstalled=0'
   $searcher = $session.CreateUpdateSearcher()
   $i = 1
   while ($i -lt 10) {
     try {
-      Write-Host "Searching for updates, try $i."
+      Write-Host "Install-WindowsUpdates: Searching for updates, try $i."
       $updates = $searcher.Search($query).Updates
+
+      # Skip Windows 7 optional language pack updates
+      if ($pn -like 'Windows 7*') {
+        if ($updates.Count -le 37 -and $updates.Count -ge 33) {
+          Write-Host 'Install-WindowsUpdates: Windows 7 detected. Skipping ~35 language pack updates.'
+          $query = 'IsInstalled=0 and AutoSelectOnWebsites=1'
+          continue
+        }
+      }
+
       break
     } catch {
-      Write-Host 'Update search failed.'
+      Write-Host 'Install-WindowsUpdates: Update search failed.'
       $i++
       if ($i -ge 10) {
-        Write-Host 'Searching for updates one last time'
+        Write-Host 'Install-WindowsUpdates: Reseting update server'
+        Reset-WindowsUpdateServer | Out-Null
+        Write-Host 'Install-WindowsUpdates: Searching for updates one last time.'
         $updates = $searcher.Search($query).Updates
       }
     }
   }
 
   if ($updates.Count -eq 0) {
-    Write-Host 'No updates required!'
+    Write-Host 'Install-WindowsUpdates: No updates required!'
     return $false
   }
-  else {
-    foreach ($update in $updates) {
-      if (-not ($update.EulaAccepted)) {
-        Write-Host 'The following update required a EULA to be accepted:'
-        Write-Host '----------------------------------------------------'
+
+  # Windows 7 may enter a loop with a single update remaining
+  if ($pn -like 'Windows 7*') {
+    if ($updates.Count -eq 1) {
+      Write-Host 'Install-WindowsUpdates: Windows 7 detected. Single update remaining. Displaying and continuing install.'
+      foreach ($update in $updates) {
         Write-Host ($update.Description)
-        Write-Host '----------------------------------------------------'
-        Write-Host ($update.EulaText)
-        Write-Host '----------------------------------------------------'
-        $update.AcceptEula()
-      }
+     }
+     return $false
     }
-    $count = $updates.Count
-    if ($count -eq 1) {
-      # Sometimes we have a bug where we get stuck on one update. Let's
-      # log what this one update is in case we are having trouble with it.
-      Write-Host 'Downloading the following update:'
-      Write-Host ($updates | Out-String)
-    }
-    else {
-      Write-Host "Downloading $count updates."
-    }
-    $downloader = $session.CreateUpdateDownloader()
-    $downloader.Updates = $updates
-    $downloader.Download()
-    Write-Host 'Download complete. Installing updates.'
-    $installer = $session.CreateUpdateInstaller()
-    $installer.Updates = $updates
-    $installer.AllowSourcePrompts = $false
-    $result = $installer.Install()
-    $hresult = $result.HResult
-    Write-Host "Install Finished with HResult: $hresult"
-    Write-Host 'Finished Windows update.'
-    return $result.RebootRequired
   }
+
+  foreach ($update in $updates) {
+    if (-not ($update.EulaAccepted)) {
+      Write-Host 'The following update required a EULA to be accepted:'
+      Write-Host '----------------------------------------------------'
+      Write-Host ($update.Description)
+      Write-Host '----------------------------------------------------'
+      Write-Host ($update.EulaText)
+      Write-Host '----------------------------------------------------'
+      $update.AcceptEula()
+    }
+  }
+
+  Write-Host "Install-WindowsUpdates: Downloading and installing $($updates.Count) updates."
+  foreach ($update in $updates) {
+    Write-Host "Install-WindowsUpdates: Update - Title:$($update.Title), Description:$($update.Description)"
+  }
+
+  $downloader = $session.CreateUpdateDownloader()
+  $downloader.Updates = $updates
+  $download_result = $downloader.Download()
+  Write-Host "Install-WindowsUpdates: Download complete. Result: $(Get-ResultCodeDescription $download_result.ResultCode). Installing updates."
+  $installer = $session.CreateUpdateInstaller()
+  $installer.Updates = $updates
+  $installer.AllowSourcePrompts = $false
+  $install_result = $installer.Install()
+  Write-Host "Install-WindowsUpdates: Update installation completed. Result: $(Get-ResultCodeDescription $install_result.ResultCode)"
+  return $true
 }
 
 function Install-SqlServer {
