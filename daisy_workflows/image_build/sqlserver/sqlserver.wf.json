@@ -1,11 +1,29 @@
 {
   "Name": "sqlserver-image-creation",
   "Vars": {
-    "ssms_exe": {"Description": "Path to SSMS installer for SQL 2016 installs"},
-    "sql_server_media": {"Required": true, "Description": "GCS or local path to Windows installer media"},
-    "sql_server_config": {"Required": true, "Description": "Path to SQL config.ini file"},
-    "install_disk": {"Value": "disk-install", "Description": "Name of the GCE disk to use for the SQL install"},
-    "source_image": {"Required": true, "Description": "Base image family to build devcluster image from."}
+    "ssms_exe": {
+      "Description": "Path to SSMS installer for SQL 2016 installs"
+    },
+    "sql_server_media": {
+      "Required": true,
+      "Description": "GCS or local path to Windows installer media"
+    },
+    "sql_server_config": {
+      "Required": true,
+      "Description": "Path to SQL config.ini file"
+    },
+    "install_disk": {
+      "Value": "disk-install",
+      "Description": "Name of the GCE disk to use for the SQL install"
+    },
+    "source_image": {
+      "Required": true,
+      "Description": "Base image family to build devcluster image from."
+    },
+    "timeout": {
+      "Value": "2h",
+      "Description": "The timeout to set for the image build."
+    }
   },
   "Sources": {
     "sql_install.ps1": "./sql_install.ps1",
@@ -43,7 +61,7 @@
       ]
     },
     "wait-for-inst-install": {
-      "TimeOut": "1h30m",
+      "TimeOut": "${timeout}",
       "waitForInstancesSignal": [
         {
           "Name": "inst-install",

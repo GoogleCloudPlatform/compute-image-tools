@@ -4,13 +4,26 @@
     "build_date": "${TIMESTAMP}",
     "install_disk": "disk-install",
     "publish_project": "${PROJECT}",
-    "sql_server_media": {"Required": true, "Description": "GCS or local path to Windows installer media"},
-    "source_image_project": {"Value": "windows-cloud", "Description": "Project to source base image from."},
-    "ssms_exe": {"Required": true, "Description": "GCS or local path to SSMS installer"}
+    "sql_server_media": {
+      "Required": true,
+      "Description": "GCS or local path to Windows installer media"
+    },
+    "source_image_project": {
+      "Value": "windows-cloud",
+      "Description": "Project to source base image from."
+    },
+    "ssms_exe": {
+      "Required": true,
+      "Description": "GCS or local path to SSMS installer"
+    },
+    "timeout": {
+      "Value": "2h",
+      "Description": "The timeout to set for the image build."
+    }
   },
   "Steps": {
     "build-sql-image": {
-      "TimeOut": "70m",
+      "TimeOut": "${timeout}",
       "IncludeWorkflow": {
         "Path": "./sqlserver.wf.json",
         "Vars": {
@@ -18,7 +31,8 @@
           "sql_server_media": "${sql_server_media}",
           "source_image": "projects/${source_image_project}/global/images/family/windows-2019",
           "install_disk": "${install_disk}",
-          "ssms_exe": "${ssms_exe}"
+          "ssms_exe": "${ssms_exe}",
+          "timeout": "${timeout}"
         }
       }
     },
