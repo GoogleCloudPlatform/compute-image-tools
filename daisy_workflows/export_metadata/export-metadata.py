@@ -47,7 +47,9 @@ def main():
       'publish_date': publish_date,
       'packages': [],
   }
-  # All the guest environment packages maintained by guest-os team.
+  logging.info('Image metadata is %s', image)
+
+# All the guest environment packages maintained by guest-os team.
   guest_packages = [
       'google-cloud-packages-archive-keyring',
       'google-compute-engine',
@@ -76,7 +78,7 @@ def main():
   has_commit_hash = True
   if distribution == 'debian':
     cmd_prefix = ['chroot', '/mnt', 'dpkg-query', '-W', '--showformat',
-                  '${Package}\n${Version}\n${Git}']
+                  '\'${Package}\n${Version}\n${Git}\'']
   elif distribution == 'enterprise_linux':
     if 'centos-6' in image_family or 'rhel-6' in image_family:
       # centos-6 and rhel-6 doesn't support vcs tag
