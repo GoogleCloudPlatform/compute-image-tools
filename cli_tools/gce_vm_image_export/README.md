@@ -53,7 +53,7 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image
 ### Usage
 
 ```
-gce_vm_image_export -client_id=CLIENT_ID -destionation_uri=DESTINATION_URI
+gce_vm_image_export -client_id=CLIENT_ID -destination_uri=DESTINATION_URI
         -source_image=SOURCE_IMAGE [-format=FORMAT] [-project=PROJECT] [-network=NETWORK]
         [-subnet=SUBNET] [-zone=ZONE] [-timeout=TIMEOUT] [-scratch_bucket_gcs_path=PATH]
         [-oauth=OAUTH_PATH] [-compute_endpoint_override=ENDPOINT] [-disable_gcs_logging]

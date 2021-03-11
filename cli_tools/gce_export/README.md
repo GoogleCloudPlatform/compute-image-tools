@@ -25,7 +25,7 @@ Windows `\\.\PhysicalDrive1`
 + `-buffer_prefix` if set will use this local path as the local buffer prefix, on linux this would
 be something like `/my_folder`, and on Windows `\\.\PhysicalDrive2\path`.
 + `-gcs_path` GCS path to upload the image to, in the form of gs://my-bucket/image.tar.gz
-+ `-oauth` path to oauth json file fo authenticating to the GCS bucket
++ `-oauth` path to oauth json file for authenticating to the GCS bucket
 + `-licenses` (optional) comma separated list of licenses to add to the image
 + `-y` skip confirmation prompt
 
