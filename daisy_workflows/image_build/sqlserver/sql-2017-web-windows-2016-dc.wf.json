@@ -10,7 +10,7 @@
   },
   "Steps": {
     "build-sql-image": {
-      "TimeOut": "70m",
+      "TimeOut": "100m",
       "IncludeWorkflow": {
         "Path": "./sqlserver.wf.json",
         "Vars": {
