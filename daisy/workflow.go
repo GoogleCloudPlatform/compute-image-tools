@@ -91,7 +91,7 @@ type Workflow struct {
 	// Populated on New() construction.
 	Cancel       chan struct{} `json:"-"`
 	isCanceled   bool
-	inCanceledMx sync.Mutex
+	isCanceledMx sync.Mutex
 
 	// Workflow template fields.
 	// Workflow name.
@@ -894,8 +894,8 @@ func (w *Workflow) CancelWithReason(reason string) {
 // Prefer this to closing the w.Cancel channel,
 // which will panic if it has already been closed.
 func (w *Workflow) CancelWorkflow() {
-	w.cleanupHooksMx.Lock()
-	defer w.cleanupHooksMx.Unlock()
+	w.isCanceledMx.Lock()
+	defer w.isCanceledMx.Unlock()
 
 	if !w.isCanceled {
 		w.isCanceled = true
