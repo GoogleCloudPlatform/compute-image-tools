@@ -161,6 +161,32 @@ function Install-WindowsUpdates {
   return $true
 }
 
+function Get-ResultCodeDescription {
+  <#
+    .SYNOPSIS
+      Returns the description of the Windows Update download/install ResultCode.
+
+    .PARAMETER $ResultCode
+      The ResultCode to convert.
+
+    .RETURNS
+      The human readable description of the result code.
+  #>
+  param (
+    [Parameter(Mandatory=$true)] [int]$ResultCode
+  )
+  $Result = switch ($ResultCode) {
+    0 { 'Not Started' }
+    1 { 'In Progress' }
+    2 { 'Succeeded' }
+    3 { 'SucceededWithErrors' }
+    4 { 'Failed' }
+    5 { 'Aborted' }
+    default { "Unknown, ResultCode: $ResultCode" }
+  }
+  return $Result
+}
+
 function Install-SqlServer {
   Write-Host 'Beginning SQL Server install.'
 
