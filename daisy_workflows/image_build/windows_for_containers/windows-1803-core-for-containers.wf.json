@@ -29,7 +29,7 @@
         {
           "Name": "inst-install",
           "Disks": [{"Source": "${install_disk}"}, {"Source": "disk-scratch"}],
-          "MachineType": "n1-highcpu-4",
+          "MachineType": "e2-highcpu-4",
           "Metadata": {
             "version": "1803"
           },
