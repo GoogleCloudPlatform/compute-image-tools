@@ -338,3 +338,111 @@ def FetchConfigPart(config_file):
   """
   with open(os.path.join('files', 'kickstart', config_file)) as f:
     return f.read()
+
+
+def BuildKsConfig2(release, google_cloud_repo, byos, sap):
+  """Builds kickstart config from shards.
+
+  Args:
+    release: string; image from metadata.
+    google_cloud_repo: string; expects 'stable', 'unstable', or 'staging'.
+    byos: bool; true if using a BYOS RHEL license.
+    sap: bool; true if building RHEL for SAP.
+
+  Returns:
+    string; a valid kickstart config.
+  """
+
+  # We have two kinds of 'shards' here: optional, and alternates.
+  # For optionals, we may include it or not.
+  # For alternates, we will choose one.
+  # Let's document all the alternates and see what differs - we should be able
+  # to turn them into templates or optionals.
+  #
+  # the goal is to make this readable and understandable!!
+  # the other path would be to abstract this *entirely*, turning it into on/off
+  # options, somewhat like the interface to this function.
+
+  ks_post = []
+
+  # why is this written like it wants to evaluate each if the fewest times?
+  # let's optimize for readability, instead.
+  # but let's keep supporting fetchconfigpart, by adding python3 string
+  # formatting right into the files, or sometimes by using strings.
+
+  # RHEL 7 variants.
+  if release.startswith('rhel-7'):
+    ks_options = FetchConfigPart('rhel-7-options.cfg')
+    ks_packages = FetchConfigPart('el7-packages.cfg')
+
+    if sap:
+      if release.startswith('rhel-7-'):
+        ks_post.append(FetchConfigPart(f'{release}-post.cfg'))
+      else:
+        ks_post.append("")
+      ks_post.append(FetchConfigPart('rhel-7-sap-post.cfg'))
+    else:
+      ks_post.append(FetchConfigPart('rhel-7-post.cfg'))
+
+    if byos:
+      ks_post.append(FetchConfigPart('rhel-byos-post.cfg'))
+
+  # RHEL 8 variants.
+  elif release.startswith('rhel-8'):
+    ks_options = FetchConfigPart('rhel-8-options.cfg')
+    ks_packages = FetchConfigPart('el8-packages.cfg')
+
+    if sap:
+      if release.startswith('rhel-8-'):
+        ks_post.append(FetchConfigPart(f'{release}-post.cfg'))
+      else:
+        ks_post.append("")
+      ks_post.append(FetchConfigPart('rhel-8-sap-post.cfg'))
+    else:
+      ks_post.append(FetchConfigPart('rhel-8-post.cfg'))
+
+    if byos:
+      ks_post.append(FetchConfigPart('rhel-byos-post.cfg'))
+
+ # CentOS 7
+  elif release.startswith('centos-7'):
+    ks_options = FetchConfigPart('centos-7-options.cfg')
+    ks_packages = FetchConfigPart('el7-packages.cfg')
+
+  # CentOS 8
+  elif release.startswith('centos-8'):
+    ks_options = FetchConfigPart('centos-8-options.cfg')
+    ks_packages = FetchConfigPart('el8-packages.cfg')
+
+  # CentOS Stream 8
+  elif release.startswith('centos-stream-8'):
+    ks_options = FetchConfigPart('centos-stream-8-options.cfg')
+    ks_packages = FetchConfigPart('el8-packages.cfg')
+
+  else:
+    logging.error('Unknown Image Name: %s' % release)
+
+  repo_version = ''
+  if release.startswith('rhel-7') or release.startswith('centos-7'):
+    repo_version = 'el7'
+    ks_post.append(FetchConfigPart('el7-post.cfg'))
+
+  if release.startswith('rhel-8') or release.startswith('centos-8') or release.startswith('centos-stream-8'):
+    repo_version = 'el8'
+    ks_post.append(FetchConfigPart('el8-post.cfg'))
+
+  # Post section for Google cloud repos.
+  # holy cow, BuildRepostPost is a complicated beast. Why not simply layer in
+  # the templates???
+  # a simple template that adds %post ... %end, or
+  #                             %post --post-options ... %end
+  # and your own template of content, which can be specific or not..
+  ks_file = [ks_options, ks_packages]
+  ks_file.append(BuildReposPost(repo_version, google_cloud_repo))
+  ks_file.append("\n".join(ks_post))
+  ks_file.append(FetchConfigPart('cleanup.cfg'))
+
+  logging.info("Kickstart file: \n%s", ks_file)
+
+  # Return the joined kickstart file as a string.
+  return "\n".join(ks_file)
