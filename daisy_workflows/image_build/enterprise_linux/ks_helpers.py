@@ -18,6 +18,8 @@
 import logging
 import os
 
+from string import Template
+
 
 class RepoString(object):
   """Creates a yum.conf repository section statement for a kickstart file.
@@ -339,6 +341,19 @@ def FetchConfigPart(config_file):
   with open(os.path.join('files', 'kickstart', config_file)) as f:
     return f.read()
 
+def FetchMyConfigPart(config_file):
+  """Reads data from a kickstart file.
+
+  Args:
+    config_file: string; the name of a kickstart file shard located in
+        the 'kickstart' directory.
+
+  Returns:
+    string; contents of config_file should be a string with newlines.
+  """
+  with open(os.path.join('myfiles', 'kickstart', config_file)) as f:
+    return f.read()
+
 
 def BuildKsConfig2(release, google_cloud_repo, byos, sap):
   """Builds kickstart config from shards.
@@ -441,6 +456,79 @@ def BuildKsConfig2(release, google_cloud_repo, byos, sap):
   ks_file.append(BuildReposPost(repo_version, google_cloud_repo))
   ks_file.append("\n".join(ks_post))
   ks_file.append(FetchConfigPart('cleanup.cfg'))
+
+  logging.info("Kickstart file: \n%s", ks_file)
+
+  # Return the joined kickstart file as a string.
+  return "\n".join(ks_file)
+
+def BuildKsConfig3(release, google_cloud_repo, byos, sap):
+  """Builds kickstart config from shards.
+
+  Args:
+    release: string; image from metadata.
+    google_cloud_repo: string; expects 'stable', 'unstable', or 'staging'.
+    byos: bool; true if using a BYOS RHEL license.
+    sap: bool; true if building RHEL for SAP.
+
+  Returns:
+    string; a valid kickstart config.
+  """
+  ks_options = ''
+  ks_packages = ''
+  ks_post = []
+  major = 0
+  minor = 0
+  rhel = False
+
+  rhel = release.startswith('rhel')
+  if release.startswith('rhel-7-') or release.startswith('rhel-8-'):
+    minor = release[-1]
+  if release.startswith('rhel-7') or release.startswith('centos-7'):
+    major = 7
+  if (release.startswith('rhel-8') or release.startswith('centos-8') or
+      release.startswith('centos-stream-8')):
+    major = 8
+  el_version = f'el{major}'
+
+  # Options and packages.
+  if rhel:
+    ks_options = FetchMyConfigPart(f'rhel-{major}-options.cfg')
+  else:
+    ks_options = FetchMyConfigPart(f'{release}-options.cfg')
+  ks_packages = FetchMyConfigPart(f'{el_version}-packages.cfg')
+
+  # Repos post.
+  ks_post.append(BuildReposPost(el_version, google_cloud_repo))
+
+  # This can go away..
+  if sap and rhel and not minor:
+    ks_post.append('')
+
+  # RHEL variant post.
+  if rhel:
+    pkg = 'yum' if major == 7 else 'dnf'
+    # Minor version post.
+    if sap and minor:
+      templ = Template(FetchMyConfigPart('rhel-minor-post.cfg'))
+      ks_post.append(templ.substitute(pkg=pkg, minor=minor, major=major))
+    # RHEL common post.
+    templ = Template(FetchMyConfigPart('rhel-post.cfg'))
+    ks_post.append(templ.substitute(pkg=pkg, major=f'{major}-sap' if sap else f'{major}\n%end'))
+    # SAP post.
+    if sap:
+      ks_post.append(FetchMyConfigPart(f'rhel-{major}-sap-post.cfg'))
+
+  # BYOS post.
+  if rhel and byos:
+    ks_post.append(FetchMyConfigPart('rhel-byos-post.cfg'))
+
+  # Common posts.
+  ks_post.append(FetchMyConfigPart(f'{el_version}-post.cfg'))
+  ks_post.append(FetchMyConfigPart('cleanup.cfg'))
+
+  ks_file = [ks_options, ks_packages]
+  ks_file.append("\n".join(ks_post))
 
   logging.info("Kickstart file: \n%s", ks_file)
 
