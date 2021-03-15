@@ -17,7 +17,6 @@
 
 import logging
 import os
-
 from string import Template
 
 
@@ -172,112 +171,67 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap):
   Returns:
     string; a valid kickstart config.
   """
+  ks_options = ''
+  ks_packages = ''
+  ks_post = []
+  major = 0
+  minor = 0
+  rhel = False
 
-  # Each kickstart file will have the following components:
-  # ks_options: kickstart install options
-  # ks_packages: kickstart package config
-  # ks_post: kickstart post install scripts
+  rhel = release.startswith('rhel')
+  if release.startswith('rhel-7-') or release.startswith('rhel-8-'):
+    minor = release[-1]
+  if release.startswith('rhel-7') or release.startswith('centos-7'):
+    major = 7
+  if (release.startswith('rhel-8') or release.startswith('centos-8')
+      or release.startswith('centos-stream-8')):
+    major = 8
+  el_version = f'el{major}'
 
-  # Common kickstart sections.
-  ks_cleanup = FetchConfigPart('cleanup.cfg')
-  el7_packages = FetchConfigPart('el7-packages.cfg')
-  el8_packages = FetchConfigPart('el8-packages.cfg')
-  el7_post = FetchConfigPart('el7-post.cfg')
-  el8_post = FetchConfigPart('el8-post.cfg')
-
-  # For BYOS RHEL, don't remove subscription-manager.
-  if byos:
-    logging.info('Building RHEL BYOS image.')
-    rhel_byos_post = FetchConfigPart('rhel-byos-post.cfg')
-
-  # RHEL 7 variants.
-  if release.startswith('rhel-7'):
-    logging.info('Building RHEL 7 image.')
-    repo_version = 'el7'
-    ks_options = FetchConfigPart('rhel-7-options.cfg')
-    ks_packages = el7_packages
-    # Build RHEL post scripts.
-    rhel_post = FetchConfigPart('rhel-7-post.cfg')
-    if sap:
-      logging.info('Building RHEL 7 for SAP')
-      rhel_sap_post = FetchConfigPart('rhel-7-sap-post.cfg')
-      point = ''
-      if release == 'rhel-7-4':
-        logging.info('Building RHEL 7.4 for SAP')
-        point = FetchConfigPart('rhel-7-4-post.cfg')
-      if release == 'rhel-7-6':
-        logging.info('Building RHEL 7.6 for SAP')
-        point = FetchConfigPart('rhel-7-6-post.cfg')
-      if release == 'rhel-7-7':
-        logging.info('Building RHEL 7.7 for SAP')
-        point = FetchConfigPart('rhel-7-7-post.cfg')
-      rhel_post = '\n'.join([point, rhel_sap_post])
-    if byos:
-      rhel_post = '\n'.join([rhel_post, rhel_byos_post])
-    # Combine RHEL specific post install to EL7 post.
-    ks_post = '\n'.join([rhel_post, el7_post])
-
-  # RHEL 8 variants.
-  elif release.startswith('rhel-8'):
-    logging.info('Building RHEL 8 image.')
-    repo_version = 'el8'
-    ks_options = FetchConfigPart('rhel-8-options.cfg')
-    ks_packages = el8_packages
-    # Build RHEL post scripts.
-    rhel_post = FetchConfigPart('rhel-8-post.cfg')
-    if sap:
-      logging.info('Building RHEL 8 for SAP')
-      rhel_sap_post = FetchConfigPart('rhel-8-sap-post.cfg')
-      point = ''
-      if release == 'rhel-8-1':
-        logging.info('Building RHEL 8.1 for SAP')
-        point = FetchConfigPart('rhel-8-1-post.cfg')
-      elif release == 'rhel-8-2':
-        logging.info('Building RHEL 8.2 for SAP')
-        point = FetchConfigPart('rhel-8-2-post.cfg')
-      rhel_post = '\n'.join([point, rhel_sap_post])
-    if byos:
-      rhel_post = '\n'.join([rhel_post, rhel_byos_post])
-    # Combine RHEL specific post install to EL8 post.
-    ks_post = '\n'.join([rhel_post, el8_post])
-
- # CentOS 7
-  elif release.startswith('centos-7'):
-    logging.info('Building CentOS 7 image.')
-    repo_version = 'el7'
-    ks_options = FetchConfigPart('centos-7-options.cfg')
-    ks_packages = el7_packages
-    ks_post = el7_post
-
-  # CentOS 8
-  elif release.startswith('centos-8'):
-    logging.info('Building CentOS 8 image.')
-    repo_version = 'el8'
-    ks_options = FetchConfigPart('centos-8-options.cfg')
-    ks_packages = el8_packages
-    ks_post = el8_post
-
-  # CentOS Stream 8
-  elif release.startswith('centos-stream-8'):
-    logging.info('Building CentOS Stream image.')
-    repo_version = 'el8'
-    ks_options = FetchConfigPart('centos-stream-8-options.cfg')
-    ks_packages = el8_packages
-    ks_post = el8_post
-
+  # Options and packages.
+  if rhel:
+    ks_options = FetchConfigPart(f'rhel-{major}-options.cfg')
   else:
-    logging.error('Unknown Image Name: %s' % release)
+    ks_options = FetchConfigPart(f'{release}-options.cfg')
+  ks_packages = FetchConfigPart(f'{el_version}-packages.cfg')
 
-  # Post section for Google cloud repos.
-  repo_post = BuildReposPost(repo_version, google_cloud_repo)
-  # Joined kickstart post sections.
-  ks_post = '\n'.join([repo_post, ks_post, ks_cleanup])
-  # Joine kickstart file.
-  ks_file = '\n'.join([ks_options, ks_packages, ks_post])
+  # Repos post.
+  ks_post.append(BuildReposPost(el_version, google_cloud_repo))
+
+  # RHEL specific posts.
+  if rhel:
+    pkg = 'yum' if major == 7 else 'dnf'
+
+    # Why do we only do this for SAP? Does the ordering matter?
+    # Minor version post.
+    if sap and minor:
+      templ = Template(FetchConfigPart('rhel-minor-post.cfg'))
+      ks_post.append(templ.substitute(pkg=pkg, minor=minor, major=major))
+
+    # RHEL common post.
+    templ = Template(FetchConfigPart('rhel-post.cfg'))
+    majors = f'{major}-sap' if sap else major
+    ks_post.append(templ.substitute(pkg=pkg, major=majors))
+
+    # SAP post.
+    if sap:
+      ks_post.append(FetchConfigPart(f'rhel-{major}-sap-post.cfg'))
+
+    # BYOS post.
+    if byos:
+      ks_post.append(FetchConfigPart('rhel-byos-post.cfg'))
+
+  # Common posts.
+  ks_post.append(FetchConfigPart(f'{el_version}-post.cfg'))
+  ks_post.append(FetchConfigPart('cleanup.cfg'))
+
+  ks_file = [ks_options, ks_packages]
+  ks_file.append("\n".join(ks_post))
+
+  logging.info("Kickstart file: \n%s", ks_file)
 
   # Return the joined kickstart file as a string.
-  logging.info("Kickstart file: \n%s", ks_file)
-  return ks_file
+  return "\n".join(ks_file)
 
 
 def BuildReposPost(repo_version, google_cloud_repo):
@@ -340,197 +294,3 @@ def FetchConfigPart(config_file):
   """
   with open(os.path.join('files', 'kickstart', config_file)) as f:
     return f.read()
-
-def FetchMyConfigPart(config_file):
-  """Reads data from a kickstart file.
-
-  Args:
-    config_file: string; the name of a kickstart file shard located in
-        the 'kickstart' directory.
-
-  Returns:
-    string; contents of config_file should be a string with newlines.
-  """
-  with open(os.path.join('myfiles', 'kickstart', config_file)) as f:
-    return f.read()
-
-
-def BuildKsConfig2(release, google_cloud_repo, byos, sap):
-  """Builds kickstart config from shards.
-
-  Args:
-    release: string; image from metadata.
-    google_cloud_repo: string; expects 'stable', 'unstable', or 'staging'.
-    byos: bool; true if using a BYOS RHEL license.
-    sap: bool; true if building RHEL for SAP.
-
-  Returns:
-    string; a valid kickstart config.
-  """
-
-  # We have two kinds of 'shards' here: optional, and alternates.
-  # For optionals, we may include it or not.
-  # For alternates, we will choose one.
-  # Let's document all the alternates and see what differs - we should be able
-  # to turn them into templates or optionals.
-  #
-  # the goal is to make this readable and understandable!!
-  # the other path would be to abstract this *entirely*, turning it into on/off
-  # options, somewhat like the interface to this function.
-
-  ks_post = []
-
-  # why is this written like it wants to evaluate each if the fewest times?
-  # let's optimize for readability, instead.
-  # but let's keep supporting fetchconfigpart, by adding python3 string
-  # formatting right into the files, or sometimes by using strings.
-
-  # RHEL 7 variants.
-  if release.startswith('rhel-7'):
-    ks_options = FetchConfigPart('rhel-7-options.cfg')
-    ks_packages = FetchConfigPart('el7-packages.cfg')
-
-    if sap:
-      if release.startswith('rhel-7-'):
-        ks_post.append(FetchConfigPart(f'{release}-post.cfg'))
-      else:
-        ks_post.append("")
-      ks_post.append(FetchConfigPart('rhel-7-sap-post.cfg'))
-    else:
-      ks_post.append(FetchConfigPart('rhel-7-post.cfg'))
-
-    if byos:
-      ks_post.append(FetchConfigPart('rhel-byos-post.cfg'))
-
-  # RHEL 8 variants.
-  elif release.startswith('rhel-8'):
-    ks_options = FetchConfigPart('rhel-8-options.cfg')
-    ks_packages = FetchConfigPart('el8-packages.cfg')
-
-    if sap:
-      if release.startswith('rhel-8-'):
-        ks_post.append(FetchConfigPart(f'{release}-post.cfg'))
-      else:
-        ks_post.append("")
-      ks_post.append(FetchConfigPart('rhel-8-sap-post.cfg'))
-    else:
-      ks_post.append(FetchConfigPart('rhel-8-post.cfg'))
-
-    if byos:
-      ks_post.append(FetchConfigPart('rhel-byos-post.cfg'))
-
- # CentOS 7
-  elif release.startswith('centos-7'):
-    ks_options = FetchConfigPart('centos-7-options.cfg')
-    ks_packages = FetchConfigPart('el7-packages.cfg')
-
-  # CentOS 8
-  elif release.startswith('centos-8'):
-    ks_options = FetchConfigPart('centos-8-options.cfg')
-    ks_packages = FetchConfigPart('el8-packages.cfg')
-
-  # CentOS Stream 8
-  elif release.startswith('centos-stream-8'):
-    ks_options = FetchConfigPart('centos-stream-8-options.cfg')
-    ks_packages = FetchConfigPart('el8-packages.cfg')
-
-  else:
-    logging.error('Unknown Image Name: %s' % release)
-
-  repo_version = ''
-  if release.startswith('rhel-7') or release.startswith('centos-7'):
-    repo_version = 'el7'
-    ks_post.append(FetchConfigPart('el7-post.cfg'))
-
-  if release.startswith('rhel-8') or release.startswith('centos-8') or release.startswith('centos-stream-8'):
-    repo_version = 'el8'
-    ks_post.append(FetchConfigPart('el8-post.cfg'))
-
-  # Post section for Google cloud repos.
-  # holy cow, BuildRepostPost is a complicated beast. Why not simply layer in
-  # the templates???
-  # a simple template that adds %post ... %end, or
-  #                             %post --post-options ... %end
-  # and your own template of content, which can be specific or not..
-  ks_file = [ks_options, ks_packages]
-  ks_file.append(BuildReposPost(repo_version, google_cloud_repo))
-  ks_file.append("\n".join(ks_post))
-  ks_file.append(FetchConfigPart('cleanup.cfg'))
-
-  logging.info("Kickstart file: \n%s", ks_file)
-
-  # Return the joined kickstart file as a string.
-  return "\n".join(ks_file)
-
-def BuildKsConfig3(release, google_cloud_repo, byos, sap):
-  """Builds kickstart config from shards.
-
-  Args:
-    release: string; image from metadata.
-    google_cloud_repo: string; expects 'stable', 'unstable', or 'staging'.
-    byos: bool; true if using a BYOS RHEL license.
-    sap: bool; true if building RHEL for SAP.
-
-  Returns:
-    string; a valid kickstart config.
-  """
-  ks_options = ''
-  ks_packages = ''
-  ks_post = []
-  major = 0
-  minor = 0
-  rhel = False
-
-  rhel = release.startswith('rhel')
-  if release.startswith('rhel-7-') or release.startswith('rhel-8-'):
-    minor = release[-1]
-  if release.startswith('rhel-7') or release.startswith('centos-7'):
-    major = 7
-  if (release.startswith('rhel-8') or release.startswith('centos-8') or
-      release.startswith('centos-stream-8')):
-    major = 8
-  el_version = f'el{major}'
-
-  # Options and packages.
-  if rhel:
-    ks_options = FetchMyConfigPart(f'rhel-{major}-options.cfg')
-  else:
-    ks_options = FetchMyConfigPart(f'{release}-options.cfg')
-  ks_packages = FetchMyConfigPart(f'{el_version}-packages.cfg')
-
-  # Repos post.
-  ks_post.append(BuildReposPost(el_version, google_cloud_repo))
-
-  # This can go away..
-  if sap and rhel and not minor:
-    ks_post.append('')
-
-  # RHEL variant post.
-  if rhel:
-    pkg = 'yum' if major == 7 else 'dnf'
-    # Minor version post.
-    if sap and minor:
-      templ = Template(FetchMyConfigPart('rhel-minor-post.cfg'))
-      ks_post.append(templ.substitute(pkg=pkg, minor=minor, major=major))
-    # RHEL common post.
-    templ = Template(FetchMyConfigPart('rhel-post.cfg'))
-    ks_post.append(templ.substitute(pkg=pkg, major=f'{major}-sap' if sap else f'{major}\n%end'))
-    # SAP post.
-    if sap:
-      ks_post.append(FetchMyConfigPart(f'rhel-{major}-sap-post.cfg'))
-
-  # BYOS post.
-  if rhel and byos:
-    ks_post.append(FetchMyConfigPart('rhel-byos-post.cfg'))
-
-  # Common posts.
-  ks_post.append(FetchMyConfigPart(f'{el_version}-post.cfg'))
-  ks_post.append(FetchMyConfigPart('cleanup.cfg'))
-
-  ks_file = [ks_options, ks_packages]
-  ks_file.append("\n".join(ks_post))
-
-  logging.info("Kickstart file: \n%s", ks_file)
-
-  # Return the joined kickstart file as a string.
-  return "\n".join(ks_file)
