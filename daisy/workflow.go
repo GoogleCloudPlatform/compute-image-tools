@@ -89,9 +89,9 @@ func (v *Var) UnmarshalJSON(b []byte) error {
 // Workflow is a single Daisy workflow workflow.
 type Workflow struct {
 	// Populated on New() construction.
-	Cancel       chan struct{} `json:"-"`
-	isCanceled   bool
-	isCanceledMx sync.Mutex
+	Cancel     chan struct{} `json:"-"`
+	isCanceled bool
+	cancelMx   sync.Mutex
 
 	// Workflow template fields.
 	// Workflow name.
@@ -884,9 +884,16 @@ func (w *Workflow) IterateWorkflowSteps(cb func(step *Step)) {
 	}
 }
 
-// CancelWithReason cancels workflow with a specific reason. The specific reason replaces "is canceled" in the default error message.
+// CancelWithReason cancels workflow with a specific reason.
+// The specific reason replaces "is canceled" in the default error message.
+// Multiple invocations will not cause an error, but only the first reason
+// will be retained.
 func (w *Workflow) CancelWithReason(reason string) {
-	w.cancelReason = reason
+	w.cancelMx.Lock()
+	if w.cancelReason == "" {
+		w.cancelReason = reason
+	}
+	w.cancelMx.Unlock()
 	w.CancelWorkflow()
 }
 
@@ -894,8 +901,8 @@ func (w *Workflow) CancelWithReason(reason string) {
 // Prefer this to closing the w.Cancel channel,
 // which will panic if it has already been closed.
 func (w *Workflow) CancelWorkflow() {
-	w.isCanceledMx.Lock()
-	defer w.isCanceledMx.Unlock()
+	w.cancelMx.Lock()
+	defer w.cancelMx.Unlock()
 
 	if !w.isCanceled {
 		w.isCanceled = true

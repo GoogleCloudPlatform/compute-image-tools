@@ -167,16 +167,17 @@ func TestCancelWorkflow_IsIdempotent(t *testing.T) {
 	}
 }
 
-func TestCancelWithReason_IsIdempotent(t *testing.T) {
+func TestCancelWithReason_IsCallableMultipleTimes_AndKeepsFirstCancelReason(t *testing.T) {
 	w := testWorkflow()
-	reason := "reason"
-	w.CancelWithReason(reason)
-	w.CancelWithReason(reason)
+	reason1 := "reason1"
+	reason2 := "reason2"
+	w.CancelWithReason(reason1)
+	w.CancelWithReason(reason2)
 	if !w.isCanceled {
 		t.Error("Expect workflow to be canceled.")
 	}
-	if w.getCancelReason() != reason {
-		t.Errorf("Expected reason mismatch. got=%q, want=%q", w.getCancelReason(), reason)
+	if w.getCancelReason() != reason1 {
+		t.Errorf("Expected reason1 mismatch. got=%q, want=%q", w.getCancelReason(), reason1)
 	}
 }
 
