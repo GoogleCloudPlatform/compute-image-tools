@@ -297,7 +297,7 @@ periodics:
     containers:
     - image: gcr.io/compute-image-tools-test/osconfig-tests:latest
       args:
-      - "-test_case_filter=debian|centos|rhel|windows|cos"
+      - "-test_case_filter=debian|centos|rhel|windows|cos|ubuntu"
       - "-out_dir=/artifacts"
       - "-test_project_ids=compute-image-osconfig-agent,compute-image-osconfig-agent-2"
       - -test_zones={
