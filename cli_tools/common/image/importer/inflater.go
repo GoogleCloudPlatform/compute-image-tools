@@ -52,7 +52,9 @@ func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, 
 		return nil, err
 	}
 
-	if isImage(request.Source) {
+	// TODO: Remove boolean guard when PD API is ready.
+	tryNativePDInflation := false
+	if isImage(request.Source) || !tryNativePDInflation {
 		return di, nil
 	}
 
