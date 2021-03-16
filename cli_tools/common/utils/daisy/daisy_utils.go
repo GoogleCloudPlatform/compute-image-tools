@@ -24,10 +24,11 @@ import (
 	"sort"
 	"strings"
 
-	stringutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
+
+	stringutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 const (
@@ -382,7 +383,7 @@ func RunWorkflowWithCancelSignal(ctx context.Context, w *daisy.Workflow) error {
 		select {
 		case <-c:
 			w.LogWorkflowInfo("\nCtrl-C caught, sending cancel signal to %q...\n", w.Name)
-			close(w.Cancel)
+			w.CancelWorkflow()
 		case <-w.Cancel:
 		}
 	}(w)

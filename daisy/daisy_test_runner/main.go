@@ -526,7 +526,7 @@ func runTestCase(ctx context.Context, test *test, tc *junitTestCase, errors chan
 		select {
 		case <-c:
 			fmt.Printf("\nCtrl-C caught, sending cancel signal to %q...\n", test.name)
-			close(test.testCase.w.Cancel)
+			test.testCase.w.CancelWorkflow()
 			err := fmt.Errorf("test case %q was canceled", test.name)
 			errors <- err
 			tc.Failure = &junitFailure{FailMessage: err.Error(), FailType: "Canceled"}

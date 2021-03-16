@@ -89,7 +89,9 @@ func (v *Var) UnmarshalJSON(b []byte) error {
 // Workflow is a single Daisy workflow workflow.
 type Workflow struct {
 	// Populated on New() construction.
-	Cancel chan struct{} `json:"-"`
+	Cancel     chan struct{} `json:"-"`
+	isCanceled bool
+	cancelMx   sync.Mutex
 
 	// Workflow template fields.
 	// Workflow name.
@@ -235,24 +237,24 @@ func (w *Workflow) SetLogProcessHook(hook func(string) string) {
 // Validate runs validation on the workflow.
 func (w *Workflow) Validate(ctx context.Context) DError {
 	if err := w.PopulateClients(ctx); err != nil {
-		close(w.Cancel)
+		w.CancelWorkflow()
 		return Errf("error populating workflow: %v", err)
 	}
 
 	if err := w.validateRequiredFields(); err != nil {
-		close(w.Cancel)
+		w.CancelWorkflow()
 		return Errf("error validating workflow: %v", err)
 	}
 
 	if err := w.populate(ctx); err != nil {
-		close(w.Cancel)
+		w.CancelWorkflow()
 		return Errf("error populating workflow: %v", err)
 	}
 
 	w.LogWorkflowInfo("Validating workflow")
 	if err := w.validate(ctx); err != nil {
 		w.LogWorkflowInfo("Error validating workflow: %v", err)
-		close(w.Cancel)
+		w.CancelWorkflow()
 		return err
 	}
 	w.LogWorkflowInfo("Validation Complete")
@@ -299,7 +301,7 @@ func (w *Workflow) RunWithModifiers(
 	w.LogWorkflowInfo("Uploading sources")
 	if err = w.uploadSources(ctx); err != nil {
 		w.LogWorkflowInfo("Error uploading sources: %v", err)
-		close(w.Cancel)
+		w.CancelWorkflow()
 		return err
 	}
 	w.LogWorkflowInfo("Running workflow")
@@ -338,7 +340,7 @@ func (w *Workflow) cleanup() {
 	select {
 	case <-w.Cancel:
 	default:
-		close(w.Cancel)
+		w.CancelWorkflow()
 	}
 
 	// Allow goroutines that are watching w.Cancel an opportunity
@@ -748,15 +750,6 @@ func (w *Workflow) traverseDAG(f func(*Step) DError) DError {
 	return nil
 }
 
-func (w *Workflow) isCanceled() bool {
-	select {
-	case <-w.Cancel:
-		return true
-	default:
-		return false
-	}
-}
-
 // New instantiates a new workflow.
 func New() *Workflow {
 	// We can't use context.WithCancel as we use the context even after cancel for cleanup.
@@ -891,10 +884,32 @@ func (w *Workflow) IterateWorkflowSteps(cb func(step *Step)) {
 	}
 }
 
-// CancelWithReason cancels workflow with a specific reason. The specific reason replaces "is canceled" in the default error message.
+// CancelWithReason cancels workflow with a specific reason.
+// The specific reason replaces "is canceled" in the default error message.
+// Multiple invocations will not cause an error, but only the first reason
+// will be retained.
 func (w *Workflow) CancelWithReason(reason string) {
-	w.cancelReason = reason
-	close(w.Cancel)
+	w.cancelMx.Lock()
+	if w.cancelReason == "" {
+		w.cancelReason = reason
+	}
+	w.cancelMx.Unlock()
+	w.CancelWorkflow()
+}
+
+// CancelWorkflow cancels the workflow. Safe to call multiple times.
+// Prefer this to closing the w.Cancel channel,
+// which will panic if it has already been closed.
+func (w *Workflow) CancelWorkflow() {
+	w.cancelMx.Lock()
+	defer w.cancelMx.Unlock()
+
+	if !w.isCanceled {
+		w.isCanceled = true
+		// Extra guard in case something manually closed the channel.
+		defer func() { recover() }()
+		close(w.Cancel)
+	}
 }
 
 func (w *Workflow) getCancelReason() string {
