@@ -578,27 +578,37 @@ func verifyImportedInstance(
 
 	// The boot disk for a Windows instance must have the WINDOWS GuestOSFeature,
 	// while the boot disk for other operating systems shouldn't have it.
-	for _, disk := range instance.Disks {
-		if !disk.Boot {
-			continue
+	for _, attachedDisk := range instance.Disks {
+		disk, diskErr := client.GetDisk(project, props.zone, attachedDisk.DeviceName)
+		if diskErr != nil {
+			e2e.Failure(testCase, logger,
+				fmt.Sprintf("Can't retrieve disk `%v` for instance `%v`: %v",
+					attachedDisk.DeviceName, props.instanceName, err))
+			return
 		}
-
-		hasWindowsFeature := false
-		for _, feature := range disk.GuestOsFeatures {
-			if "WINDOWS" == feature.Type {
-				hasWindowsFeature = true
-				break
+		expectedDiskType := "pd-ssd"
+		if !strings.Contains(disk.Type, expectedDiskType) {
+			e2e.Failure(testCase, logger, fmt.Sprintf(
+				"Disk should be of `%v` type, but is `%v`", expectedDiskType, attachedDisk.Type))
+			return
+		}
+		if attachedDisk.Boot {
+			hasWindowsFeature := false
+			for _, feature := range attachedDisk.GuestOsFeatures {
+				if "WINDOWS" == feature.Type {
+					hasWindowsFeature = true
+					break
+				}
 			}
-		}
-
-		if props.isWindows && !hasWindowsFeature {
-			testCase.WriteFailure(
-				"Windows boot disk missing WINDOWS GuestOsFeature. Features found=%v",
-				disk.GuestOsFeatures)
-		} else if !props.isWindows && hasWindowsFeature {
-			testCase.WriteFailure(
-				"Non-Windows boot disk includes WINDOWS GuestOsFeature. Features found=%v",
-				disk.GuestOsFeatures)
+			if props.isWindows && !hasWindowsFeature {
+				testCase.WriteFailure(
+					"Windows boot disk missing WINDOWS GuestOsFeature. Features found=%v",
+					attachedDisk.GuestOsFeatures)
+			} else if !props.isWindows && hasWindowsFeature {
+				testCase.WriteFailure(
+					"Non-Windows boot disk includes WINDOWS GuestOsFeature. Features found=%v",
+					attachedDisk.GuestOsFeatures)
+			}
 		}
 	}
 

@@ -158,6 +158,7 @@ func TestCreateDisksOnInstance(t *testing.T) {
 		assert.True(t, dataDisk.AutoDelete)
 		assert.Equal(t, expectedDiskName, dataDisk.InitializeParams.DiskName)
 		assert.Equal(t, expectedSourceURI, dataDisk.InitializeParams.SourceImage)
+		assert.Equal(t, "pd-ssd", dataDisk.InitializeParams.DiskType)
 	}
 }
 
