@@ -36,6 +36,7 @@ func CreateDisksOnInstance(instance *daisy.Instance, instanceName string, imageU
 				InitializeParams: &compute.AttachedDiskInitializeParams{
 					DiskName:    generateDataDiskName(instanceName, i+1),
 					SourceImage: imageURI,
+					DiskType:    "pd-ssd",
 				},
 				AutoDelete: true,
 			})

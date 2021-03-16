@@ -45,7 +45,8 @@
           "Disks": [
             {
               "initializeParams": {
-                "sourceImage": "${boot_disk_image_uri}"
+                "sourceImage": "${boot_disk_image_uri}",
+                "diskType": "pd-ssd"
               },
               "AutoDelete": true,
               "boot": true
