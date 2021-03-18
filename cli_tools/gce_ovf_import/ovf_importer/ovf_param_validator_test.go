@@ -485,7 +485,7 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 		}, {
 			name: "instance access scopes defaults set",
 			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
-				assert.True(t, reflect.DeepEqual(GetDefaultInstanceAccessScopes(), params.InstanceAccessScopes))
+				assert.True(t, reflect.DeepEqual([]string{}, params.InstanceAccessScopes))
 			},
 		},
 	}

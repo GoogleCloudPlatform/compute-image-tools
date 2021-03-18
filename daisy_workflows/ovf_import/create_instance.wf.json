@@ -32,7 +32,7 @@
       "Description": "Network tier that will be used to configure the instance"
     },
     "instance_service_account": {
-      "Value": "default",
+      "Value": "",
       "Description": "Service account that will be used by the created instance"
     }
   },
