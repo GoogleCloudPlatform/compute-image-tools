@@ -56,7 +56,8 @@ const (
 )
 
 var (
-	//default instance access scopes https://cloud.google.com/sdk/gcloud/reference/compute/instances/create#--scopes
+	// DefaultInstanceAccessScopes hold default instance access scopes
+	// https://cloud.google.com/sdk/gcloud/reference/compute/instances/create#--scopes
 	DefaultInstanceAccessScopes = []string{
 		"https://www.googleapis.com/auth/devstorage.read_only",
 		"https://www.googleapis.com/auth/logging.write",
