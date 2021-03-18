@@ -56,8 +56,9 @@ const (
 )
 
 var (
-	//default instance scopes https://cloud.google.com/sdk/gcloud/reference/compute/instances/create#--scopes
-	defaultInstanceAccessScopes = []string{
+	// DefaultInstanceAccessScopes hold default instance access scopes
+	// https://cloud.google.com/sdk/gcloud/reference/compute/instances/create#--scopes
+	DefaultInstanceAccessScopes = []string{
 		"https://www.googleapis.com/auth/devstorage.read_only",
 		"https://www.googleapis.com/auth/logging.write",
 		"https://www.googleapis.com/auth/monitoring.write",
@@ -67,13 +68,6 @@ var (
 		"https://www.googleapis.com/auth/trace.append",
 	}
 )
-
-// GetDefaultInstanceAccessScopes returns default VM instance access scopes
-func GetDefaultInstanceAccessScopes() []string {
-	tmp := make([]string, len(defaultInstanceAccessScopes))
-	copy(tmp, defaultInstanceAccessScopes)
-	return tmp
-}
 
 // OVFImporter is responsible for importing OVF into GCE
 type OVFImporter struct {
@@ -149,9 +143,7 @@ func (oi *OVFImporter) buildDaisyVars(bootDiskImageURI string, machineType strin
 	} else {
 		varMap["machine_image_name"] = oi.params.MachineImageName
 	}
-	if oi.params.InstanceServiceAccount != "" {
-		varMap["instance_service_account"] = oi.params.InstanceServiceAccount
-	}
+	varMap["instance_service_account"] = oi.params.InstanceServiceAccount
 	if oi.params.Subnet != "" {
 		varMap["subnet"] = oi.params.Subnet
 		// When subnet is set, we need to grant a value to network to avoid fallback to default
@@ -202,6 +194,10 @@ func (oi *OVFImporter) updateImportedInstance(w *daisy.Workflow) {
 	if oi.params.Hostname != "" {
 		instance.Hostname = oi.params.Hostname
 		instanceBeta.Hostname = oi.params.Hostname
+	}
+	if oi.params.InstanceServiceAccount == "" {
+		instance.ServiceAccounts = []*compute.ServiceAccount{}
+		instanceBeta.ServiceAccounts = []*computeBeta.ServiceAccount{}
 	}
 	if len(oi.params.InstanceAccessScopes) > 0 {
 		for _, serviceAccount := range instance.ServiceAccounts {

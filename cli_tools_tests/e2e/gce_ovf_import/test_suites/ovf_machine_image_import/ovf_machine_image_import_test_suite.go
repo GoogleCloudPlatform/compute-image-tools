@@ -19,17 +19,12 @@ package ovfmachineimageimporttestsuite
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
-	"reflect"
 	"regexp"
-	"sort"
 	"strings"
 	"sync"
-	"time"
 
-	ovfimporter "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_importer"
+	ovfimporttestsuite "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e/gce_ovf_import/test_suites"
 	"github.com/GoogleCloudPlatform/compute-image-tools/common/gcp"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
@@ -62,23 +57,9 @@ var (
 )
 
 type ovfMachineImageImportTestProperties struct {
-	machineImageName          string
-	isWindows                 bool
-	expectedStartupOutput     string
-	failureMatches            []string
-	verificationStartupScript string
-	zone                      string
-	sourceURI                 string
-	os                        string
-	machineType               string
-	network                   string
-	subnet                    string
-	storageLocation           string
-	instanceMetadata          map[string]string
-	project                   string
-	computeServiceAccount     string
-	instanceServiceAccount    string
-	instanceAccessScopes      string
+	machineImageName string
+	storageLocation  string
+	ovfimporttestsuite.OvfImportTestProperties
 }
 
 // TestSuite is image import test suite.
@@ -127,13 +108,13 @@ func TestSuite(
 		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Machine image import without default service account failed"))
 	machineImageImportDefaultServiceAccountWithMissingPermissionsFailTestCase := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Machine image import without permission on default service account failed"))
-	machineImageImportDefaultServiceAccountAccessScopeTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Machine image import with default service account access scopes set"))
+	machineImageImportDefaultServiceAccountCustomAccessScopeTestCase := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Machine image import with default service account custom access scopes set"))
 	testsMap[e2e.Wrapper][machineImageImportDisabledDefaultServiceAccountSuccessTestCase] = runMachineImageImportDisabledDefaultServiceAccountSuccessTest
 	testsMap[e2e.Wrapper][machineImageImportDefaultServiceAccountWithMissingPermissionsSuccessTestCase] = runMachineImageImportOSDefaultServiceAccountWithMissingPermissionsSuccessTest
 	testsMap[e2e.Wrapper][machineImageImportDisabledDefaultServiceAccountFailTestCase] = runMachineImageImportWithDisabledDefaultServiceAccountFailTest
 	testsMap[e2e.Wrapper][machineImageImportDefaultServiceAccountWithMissingPermissionsFailTestCase] = runMachineImageImportDefaultServiceAccountWithMissingPermissionsFailTest
-	testsMap[e2e.Wrapper][machineImageImportDefaultServiceAccountAccessScopeTestCase] = runMachineImageImportDefaultServiceAccountAccessScopeTestCaseSuccessTest
+	testsMap[e2e.Wrapper][machineImageImportDefaultServiceAccountCustomAccessScopeTestCase] = runMachineImageImportDefaultServiceAccountCustomAccessScope
 
 	e2e.CLITestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
 		testProjectConfig, testSuiteName, testsMap)
@@ -145,15 +126,16 @@ func runOVFMachineImageImportUbuntu3Disks(ctx context.Context, testCase *junitxm
 	suffix := path.RandString(5)
 	props := &ovfMachineImageImportTestProperties{
 		machineImageName: fmt.Sprintf("test-machine-image-ubuntu-3-disks-%v", suffix),
-		verificationStartupScript: loadScriptContent(
-			"scripts/ovf_import_test_ubuntu_3_disks.sh", logger),
-		zone:                  testProjectConfig.TestZone,
-		expectedStartupOutput: "All tests passed!",
-		failureMatches:        []string{"TestFailed:"},
-		sourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-1604-three-disks", ovaBucket),
-		os:                    "ubuntu-1604",
-		instanceMetadata:      skipOSConfigMetadata,
-		machineType:           "n1-standard-4"}
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{
+			VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
+				"scripts/ovf_import_test_ubuntu_3_disks.sh", logger),
+			Zone:                  testProjectConfig.TestZone,
+			ExpectedStartupOutput: "All tests passed!",
+			FailureMatches:        []string{"TestFailed:"},
+			SourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-1604-three-disks", ovaBucket),
+			Os:                    "ubuntu-1604",
+			InstanceMetadata:      skipOSConfigMetadata,
+			MachineType:           "n1-standard-4"}}
 
 	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
@@ -164,16 +146,16 @@ func runOVFMachineImageImportWindows2012R2TwoDisks(ctx context.Context, testCase
 	suffix := path.RandString(5)
 	props := &ovfMachineImageImportTestProperties{
 		machineImageName: fmt.Sprintf("test-machine-image-w2k12-r2-%v", suffix),
-		verificationStartupScript: loadScriptContent(
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 			"scripts/ovf_import_test_windows_two_disks.ps1", logger),
-		zone:                  testProjectConfig.TestZone,
-		expectedStartupOutput: "All Tests Passed",
-		failureMatches:        []string{"Test Failed:"},
-		sourceURI:             fmt.Sprintf("gs://%v/ova/w2k12-r2", ovaBucket),
-		os:                    "windows-2012r2",
-		machineType:           "n1-standard-8",
-		isWindows:             true,
-	}
+			Zone:                  testProjectConfig.TestZone,
+			ExpectedStartupOutput: "All Tests Passed",
+			FailureMatches:        []string{"Test Failed:"},
+			SourceURI:             fmt.Sprintf("gs://%v/ova/w2k12-r2", ovaBucket),
+			Os:                    "windows-2012r2",
+			MachineType:           "n1-standard-8",
+			IsWindows:             true,
+		}}
 
 	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
@@ -183,18 +165,18 @@ func runOVFMachineImageImportStorageLocation(ctx context.Context, testCase *juni
 
 	suffix := path.RandString(5)
 	props := &ovfMachineImageImportTestProperties{
-		machineImageName: fmt.Sprintf("test-machine-image-w2k16-%v", suffix),
-		verificationStartupScript: loadScriptContent(
-			"daisy_integration_tests/scripts/post_translate_test.ps1", logger),
-		zone:                  testProjectConfig.TestZone,
-		expectedStartupOutput: "All Tests Passed",
-		failureMatches:        []string{"Test Failed:"},
-		sourceURI:             fmt.Sprintf("gs://%v/ova/w2k16/w2k16.ovf", ovaBucket),
-		os:                    "windows-2016",
-		machineType:           "n2-standard-2",
-		isWindows:             true,
-		storageLocation:       "us-west2",
-	}
+		machineImageName: fmt.Sprintf("test-gmi-storage-location-%v", suffix),
+		storageLocation:  "us-west2",
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
+			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
+			Zone:                  testProjectConfig.TestZone,
+			ExpectedStartupOutput: "All tests passed!",
+			FailureMatches:        []string{"FAILED:", "TestFailed:"},
+			SourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+			Os:                    "centos-7",
+			MachineType:           "n2-standard-2",
+			IsWindows:             true,
+		}}
 
 	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
@@ -205,17 +187,17 @@ func runOVFMachineImageImportNetworkSettingsName(ctx context.Context, testCase *
 	suffix := path.RandString(5)
 	props := &ovfMachineImageImportTestProperties{
 		machineImageName: fmt.Sprintf("test-network-name-%v", suffix),
-		verificationStartupScript: loadScriptContent(
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-		zone:                  testProjectConfig.TestZone,
-		expectedStartupOutput: "All tests passed!",
-		failureMatches:        []string{"FAILED:", "TestFailed:"},
-		sourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
-		os:                    "centos-7",
-		machineType:           "n1-standard-4",
-		network:               fmt.Sprintf("%v-vpc-1", testProjectConfig.TestProjectID),
-		subnet:                fmt.Sprintf("%v-subnet-1", testProjectConfig.TestProjectID),
-	}
+			Zone:                  testProjectConfig.TestZone,
+			ExpectedStartupOutput: "All tests passed!",
+			FailureMatches:        []string{"FAILED:", "TestFailed:"},
+			SourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+			Os:                    "centos-7",
+			MachineType:           "n1-standard-4",
+			Network:               fmt.Sprintf("%v-vpc-1", testProjectConfig.TestProjectID),
+			Subnet:                fmt.Sprintf("%v-subnet-1", testProjectConfig.TestProjectID),
+		}}
 
 	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
@@ -227,17 +209,17 @@ func runOVFMachineImageImportNetworkSettingsPath(ctx context.Context, testCase *
 	region, _ := paramhelper.GetRegion(testProjectConfig.TestZone)
 	props := &ovfMachineImageImportTestProperties{
 		machineImageName: fmt.Sprintf("test-network-path-%v", suffix),
-		verificationStartupScript: loadScriptContent(
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-		zone:                  testProjectConfig.TestZone,
-		expectedStartupOutput: "All tests passed!",
-		failureMatches:        []string{"FAILED:", "TestFailed:"},
-		sourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
-		os:                    "centos-7",
-		machineType:           "n1-standard-4",
-		network:               fmt.Sprintf("global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
-		subnet:                fmt.Sprintf("projects/%v/regions/%v/subnetworks/%v-subnet-1", testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
-	}
+			Zone:                  testProjectConfig.TestZone,
+			ExpectedStartupOutput: "All tests passed!",
+			FailureMatches:        []string{"FAILED:", "TestFailed:"},
+			SourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+			Os:                    "centos-7",
+			MachineType:           "n1-standard-4",
+			Network:               fmt.Sprintf("global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
+			Subnet:                fmt.Sprintf("projects/%v/regions/%v/subnetworks/%v-subnet-1", testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
+		}}
 
 	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
@@ -252,19 +234,19 @@ func runMachineImageImportDisabledDefaultServiceAccountSuccessTest(ctx context.C
 	suffix := path.RandString(5)
 	props := &ovfMachineImageImportTestProperties{
 		machineImageName: fmt.Sprintf("test-without-service-account-%v", suffix),
-		verificationStartupScript: loadScriptContent(
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-		zone:                   testProjectConfig.TestZone,
-		expectedStartupOutput:  "All tests passed!",
-		failureMatches:         []string{"FAILED:", "TestFailed:"},
-		sourceURI:              fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
-		os:                     "centos-7",
-		machineType:            "n1-standard-4",
-		project:                testVariables.ProjectID,
-		computeServiceAccount:  testVariables.ComputeServiceAccount,
-		instanceServiceAccount: testVariables.InstanceServiceAccount,
-		instanceAccessScopes:   "https://www.googleapis.com/auth/compute,https://www.googleapis.com/auth/datastore",
-	}
+			Zone:                   testProjectConfig.TestZone,
+			ExpectedStartupOutput:  "All tests passed!",
+			FailureMatches:         []string{"FAILED:", "TestFailed:"},
+			SourceURI:              fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+			Os:                     "centos-7",
+			MachineType:            "n1-standard-4",
+			Project:                testVariables.ProjectID,
+			ComputeServiceAccount:  testVariables.ComputeServiceAccount,
+			InstanceServiceAccount: testVariables.InstanceServiceAccount,
+			InstanceAccessScopes:   "https://www.googleapis.com/auth/compute,https://www.googleapis.com/auth/datastore",
+		}}
 	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
@@ -278,19 +260,19 @@ func runMachineImageImportOSDefaultServiceAccountWithMissingPermissionsSuccessTe
 	}
 	suffix := path.RandString(5)
 	props := &ovfMachineImageImportTestProperties{
-		machineImageName: fmt.Sprintf("test-missing-ce-permissions-%v", suffix),
-		verificationStartupScript: loadScriptContent(
+		machineImageName: fmt.Sprintf("test-missing-cse-permissions-%v", suffix),
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-		zone:                   testProjectConfig.TestZone,
-		expectedStartupOutput:  "All tests passed!",
-		failureMatches:         []string{"FAILED:", "TestFailed:"},
-		sourceURI:              fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
-		os:                     "centos-7",
-		machineType:            "n1-standard-4",
-		project:                testVariables.ProjectID,
-		computeServiceAccount:  testVariables.ComputeServiceAccount,
-		instanceServiceAccount: testVariables.InstanceServiceAccount,
-	}
+			Zone:                   testProjectConfig.TestZone,
+			ExpectedStartupOutput:  "All tests passed!",
+			FailureMatches:         []string{"FAILED:", "TestFailed:"},
+			SourceURI:              fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+			Os:                     "centos-7",
+			MachineType:            "n1-standard-4",
+			Project:                testVariables.ProjectID,
+			ComputeServiceAccount:  testVariables.ComputeServiceAccount,
+			InstanceServiceAccount: testVariables.InstanceServiceAccount,
+		}}
 	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
@@ -304,17 +286,17 @@ func runMachineImageImportWithDisabledDefaultServiceAccountFailTest(ctx context.
 	}
 	suffix := path.RandString(5)
 	props := &ovfMachineImageImportTestProperties{
-		machineImageName: fmt.Sprintf("test-missing-permission-on-default-csa-fail-%v", suffix),
-		verificationStartupScript: loadScriptContent(
+		machineImageName: fmt.Sprintf("test-missing-permn-on-default-csa-fail-%v", suffix),
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-		zone:                  testProjectConfig.TestZone,
-		expectedStartupOutput: "All tests passed!",
-		failureMatches:        []string{"FAILED:", "TestFailed:"},
-		sourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
-		os:                    "centos-7",
-		machineType:           "n1-standard-4",
-		project:               testVariables.ProjectID,
-	}
+			Zone:                  testProjectConfig.TestZone,
+			ExpectedStartupOutput: "All tests passed!",
+			FailureMatches:        []string{"FAILED:", "TestFailed:"},
+			SourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+			Os:                    "centos-7",
+			MachineType:           "n1-standard-4",
+			Project:               testVariables.ProjectID,
+		}}
 	e2e.RunTestCommandAssertErrorMessage(cmds[testType], buildTestArgs(props, testProjectConfig)[testType], "Failed to download GCS path", logger, testCase)
 }
 
@@ -328,22 +310,22 @@ func runMachineImageImportDefaultServiceAccountWithMissingPermissionsFailTest(ct
 	}
 	suffix := path.RandString(5)
 	props := &ovfMachineImageImportTestProperties{
-		machineImageName: fmt.Sprintf("test-insufficient-permission-default-csa-fail-%v", suffix),
-		verificationStartupScript: loadScriptContent(
+		machineImageName: fmt.Sprintf("test-insufficient-perm-default-csa-fail-%v", suffix),
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-		zone:                  testProjectConfig.TestZone,
-		expectedStartupOutput: "All tests passed!",
-		failureMatches:        []string{"FAILED:", "TestFailed:"},
-		sourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
-		os:                    "centos-7",
-		machineType:           "n1-standard-4",
-		project:               testVariables.ProjectID,
-	}
+			Zone:                  testProjectConfig.TestZone,
+			ExpectedStartupOutput: "All tests passed!",
+			FailureMatches:        []string{"FAILED:", "TestFailed:"},
+			SourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+			Os:                    "centos-7",
+			MachineType:           "n1-standard-4",
+			Project:               testVariables.ProjectID,
+		}}
 	e2e.RunTestCommandAssertErrorMessage(cmds[testType], buildTestArgs(props, testProjectConfig)[testType], "Failed to download GCS path", logger, testCase)
 }
 
 // Ensure custom access scopes are set on the machine image even when default service account is used
-func runMachineImageImportDefaultServiceAccountAccessScopeTestCaseSuccessTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runMachineImageImportDefaultServiceAccountCustomAccessScope(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 	testVariables, ok := e2e.GetServiceAccountTestVariables(argMap, false)
 	if !ok {
@@ -352,98 +334,36 @@ func runMachineImageImportDefaultServiceAccountAccessScopeTestCaseSuccessTest(ct
 	}
 	suffix := path.RandString(5)
 	props := &ovfMachineImageImportTestProperties{
-		machineImageName: fmt.Sprintf("test-custom-scopes-on-default-cse-%v", suffix),
-		verificationStartupScript: loadScriptContent(
+		machineImageName: fmt.Sprintf("test-custom-sc-default-sa-%v", suffix),
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-		zone:                  testProjectConfig.TestZone,
-		expectedStartupOutput: "All tests passed!",
-		failureMatches:        []string{"FAILED:", "TestFailed:"},
-		sourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
-		os:                    "centos-7",
-		machineType:           "n1-standard-4",
-		project:               testVariables.ProjectID,
-		instanceAccessScopes:  "https://www.googleapis.com/auth/compute,https://www.googleapis.com/auth/datastore",
-	}
+			Zone:                  testProjectConfig.TestZone,
+			ExpectedStartupOutput: "All tests passed!",
+			FailureMatches:        []string{"FAILED:", "TestFailed:"},
+			SourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+			Os:                    "centos-7",
+			MachineType:           "n1-standard-4",
+			Project:               testVariables.ProjectID,
+			InstanceAccessScopes:  "https://www.googleapis.com/auth/compute,https://www.googleapis.com/auth/datastore",
+		}}
 	e2e.RunTestCommandAssertErrorMessage(cmds[testType], buildTestArgs(props, testProjectConfig)[testType], "Failed to download GCS path", logger, testCase)
 }
 
-func getProject(props *ovfMachineImageImportTestProperties, testProjectConfig *testconfig.Project) string {
-	if props.project != "" {
-		return props.project
-	}
-	return testProjectConfig.TestProjectID
-}
-
 func buildTestArgs(props *ovfMachineImageImportTestProperties, testProjectConfig *testconfig.Project) map[e2e.CLITestType][]string {
-	project := getProject(props, testProjectConfig)
 	gcloudBetaArgs := []string{
 		"beta", "compute", "machine-images", "import", props.machineImageName, "--quiet",
-		"--docker-image-tag=latest",
-		fmt.Sprintf("--project=%v", project),
-		fmt.Sprintf("--source-uri=%v", props.sourceURI),
-		fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
-	}
-	gcloudArgs := []string{
-		"compute", "machine-images", "import", props.machineImageName, "--quiet",
-		fmt.Sprintf("--project=%v", project),
-		fmt.Sprintf("--source-uri=%v", props.sourceURI),
-		fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
-	}
-	wrapperArgs := []string{"-client-id=e2e", fmt.Sprintf("-project=%v", project),
+		"--docker-image-tag=latest"}
+	gcloudArgs := []string{"compute", "machine-images", "import", props.machineImageName, "--quiet"}
+	wrapperArgs := []string{
+		"-client-id=e2e",
 		fmt.Sprintf("-machine-image-name=%s", props.machineImageName),
-		fmt.Sprintf("-ovf-gcs-path=%v", props.sourceURI),
-		fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
-		fmt.Sprintf("-build-id=%v", path.RandString(10)),
-	}
-
-	if props.os != "" {
-		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--os=%v", props.os))
-		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--os=%v", props.os))
-		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-os=%v", props.os))
-	}
-	if props.machineType != "" {
-		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--machine-type=%v", props.machineType))
-		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--machine-type=%v", props.machineType))
-		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-machine-type=%v", props.machineType))
-	}
-	if props.network != "" {
-		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--network=%v", props.network))
-		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--network=%v", props.network))
-		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-network=%v", props.network))
-	}
-	if props.subnet != "" {
-		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--subnet=%v", props.subnet))
-		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--subnet=%v", props.subnet))
-		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-subnet=%v", props.subnet))
 	}
 	if props.storageLocation != "" {
 		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--storage-location=%v", props.storageLocation))
 		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--storage-location=%v", props.storageLocation))
 		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-machine-image-storage-location=%v", props.storageLocation))
 	}
-	if props.computeServiceAccount != "" {
-		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--compute-service-account=%v", props.computeServiceAccount))
-		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--compute-service-account=%v", props.computeServiceAccount))
-		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-compute-service-account=%v", props.computeServiceAccount))
-	}
-	if props.instanceServiceAccount != "" {
-		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--service-account=%v", props.instanceServiceAccount))
-		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--service-account=%v", props.instanceServiceAccount))
-		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-service-account=%v", props.instanceServiceAccount))
-	}
-	if props.instanceAccessScopes != "" {
-		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--scopes=%v", props.instanceAccessScopes))
-		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--scopes=%v", props.instanceAccessScopes))
-		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-scopes=%v", props.instanceAccessScopes))
-	}
-
-	argsMap := map[e2e.CLITestType][]string{
-		e2e.Wrapper:                       wrapperArgs,
-		e2e.GcloudBetaProdWrapperLatest:   gcloudBetaArgs,
-		e2e.GcloudBetaLatestWrapperLatest: gcloudBetaArgs,
-		e2e.GcloudGaLatestWrapperRelease:  gcloudArgs,
-	}
-	return argsMap
+	return ovfimporttestsuite.BuildArgsMap(&props.OvfImportTestProperties, testProjectConfig, gcloudBetaArgs, gcloudArgs, wrapperArgs)
 }
 
 func runOVFMachineImageImportTest(ctx context.Context, args []string, testType e2e.CLITestType,
@@ -459,7 +379,7 @@ func verifyImportedMachineImage(
 	ctx context.Context, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project,
 	logger *log.Logger, props *ovfMachineImageImportTestProperties) {
 
-	project := getProject(props, testProjectConfig)
+	project := ovfimporttestsuite.GetProject(&props.OvfImportTestProperties, testProjectConfig)
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
 		e2e.Failure(testCase, logger, fmt.Sprintf("Error creating client: %v", err))
@@ -470,8 +390,27 @@ func verifyImportedMachineImage(
 	testInstanceName := props.machineImageName + "-test-instance"
 	logger.Printf("Creating `%v` test instance.", testInstanceName)
 
+	// Verify storage location
+	if props.storageLocation != "" {
+		gmi, gmiErr := gcp.CreateMachineImageObject(ctx, project, props.machineImageName)
+		if gmiErr != nil {
+			e2e.Failure(testCase, logger, fmt.Sprintf("Error when loading machine image '%v': %v", props.machineImageName, err))
+			return
+		}
+		storageLocationMatch := false
+		for _, storageLocation := range gmi.StorageLocations {
+			storageLocationMatch = storageLocationMatch || strings.Contains(storageLocation, props.storageLocation)
+		}
+		if !storageLocationMatch {
+			e2e.Failure(testCase, logger,
+				fmt.Sprintf("Machine image storage locations (%v) do not contain storage location from the flag:: %v",
+					strings.Join(gmi.StorageLocations, ","), props.storageLocation))
+			return
+		}
+	}
+
 	instance, err := gcp.CreateInstanceBeta(
-		ctx, project, props.zone, testInstanceName, props.isWindows, props.machineImageName)
+		ctx, project, props.Zone, testInstanceName, props.IsWindows, props.machineImageName)
 	if err != nil {
 		e2e.Failure(testCase, logger, fmt.Sprintf("Error when creating test instance `%v` from machine image '%v': %v", testInstanceName, props.machineImageName, err))
 		return
@@ -493,100 +432,5 @@ func verifyImportedMachineImage(
 		}
 	}()
 
-	// The boot disk for a Windows instance must have the WINDOWS GuestOSFeature,
-	// while the boot disk for other operating systems shouldn't have it.
-	for _, disk := range instance.Disks {
-		if !disk.Boot {
-			continue
-		}
-
-		hasWindowsFeature := false
-		for _, feature := range disk.GuestOsFeatures {
-			if "WINDOWS" == feature.Type {
-				hasWindowsFeature = true
-				break
-			}
-		}
-
-		if props.isWindows && !hasWindowsFeature {
-			testCase.WriteFailure(
-				"Windows boot disk missing WINDOWS GuestOsFeature. Features found=%v",
-				disk.GuestOsFeatures)
-		} else if !props.isWindows && hasWindowsFeature {
-			testCase.WriteFailure(
-				"Non-Windows boot disk includes WINDOWS GuestOsFeature. Features found=%v",
-				disk.GuestOsFeatures)
-		}
-	}
-
-	if props.machineType != "" && !strings.HasSuffix(instance.MachineType, props.machineType) {
-		testCase.WriteFailure(
-			"Instance machine type `%v` doesn't match the expected machine type `%v`",
-			instance.MachineType, props.machineType)
-		return
-	}
-
-	if !strings.HasSuffix(instance.Zone, props.zone) {
-		e2e.Failure(testCase, logger, fmt.Sprintf("Instance zone `%v` doesn't match requested zone `%v`",
-			instance.Zone, props.zone))
-		return
-	}
-
-	if props.instanceServiceAccount != "" {
-		serviceAccountMatch := false
-		var instanceServiceAccountEmails []string
-		for _, instanceServiceAccount := range instance.ServiceAccounts {
-			instanceServiceAccountEmails = append(instanceServiceAccountEmails, instanceServiceAccount.Email)
-			if instanceServiceAccount.Email == props.instanceServiceAccount {
-				serviceAccountMatch = true
-			}
-		}
-		if !serviceAccountMatch {
-			e2e.Failure(testCase, logger, fmt.Sprintf("Instance service accounts (`%v`) don't contain custom service account `%v`",
-				strings.Join(instanceServiceAccountEmails, ","), props.instanceServiceAccount))
-			return
-		}
-	}
-
-	scopes := ovfimporter.GetDefaultInstanceAccessScopes()
-	if props.instanceAccessScopes != "" {
-		scopes = strings.Split(props.instanceAccessScopes, ",")
-	}
-	sort.Strings(scopes)
-
-	for _, instanceServiceAccount := range instance.ServiceAccounts {
-		sort.Strings(instanceServiceAccount.Scopes)
-		if !reflect.DeepEqual(scopes, instanceServiceAccount.Scopes) {
-			e2e.Failure(testCase, logger, fmt.Sprintf(
-				"Instance access scopes (%v) for service account `%v` don't match expected scopes: `%v`",
-				strings.Join(instanceServiceAccount.Scopes, ","), instanceServiceAccount.Email, strings.Join(scopes, ",")))
-			return
-		}
-	}
-
-	if props.verificationStartupScript == "" {
-		logger.Printf("[%v] Will not set test startup script to test instance metadata as it's not defined", props.machineImageName)
-		return
-	}
-
-	err = instance.StartWithScriptCode(props.verificationStartupScript, props.instanceMetadata)
-	if err != nil {
-		testCase.WriteFailure("Error starting instance `%v` with script: `%v`: %v", testInstanceName, err)
-		return
-	}
-	logger.Printf("[%v] Waiting for `%v` in instance serial console.", testInstanceName,
-		props.expectedStartupOutput)
-	if err := instance.WaitForSerialOutput(
-		props.expectedStartupOutput, props.failureMatches, 1, 5*time.Second, 15*time.Minute); err != nil {
-		testCase.WriteFailure("Error during VM validation: %v", err)
-	}
-}
-
-func loadScriptContent(scriptPath string, logger *log.Logger) string {
-	scriptContent, err := ioutil.ReadFile(scriptPath)
-	if err != nil {
-		logger.Printf("Error loading script `%v`: %v", scriptPath, err)
-		os.Exit(1)
-	}
-	return string(scriptContent)
+	ovfimporttestsuite.VerifyInstance(instance, client, testCase, project, logger, &props.OvfImportTestProperties)
 }

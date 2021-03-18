@@ -175,12 +175,25 @@ func CreateInstanceObject(ctx context.Context, project string, zone string, name
 	return &Instance{apiInstance, client, project, zone, isWindows}, err
 }
 
-// BuildInstanceMetadataItem create an metadata item
-func BuildInstanceMetadataItem(key, value string) *api.MetadataItems {
-	return &api.MetadataItems{
-		Key:   key,
-		Value: func() *string { v := value; return &v }(),
+// CreateInstanceBetaObject creates an instance object to be operated by Beta API client
+func CreateInstanceBetaObject(ctx context.Context, project string, zone string, name string, isWindows bool) (*InstanceBeta, error) {
+	client, err := daisyCompute.NewClient(ctx)
+	if err != nil {
+		return nil, err
 	}
+
+	var apiInstance *apiBeta.Instance
+	apiInstance, err = client.GetInstanceBeta(project, zone, name)
+	return &InstanceBeta{apiInstance, client, project, zone, isWindows}, err
+}
+
+// CreateMachineImageObject creates a machine image object
+func CreateMachineImageObject(ctx context.Context, project string, name string) (*apiBeta.MachineImage, error) {
+	client, err := daisyCompute.NewClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return client.GetMachineImage(project, name)
 }
 
 // CreateInstanceBeta creates a VM instance (not just an object representing an existing VM) using Beta API
@@ -190,9 +203,7 @@ func CreateInstanceBeta(ctx context.Context, project string, zone string, name s
 	if err != nil {
 		return nil, err
 	}
-
-	var apiBetaInstance *apiBeta.Instance
-	apiBetaInstance = &apiBeta.Instance{
+	apiBetaInstance := &apiBeta.Instance{
 		SourceMachineImage: fmt.Sprintf("projects/%s/global/machineImages/%s", project, machineImageName),
 		Name:               name,
 		Zone:               zone,
@@ -203,6 +214,14 @@ func CreateInstanceBeta(ctx context.Context, project string, zone string, name s
 		return i, err
 	}
 	return i, nil
+}
+
+// BuildInstanceMetadataItem create an metadata item
+func BuildInstanceMetadataItem(key, value string) *api.MetadataItems {
+	return &api.MetadataItems{
+		Key:   key,
+		Value: func() *string { v := value; return &v }(),
+	}
 }
 
 // StartWithScriptCode starts the instance with given startup script and metadata.

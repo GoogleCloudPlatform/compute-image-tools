@@ -114,7 +114,7 @@ func (p *ParamValidatorAndPopulator) ValidateAndPopulate(params *ovfdomain.OVFIm
 			}
 		}
 	} else {
-		params.InstanceAccessScopes = GetDefaultInstanceAccessScopes()
+		params.InstanceAccessScopes = []string{}
 	}
 
 	if params.InstanceNames == "" && params.MachineImageName == "" {
