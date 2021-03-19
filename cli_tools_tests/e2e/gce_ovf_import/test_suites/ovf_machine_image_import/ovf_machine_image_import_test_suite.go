@@ -79,24 +79,18 @@ func TestSuite(
 		e2e.GcloudBetaLatestWrapperLatest,
 	}
 	for _, testType := range testTypes {
-		machineImageImportUbuntu3DisksTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFMachineImageImport] %v", testType, "Ubuntu 3 disks, one data disk larger than 10GB"))
-		machineImageImportWindows2012R2TwoDisks := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFMachineImageImport] %v", testType, "Windows 2012 R2 two disks"))
-		machineImageImportNetworkSettingsName := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFMachineImageImport] %v", testType, "Network setting (name only)"))
-		machineImageImportNetworkSettingsPath := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFMachineImageImport] %v", testType, "Network setting (path)"))
-		machineImageImportStorageLocation := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFMachineImageImport] %v", testType, "Storage location"))
+		machineImageImportUbuntu3DisksNetworkSettingsNameTestCase := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][OVFMachineImageImport] %v", testType, "Ubuntu 3 disks, one data disk larger than 10GB, Network setting (name only)"))
+		machineImageImportWindows2012R2TwoDisksNetworkSettingsPathTestCase := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][OVFMachineImageImport] %v", testType, "Windows 2012 R2 two disks, Network setting (path)"))
+		machineImageImportStorageLocationTestCase := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][OVFMachineImageImport] %v", testType, "Centos 7.4, Storage location"))
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, e2e.CLITestType){}
-		testsMap[testType][machineImageImportUbuntu3DisksTestCase] = runOVFMachineImageImportUbuntu3Disks
-		testsMap[testType][machineImageImportWindows2012R2TwoDisks] = runOVFMachineImageImportWindows2012R2TwoDisks
-		testsMap[testType][machineImageImportNetworkSettingsName] = runOVFMachineImageImportNetworkSettingsName
-		testsMap[testType][machineImageImportNetworkSettingsPath] = runOVFMachineImageImportNetworkSettingsPath
-		testsMap[testType][machineImageImportStorageLocation] = runOVFMachineImageImportStorageLocation
+		testsMap[testType][machineImageImportUbuntu3DisksNetworkSettingsNameTestCase] = runOVFMachineImageImportUbuntu3DisksNetworkSettingsName
+		testsMap[testType][machineImageImportWindows2012R2TwoDisksNetworkSettingsPathTestCase] = runOVFMachineImageImportWindows2012R2TwoDisksNetworkSettingsPath
+		testsMap[testType][machineImageImportStorageLocationTestCase] = runOVFMachineImageImportCentos74StorageLocation
 	}
 
 	// Only test service account scenario for wrapper, till gcloud supports it.
@@ -120,7 +114,7 @@ func TestSuite(
 		testProjectConfig, testSuiteName, testsMap)
 }
 
-func runOVFMachineImageImportUbuntu3Disks(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runOVFMachineImageImportUbuntu3DisksNetworkSettingsName(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	suffix := path.RandString(5)
@@ -135,15 +129,20 @@ func runOVFMachineImageImportUbuntu3Disks(ctx context.Context, testCase *junitxm
 			SourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-1604-three-disks", ovaBucket),
 			Os:                    "ubuntu-1604",
 			InstanceMetadata:      skipOSConfigMetadata,
-			MachineType:           "n1-standard-4"}}
+			MachineType:           "n1-standard-4",
+			Network:               fmt.Sprintf("%v-vpc-1", testProjectConfig.TestProjectID),
+			Subnet:                fmt.Sprintf("%v-subnet-1", testProjectConfig.TestProjectID),
+		},
+	}
 
 	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
-func runOVFMachineImageImportWindows2012R2TwoDisks(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runOVFMachineImageImportWindows2012R2TwoDisksNetworkSettingsPath(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	suffix := path.RandString(5)
+	region, _ := paramhelper.GetRegion(testProjectConfig.TestZone)
 	props := &ovfMachineImageImportTestProperties{
 		machineImageName: fmt.Sprintf("test-machine-image-w2k12-r2-%v", suffix),
 		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
@@ -155,72 +154,30 @@ func runOVFMachineImageImportWindows2012R2TwoDisks(ctx context.Context, testCase
 			Os:                    "windows-2012r2",
 			MachineType:           "n1-standard-8",
 			IsWindows:             true,
+			Network:               fmt.Sprintf("global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
+			Subnet:                fmt.Sprintf("projects/%v/regions/%v/subnetworks/%v-subnet-1", testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
 		}}
 
 	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
-func runOVFMachineImageImportStorageLocation(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runOVFMachineImageImportCentos74StorageLocation(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	suffix := path.RandString(5)
 	props := &ovfMachineImageImportTestProperties{
 		machineImageName: fmt.Sprintf("test-gmi-storage-location-%v", suffix),
 		storageLocation:  "us-west2",
-		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
-			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{
+			VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
+				"daisy_integration_tests/scripts/post_translate_test.sh", logger),
 			Zone:                  testProjectConfig.TestZone,
 			ExpectedStartupOutput: "All tests passed!",
 			FailureMatches:        []string{"FAILED:", "TestFailed:"},
 			SourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
 			Os:                    "centos-7",
 			MachineType:           "n2-standard-2",
-			IsWindows:             true,
 		}}
-
-	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
-}
-
-func runOVFMachineImageImportNetworkSettingsName(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
-
-	suffix := path.RandString(5)
-	props := &ovfMachineImageImportTestProperties{
-		machineImageName: fmt.Sprintf("test-network-name-%v", suffix),
-		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
-			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-			Zone:                  testProjectConfig.TestZone,
-			ExpectedStartupOutput: "All tests passed!",
-			FailureMatches:        []string{"FAILED:", "TestFailed:"},
-			SourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
-			Os:                    "centos-7",
-			MachineType:           "n1-standard-4",
-			Network:               fmt.Sprintf("%v-vpc-1", testProjectConfig.TestProjectID),
-			Subnet:                fmt.Sprintf("%v-subnet-1", testProjectConfig.TestProjectID),
-		}}
-
-	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
-}
-
-func runOVFMachineImageImportNetworkSettingsPath(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
-
-	suffix := path.RandString(5)
-	region, _ := paramhelper.GetRegion(testProjectConfig.TestZone)
-	props := &ovfMachineImageImportTestProperties{
-		machineImageName: fmt.Sprintf("test-network-path-%v", suffix),
-		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
-			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-			Zone:                  testProjectConfig.TestZone,
-			ExpectedStartupOutput: "All tests passed!",
-			FailureMatches:        []string{"FAILED:", "TestFailed:"},
-			SourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
-			Os:                    "centos-7",
-			MachineType:           "n1-standard-4",
-			Network:               fmt.Sprintf("global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
-			Subnet:                fmt.Sprintf("projects/%v/regions/%v/subnetworks/%v-subnet-1", testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
-		}}
-
 	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
