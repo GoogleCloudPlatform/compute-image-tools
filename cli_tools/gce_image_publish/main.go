@@ -29,6 +29,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_image_publish/publish"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"google.golang.org/api/compute/v1"
 )
 
 var (
@@ -133,9 +134,10 @@ func main() {
 
 	var errs []error
 	var ws []*daisy.Workflow
+	imagesCache := map[string][]*compute.Image{}
 	for _, path := range flag.Args() {
 		p, err := publish.CreatePublish(
-			*sourceVersion, *publishVersion, *workProject, *publishProject, *sourceGCS, *sourceProject, *ce, path, varMap)
+			*sourceVersion, *publishVersion, *workProject, *publishProject, *sourceGCS, *sourceProject, *ce, path, varMap, imagesCache)
 		if err != nil {
 			loadErr := fmt.Errorf("Loading publish error %s from %q", err, path)
 			fmt.Println(loadErr)

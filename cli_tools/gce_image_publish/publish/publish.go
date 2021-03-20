@@ -76,6 +76,8 @@ type Publish struct {
 	toDeprecate   []string
 	toObsolete    []string
 	toUndeprecate []string
+
+	imagesCache map[string][]*compute.Image
 }
 
 // Image is a metadata holder for the image to be published/rollback
@@ -109,7 +111,7 @@ var (
 )
 
 // CreatePublish creates a publish object
-func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, path string, varMap map[string]string) (*Publish, error) {
+func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, path string, varMap map[string]string, imagesCache map[string][]*compute.Image) (*Publish, error) {
 	p := Publish{
 		sourceVersion:  sourceVersion,
 		publishVersion: publishVersion,
@@ -157,6 +159,9 @@ func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, s
 	}
 	if ce != "" {
 		p.ComputeEndpoint = ce
+	}
+	if imagesCache != nil {
+		p.imagesCache = imagesCache
 	}
 	if p.WorkProject == "" {
 		if metadata.OnGCE() {
@@ -504,8 +509,6 @@ func (p *Publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubIm
 	return nil
 }
 
-var imagesCache map[string][]*compute.Image
-
 func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[string]string, rb, sd, rep, noRoot bool, oauth string) (*daisy.Workflow, error) {
 	fmt.Printf("  - Creating publish workflow for %q\n", img.Prefix)
 	w := daisy.New()
@@ -529,17 +532,17 @@ func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[str
 	w.Project = p.WorkProject
 
 	cacheKey := w.ComputeClient.BasePath() + p.PublishProject
-	pubImgs, ok := imagesCache[cacheKey]
+
+	pubImgs, ok := p.imagesCache[cacheKey]
 	if !ok {
 		var err error
 		pubImgs, err = w.ComputeClient.ListImages(p.PublishProject, daisyCompute.OrderBy("creationTimestamp desc"))
 		if err != nil {
 			return nil, fmt.Errorf("computeClient.ListImages failed: %s", err)
 		}
-		if imagesCache == nil {
-			imagesCache = map[string][]*compute.Image{}
+		if p.imagesCache != nil {
+			p.imagesCache[cacheKey] = pubImgs
 		}
-		imagesCache[cacheKey] = pubImgs
 	}
 
 	if err := p.populateWorkflow(ctx, w, pubImgs, img, rb, sd, rep, noRoot); err != nil {
