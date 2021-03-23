@@ -3,7 +3,7 @@
   "Vars": {
     "build_date": {"Value": "${DATE}", "Description": "Build datestamp used to version the image."},
     "debian_cloud_images_version": {
-      "Value": "7ac4efe0f1aa70430eeb323e6a22edddeff13d46",
+      "Value": "69783f7417aefb332d5d7250ba242adeca444131",
       "Description": "The debian-cloud-images scripts git commit ID or branch to use."
     },
     "debian_version": {
