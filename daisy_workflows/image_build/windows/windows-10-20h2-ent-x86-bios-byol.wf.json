@@ -48,7 +48,7 @@
   },
   "Steps": {
     "windows-build": {
-      "Timeout": "3h",
+      "Timeout": "4h",
       "IncludeWorkflow": {
         "Path": "./windows-build-bios.wf.json",
         "Vars": {
