@@ -55,13 +55,14 @@
           "install_disk": "${install_disk}",
           "install_disk_size": "50",
           "updates": "${updates}",
-          "drivers_bucket": "gs://gce-windows-drivers-public/release/win6.3/",
+          "drivers_bucket": "gs://gce-windows-drivers-public/release/win10-32bit/",
           "dotnet48": "${dotnet48}",
           "pwsh": "${pwsh}",
           "edition": "Windows 10 ENTERPRISE",
           "media": "${media}",
           "cloud_sdk": "${cloudsdk}",
           "google_cloud_repo": "${google_cloud_repo}",
+          "x86_build": "true",
           "workflow_root": "${workflow_root}"
         }
       }

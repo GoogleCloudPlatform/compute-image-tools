@@ -56,10 +56,6 @@
     "bginfo": {
       "Description": "GCS or local path to BGInfo installer"
     },
-    "uefi_build": {
-      "Value": "true",
-      "Description": "Is this a UEFI build"
-    },
     "x86_build": {
       "Value": "false",
       "Description": "A build of a Windows 32-bit OS"
