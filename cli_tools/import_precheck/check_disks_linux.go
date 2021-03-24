@@ -106,7 +106,7 @@ func (m *mountPoints) listPhysicalDevicesForMount(mount string) (devices []strin
 			set[mp.hierarchy[0]] = struct{}{}
 		}
 	}
-	for k, _ := range set {
+	for k := range set {
 		devices = append(devices, k)
 	}
 	// sorted for stability in testing.
@@ -120,7 +120,7 @@ func (m *mountPoints) listMountPoints() (mounts []string) {
 	for _, mount := range m.mounts {
 		set[mount.dir] = struct{}{}
 	}
-	for k, _ := range set {
+	for k := range set {
 		mounts = append(mounts, k)
 	}
 	// sorted for stability in testing.
