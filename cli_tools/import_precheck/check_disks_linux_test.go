@@ -54,7 +54,7 @@ func Test_readMounts(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			assert.Equal(t, tc.expectedListMounts, actual.listMountPoints())
+			assert.Equal(t, tc.expectedListMounts, actual.listMountedDirectories())
 			for mountDir, expectedPhysicalDevices := range tc.expectedPhysicalDevices {
 				assert.Equal(t, expectedPhysicalDevices, actual.listPhysicalDevicesForMount(mountDir))
 			}
@@ -78,7 +78,8 @@ func Test_run(t *testing.T) {
 		{
 			lsblkOutputFile: "lsblk-multi-disk-lvm.json",
 			expectAllLogs: []string{
-				"FATAL: root filesystem spans multiple physical devices ([sda sdb]). Translation only supports single block device.",
+				"FATAL: root filesystem spans multiple block devices ([sda sdb]). Typically this occurs when an LVM " +
+					"logical volume spans multiple block devices. Image import only supports single block device.",
 			},
 			expectToPass: false,
 		}, {

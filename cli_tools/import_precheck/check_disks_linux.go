@@ -15,6 +15,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -25,6 +26,9 @@ import (
 // disksCheck performs disk configuration checking:
 // - finding the root filesystem partition
 // - checking if the device is MBR
+// - checking whether the root mount is physically located on a single disk.
+//   The check fails, for example, when the root mount is on an LVM
+//   logical volume that spans multiple disks.
 // - check for GRUB
 // - warning for any mount points from partitions from other devices
 type disksCheck struct {
@@ -55,8 +59,12 @@ func (c *disksCheck) readMounts() (*mountPoints, error) {
 		cmd := exec.Command("lsblk", "--json", "--output", "name,mountpoint,type")
 		lsblkOut, err = cmd.Output()
 		if err != nil {
-			exitErr := err.(*exec.ExitError)
-			err = fmt.Errorf("lsblk: %v, stderr: %s", err, exitErr.Stderr)
+			var exitErr *exec.ExitError
+			if errors.As(err, &exitErr) {
+				err = fmt.Errorf("lsblk: %v, stderr: %s", err, exitErr.Stderr)
+			} else {
+				err = fmt.Errorf("lsblk: %v", err)
+			}
 		}
 	}
 
@@ -73,16 +81,6 @@ func (c *disksCheck) readMounts() (*mountPoints, error) {
 	return mounts, nil
 }
 
-func (c *disksCheck) lsblk() (string, error) {
-	cmd := exec.Command("lsblk", "-i")
-	out, err := cmd.Output()
-	if err != nil {
-		exitErr := err.(*exec.ExitError)
-		return "", fmt.Errorf("lsblk: %v, stderr: %s", err, exitErr.Stderr)
-	}
-	return string(out), nil
-}
-
 func (c *disksCheck) getName() string {
 	return "Disks Check"
 }
@@ -90,20 +88,45 @@ func (c *disksCheck) getName() string {
 // mountPoints supports listing the mounts on a system, and determining which block device(s)
 // the mount is physically contained. This is helpful since technologies such as LVM allow
 // logical mounts to span physical devices.
+//
+// The data structure is modeled as a one-to-many inverse index of mountDir and its associated
+// device hierarchy. For example, given the following device tree:
+//
+//  /dev/sda
+//        ∟ sda1
+//            ∟ logical-volume ->  /
+//  /dev/sdb
+//        ∟ sdb2
+//            ∟ logical-volume ->  /
+//
+//  mounts would contain two entries:
+//
+//    {/, [sda, sda1, logical-volume]}
+//    {/, [sdb, sdb2, logical-volume]}
 type mountPoints struct {
-	mounts []struct {
-		dir       string
-		hierarchy []string
-	}
+	mounts []mountPoint
 }
 
-// listPhysicalDevicesForMount returns the the block device(s) that contain the mount.
-// An empty return value means the mount was not found.
-func (m *mountPoints) listPhysicalDevicesForMount(mount string) (devices []string) {
+// mountPoint describes the device hierarchy for a mounted directory.
+// The hierarchy starts at the physical device, and contains an entry for each
+// partition or logical volume.
+type mountPoint struct {
+	dir       string
+	hierarchy []string
+}
+
+// getPhysicalDevice returns the physical device of this mountPoint.
+func (m *mountPoint) getPhysicalDevice() string {
+	return m.hierarchy[0]
+}
+
+// listPhysicalDevicesForMount returns the the block device(s) that contain the mountDir.
+// An empty return value means the mountDir was not found.
+func (m *mountPoints) listPhysicalDevicesForMount(mountDir string) (devices []string) {
 	set := map[string]struct{}{}
 	for _, mp := range m.mounts {
-		if mp.dir == mount {
-			set[mp.hierarchy[0]] = struct{}{}
+		if mp.dir == mountDir {
+			set[mp.getPhysicalDevice()] = struct{}{}
 		}
 	}
 	for k := range set {
@@ -114,18 +137,18 @@ func (m *mountPoints) listPhysicalDevicesForMount(mount string) (devices []strin
 	return devices
 }
 
-// listMountPoints returns all mounts.
-func (m *mountPoints) listMountPoints() (mounts []string) {
+// listMountedDirectories returns all mounted directories.
+func (m *mountPoints) listMountedDirectories() (mountedDirectories []string) {
 	set := map[string]struct{}{}
 	for _, mount := range m.mounts {
 		set[mount.dir] = struct{}{}
 	}
 	for k := range set {
-		mounts = append(mounts, k)
+		mountedDirectories = append(mountedDirectories, k)
 	}
 	// sorted for stability in testing.
-	sort.Strings(mounts)
-	return mounts
+	sort.Strings(mountedDirectories)
+	return mountedDirectories
 }
 
 // addAll populates the mountPoints data structure with the response from lsblk.
@@ -135,10 +158,7 @@ func (m *mountPoints) addAll(elements []DiskElement, basePath []string) {
 		copy(path, basePath)
 		path = append(path, element.Name)
 		if element.Mountpoint != "" {
-			m.mounts = append(m.mounts, struct {
-				dir       string
-				hierarchy []string
-			}{element.Mountpoint, path})
+			m.mounts = append(m.mounts, mountPoint{element.Mountpoint, path})
 		}
 		if len(element.Children) > 0 {
 			m.addAll(element.Children, path)
@@ -163,29 +183,31 @@ func (c *disksCheck) run() (r *report, err error) {
 	case 1:
 		r.Info(fmt.Sprintf("root filesystem found on device: %s", rootDevices[0]))
 	default:
-		format := "root filesystem spans multiple physical devices (%s). Translation only supports single block device."
+		format := "root filesystem spans multiple block devices (%s). Typically this occurs when an LVM logical " +
+			"volume spans multiple block devices. Image import only supports single block device."
 		r.Fatal(fmt.Sprintf(format, rootDevices))
 		return r, nil
 	}
 
 	rootDevice := rootDevices[0]
-	for _, mount := range allMounts.listMountPoints() {
-		if mount == "/" {
+	for _, mountDir := range allMounts.listMountedDirectories() {
+		if mountDir == "/" {
 			continue
 		}
-		devices := allMounts.listPhysicalDevicesForMount(mount)
+		devices := allMounts.listPhysicalDevicesForMount(mountDir)
 		switch len(devices) {
 		case 0:
 			// This implies a bug in mountPoints.addAll.
-			panic(fmt.Sprintf("Invalid parse of mount %s", mount))
+			panic(fmt.Sprintf("Invalid parse of mount %s", mountDir))
 		case 1:
+			// devices[0] is the only physical device that contains this mountDir.
 			if devices[0] != rootDevice {
-				format := "mount %s is not on the root device %s and will be OMITTED from translation."
-				r.Warn(fmt.Sprintf(format, mount, rootDevice))
+				format := "mount %s is not on the root device %s and will be OMITTED from image import."
+				r.Warn(fmt.Sprintf(format, mountDir, rootDevice))
 			}
 		default:
-			format := "mount %s is on multiple physical devices (%s) and will be OMITTED from translation."
-			r.Warn(fmt.Sprintf(format, mount, devices))
+			format := "mount %s is on multiple physical devices (%s) and will be OMITTED from image import."
+			r.Warn(fmt.Sprintf(format, mountDir, devices))
 		}
 	}
 
