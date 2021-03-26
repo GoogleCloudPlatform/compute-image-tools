@@ -1,0 +1,10 @@
+{
+  "blockdevices": [
+    {"name":"sda", "mountpoint":null, "type":"disk",
+      "children": [
+        {"name":"sda1", "mountpoint":"/boot/efi", "type":"part"},
+        {"name":"sda2", "mountpoint":"/", "type":"part"}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "blockdevices": [
+    {"name":"sda", "mountpoint":null, "type":"disk",
+      "children": [
+        {"name":"sda1", "mountpoint":"/boot/efi", "type":"part"},
+        {"name":"sda2", "mountpoint":"/boot", "type":"part"},
+        {"name":"sda3", "mountpoint":null, "type":"part",
+          "children": [
+            {"name":"root", "mountpoint":"/", "type":"lvm"},
+            {"name":"swap", "mountpoint":"[SWAP]", "type":"lvm"}
+          ]
+        }
+      ]
+    }
+  ]
+}

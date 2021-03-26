@@ -1,0 +1,29 @@
+{
+  "blockdevices": [
+    {"name":"fd0", "mountpoint":null, "type":"disk"},
+    {"name":"sda", "mountpoint":null, "type":"disk",
+      "children": [
+        {"name":"sda1", "mountpoint":"/boot", "type":"part"},
+        {"name":"sda2", "mountpoint":null, "type":"part",
+          "children": [
+            {"name":"vg1-lv1", "mountpoint":"/", "type":"lvm"}
+          ]
+        }
+      ]
+    },
+    {"name":"sdb", "mountpoint":null, "type":"disk",
+      "children": [
+        {"name":"sdb1", "mountpoint":null, "type":"part",
+          "children": [
+            {"name":"vg1-lv1", "mountpoint":"/", "type":"lvm"}
+          ]
+        }
+      ]
+    },
+    {"name":"sdc", "mountpoint":null, "type":"disk",
+      "children": [
+        {"name":"sdc1", "mountpoint":"/mnt/tmp", "type":"part"}
+      ]
+    }
+  ]
+}
