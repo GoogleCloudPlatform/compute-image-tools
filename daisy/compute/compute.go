@@ -42,6 +42,7 @@ type Client interface {
 	CreateForwardingRule(project, region string, fr *compute.ForwardingRule) error
 	CreateFirewallRule(project string, i *compute.Firewall) error
 	CreateImage(project string, i *compute.Image) error
+	CreateImageAlpha(project string, i *computeAlpha.Image) error
 	CreateImageBeta(project string, i *computeBeta.Image) error
 	CreateInstance(project, zone string, i *compute.Instance) error
 	CreateInstanceBeta(project, zone string, i *computeBeta.Instance) error
@@ -60,6 +61,7 @@ type Client interface {
 	DeleteSubnetwork(project, region, name string) error
 	DeleteTargetInstance(project, zone, name string) error
 	DeprecateImage(project, name string, deprecationstatus *compute.DeprecationStatus) error
+	DeprecateImageAlpha(project, name string, deprecationstatus *computeAlpha.DeprecationStatus) error
 	GetMachineType(project, zone, machineType string) (*compute.MachineType, error)
 	GetProject(project string) (*compute.Project, error)
 	GetSerialPortOutput(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
@@ -72,6 +74,7 @@ type Client interface {
 	GetForwardingRule(project, region, name string) (*compute.ForwardingRule, error)
 	GetFirewallRule(project, name string) (*compute.Firewall, error)
 	GetImage(project, name string) (*compute.Image, error)
+	GetImageAlpha(project, name string) (*computeAlpha.Image, error)
 	GetImageBeta(project, name string) (*computeBeta.Image, error)
 	GetImageFromFamily(project, family string) (*compute.Image, error)
 	GetLicense(project, name string) (*compute.License, error)
@@ -571,6 +574,28 @@ func (c *client) CreateImageBeta(project string, i *computeBeta.Image) error {
 	return nil
 }
 
+// CreateImageAlpha creates a GCE image using Alpha API.
+// Only one of sourceDisk or sourceFile must be specified, sourceDisk is the
+// url (full or partial) to the source disk, sourceFile is the full Google
+// Cloud Storage URL where the disk image is stored.
+func (c *client) CreateImageAlpha(project string, i *computeAlpha.Image) error {
+	op, err := c.RetryAlpha(c.rawAlpha.Images.Insert(project, i).Do)
+	if err != nil {
+		return err
+	}
+
+	if err := c.i.globalOperationsWait(project, op.Name); err != nil {
+		return err
+	}
+
+	var createdImage *computeAlpha.Image
+	if createdImage, err = c.i.GetImageAlpha(project, i.Name); err != nil {
+		return err
+	}
+	*i = *createdImage
+	return nil
+}
+
 func (c *client) CreateInstance(project, zone string, i *compute.Instance) error {
 	op, err := c.Retry(c.raw.Instances.Insert(project, zone, i).Do)
 	if err != nil {
@@ -781,6 +806,15 @@ func (c *client) DeprecateImage(project, name string, deprecationstatus *compute
 		return err
 	}
 
+	return c.i.globalOperationsWait(project, op.Name)
+}
+
+// DeprecateImageAlpha sets deprecation status on a GCE image using the Alpha API.
+func (c *client) DeprecateImageAlpha(project, name string, deprecationstatus *computeAlpha.DeprecationStatus) error {
+	op, err := c.RetryAlpha(c.rawAlpha.Images.Deprecate(project, name, deprecationstatus).Do)
+	if err != nil {
+		return err
+	}
 	return c.i.globalOperationsWait(project, op.Name)
 }
 
@@ -1106,6 +1140,15 @@ func (c *client) GetImage(project, name string) (*compute.Image, error) {
 	i, err := c.raw.Images.Get(project, name).Do()
 	if shouldRetryWithWait(c.hc.Transport, err, 2) {
 		return c.raw.Images.Get(project, name).Do()
+	}
+	return i, err
+}
+
+// GetImageAlpha gets a GCE Image using Alpha API
+func (c *client) GetImageAlpha(project, name string) (*computeAlpha.Image, error) {
+	i, err := c.rawAlpha.Images.Get(project, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.rawAlpha.Images.Get(project, name).Do()
 	}
 	return i, err
 }
