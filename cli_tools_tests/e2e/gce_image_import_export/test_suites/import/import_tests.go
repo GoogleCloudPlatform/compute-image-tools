@@ -111,6 +111,11 @@ var basicCases = []*testCase{
 		source:   "projects/compute-image-tools-test/global/images/debian-9-translate",
 		os:       "debian-9",
 	},
+	{
+		caseName: "debian-10",
+		source:   "projects/compute-image-tools-test/global/images/debian-10",
+		os:       "debian-10",
+	},
 
 	// Ubuntu
 	{
