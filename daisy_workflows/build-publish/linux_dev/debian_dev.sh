@@ -12,7 +12,7 @@ fi
 # Note websockify will change to python-websockify in Debian 9.
 export DEBIAN_FRONTEND="noninteractive"
 apt-get -y install \
-  apache2 bzip2 gcc gdb make patch tcpdump zsh fio g++ hping3 libaio1 \
+  apache2 arping bzip2 gcc gdb make patch tcpdump zsh fio g++ hping3 libaio1 \
   libaio-dev libevent-dev libmemcached-dev python-dev python-eventlet \
   python-pip sendip strongswan tcpflow traceroute zlib1g-dev dnsutils \
   default-jdk websockify iperf iperf3 pciutils mdadm libaio1 bind9 netcat \
