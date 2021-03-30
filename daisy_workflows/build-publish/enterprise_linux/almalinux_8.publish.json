@@ -37,7 +37,7 @@
     {
       "Family": "almalinux-8",
       "Prefix": "almalinux-8",
-      "Description": "AlmaLinux, AlmaLinux, 8, x86_64 built on {{$time}}, supports Shielded VM features",
+      "Description": "AlmaLinux, AlmaLinux, 8, x86_64 built on {{$time}}",
       "Licenses": [
         {{if eq .environment "staging" -}}
         "projects/bct-staging-functional/global/licenses/almalinux-8"
