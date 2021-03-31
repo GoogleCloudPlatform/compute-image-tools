@@ -95,15 +95,15 @@ func TestSuite(
 
 	// Only test service account scenario for wrapper, till gcloud supports it.
 	machineImageImportDisabledDefaultServiceAccountSuccessTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Machine image import without default service account, success by specifying a custom Compute service account"))
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Machine image import without default service account, success by specifying a custom Compute service account"))
 	machineImageImportDefaultServiceAccountWithMissingPermissionsSuccessTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Machine image import without permission on default service account, success by specifying a custom Compute service account"))
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Machine image import without permission on default service account, success by specifying a custom Compute service account"))
 	machineImageImportDisabledDefaultServiceAccountFailTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Machine image import without default service account failed"))
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Machine image import without default service account failed"))
 	machineImageImportDefaultServiceAccountWithMissingPermissionsFailTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Machine image import without permission on default service account failed"))
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Machine image import without permission on default service account failed"))
 	machineImageImportDefaultServiceAccountCustomAccessScopeTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Machine image import with default service account custom access scopes set"))
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Machine image import with default service account custom access scopes set"))
 	testsMap[e2e.Wrapper][machineImageImportDisabledDefaultServiceAccountSuccessTestCase] = runMachineImageImportDisabledDefaultServiceAccountSuccessTest
 	testsMap[e2e.Wrapper][machineImageImportDefaultServiceAccountWithMissingPermissionsSuccessTestCase] = runMachineImageImportOSDefaultServiceAccountWithMissingPermissionsSuccessTest
 	testsMap[e2e.Wrapper][machineImageImportDisabledDefaultServiceAccountFailTestCase] = runMachineImageImportWithDisabledDefaultServiceAccountFailTest
