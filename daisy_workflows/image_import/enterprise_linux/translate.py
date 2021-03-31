@@ -363,7 +363,8 @@ def cleanup(g: guestfs.GuestFS):
       logging.debug('try again in 10 seconds')
       time.sleep(10)
   if not success:
-    logging.debug('Unmount failed. Continuing anyway.')
+    logging.debug('Shutdown failed. Continuing anyway.')
+
 
 def main():
   disk = '/dev/sdb'
