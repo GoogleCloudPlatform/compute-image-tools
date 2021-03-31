@@ -349,12 +349,28 @@ def run_translate(g: guestfs.GuestFS):
     raise raised
 
 
+def cleanup(g: guestfs.GuestFS):
+  """Shutdown and close the guestfs.GuestFS handle, retrying on failure."""
+  success = False
+  for i in range(6):
+    try:
+      logging.debug('g.shutdown(): {}'.format(g.shutdown()))
+      logging.debug('g.close(): {}'.format(g.close()))
+      success = True
+      break
+    except BaseException as raised:
+      logging.debug('cleanup failed due to: {}'.format(raised))
+      logging.debug('try again in 10 seconds')
+      time.sleep(10)
+  if not success:
+    logging.debug('Unmount failed. Continuing anyway.')
+
 def main():
   disk = '/dev/sdb'
   g = diskutils.MountDisk(disk)
   run_translate(g)
   utils.CommonRoutines(g)
-  diskutils.UnmountDisk(g)
+  cleanup(g)
   utils.Execute(['virt-customize', '-a', disk, '--selinux-relabel'])
 
 
