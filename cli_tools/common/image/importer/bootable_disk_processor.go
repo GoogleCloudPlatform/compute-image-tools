@@ -38,13 +38,13 @@ func (b *bootableDiskProcessor) process(pd persistentDisk) (persistentDisk, erro
 	var err error
 	err = b.workflow.RunWithModifiers(context.Background(), b.preValidateFunc(), b.postValidateFunc())
 	if err != nil {
+		b.logger.User("Finished making disk bootable")
 		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.request.Network, b.workflow)
 		err = customizeErrorToDetectionResults(b.request.OS,
 			b.workflow.GetSerialConsoleOutputValue("detected_distro"),
 			b.workflow.GetSerialConsoleOutputValue("detected_major_version"),
 			b.workflow.GetSerialConsoleOutputValue("detected_minor_version"), err)
 	}
-	b.logger.User("Finished making disk bootable")
 	if b.workflow.Logger != nil {
 		for _, trace := range b.workflow.Logger.ReadSerialPortLogs() {
 			b.logger.Trace(trace)
