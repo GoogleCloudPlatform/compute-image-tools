@@ -34,7 +34,7 @@ class RepoString(object):
     baseurl: The url for the repo.
     enabled: Set to 1 to enable.
     gpgcheck: Set to 1 to enable.
-    repo_gpgcheck: Set to 1 to enable.
+    repo_gpgcheck: Set to 0 to disable.
     gpgkey: URLs pointing to GPG keys.
   """
 
@@ -112,7 +112,7 @@ class RepoString(object):
         self.GetBaseURL(self.repodict[self.repo]['url_branch']))
     self.yumseg['enabled'] = '1'
     self.yumseg['gpgcheck'] = '1'
-    self.yumseg['repo_gpgcheck'] = '1'
+    self.yumseg['repo_gpgcheck'] = '0'
     self.yumseg['gpgkey'] = self.gpgkey_list
 
   def __str__(self):
