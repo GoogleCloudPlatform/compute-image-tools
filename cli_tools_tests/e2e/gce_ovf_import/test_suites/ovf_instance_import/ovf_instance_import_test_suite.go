@@ -75,10 +75,10 @@ func TestSuite(
 		e2e.GcloudGaLatestWrapperRelease,
 	}
 	for _, testType := range testTypes {
-		instanceImportUbuntu3DisksTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Ubuntu 3 disks, one data disk larger than 10GB"))
-		instanceImportWindows2012R2TwoDisks := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Windows 2012 R2 two disks"))
+		instanceImportUbuntu3DisksTestCaseNetworkSettingsName := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Ubuntu 3 disks, one data disk larger than 10GB, network setting (name only)"))
+		instanceImportWindows2012R2TwoDisksNetworkSettingsPath := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Windows 2012 R2 two disks, network setting (path)"))
 		instanceImportWindows2016 := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Windows 2016"))
 		instanceImportWindows2008R2FourNICs := junitxml.NewTestCase(
@@ -89,38 +89,32 @@ func TestSuite(
 			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Ubuntu 1604 from Virtualbox"))
 		instanceImportUbuntu16FromAWS := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Ubuntu 1604 from AWS"))
-		instanceImportNetworkSettingsName := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Test network setting (name only)"))
-		instanceImportNetworkSettingsPath := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Test network setting (path)"))
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, e2e.CLITestType){}
-		testsMap[testType][instanceImportUbuntu3DisksTestCase] = runOVFInstanceImportUbuntu3Disks
-		testsMap[testType][instanceImportWindows2012R2TwoDisks] = runOVFInstanceImportWindows2012R2TwoDisks
+		testsMap[testType][instanceImportUbuntu3DisksTestCaseNetworkSettingsName] = runOVFInstanceImportUbuntu3DisksNetworkSettingsName
+		testsMap[testType][instanceImportWindows2012R2TwoDisksNetworkSettingsPath] = runOVFInstanceImportWindows2012R2TwoDisksNetworkSettingsPath
 		testsMap[testType][instanceImportWindows2016] = runOVFInstanceImportWindows2016
 		testsMap[testType][instanceImportWindows2008R2FourNICs] = runOVFInstanceImportWindows2008R2FourNICs
 		testsMap[testType][instanceImportDebian9] = runOVFInstanceImportDebian9
 		testsMap[testType][instanceImportUbuntu16FromVirtualBox] = runOVFInstanceImportUbuntu16FromVirtualBox
 		testsMap[testType][instanceImportUbuntu16FromAWS] = runOVFInstanceImportUbuntu16FromAWS
-		testsMap[testType][instanceImportNetworkSettingsName] = runOVFInstanceImportNetworkSettingsName
-		testsMap[testType][instanceImportNetworkSettingsPath] = runOVFInstanceImportNetworkSettingsPath
 	}
 	// Only test service account scenario for wrapper, till gcloud supports it.
 	instanceImportDisabledDefaultServiceAccountSuccessTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Instance import without default service account, success by specifying a custom Compute service account"))
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Instance import without default service account, success by specifying a custom Compute service account"))
 	instanceImportDefaultServiceAccountWithMissingPermissionsSuccessTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Instance import without permission on default service account, success by specifying a custom Compute service account"))
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Instance import without permission on default service account, success by specifying a custom Compute service account"))
 	instanceImportDisabledDefaultServiceAccountFailTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Instance import without default service account failed"))
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Instance import without default service account failed"))
 	instanceImportDefaultServiceAccountWithMissingPermissionsFailTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Instance import without permission on default service account failed"))
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Instance import without permission on default service account failed"))
 	instanceImportDefaultServiceAccountCustomAccessScopeTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Instance import with default service account custom access scopes"))
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Instance import with default service account custom access scopes"))
 	instanceImportDefaultServiceAccountNoAccessScopeTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Instance import with default service account no access scopes"))
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Instance import with default service account no access scopes"))
 	instanceImportNoServiceAccountTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Instance import with no service account"))
+		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Instance import with no service account"))
 
 	testsMap[e2e.Wrapper][instanceImportDisabledDefaultServiceAccountSuccessTestCase] = runInstanceImportDisabledDefaultServiceAccountSuccessTest
 	testsMap[e2e.Wrapper][instanceImportDefaultServiceAccountWithMissingPermissionsSuccessTestCase] = runInstanceImportDefaultServiceAccountWithMissingPermissionsSuccessTest
@@ -134,7 +128,7 @@ func TestSuite(
 		testProjectConfig, testSuiteName, testsMap)
 }
 
-func runOVFInstanceImportUbuntu3Disks(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runOVFInstanceImportUbuntu3DisksNetworkSettingsName(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	suffix := path.RandString(5)
@@ -149,15 +143,19 @@ func runOVFInstanceImportUbuntu3Disks(ctx context.Context, testCase *junitxml.Te
 			SourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-1604-three-disks", ovaBucket),
 			InstanceMetadata:      skipOSConfigMetadata,
 			Os:                    "ubuntu-1604",
-			MachineType:           "n1-standard-4"}}
+			MachineType:           "n1-standard-4",
+			Network:               fmt.Sprintf("%v-vpc-1", testProjectConfig.TestProjectID),
+			Subnet:                fmt.Sprintf("%v-subnet-1", testProjectConfig.TestProjectID),
+		}}
 
 	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
-func runOVFInstanceImportWindows2012R2TwoDisks(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runOVFInstanceImportWindows2012R2TwoDisksNetworkSettingsPath(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	suffix := path.RandString(5)
+	region, _ := paramhelper.GetRegion(testProjectConfig.TestZone)
 	props := &ovfInstanceImportTestProperties{
 		instanceName: fmt.Sprintf("test-instance-w2k12-r2-%v", suffix),
 		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
@@ -169,6 +167,9 @@ func runOVFInstanceImportWindows2012R2TwoDisks(ctx context.Context, testCase *ju
 			Os:                    "windows-2012r2",
 			MachineType:           "n1-standard-8",
 			IsWindows:             true,
+			Network:               fmt.Sprintf("global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
+			Subnet: fmt.Sprintf("projects/%v/regions/%v/subnetworks/%v-subnet-1",
+				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
 		}}
 
 	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
@@ -261,49 +262,6 @@ func runOVFInstanceImportUbuntu16FromAWS(ctx context.Context, testCase *junitxml
 			SourceURI:   fmt.Sprintf("gs://%v/ova/aws-ova-ubuntu-1604.ova", ovaBucket),
 			Os:          "ubuntu-1604",
 			MachineType: "n1-standard-4",
-		}}
-
-	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
-}
-
-func runOVFInstanceImportNetworkSettingsName(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
-
-	suffix := path.RandString(5)
-	props := &ovfInstanceImportTestProperties{
-		instanceName: fmt.Sprintf("test-network-name-%v", suffix),
-		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
-			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-			Zone:                  testProjectConfig.TestZone,
-			ExpectedStartupOutput: "All tests passed!",
-			FailureMatches:        []string{"FAILED:", "TestFailed:"},
-			SourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
-			Os:                    "centos-7",
-			MachineType:           "n1-standard-4",
-			Network:               fmt.Sprintf("%v-vpc-1", testProjectConfig.TestProjectID),
-			Subnet:                fmt.Sprintf("%v-subnet-1", testProjectConfig.TestProjectID),
-		}}
-
-	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
-}
-
-func runOVFInstanceImportNetworkSettingsPath(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
-
-	suffix := path.RandString(5)
-	region, _ := paramhelper.GetRegion(testProjectConfig.TestZone)
-	props := &ovfInstanceImportTestProperties{
-		instanceName: fmt.Sprintf("test-network-path-%v", suffix),
-		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
-			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-			Zone:                  testProjectConfig.TestZone,
-			ExpectedStartupOutput: "All tests passed!",
-			FailureMatches:        []string{"FAILED:", "TestFailed:"},
-			SourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
-			Os:                    "centos-7",
-			MachineType:           "n1-standard-4",
-			Network:               fmt.Sprintf("global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
-			Subnet:                fmt.Sprintf("projects/%v/regions/%v/subnetworks/%v-subnet-1", testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
 		}}
 
 	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
