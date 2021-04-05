@@ -181,19 +181,42 @@ func TestGetDiskFileInfosMissingFileReference(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestGetDiskFileInfosDiskWithoutParentController(t *testing.T) {
+func TestGetDiskFileInfosDiskWithoutParentControllerAdded(t *testing.T) {
 	virtualHardware := &ovf.VirtualHardwareSection{
 		Item: []ovf.ResourceAllocationSettingData{
 			createControllerItem("3", sataController),
 			createControllerItem("4", usbController),
 			createControllerItem("5", parallelSCSIController),
+			createDiskItem("8", "0", "disk3", "ovf:/disk/vmdisk3", "123"),
 			createDiskItem("7", "0", "disk1", "ovf:/disk/vmdisk2", "5"),
 			createDiskItem("6", "0", "disk0", "ovf:/disk/vmdisk1", "3"),
-			createDiskItem("8", "0", "disk2", "ovf:/disk/vmdisk3", "123"),
 		},
 	}
 
-	doTestGetDiskFileInfosSuccess(t, virtualHardware)
+	fileRef3 := "file3"
+	disks := &ovf.DiskSection{Disks: []ovf.VirtualDiskDesc{
+		{Capacity: "20", CapacityAllocationUnits: &diskCapacityAllocationUnits, DiskID: "vmdisk1", FileRef: &fileRef1},
+		{Capacity: "1", CapacityAllocationUnits: &diskCapacityAllocationUnits, DiskID: "vmdisk2", FileRef: &fileRef2},
+		{Capacity: "5", CapacityAllocationUnits: &diskCapacityAllocationUnits, DiskID: "vmdisk3", FileRef: &fileRef3},
+	}}
+
+	references := &[]ovf.File{
+		{Href: "Ubuntu_for_Horizon71_1_1.0-disk3.vmdk", ID: "file3", Size: 56841},
+		{Href: "Ubuntu_for_Horizon71_1_1.0-disk1.vmdk", ID: "file1", Size: 1151322112},
+		{Href: "Ubuntu_for_Horizon71_1_1.0-disk2.vmdk", ID: "file2", Size: 68096},
+	}
+
+	diskInfos, err := GetDiskInfos(virtualHardware, disks, references)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, diskInfos)
+	assert.Equal(t, 3, len(diskInfos))
+	assert.Equal(t, "Ubuntu_for_Horizon71_1_1.0-disk1.vmdk", diskInfos[0].FilePath)
+	assert.Equal(t, "Ubuntu_for_Horizon71_1_1.0-disk2.vmdk", diskInfos[1].FilePath)
+	assert.Equal(t, "Ubuntu_for_Horizon71_1_1.0-disk3.vmdk", diskInfos[2].FilePath)
+	assert.Equal(t, 20, diskInfos[0].SizeInGB)
+	assert.Equal(t, 1, diskInfos[1].SizeInGB)
+	assert.Equal(t, 5, diskInfos[2].SizeInGB)
 }
 
 func TestGetDiskFileInfosNoControllers(t *testing.T) {

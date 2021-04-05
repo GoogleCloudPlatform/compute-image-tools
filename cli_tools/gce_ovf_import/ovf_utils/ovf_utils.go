@@ -263,6 +263,7 @@ func GetDiskInfos(virtualHardware *ovf.VirtualHardwareSection, diskSection *ovf.
 
 	allDiskItems := filterItemsByResourceTypes(virtualHardware, disk)
 	diskInfos := make([]DiskInfo, 0)
+	processedDisks := make(map[string]bool)
 
 	for _, diskController := range diskControllers {
 		controllerDisks := make([]ovf.ResourceAllocationSettingData, 0)
@@ -278,32 +279,53 @@ func GetDiskInfos(virtualHardware *ovf.VirtualHardwareSection, diskSection *ovf.
 		})
 
 		for _, diskItem := range controllerDisks {
-			diskFileName, virtualDiscDesc, err := getDiskFileInfo(
-				diskItem.HostResource[0], &diskSection.Disks, references)
-			if err != nil {
-				return diskInfos, err
+			diskInfo, diskInfoErr := buildDiskInfo(&diskItem, diskSection, references)
+			if diskInfoErr != nil {
+				return diskInfos, diskInfoErr
 			}
+			diskInfos = append(diskInfos, *diskInfo)
+			processedDisks[diskItem.InstanceID] = true
+		}
+	}
 
-			capacityRaw, err := strconv.Atoi(virtualDiscDesc.Capacity)
-			if err != nil {
-				return diskInfos, err
+	// Add disks that don't belong to any controllers to disk infos
+	for _, diskItem := range allDiskItems {
+		if !processedDisks[diskItem.InstanceID] {
+			diskInfo, diskInfoErr := buildDiskInfo(&diskItem, diskSection, references)
+			if diskInfoErr != nil {
+				return diskInfos, diskInfoErr
 			}
-
-			allocationUnits := "byte"
-			if virtualDiscDesc.CapacityAllocationUnits != nil &&
-				*virtualDiscDesc.CapacityAllocationUnits != "" {
-				allocationUnits = *virtualDiscDesc.CapacityAllocationUnits
-			}
-			byteCapacity, err := Parse(int64(capacityRaw), allocationUnits)
-			if err != nil {
-				return diskInfos, err
-			}
-
-			diskInfos = append(diskInfos, DiskInfo{FilePath: diskFileName, SizeInGB: byteCapacity.ToGB()})
+			diskInfos = append(diskInfos, *diskInfo)
+			processedDisks[diskItem.InstanceID] = true
 		}
 	}
 
 	return diskInfos, nil
+}
+
+func buildDiskInfo(diskItem *ovf.ResourceAllocationSettingData,
+	diskSection *ovf.DiskSection, references *[]ovf.File) (*DiskInfo, error) {
+	diskFileName, virtualDiscDesc, err := getDiskFileInfo(
+		diskItem.HostResource[0], &diskSection.Disks, references)
+	if err != nil {
+		return nil, err
+	}
+
+	capacityRaw, err := strconv.Atoi(virtualDiscDesc.Capacity)
+	if err != nil {
+		return nil, err
+	}
+
+	allocationUnits := "byte"
+	if virtualDiscDesc.CapacityAllocationUnits != nil &&
+		*virtualDiscDesc.CapacityAllocationUnits != "" {
+		allocationUnits = *virtualDiscDesc.CapacityAllocationUnits
+	}
+	byteCapacity, err := Parse(int64(capacityRaw), allocationUnits)
+	if err != nil {
+		return nil, err
+	}
+	return &DiskInfo{FilePath: diskFileName, SizeInGB: byteCapacity.ToGB()}, nil
 }
 
 // GetNumberOfCPUs returns number of CPUs in from virtualHardware section. If multiple CPUs are
@@ -538,11 +560,13 @@ func getDiskFileInfo(diskHostResource string, disks *[]ovf.VirtualDiskDesc,
 func extractDiskID(diskHostResource string) (string, error) {
 	if strings.HasPrefix(diskHostResource, "ovf:/disk/") {
 		return strings.TrimPrefix(diskHostResource, "ovf:/disk/"), nil
+	} else if strings.HasPrefix(diskHostResource, "ovf:disk/") {
+		return strings.TrimPrefix(diskHostResource, "ovf:disk/"), nil
 	} else if strings.HasPrefix(diskHostResource, "/disk/") {
 		return strings.TrimPrefix(diskHostResource, "/disk/"), nil
 	}
 
-	return "", daisy.Errf("disk host resource %v has invalid format", diskHostResource)
+	return "", daisy.Errf("disk host resource '%v' has invalid format", diskHostResource)
 }
 
 func sortItemsByStringValue(items []ovf.ResourceAllocationSettingData, extractValue func(ovf.ResourceAllocationSettingData) string) {

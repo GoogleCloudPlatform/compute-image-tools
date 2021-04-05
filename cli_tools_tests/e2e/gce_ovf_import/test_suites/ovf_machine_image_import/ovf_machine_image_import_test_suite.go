@@ -80,11 +80,11 @@ func TestSuite(
 	}
 	for _, testType := range testTypes {
 		machineImageImportUbuntu3DisksNetworkSettingsNameTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFMachineImageImport] %v", testType, "Ubuntu 3 disks, one data disk larger than 10GB, Network setting (name only)"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Ubuntu 3 disks, one data disk larger than 10GB, Network setting (name only)"))
 		machineImageImportWindows2012R2TwoDisksNetworkSettingsPathTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFMachineImageImport] %v", testType, "Windows 2012 R2 two disks, Network setting (path)"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Windows 2012 R2 two disks, Network setting (path)"))
 		machineImageImportStorageLocationTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFMachineImageImport] %v", testType, "Centos 7.4, Storage location"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Centos 7.4, Storage location"))
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, e2e.CLITestType){}
@@ -93,17 +93,17 @@ func TestSuite(
 		testsMap[testType][machineImageImportStorageLocationTestCase] = runOVFMachineImageImportCentos74StorageLocation
 	}
 
-	// Only test service account scenario for wrapper, till gcloud supports it.
+	// gcloud only tests
 	machineImageImportDisabledDefaultServiceAccountSuccessTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Machine image import without default service account, success by specifying a custom Compute service account"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.GcloudBetaLatestWrapperLatest, "Machine image import without default service account, success by specifying a custom Compute service account"))
 	machineImageImportDefaultServiceAccountWithMissingPermissionsSuccessTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Machine image import without permission on default service account, success by specifying a custom Compute service account"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.GcloudBetaLatestWrapperLatest, "Machine image import without permission on default service account, success by specifying a custom Compute service account"))
 	machineImageImportDisabledDefaultServiceAccountFailTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Machine image import without default service account failed"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.GcloudBetaLatestWrapperLatest, "Machine image import without default service account failed"))
 	machineImageImportDefaultServiceAccountWithMissingPermissionsFailTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Machine image import without permission on default service account failed"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.GcloudBetaLatestWrapperLatest, "Machine image import without permission on default service account failed"))
 	machineImageImportDefaultServiceAccountCustomAccessScopeTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Machine image import with default service account custom access scopes set"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.GcloudBetaLatestWrapperLatest, "Machine image import with default service account custom access scopes set"))
 	testsMap[e2e.Wrapper][machineImageImportDisabledDefaultServiceAccountSuccessTestCase] = runMachineImageImportDisabledDefaultServiceAccountSuccessTest
 	testsMap[e2e.Wrapper][machineImageImportDefaultServiceAccountWithMissingPermissionsSuccessTestCase] = runMachineImageImportOSDefaultServiceAccountWithMissingPermissionsSuccessTest
 	testsMap[e2e.Wrapper][machineImageImportDisabledDefaultServiceAccountFailTestCase] = runMachineImageImportWithDisabledDefaultServiceAccountFailTest

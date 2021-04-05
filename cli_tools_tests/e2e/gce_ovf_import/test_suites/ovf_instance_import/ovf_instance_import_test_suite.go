@@ -76,19 +76,19 @@ func TestSuite(
 	}
 	for _, testType := range testTypes {
 		instanceImportUbuntu3DisksTestCaseNetworkSettingsName := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Ubuntu 3 disks, one data disk larger than 10GB, network setting (name only)"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Ubuntu 3 disks, one data disk larger than 10GB, network setting (name only)"))
 		instanceImportWindows2012R2TwoDisksNetworkSettingsPath := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Windows 2012 R2 two disks, network setting (path)"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Windows 2012 R2 two disks, network setting (path)"))
 		instanceImportWindows2016 := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Windows 2016"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Windows 2016"))
 		instanceImportWindows2008R2FourNICs := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Windows 2008r2 - Four NICs"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Windows 2008r2 - Four NICs"))
 		instanceImportDebian9 := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Debian 9"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Debian 9"))
 		instanceImportUbuntu16FromVirtualBox := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Ubuntu 1604 from Virtualbox"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Ubuntu 1604 from Virtualbox"))
 		instanceImportUbuntu16FromAWS := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Ubuntu 1604 from AWS"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Ubuntu 1604 from AWS"))
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, e2e.CLITestType){}
@@ -100,21 +100,22 @@ func TestSuite(
 		testsMap[testType][instanceImportUbuntu16FromVirtualBox] = runOVFInstanceImportUbuntu16FromVirtualBox
 		testsMap[testType][instanceImportUbuntu16FromAWS] = runOVFInstanceImportUbuntu16FromAWS
 	}
-	// Only test service account scenario for wrapper, till gcloud supports it.
+
+	// gcloud only tests
 	instanceImportDisabledDefaultServiceAccountSuccessTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Instance import without default service account, success by specifying a custom Compute service account"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.GcloudBetaLatestWrapperLatest, "No default service account, success by specifying custom Compute service account (Oracle Linux as CentOS)"))
 	instanceImportDefaultServiceAccountWithMissingPermissionsSuccessTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Instance import without permission on default service account, success by specifying a custom Compute service account"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.GcloudBetaLatestWrapperLatest, "No permission on default service account, success by specifying a custom Compute service account"))
 	instanceImportDisabledDefaultServiceAccountFailTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Instance import without default service account failed"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.GcloudBetaLatestWrapperLatest, "No default service account, failed"))
 	instanceImportDefaultServiceAccountWithMissingPermissionsFailTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Instance import without permission on default service account failed"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.GcloudBetaLatestWrapperLatest, "No permission on default service account, failed"))
 	instanceImportDefaultServiceAccountCustomAccessScopeTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Instance import with default service account custom access scopes"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.GcloudBetaLatestWrapperLatest, "No default service account, custom access scopes"))
 	instanceImportDefaultServiceAccountNoAccessScopeTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Instance import with default service account no access scopes"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.GcloudBetaLatestWrapperLatest, "No default service account, no access scopes"))
 	instanceImportNoServiceAccountTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.GcloudBetaLatestWrapperLatest, "Instance import with no service account"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.GcloudBetaLatestWrapperLatest, "No service account"))
 
 	testsMap[e2e.Wrapper][instanceImportDisabledDefaultServiceAccountSuccessTestCase] = runInstanceImportDisabledDefaultServiceAccountSuccessTest
 	testsMap[e2e.Wrapper][instanceImportDefaultServiceAccountWithMissingPermissionsSuccessTestCase] = runInstanceImportDefaultServiceAccountWithMissingPermissionsSuccessTest
@@ -282,7 +283,7 @@ func runInstanceImportDisabledDefaultServiceAccountSuccessTest(ctx context.Conte
 			Zone:                   testProjectConfig.TestZone,
 			ExpectedStartupOutput:  "All tests passed!",
 			FailureMatches:         []string{"FAILED:", "TestFailed:"},
-			SourceURI:              fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+			SourceURI:              fmt.Sprintf("gs://%v/ova/OL7U9_x86_64-olvm-b77.ova", ovaBucket),
 			Os:                     "centos-7",
 			MachineType:            "n1-standard-4",
 			Project:                testVariables.ProjectID,
