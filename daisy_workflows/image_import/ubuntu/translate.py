@@ -193,6 +193,16 @@ def install_cloud_sdk(g: guestfs.GuestFS, ubuntu_release: str) -> None:
     logging.debug('[%s] PATH not defined. Added:\n%s', p, diff)
 
 
+def install_osconfig_agent(g: guestfs.GuestFS):
+  try:
+    utils.install_apt_packages(g, 'google-osconfig-agent')
+  except RuntimeError:
+    logging.info(
+      'Failed to install the OS Config agent. '
+      'For manual install instructions, see '
+      'https://cloud.google.com/compute/docs/manage-os#agent-install .')
+
+
 def DistroSpecific(g):
   ubuntu_release = utils.GetMetadataAttribute('ubuntu_release')
   install_gce = utils.GetMetadataAttribute('install_gce_packages')
@@ -236,6 +246,8 @@ def DistroSpecific(g):
 
     g.write('/etc/cloud/cloud.cfg.d/91-gce-system.cfg', cloud_init_repos)
 
+    if g.gcp_image_major > '14':
+      install_osconfig_agent(g)
     utils.install_apt_packages(g, 'gce-compute-image-packages')
     install_cloud_sdk(g, ubuntu_release)
 

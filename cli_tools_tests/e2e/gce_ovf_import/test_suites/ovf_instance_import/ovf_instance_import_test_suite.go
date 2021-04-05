@@ -141,7 +141,6 @@ func runOVFInstanceImportUbuntu3DisksNetworkSettingsName(ctx context.Context, te
 			ExpectedStartupOutput: "All tests passed!",
 			FailureMatches:        []string{"FAILED:", "TestFailed:"},
 			SourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-1604-three-disks", ovaBucket),
-			InstanceMetadata:      skipOSConfigMetadata,
 			Os:                    "ubuntu-1604",
 			MachineType:           "n1-standard-4",
 			Network:               fmt.Sprintf("%v-vpc-1", testProjectConfig.TestProjectID),
@@ -245,7 +244,6 @@ func runOVFInstanceImportUbuntu16FromVirtualBox(ctx context.Context, testCase *j
 			FailureMatches:        []string{"FAILED:", "TestFailed:"},
 			SourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-16.04-virtualbox.ova", ovaBucket),
 			Os:                    "ubuntu-1604",
-			InstanceMetadata:      skipOSConfigMetadata,
 			MachineType:           "n1-standard-4",
 		}}
 

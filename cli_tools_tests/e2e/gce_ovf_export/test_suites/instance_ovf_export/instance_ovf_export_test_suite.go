@@ -26,13 +26,14 @@ import (
 	"sync"
 	"time"
 
+	computeBeta "google.golang.org/api/compute/v0.beta"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e"
 	"github.com/GoogleCloudPlatform/compute-image-tools/common/gcp"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
-	computeBeta "google.golang.org/api/compute/v0.beta"
 )
 
 const (
@@ -106,7 +107,6 @@ func runInstanceOVFExportUbuntu3Disks(ctx context.Context, testCase *junitxml.Te
 		expectedStartupOutput: "All tests passed!",
 		failureMatches:        []string{"FAILED:", "TestFailed:"},
 		sourceGMI:             "projects/compute-image-test-pool-001/global/machineImages/ubuntu-1604-three-disks-do-not-delete",
-		instanceMetadata:      skipOSConfigMetadata,
 		os:                    "ubuntu-1604",
 		destinationURI:        fmt.Sprintf("gs://%v/%v/", exportBucket, exportPath),
 		exportBucket:          exportBucket,
