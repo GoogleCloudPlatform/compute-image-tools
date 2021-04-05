@@ -57,15 +57,15 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 
 	for _, testType := range testTypes {
 		imageExportRawTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", testType, "Export Raw"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Raw"))
 		imageExportVMDKTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", testType, "Export VMDK"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "VMDK"))
 		imageExportWithRichParamsTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", testType, "Export with rich params"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "With rich params"))
 		imageExportWithDifferentNetworkParamStyles := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", testType, "Export with different network param styles"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "With different network param styles"))
 		imageExportWithSubnetWithoutNetworkTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", testType, "Export with subnet but without network"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "With subnet but without network"))
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, e2e.CLITestType){}
@@ -78,9 +78,9 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 
 	// Only test service account scenario for wrapper, until gcloud support it.
 	imageExportRawWithoutDefaultServiceAccountTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", e2e.Wrapper, "Export Raw without default service account"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "Raw without default service account"))
 	imageExportVMDKDefaultServiceAccountWithMissingPermissionsTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", e2e.Wrapper, "Export VMDK without default service account permission"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "VMDK without default service account permission"))
 	testsMap[e2e.Wrapper][imageExportRawWithoutDefaultServiceAccountTestCase] = runImageExportRawWithoutDefaultServiceAccountTest
 	testsMap[e2e.Wrapper][imageExportVMDKDefaultServiceAccountWithMissingPermissionsTestCase] = runImageExportVMDKDefaultServiceAccountWithMissingPermissionsTest
 
