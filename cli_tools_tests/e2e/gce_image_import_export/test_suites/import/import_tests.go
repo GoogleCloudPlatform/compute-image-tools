@@ -79,16 +79,14 @@ type testCase struct {
 var basicCases = []*testCase{
 	// Disk image formats
 	{
-		caseName:             "vhd-ubuntu-1804",
-		source:               "gs://compute-image-tools-test-resources/ubuntu-1804-azure.vhd",
-		os:                   "ubuntu-1804",
-		osConfigNotSupported: true,
+		caseName: "vhd-ubuntu-1804",
+		source:   "gs://compute-image-tools-test-resources/ubuntu-1804-azure.vhd",
+		os:       "ubuntu-1804",
 	},
 	{
-		caseName:             "vpc-file-format-ubuntu-1804",
-		source:               "gs://compute-image-tools-test-resources/ubuntu-1804.vpc",
-		os:                   "ubuntu-1804",
-		osConfigNotSupported: true,
+		caseName: "vpc-file-format-ubuntu-1804",
+		source:   "gs://compute-image-tools-test-resources/ubuntu-1804.vpc",
+		os:       "ubuntu-1804",
 	},
 
 	// Error messages
@@ -124,25 +122,21 @@ var basicCases = []*testCase{
 		os:                   "ubuntu-1404",
 		osConfigNotSupported: true,
 	}, {
-		caseName:             "ubuntu-1604",
-		source:               "projects/compute-image-tools-test/global/images/ubuntu-1604-vmware-import",
-		os:                   "ubuntu-1604",
-		osConfigNotSupported: true,
+		caseName: "ubuntu-1604",
+		source:   "projects/compute-image-tools-test/global/images/ubuntu-1604-vmware-import",
+		os:       "ubuntu-1604",
 	}, {
-		caseName:             "ubuntu-1804",
-		source:               "gs://compute-image-tools-test-resources/ubuntu-1804-vmware.vmdk",
-		os:                   "ubuntu-1804",
-		osConfigNotSupported: true,
+		caseName: "ubuntu-1804",
+		source:   "gs://compute-image-tools-test-resources/ubuntu-1804-vmware.vmdk",
+		os:       "ubuntu-1804",
 	}, {
-		caseName:             "ubuntu-2004",
-		source:               "projects/compute-image-tools-test/global/images/ubuntu-2004",
-		os:                   "ubuntu-2004",
-		osConfigNotSupported: true,
+		caseName: "ubuntu-2004",
+		source:   "projects/compute-image-tools-test/global/images/ubuntu-2004",
+		os:       "ubuntu-2004",
 	}, {
-		caseName:             "ubuntu-2004-aws",
-		source:               "projects/compute-image-tools-test/global/images/ubuntu-2004-aws",
-		os:                   "ubuntu-2004",
-		osConfigNotSupported: true,
+		caseName: "ubuntu-2004-aws",
+		source:   "projects/compute-image-tools-test/global/images/ubuntu-2004-aws",
+		os:       "ubuntu-2004",
 	},
 
 	// OpenSUSE
@@ -341,21 +335,18 @@ var inspectUEFICases = []*testCase{
 		// source created from projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317
 		source:                    "gs://compute-image-tools-test-resources/uefi/linux-protective-mbr-ubuntu-1804.vmdk",
 		os:                        "ubuntu-1804",
-		osConfigNotSupported:      true,
 		notAllowedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
 	}, {
 		caseName: "inspect-uefi-linux-dual-hybrid-mbr-ubuntu-2004",
 		// source created from scratch
 		source:                    "gs://compute-image-tools-test-resources/uefi/linux-hybrid-mbr-ubuntu-2004.vmdk",
 		os:                        "ubuntu-2004",
-		osConfigNotSupported:      true,
 		notAllowedGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
 	}, {
 		caseName: "inspect-uefi-linux-uefi-mbr-ubuntu-1804",
 		// source created from projects/gce-uefi-images/global/images/ubuntu-1804-bionic-v20200317 and converted from GPT to MBR
 		source:                  "gs://compute-image-tools-test-resources/uefi/linux-ubuntu-mbr-uefi.vmdk",
 		os:                      "ubuntu-1804",
-		osConfigNotSupported:    true,
 		requiredGuestOsFeatures: []string{"UEFI_COMPATIBLE"},
 	}, {
 		caseName: "inspect-uefi-windows-uefi",
