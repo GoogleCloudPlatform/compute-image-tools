@@ -78,6 +78,8 @@ def main():
                  'GRUB_CLOUD_AMD64', 'LINUX_IMAGE_CLOUD']
   if debian_version == 'buster':
     fai_classes += ['BUSTER', 'BACKPORTS']
+  elif debian_version == "bullseye":
+    fai_classes += ['BULLSEYE']
   elif debian_version == 'sid':
     fai_classes += ['SID']
   image_size = '10G'
