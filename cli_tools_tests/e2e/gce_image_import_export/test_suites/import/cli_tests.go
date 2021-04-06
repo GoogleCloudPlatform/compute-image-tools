@@ -70,17 +70,17 @@ func CLITestSuite(
 
 	for _, testType := range testTypes {
 		imageImportDataDiskTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import data disk"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Import data disk"))
 		imageImportOSTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import OS"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Import OS"))
 		imageImportOSFromImageTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import OS from image"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Import OS from image"))
 		imageImportWithRichParamsTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import with rich params"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Import with rich params"))
 		imageImportWithDifferentNetworkParamStylesTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import with different network param styles"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Import with different network param styles"))
 		imageImportWithSubnetWithoutNetworkSpecifiedTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import with subnet but without network"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Import with subnet but without network"))
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, e2e.CLITestType){}
@@ -93,19 +93,19 @@ func CLITestSuite(
 
 		// TODO: recover this test only when shadow test is enabled.
 		//imageImportShadowDiskCleanedUpWhenMainInflaterFails := junitxml.NewTestCase(
-		//	testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import shadow disk is cleaned up when main inflater fails"))
+		//	testSuiteName, fmt.Sprintf("[%v] %v", testType, "Import shadow disk is cleaned up when main inflater fails"))
 		//testsMap[testType][imageImportShadowDiskCleanedUpWhenMainInflaterFails] = runImageImportShadowDiskCleanedUpWhenMainInflaterFails
 	}
 
 	// Only test service account scenario for wrapper, till gcloud support it.
 	imageImportOSWithDisabledDefaultServiceAccountSuccessTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Import OS without default service account, success by specifying a custom account"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "Import OS without default service account, success by specifying a custom account"))
 	imageImportOSDefaultServiceAccountWithMissingPermissionsSuccessTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Import OS without permission on default service account, success by specifying a custom account"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "Import OS without permission on default service account, success by specifying a custom account"))
 	imageImportOSWithDisabledDefaultServiceAccountFailTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Import OS without default service account failed"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "Import OS without default service account failed"))
 	imageImportOSDefaultServiceAccountWithMissingPermissionsFailTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][CLI] %v", e2e.Wrapper, "Import OS without permission on default service account failed"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "Import OS without permission on default service account failed"))
 	testsMap[e2e.Wrapper][imageImportOSWithDisabledDefaultServiceAccountSuccessTestCase] = runImageImportOSWithDisabledDefaultServiceAccountServiceSuccessTest
 	testsMap[e2e.Wrapper][imageImportOSDefaultServiceAccountWithMissingPermissionsSuccessTestCase] = runImageImportOSDefaultServiceAccountWithMissingPermissionsSuccessTest
 	testsMap[e2e.Wrapper][imageImportOSWithDisabledDefaultServiceAccountFailTestCase] = runImageImportOSWithDisabledDefaultServiceAccountServiceFailTest

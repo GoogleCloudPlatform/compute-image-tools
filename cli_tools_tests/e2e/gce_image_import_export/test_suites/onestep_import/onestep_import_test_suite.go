@@ -59,9 +59,9 @@ func OnestepImageImportSuite(
 
 	for _, testType := range testTypes {
 		onestepImageImportFromAWSUbuntuAMI := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OnestepImageImport] %v", testType, "Onestep image import from AWS Ubuntu-1804 AMI"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "From AWS Ubuntu-1804 AMI"))
 		onestepImageImportFromAWSUbuntuVMDK := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OnestepImageImport] %v", testType, "Onestep image import from AWS Ubuntu-1804 VMDK"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "From AWS Ubuntu-1804 VMDK"))
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, e2e.CLITestType){}
@@ -73,17 +73,17 @@ func OnestepImageImportSuite(
 	// logic for windows are exactly the same as for linux, so no need to
 	// duplicate them too much.
 	onestepImageImportFromAWSWindowsAMI := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][OnestepImageImport] %v", e2e.Wrapper, "Onestep image import from AWS Windows-2019 AMI"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "From AWS Windows-2019 AMI"))
 	onestepImageImportFromAWSWindowsVMDK := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][OnestepImageImport] %v", e2e.Wrapper, "Onestep image import from AWS Windows-2019 VMDK"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "From AWS Windows-2019 VMDK"))
 	testsMap[e2e.Wrapper][onestepImageImportFromAWSWindowsAMI] = runOnestepImageImportFromAWSWindowsAMI
 	testsMap[e2e.Wrapper][onestepImageImportFromAWSWindowsVMDK] = runOnestepImageImportFromAWSWindowsVMDK
 
 	// Only test service account scenario for wrapper, till gcloud support it.
 	onestepImageImportWithDisabledDefaultServiceAccountSuccess := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][OnestepImageImport] %v", e2e.Wrapper, "Onestep import without default service account"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "Without default service account"))
 	onestepImageImportDefaultServiceAccountWithMissingPermissionsSuccess := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v][OnestepImageImport] %v", e2e.Wrapper, "Onestep import without default service account"))
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "Without default service account"))
 	testsMap[e2e.Wrapper][onestepImageImportWithDisabledDefaultServiceAccountSuccess] = runOnestepImageImportWithDisabledDefaultServiceAccountSuccess
 	testsMap[e2e.Wrapper][onestepImageImportDefaultServiceAccountWithMissingPermissionsSuccess] = runOnestepImageImportDefaultServiceAccountWithMissingPermissionsSuccess
 
