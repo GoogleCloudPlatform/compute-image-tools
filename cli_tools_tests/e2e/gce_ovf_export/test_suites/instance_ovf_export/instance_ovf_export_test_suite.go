@@ -44,9 +44,6 @@ var (
 	cmds = map[e2e.CLITestType]string{
 		e2e.Wrapper: "./gce_ovf_export",
 	}
-	// Apply this as instance metadata if the OS config agent is not
-	// supported for the platform or version being exported.
-	skipOSConfigMetadata = map[string]string{"osconfig_not_supported": "true"}
 )
 
 type instanceOvfExportTestProperties struct {
@@ -254,14 +251,13 @@ func verifyExportedOVFUsingOVFImport(
 	logger.Printf("Verifying exported OVF by importing it via OVF import as `%v`", verificationInstanceName)
 
 	ovfImportError := e2e.RunCliTool(logger, testCase, "gcloud", []string{
-		"compute",
-		"instances",
-		"import",
+		"beta", "compute", "instances", "import",
 		verificationInstanceName,
 		fmt.Sprintf("--source-uri=%v", props.destinationURI),
 		fmt.Sprintf("--os=%v", props.os),
 		fmt.Sprintf("--zone=%v", props.zone),
 		fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+		"--docker-image-tag=latest",
 	})
 	if ovfImportError != nil {
 		e2e.Failure(testCase, logger, fmt.Sprintf("Failed importing exported OVF as instance: %v", ovfImportError))
