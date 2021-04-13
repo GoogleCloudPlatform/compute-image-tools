@@ -44,6 +44,7 @@ var (
 	testImageBeta            = "test-image-beta"
 	testMachineImage         = "test-machine-image"
 	testInstance             = "test-instance"
+	testInstanceAlpha        = "test-instance-alpha"
 	testInstanceBeta         = "test-instance-beta"
 	testNetwork              = "test-network"
 	testSubnetwork           = "test-subnetwork"
@@ -129,6 +130,7 @@ func TestCreates(t *testing.T) {
 	imBeta := &computeBeta.Image{Name: testImageBeta}
 	mi := &computeBeta.MachineImage{Name: testMachineImage, SourceInstance: testInstance}
 	in := &compute.Instance{Name: testInstance}
+	inAlpha := &computeAlpha.Instance{Name: testInstanceAlpha}
 	inBeta := &computeBeta.Instance{Name: testInstanceBeta}
 	n := &compute.Network{Name: testNetwork}
 	sn := &compute.Subnetwork{Name: testSubnetwork}
@@ -202,6 +204,14 @@ func TestCreates(t *testing.T) {
 			fmt.Sprintf("/%s/zones/%s/instances?alt=json&prettyPrint=false", testProject, testZone),
 			&compute.Instance{Name: testInstance, SelfLink: "foo"},
 			in,
+		},
+		{
+			"instancesAlpha",
+			func() error { return c.CreateInstanceAlpha(testProject, testZone, inAlpha) },
+			fmt.Sprintf("/%s/zones/%s/instances/%s?alt=json&prettyPrint=false", testProject, testZone, testInstanceAlpha),
+			fmt.Sprintf("/%s/zones/%s/instances?alt=json&prettyPrint=false", testProject, testZone),
+			&computeAlpha.Instance{Name: testInstanceAlpha, SelfLink: "foo"},
+			inAlpha,
 		},
 		{
 			"instancesBeta",

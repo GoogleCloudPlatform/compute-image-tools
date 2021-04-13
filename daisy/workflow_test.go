@@ -32,6 +32,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
@@ -312,6 +313,20 @@ func TestNewFromFile(t *testing.T) {
 						Metadata: map[string]string{"test_metadata": "this was a test"},
 					},
 				},
+				InstancesAlpha: []*InstanceAlpha{
+					{
+						Instance: computeAlpha.Instance{
+							Name:        "${bootstrap_instance_name}",
+							Disks:       []*computeAlpha.AttachedDisk{{Source: "bootstrap"}, {Source: "image"}},
+							MachineType: "${machine_type}",
+						},
+						InstanceBase: InstanceBase{
+							StartupScript: "shutdown /h",
+							Scopes:        []string{"scope1", "scope2"},
+						},
+						Metadata: map[string]string{"test_metadata": "this was a test"},
+					},
+				},
 				InstancesBeta: []*InstanceBeta{
 					{
 						Instance: computeBeta.Instance{
@@ -355,6 +370,26 @@ func TestNewFromFile(t *testing.T) {
 						},
 					},
 				},
+				InstancesAlpha: []*InstanceAlpha{
+					{
+						Instance: computeAlpha.Instance{
+							Name:        "postinstall",
+							Disks:       []*computeAlpha.AttachedDisk{{Source: "image"}, {Source: "bootstrap"}},
+							MachineType: "${machine_type}",
+						},
+						InstanceBase: InstanceBase{
+							StartupScript: "shutdown /h",
+							Scopes:        []string{"scope3", "scope4"},
+						},
+					},
+					{
+						Instance: computeAlpha.Instance{
+							Name:               "postinstallBeta",
+							MachineType:        "${machine_type}",
+							SourceMachineImage: "source-machine-image",
+						},
+					},
+				},
 				InstancesBeta: []*InstanceBeta{
 					{
 						Instance: computeBeta.Instance{
@@ -391,6 +426,13 @@ func TestNewFromFile(t *testing.T) {
 					},
 					GuestOsFeatures: []string{"VIRTIO_SCSI_MULTIQUEUE", "UBUNTU", "MULTI_IP_SUBNET"},
 				}},
+				ImagesAlpha: []*ImageAlpha{{
+					Image: computeAlpha.Image{Name: "image-from-local-disk", SourceDisk: "local-image", StorageLocations: []string{"europe-west1"}, Description: "Some Ubuntu", Family: "ubuntu-1404"},
+					ImageBase: ImageBase{OverWrite: false,
+						Resource: Resource{Project: "a_project", NoCleanup: true, ExactName: false},
+					},
+					GuestOsFeatures: []string{"VIRTIO_SCSI_MULTIQUEUE", "UBUNTU", "MULTI_IP_SUBNET"},
+				}},
 				ImagesBeta: []*ImageBeta{{
 					Image: computeBeta.Image{Name: "image-from-local-disk", SourceDisk: "local-image", StorageLocations: []string{"europe-west1"}, Description: "Some Ubuntu", Family: "ubuntu-1404"},
 					ImageBase: ImageBase{OverWrite: false,
@@ -410,6 +452,13 @@ func TestNewFromFile(t *testing.T) {
 					},
 					GuestOsFeatures: []string{"VIRTIO_SCSI_MULTIQUEUE", "WINDOWS", "MULTI_IP_SUBNET"},
 				}},
+				ImagesAlpha: []*ImageAlpha{{
+					Image: computeAlpha.Image{Name: "image-from-disk", SourceDisk: "image", Description: "Microsoft, SQL Server 2016 Web, on Windows Server 2019", Family: "sql-web-2016-win-2019"},
+					ImageBase: ImageBase{OverWrite: true,
+						Resource: Resource{Project: "a_project", NoCleanup: true, ExactName: true},
+					},
+					GuestOsFeatures: []string{"VIRTIO_SCSI_MULTIQUEUE", "WINDOWS", "MULTI_IP_SUBNET"},
+				}},
 				ImagesBeta: []*ImageBeta{{
 					Image: computeBeta.Image{Name: "image-from-disk", SourceDisk: "image", Description: "Microsoft, SQL Server 2016 Web, on Windows Server 2019", Family: "sql-web-2016-win-2019"},
 					ImageBase: ImageBase{OverWrite: true,
@@ -424,6 +473,13 @@ func TestNewFromFile(t *testing.T) {
 			CreateImages: &CreateImages{
 				Images: []*Image{{
 					Image: compute.Image{Name: "image-from-disk", SourceDisk: "image", Description: "GuestOS Features Compute API", Family: "guest-os"},
+					ImageBase: ImageBase{OverWrite: true,
+						Resource: Resource{Project: "a_project", NoCleanup: true, ExactName: true},
+					},
+					GuestOsFeatures: []string{"VIRTIO_SCSI_MULTIQUEUE", "WINDOWS", "MULTI_IP_SUBNET"},
+				}},
+				ImagesAlpha: []*ImageAlpha{{
+					Image: computeAlpha.Image{Name: "image-from-disk", SourceDisk: "image", Description: "GuestOS Features Compute API", Family: "guest-os"},
 					ImageBase: ImageBase{OverWrite: true,
 						Resource: Resource{Project: "a_project", NoCleanup: true, ExactName: true},
 					},

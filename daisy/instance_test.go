@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"testing"
 
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
@@ -91,12 +92,15 @@ func TestInstancePopulateDisks(t *testing.T) {
 	tests := []struct {
 		desc               string
 		ad, wantAd         []*compute.AttachedDisk
+		adAlpha, wantAdAlpha []*computeAlpha.AttachedDisk
 		adBeta, wantAdBeta []*computeBeta.AttachedDisk
 	}{
 		{
 			"normal case",
 			[]*compute.AttachedDisk{{Source: "d1"}},
 			[]*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: defaultDiskMode, DeviceName: "d1"}},
+			[]*computeAlpha.AttachedDisk{{Source: "d1"}},
+			[]*computeAlpha.AttachedDisk{{Boot: true, Source: "d1", Mode: defaultDiskMode, DeviceName: "d1"}},
 			[]*computeBeta.AttachedDisk{{Source: "d1"}},
 			[]*computeBeta.AttachedDisk{{Boot: true, Source: "d1", Mode: defaultDiskMode, DeviceName: "d1"}},
 		},
@@ -104,6 +108,8 @@ func TestInstancePopulateDisks(t *testing.T) {
 			"multiple disks case",
 			[]*compute.AttachedDisk{{Source: "d1"}, {Source: "d2"}},
 			[]*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: defaultDiskMode, DeviceName: "d1"}, {Boot: false, Source: "d2", Mode: defaultDiskMode, DeviceName: "d2"}},
+			[]*computeAlpha.AttachedDisk{{Source: "d1"}, {Source: "d2"}},
+			[]*computeAlpha.AttachedDisk{{Boot: true, Source: "d1", Mode: defaultDiskMode, DeviceName: "d1"}, {Boot: false, Source: "d2", Mode: defaultDiskMode, DeviceName: "d2"}},
 			[]*computeBeta.AttachedDisk{{Source: "d1"}, {Source: "d2"}},
 			[]*computeBeta.AttachedDisk{{Boot: true, Source: "d1", Mode: defaultDiskMode, DeviceName: "d1"}, {Boot: false, Source: "d2", Mode: defaultDiskMode, DeviceName: "d2"}},
 		},
@@ -111,6 +117,8 @@ func TestInstancePopulateDisks(t *testing.T) {
 			"mode specified case",
 			[]*compute.AttachedDisk{{Source: "d1", Mode: diskModeRO}},
 			[]*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: diskModeRO, DeviceName: "d1"}},
+			[]*computeAlpha.AttachedDisk{{Source: "d1", Mode: diskModeRO}},
+			[]*computeAlpha.AttachedDisk{{Boot: true, Source: "d1", Mode: diskModeRO, DeviceName: "d1"}},
 			[]*computeBeta.AttachedDisk{{Source: "d1", Mode: diskModeRO}},
 			[]*computeBeta.AttachedDisk{{Boot: true, Source: "d1", Mode: diskModeRO, DeviceName: "d1"}},
 		},
@@ -118,6 +126,8 @@ func TestInstancePopulateDisks(t *testing.T) {
 			"init params daisy image (and other defaults)",
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: "i"}}},
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
+			[]*computeAlpha.AttachedDisk{{InitializeParams: &computeAlpha.AttachedDiskInitializeParams{SourceImage: "i"}}},
+			[]*computeAlpha.AttachedDisk{{InitializeParams: &computeAlpha.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{SourceImage: "i"}}},
 			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 		},
@@ -125,6 +135,8 @@ func TestInstancePopulateDisks(t *testing.T) {
 			"init params image short url",
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: "global/images/i"}}},
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject), DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
+			[]*computeAlpha.AttachedDisk{{InitializeParams: &computeAlpha.AttachedDiskInitializeParams{SourceImage: "global/images/i"}}},
+			[]*computeAlpha.AttachedDisk{{InitializeParams: &computeAlpha.AttachedDiskInitializeParams{DiskName: iName, SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject), DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{SourceImage: "global/images/i"}}},
 			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{DiskName: iName, SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject), DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 		},
@@ -132,6 +144,8 @@ func TestInstancePopulateDisks(t *testing.T) {
 			"init params image extended url",
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject)}}},
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject), DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
+			[]*computeAlpha.AttachedDisk{{InitializeParams: &computeAlpha.AttachedDiskInitializeParams{SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject)}}},
+			[]*computeAlpha.AttachedDisk{{InitializeParams: &computeAlpha.AttachedDiskInitializeParams{DiskName: iName, SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject), DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject)}}},
 			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{DiskName: iName, SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject), DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 		},
@@ -139,6 +153,8 @@ func TestInstancePopulateDisks(t *testing.T) {
 			"init params disk type short url",
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: "i", DiskType: fmt.Sprintf("zones/%s/diskTypes/dt", testZone)}}},
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
+			[]*computeAlpha.AttachedDisk{{InitializeParams: &computeAlpha.AttachedDiskInitializeParams{SourceImage: "i", DiskType: fmt.Sprintf("zones/%s/diskTypes/dt", testZone)}}},
+			[]*computeAlpha.AttachedDisk{{InitializeParams: &computeAlpha.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{SourceImage: "i", DiskType: fmt.Sprintf("zones/%s/diskTypes/dt", testZone)}}},
 			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 		},
@@ -146,6 +162,8 @@ func TestInstancePopulateDisks(t *testing.T) {
 			"init params disk type extended url",
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}}},
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
+			[]*computeAlpha.AttachedDisk{{InitializeParams: &computeAlpha.AttachedDiskInitializeParams{SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}}},
+			[]*computeAlpha.AttachedDisk{{InitializeParams: &computeAlpha.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}}},
 			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 		},
@@ -162,6 +180,18 @@ func TestInstancePopulateDisks(t *testing.T) {
 				{Source: "d", Mode: defaultDiskMode, DeviceName: "d"},
 				{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, DeviceName: "foo"},
 				{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: fmt.Sprintf("%s-2", iName), SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, DeviceName: fmt.Sprintf("%s-2", iName)},
+			},
+			[]*computeAlpha.AttachedDisk{
+				{InitializeParams: &computeAlpha.AttachedDiskInitializeParams{SourceImage: "i"}},
+				{Source: "d"},
+				{InitializeParams: &computeAlpha.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i"}},
+				{InitializeParams: &computeAlpha.AttachedDiskInitializeParams{SourceImage: "i"}},
+			},
+			[]*computeAlpha.AttachedDisk{
+				{InitializeParams: &computeAlpha.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName},
+				{Source: "d", Mode: defaultDiskMode, DeviceName: "d"},
+				{InitializeParams: &computeAlpha.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, DeviceName: "foo"},
+				{InitializeParams: &computeAlpha.AttachedDiskInitializeParams{DiskName: fmt.Sprintf("%s-2", iName), SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, DeviceName: fmt.Sprintf("%s-2", iName)},
 			},
 			[]*computeBeta.AttachedDisk{
 				{InitializeParams: &computeBeta.AttachedDiskInitializeParams{SourceImage: "i"}},
@@ -189,6 +219,9 @@ func TestInstancePopulateDisks(t *testing.T) {
 	for _, tt := range tests {
 		i := Instance{Instance: compute.Instance{Name: iName, Disks: tt.ad, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
 		assertTest(i.populateDisks(w), tt.desc, tt.ad, tt.wantAd)
+
+		iAlpha := InstanceAlpha{Instance: computeAlpha.Instance{Name: iName, Disks: tt.adAlpha, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
+		assertTest(iAlpha.populateDisks(w), tt.desc+" alpha", tt.adAlpha, tt.wantAdAlpha)
 
 		iBeta := InstanceBeta{Instance: computeBeta.Instance{Name: iName, Disks: tt.adBeta, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
 		assertTest(iBeta.populateDisks(w), tt.desc+" beta", tt.adBeta, tt.wantAdBeta)
@@ -219,6 +252,9 @@ func TestInstancePopulateMachineType(t *testing.T) {
 		i := Instance{Instance: compute.Instance{MachineType: tt.mt, Zone: "bar"}, InstanceBase: InstanceBase{Resource: Resource{Project: "foo"}}}
 		assertTest(tt.shouldErr, (&i.InstanceBase).populateMachineType(&i), tt.desc, i.MachineType, tt.wantMt)
 
+		iAlpha := InstanceAlpha{Instance: computeAlpha.Instance{MachineType: tt.mt, Zone: "bar"}, InstanceBase: InstanceBase{Resource: Resource{Project: "foo"}}}
+		assertTest(tt.shouldErr, (&i.InstanceBase).populateMachineType(&iAlpha), tt.desc+" alpha", iAlpha.MachineType, tt.wantMt)
+
 		iBeta := InstanceBeta{Instance: computeBeta.Instance{MachineType: tt.mt, Zone: "bar"}, InstanceBase: InstanceBase{Resource: Resource{Project: "foo"}}}
 		assertTest(tt.shouldErr, (&i.InstanceBase).populateMachineType(&iBeta), tt.desc+" beta", iBeta.MachineType, tt.wantMt)
 	}
@@ -246,6 +282,20 @@ func TestInstancePopulateMetadata(t *testing.T) {
 		for k, v := range md {
 			vCopy := v
 			result.Items = append(result.Items, &compute.MetadataItems{Key: k, Value: &vCopy})
+		}
+		return result
+	}
+	getWantMdAlpha := func(md map[string]string) *computeAlpha.Metadata {
+		if md == nil {
+			return nil
+		}
+		for k, v := range baseMd {
+			md[k] = v
+		}
+		result := &computeAlpha.Metadata{}
+		for k, v := range md {
+			vCopy := v
+			result.Items = append(result.Items, &computeAlpha.MetadataItems{Key: k, Value: &vCopy})
 		}
 		return result
 	}
@@ -278,6 +328,9 @@ func TestInstancePopulateMetadata(t *testing.T) {
 	compFactory := func(items []*compute.MetadataItems) func(i, j int) bool {
 		return func(i, j int) bool { return items[i].Key < items[j].Key }
 	}
+	compFactoryAlpha := func(items []*computeAlpha.MetadataItems) func(i, j int) bool {
+		return func(i, j int) bool { return items[i].Key < items[j].Key }
+	}
 	compFactoryBeta := func(items []*computeBeta.MetadataItems) func(i, j int) bool {
 		return func(i, j int) bool { return items[i].Key < items[j].Key }
 	}
@@ -299,9 +352,11 @@ func TestInstancePopulateMetadata(t *testing.T) {
 
 	for _, tt := range tests {
 		wantMd := getWantMd(tt.wantMd)
+		wantMdAlpha := getWantMdAlpha(tt.wantMd)
 		wantMdBeta := getWantMdBeta(tt.wantMd)
 		if tt.wantMd != nil {
 			sort.Slice(wantMd.Items, compFactory(wantMd.Items))
+			sort.Slice(wantMdAlpha.Items, compFactoryAlpha(wantMdAlpha.Items))
 			sort.Slice(wantMdBeta.Items, compFactoryBeta(wantMdBeta.Items))
 		}
 
@@ -309,6 +364,12 @@ func TestInstancePopulateMetadata(t *testing.T) {
 		err := (&i.InstanceBase).populateMetadata(&i, w)
 		sort.Slice(i.Instance.Metadata.Items, compFactory(i.Instance.Metadata.Items))
 		assertTest(tt.shouldErr, err, tt.desc, i.Instance.Metadata, wantMd)
+
+
+		iAlpha := Instance{InstanceBase: InstanceBase{StartupScript: tt.startupScript}, Metadata: tt.md}
+		err = (&iAlpha.InstanceBase).populateMetadata(&iAlpha, w)
+		sort.Slice(iAlpha.Instance.Metadata.Items, compFactory(iAlpha.Instance.Metadata.Items))
+		assertTest(tt.shouldErr, err, tt.desc+" alpha", iAlpha.Instance.Metadata, wantMdAlpha)
 
 		iBeta := Instance{InstanceBase: InstanceBase{StartupScript: tt.startupScript}, Metadata: tt.md}
 		err = (&iBeta.InstanceBase).populateMetadata(&iBeta, w)
@@ -319,10 +380,12 @@ func TestInstancePopulateMetadata(t *testing.T) {
 
 func TestInstancePopulateNetworks(t *testing.T) {
 	defaultAcs := []*compute.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}
+	defaultAcsAlpha := []*computeAlpha.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}
 	defaultAcsBeta := []*computeBeta.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}
 	tests := []struct {
 		desc                string
 		input, want         []*compute.NetworkInterface
+		inputAlpha, wantAlpha []*computeAlpha.NetworkInterface
 		inputBeta, wantBeta []*computeBeta.NetworkInterface
 	}{
 		{
@@ -331,6 +394,11 @@ func TestInstancePopulateNetworks(t *testing.T) {
 			[]*compute.NetworkInterface{{
 				Network:       fmt.Sprintf("projects/%s/global/networks/default", testProject),
 				AccessConfigs: defaultAcs,
+			}},
+			nil,
+			[]*computeAlpha.NetworkInterface{{
+				Network:       fmt.Sprintf("projects/%s/global/networks/default", testProject),
+				AccessConfigs: defaultAcsAlpha,
 			}},
 			nil,
 			[]*computeBeta.NetworkInterface{{
@@ -347,6 +415,15 @@ func TestInstancePopulateNetworks(t *testing.T) {
 			[]*compute.NetworkInterface{{
 				Network:       fmt.Sprintf("projects/%s/global/networks/foo", testProject),
 				AccessConfigs: defaultAcs,
+				Subnetwork:    fmt.Sprintf("projects/%s/regions/%s/subnetworks/bar", testProject, getRegionFromZone(testZone)),
+			}},
+			[]*computeAlpha.NetworkInterface{{
+				Network:    "global/networks/foo",
+				Subnetwork: fmt.Sprintf("regions/%s/subnetworks/bar", getRegionFromZone(testZone)),
+			}},
+			[]*computeAlpha.NetworkInterface{{
+				Network:       fmt.Sprintf("projects/%s/global/networks/foo", testProject),
+				AccessConfigs: defaultAcsAlpha,
 				Subnetwork:    fmt.Sprintf("projects/%s/regions/%s/subnetworks/bar", testProject, getRegionFromZone(testZone)),
 			}},
 			[]*computeBeta.NetworkInterface{{
@@ -366,6 +443,13 @@ func TestInstancePopulateNetworks(t *testing.T) {
 			}},
 			[]*compute.NetworkInterface{{
 				AccessConfigs: defaultAcs,
+				Subnetwork:    fmt.Sprintf("projects/%s/regions/%s/subnetworks/bar", testProject, getRegionFromZone(testZone)),
+			}},
+			[]*computeAlpha.NetworkInterface{{
+				Subnetwork: fmt.Sprintf("regions/%s/subnetworks/bar", getRegionFromZone(testZone)),
+			}},
+			[]*computeAlpha.NetworkInterface{{
+				AccessConfigs: defaultAcsAlpha,
 				Subnetwork:    fmt.Sprintf("projects/%s/regions/%s/subnetworks/bar", testProject, getRegionFromZone(testZone)),
 			}},
 			[]*computeBeta.NetworkInterface{{
@@ -390,6 +474,9 @@ func TestInstancePopulateNetworks(t *testing.T) {
 		i := &Instance{Instance: compute.Instance{NetworkInterfaces: tt.input}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
 		assertTest(i.populateNetworks(), tt.desc, i.NetworkInterfaces, tt.want)
 
+		iAlpha := &InstanceAlpha{Instance: computeAlpha.Instance{NetworkInterfaces: tt.inputAlpha}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
+		assertTest(iAlpha.populateNetworks(), tt.desc, iAlpha.NetworkInterfaces, tt.wantAlpha)
+
 		iBeta := &InstanceBeta{Instance: computeBeta.Instance{NetworkInterfaces: tt.inputBeta}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
 		assertTest(iBeta.populateNetworks(), tt.desc, iBeta.NetworkInterfaces, tt.wantBeta)
 	}
@@ -401,12 +488,13 @@ func TestInstancePopulateScopes(t *testing.T) {
 		desc                   string
 		input                  []string
 		inputSas, want         []*compute.ServiceAccount
+		inputSasAlpha, wantAlpha []*computeAlpha.ServiceAccount
 		inputSasBeta, wantBeta []*computeBeta.ServiceAccount
 		shouldErr              bool
 	}{
-		{"default case", nil, nil, []*compute.ServiceAccount{{Email: "default", Scopes: defaultScopes}}, nil, []*computeBeta.ServiceAccount{{Email: "default", Scopes: defaultScopes}}, false},
-		{"nondefault case", []string{"foo"}, nil, []*compute.ServiceAccount{{Email: "default", Scopes: []string{"foo"}}}, nil, []*computeBeta.ServiceAccount{{Email: "default", Scopes: []string{"foo"}}}, false},
-		{"service accounts override case", []string{"foo"}, []*compute.ServiceAccount{}, []*compute.ServiceAccount{}, []*computeBeta.ServiceAccount{}, []*computeBeta.ServiceAccount{}, false},
+		{"default case", nil, nil, []*compute.ServiceAccount{{Email: "default", Scopes: defaultScopes}}, nil, []*computeAlpha.ServiceAccount{{Email: "default", Scopes: defaultScopes}}, nil, []*computeBeta.ServiceAccount{{Email: "default", Scopes: defaultScopes}}, false},
+		{"nondefault case", []string{"foo"}, nil, []*compute.ServiceAccount{{Email: "default", Scopes: []string{"foo"}}}, nil, []*computeAlpha.ServiceAccount{{Email: "default", Scopes: []string{"foo"}}}, nil, []*computeBeta.ServiceAccount{{Email: "default", Scopes: []string{"foo"}}}, false},
+		{"service accounts override case", []string{"foo"}, []*compute.ServiceAccount{}, []*compute.ServiceAccount{}, []*computeAlpha.ServiceAccount{}, []*computeAlpha.ServiceAccount{}, []*computeBeta.ServiceAccount{}, []*computeBeta.ServiceAccount{}, false},
 	}
 
 	for _, tt := range tests {
@@ -420,6 +508,18 @@ func TestInstancePopulateScopes(t *testing.T) {
 			}
 		} else if !tt.shouldErr {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+
+		iAlpha := &InstanceAlpha{InstanceBase: InstanceBase{Scopes: tt.input}, Instance: computeAlpha.Instance{ServiceAccounts: tt.inputSasAlpha}}
+		err = iAlpha.populateScopes()
+		if err == nil {
+			if tt.shouldErr {
+				t.Errorf("%s: should have returned an error", tt.desc+" alpha")
+			} else if diffRes := diff(iAlpha.ServiceAccounts, tt.wantAlpha, 0); diffRes != "" {
+				t.Errorf("%s: NetworkInterfaces not modified as expected: (-got +want)\n%s", tt.desc+" alpha", diffRes)
+			}
+		} else if !tt.shouldErr {
+			t.Errorf("%s: unexpected error: %v", tt.desc+" alpha", err)
 		}
 
 		iBeta := &InstanceBeta{InstanceBase: InstanceBase{Scopes: tt.input}, Instance: computeBeta.Instance{ServiceAccounts: tt.inputSasBeta}}
@@ -453,11 +553,14 @@ func TestInstancesValidate(t *testing.T) {
 	tests := []struct {
 		desc      string
 		i         *Instance
+		iAlpha    *InstanceAlpha
 		iBeta     *InstanceBeta
 		shouldErr bool
 	}{
 		{desc: "success simple case v1", i: &Instance{Instance: compute.Instance{Name: "i", Disks: ad, MachineType: mt}}, shouldErr: false},
 		{desc: "failure dupe case v1", i: &Instance{Instance: compute.Instance{Name: "i", Disks: ad, MachineType: mt}}, shouldErr: true},
+		{desc: "success simple case v0 alpha", iAlpha: &InstanceAlpha{Instance: computeAlpha.Instance{Name: "ia", MachineType: mt, SourceMachineImage: sourceMachineImage}}, shouldErr: false},
+		{desc: "failure dupe case v0 alpha  ", iAlpha: &InstanceAlpha{Instance: computeAlpha.Instance{Name: "ia", MachineType: mt, SourceMachineImage: sourceMachineImage}}, shouldErr: true},
 		{desc: "success simple case v0 beta", iBeta: &InstanceBeta{Instance: computeBeta.Instance{Name: "ib", MachineType: mt, SourceMachineImage: sourceMachineImage}}, shouldErr: false},
 		{desc: "failure dupe case v0 beta", iBeta: &InstanceBeta{Instance: computeBeta.Instance{Name: "ib", MachineType: mt, SourceMachineImage: sourceMachineImage}}, shouldErr: true},
 	}
@@ -469,7 +572,13 @@ func TestInstancesValidate(t *testing.T) {
 			s.CreateInstances = &CreateInstances{Instances: []*Instance{tt.i}}
 			ib = &tt.i.InstanceBase
 			ii = tt.i
-		} else {
+		}
+		if tt.iAlpha != nil {
+			s.CreateInstances = &CreateInstances{InstancesAlpha: []*InstanceAlpha{tt.iAlpha}}
+			ib = &tt.iAlpha.InstanceBase
+			ii = tt.iAlpha
+		}
+		if tt.iBeta != nil {
 			s.CreateInstances = &CreateInstances{InstancesBeta: []*InstanceBeta{tt.iBeta}}
 			ib = &tt.iBeta.InstanceBase
 			ii = tt.iBeta
@@ -539,16 +648,19 @@ func TestInstanceValidateDisks(t *testing.T) {
 	tests := []struct {
 		desc      string
 		i         *Instance
+		iAlpha    *InstanceAlpha
 		iBeta     *InstanceBeta
 		shouldErr bool
 	}{
 		{desc: "success case reference", i: &Instance{Instance: compute.Instance{Disks: []*compute.AttachedDisk{{Source: testDisk, Mode: m}}, Zone: testZone}}, shouldErr: false},
 		{desc: "success case url", i: &Instance{Instance: compute.Instance{Disks: []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/%s/disks/%s", w.Project, w.Zone, testDisk), Mode: m}}}}, shouldErr: false},
-		{desc: "success source machine image provided no disks", iBeta: &InstanceBeta{Instance: computeBeta.Instance{Zone: testZone, SourceMachineImage: "source-machine-image"}}, shouldErr: false},
+		{desc: "success source machine image provided no disks alpha", iAlpha: &InstanceAlpha{Instance: computeAlpha.Instance{Zone: testZone, SourceMachineImage: "source-machine-image"}}, shouldErr: false},
+		{desc: "success source machine image provided no disks beta", iBeta: &InstanceBeta{Instance: computeBeta.Instance{Zone: testZone, SourceMachineImage: "source-machine-image"}}, shouldErr: false},
 		{desc: "error project mismatch case", i: &Instance{Instance: compute.Instance{Disks: []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/foo/zones/%s/disks/%s", w.Zone, testDisk), Mode: m}}}}, shouldErr: true},
 		{desc: "error no disks case", i: &Instance{Instance: compute.Instance{}}, shouldErr: true},
 		{desc: "error disk mode case", i: &Instance{Instance: compute.Instance{Disks: []*compute.AttachedDisk{{Source: testDisk, Mode: "bad mode!"}}, Zone: testZone}}, shouldErr: true},
-		{desc: "error both disks and source machine image provided", iBeta: &InstanceBeta{Instance: computeBeta.Instance{Disks: []*computeBeta.AttachedDisk{{Source: testDisk}}, Zone: testZone, SourceMachineImage: "source-machine-image"}}, shouldErr: true},
+		{desc: "error both disks and source machine image provided alpha", iAlpha: &InstanceAlpha{Instance: computeAlpha.Instance{Disks: []*computeAlpha.AttachedDisk{{Source: testDisk}}, Zone: testZone, SourceMachineImage: "source-machine-image"}}, shouldErr: true},
+		{desc: "error both disks and source machine image provided beta", iBeta: &InstanceBeta{Instance: computeBeta.Instance{Disks: []*computeBeta.AttachedDisk{{Source: testDisk}}, Zone: testZone, SourceMachineImage: "source-machine-image"}}, shouldErr: true},
 	}
 
 	for _, tt := range tests {
@@ -562,7 +674,15 @@ func TestInstanceValidateDisks(t *testing.T) {
 			tt.i.Zone = w.Zone
 			ib = &tt.i.InstanceBase
 			ii = tt.i
-		} else if tt.iBeta != nil {
+		}
+		if tt.iAlpha != nil {
+			// Test sanitation -- clean/set irrelevant fields.
+			tt.iAlpha.Project = w.Project
+			tt.iAlpha.Zone = w.Zone
+			ii = tt.iAlpha
+			ib = &tt.iAlpha.InstanceBase
+		}
+		if tt.iBeta != nil {
 			// Test sanitation -- clean/set irrelevant fields.
 			tt.iBeta.Project = w.Project
 			tt.iBeta.Zone = w.Zone
@@ -592,13 +712,14 @@ func TestInstanceValidateDiskSource(t *testing.T) {
 	tests := []struct {
 		desc      string
 		ads       []*compute.AttachedDisk
+		adsAlpha  []*computeAlpha.AttachedDisk
 		adsBeta   []*computeBeta.AttachedDisk
 		shouldErr bool
 	}{
-		{"good case", []*compute.AttachedDisk{{Source: "d", Mode: m}}, []*computeBeta.AttachedDisk{{Source: "d", Mode: m}}, false},
-		{"disk dne case", []*compute.AttachedDisk{{Source: "dne", Mode: m}}, []*computeBeta.AttachedDisk{{Source: "dne", Mode: m}}, true},
-		{"bad project case", []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/bad/zones/%s/disks/d", z), Mode: m}}, []*computeBeta.AttachedDisk{{Source: fmt.Sprintf("projects/bad/zones/%s/disks/d", z), Mode: m}}, true},
-		{"bad zone case", []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/bad/disks/d", p), Mode: m}}, []*computeBeta.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/bad/disks/d", p), Mode: m}}, true},
+		{"good case", []*compute.AttachedDisk{{Source: "d", Mode: m}}, []*computeAlpha.AttachedDisk{{Source: "d", Mode: m}}, []*computeBeta.AttachedDisk{{Source: "d", Mode: m}}, false},
+		{"disk dne case", []*compute.AttachedDisk{{Source: "dne", Mode: m}}, []*computeAlpha.AttachedDisk{{Source: "dne", Mode: m}}, []*computeBeta.AttachedDisk{{Source: "dne", Mode: m}}, true},
+		{"bad project case", []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/bad/zones/%s/disks/d", z), Mode: m}}, []*computeAlpha.AttachedDisk{{Source: fmt.Sprintf("projects/bad/zones/%s/disks/d", z), Mode: m}}, []*computeBeta.AttachedDisk{{Source: fmt.Sprintf("projects/bad/zones/%s/disks/d", z), Mode: m}}, true},
+		{"bad zone case", []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/bad/disks/d", p), Mode: m}}, []*computeAlpha.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/bad/disks/d", p), Mode: m}}, []*computeBeta.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/bad/disks/d", p), Mode: m}}, true},
 	}
 
 	for _, tt := range tests {
@@ -609,6 +730,14 @@ func TestInstanceValidateDiskSource(t *testing.T) {
 			t.Errorf("%s: should have returned an error but didn't", tt.desc)
 		} else if !tt.shouldErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+
+		iAlpha := &InstanceAlpha{Instance: computeAlpha.Instance{Disks: tt.adsAlpha, Zone: z}, InstanceBase: InstanceBase{Resource: Resource{Project: p}}}
+		err = (&iAlpha.InstanceBase).validateDiskSource(tt.ads[0].Source, iAlpha, s)
+		if tt.shouldErr && err == nil {
+			t.Errorf("%s: should have returned an error but didn't", tt.desc)
+		} else if !tt.shouldErr && err != nil {
+			t.Errorf("%s: unexpected error: %v", tt.desc+" alpha", err)
 		}
 
 		iBeta := &InstanceBeta{Instance: computeBeta.Instance{Disks: tt.adsBeta, Zone: z}, InstanceBase: InstanceBase{Resource: Resource{Project: p}}}
@@ -636,15 +765,16 @@ func TestInstanceValidateDiskInitializeParams(t *testing.T) {
 	tests := []struct {
 		desc      string
 		p         *compute.AttachedDiskInitializeParams
+		pAlpha    *computeAlpha.AttachedDiskInitializeParams
 		pBeta     *computeBeta.AttachedDiskInitializeParams
 		shouldErr bool
 	}{
-		{"good case", &compute.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i", DiskType: dt}, &computeBeta.AttachedDiskInitializeParams{DiskName: "foo-beta", SourceImage: "i", DiskType: dt}, false},
-		{"bad disk name case", &compute.AttachedDiskInitializeParams{DiskName: "bad!", SourceImage: "i", DiskType: dt}, &computeBeta.AttachedDiskInitializeParams{DiskName: "bad!2", SourceImage: "i", DiskType: dt}, true},
-		{"bad dupe disk case", &compute.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i", DiskType: dt}, &computeBeta.AttachedDiskInitializeParams{DiskName: "foo-beta", SourceImage: "i", DiskType: dt}, true},
-		{"bad source case", &compute.AttachedDiskInitializeParams{DiskName: "bar", SourceImage: "i2", DiskType: dt}, &computeBeta.AttachedDiskInitializeParams{DiskName: "bar-beta", SourceImage: "i2", DiskType: dt}, true},
-		{"bad disk type case", &compute.AttachedDiskInitializeParams{DiskName: "bar", SourceImage: "i2", DiskType: fmt.Sprintf("projects/bad/zones/%s/diskTypes/pd-ssd", testZone)}, &computeBeta.AttachedDiskInitializeParams{DiskName: "bar-beta", SourceImage: "i2", DiskType: fmt.Sprintf("projects/bad/zones/%s/diskTypes/pd-ssd", testZone)}, true},
-		{"bad disk type case 2", &compute.AttachedDiskInitializeParams{DiskName: "bar", SourceImage: "i2", DiskType: fmt.Sprintf("projects/%s/zones/bad/diskTypes/pd-ssd", testProject)}, &computeBeta.AttachedDiskInitializeParams{DiskName: "bar-beta", SourceImage: "i2", DiskType: fmt.Sprintf("projects/%s/zones/bad/diskTypes/pd-ssd", testProject)}, true},
+		{"good case", &compute.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i", DiskType: dt}, &computeAlpha.AttachedDiskInitializeParams{DiskName: "foo-alpha", SourceImage: "i", DiskType: dt}, &computeBeta.AttachedDiskInitializeParams{DiskName: "foo-beta", SourceImage: "i", DiskType: dt}, false},
+		{"bad disk name case", &compute.AttachedDiskInitializeParams{DiskName: "bad!", SourceImage: "i", DiskType: dt}, &computeAlpha.AttachedDiskInitializeParams{DiskName: "bad!alpha", SourceImage: "i", DiskType: dt}, &computeBeta.AttachedDiskInitializeParams{DiskName: "bad!beta", SourceImage: "i", DiskType: dt}, true},
+		{"bad dupe disk case", &compute.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i", DiskType: dt}, &computeAlpha.AttachedDiskInitializeParams{DiskName: "foo-alpha", SourceImage: "i", DiskType: dt}, &computeBeta.AttachedDiskInitializeParams{DiskName: "foo-beta", SourceImage: "i", DiskType: dt}, true},
+		{"bad source case", &compute.AttachedDiskInitializeParams{DiskName: "bar", SourceImage: "i2", DiskType: dt}, &computeAlpha.AttachedDiskInitializeParams{DiskName: "bar-alpha", SourceImage: "i2", DiskType: dt}, &computeBeta.AttachedDiskInitializeParams{DiskName: "bar-beta", SourceImage: "i2", DiskType: dt}, true},
+		{"bad disk type case", &compute.AttachedDiskInitializeParams{DiskName: "bar", SourceImage: "i2", DiskType: fmt.Sprintf("projects/bad/zones/%s/diskTypes/pd-ssd", testZone)}, &computeAlpha.AttachedDiskInitializeParams{DiskName: "bar-alpha", SourceImage: "i2", DiskType: fmt.Sprintf("projects/bad/zones/%s/diskTypes/pd-ssd", testZone)}, &computeBeta.AttachedDiskInitializeParams{DiskName: "bar-beta", SourceImage: "i2", DiskType: fmt.Sprintf("projects/bad/zones/%s/diskTypes/pd-ssd", testZone)}, true},
+		{"bad disk type case 2", &compute.AttachedDiskInitializeParams{DiskName: "bar", SourceImage: "i2", DiskType: fmt.Sprintf("projects/%s/zones/bad/diskTypes/pd-ssd", testProject)}, &computeAlpha.AttachedDiskInitializeParams{DiskName: "bar-alpha", SourceImage: "i2", DiskType: fmt.Sprintf("projects/%s/zones/bad/diskTypes/pd-ssd", testProject)}, &computeBeta.AttachedDiskInitializeParams{DiskName: "bar-beta", SourceImage: "i2", DiskType: fmt.Sprintf("projects/%s/zones/bad/diskTypes/pd-ssd", testProject)}, true},
 	}
 
 	assertTest := func(shouldErr bool, err DError, desc string) {
@@ -662,6 +792,11 @@ func TestInstanceValidateDiskInitializeParams(t *testing.T) {
 		ci := &Instance{Instance: compute.Instance{Disks: []*compute.AttachedDisk{{InitializeParams: tt.p}}, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
 		s.CreateInstances = &CreateInstances{Instances: []*Instance{ci}}
 		assertTest(tt.shouldErr, (&ci.InstanceBase).validateDiskInitializeParams(ci.getComputeDisks()[0], ci, s), tt.desc)
+
+		sAlpha, _ := w.NewStep(tt.desc + "Alpha")
+		ciAlpha := &InstanceAlpha{Instance: computeAlpha.Instance{Disks: []*computeAlpha.AttachedDisk{{InitializeParams: tt.pAlpha}}, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
+		sAlpha.CreateInstances = &CreateInstances{InstancesAlpha: []*InstanceAlpha{ciAlpha}}
+		assertTest(tt.shouldErr, (&ciAlpha.InstanceBase).validateDiskInitializeParams(ciAlpha.getComputeDisks()[0], ciAlpha, sAlpha), tt.desc+" alpha")
 
 		sBeta, _ := w.NewStep(tt.desc + "Beta")
 		ciBeta := &InstanceBeta{Instance: computeBeta.Instance{Disks: []*computeBeta.AttachedDisk{{InitializeParams: tt.pBeta}}, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
@@ -729,6 +864,9 @@ func TestInstanceValidateMachineType(t *testing.T) {
 		ci := &Instance{Instance: compute.Instance{MachineType: tt.mt, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
 		assertTest(tt.shouldErr, (&ci.InstanceBase).validateMachineType(ci, w), tt.desc)
 
+		ciAlpha := &InstanceAlpha{Instance: computeAlpha.Instance{MachineType: tt.mt, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
+		assertTest(tt.shouldErr, (&ciAlpha.InstanceBase).validateMachineType(ciAlpha, w), tt.desc+" alpha")
+
 		ciBeta := &InstanceBeta{Instance: computeBeta.Instance{MachineType: tt.mt, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
 		assertTest(tt.shouldErr, (&ciBeta.InstanceBase).validateMachineType(ciBeta, w), tt.desc+" beta")
 	}
@@ -737,6 +875,7 @@ func TestInstanceValidateMachineType(t *testing.T) {
 func TestInstanceValidateNetworks(t *testing.T) {
 	w := testWorkflow()
 	acs := []*compute.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}
+	acsAlpha := []*computeAlpha.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}
 	acsBeta := []*computeBeta.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}
 	w.networks.m = map[string]*Resource{testNetwork: {link: fmt.Sprintf("projects/%s/global/networks/%s", testProject, testNetwork)}}
 	w.subnetworks.m = map[string]*Resource{testSubnetwork: {link: fmt.Sprintf("projects/%s/global/subnetworks/%s", testProject, testSubnetwork)}}
@@ -745,36 +884,42 @@ func TestInstanceValidateNetworks(t *testing.T) {
 	tests := []struct {
 		desc      string
 		ci        *Instance
+		ciAlpha    *InstanceAlpha
 		ciBeta    *InstanceBeta
 		shouldErr bool
 	}{
 		{
 			"good case reference",
 			&Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: testNetwork, AccessConfigs: acs}}}},
+			&InstanceAlpha{InstanceBase: InstanceBase{Resource: r}, Instance: computeAlpha.Instance{NetworkInterfaces: []*computeAlpha.NetworkInterface{{Network: testNetwork, AccessConfigs: acsAlpha}}}},
 			&InstanceBeta{InstanceBase: InstanceBase{Resource: r}, Instance: computeBeta.Instance{NetworkInterfaces: []*computeBeta.NetworkInterface{{Network: testNetwork, AccessConfigs: acsBeta}}}},
 			false,
 		},
 		{
 			"good case only subnetwork",
 			&Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Subnetwork: testSubnetwork, AccessConfigs: acs}}}},
+			&InstanceAlpha{InstanceBase: InstanceBase{Resource: r}, Instance: computeAlpha.Instance{NetworkInterfaces: []*computeAlpha.NetworkInterface{{Subnetwork: testSubnetwork, AccessConfigs: acsAlpha}}}},
 			&InstanceBeta{InstanceBase: InstanceBase{Resource: r}, Instance: computeBeta.Instance{NetworkInterfaces: []*computeBeta.NetworkInterface{{Subnetwork: testSubnetwork, AccessConfigs: acsBeta}}}},
 			false,
 		},
 		{
 			"good case url",
 			&Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/%s", testProject, testNetwork), AccessConfigs: acs}}}},
+			&InstanceAlpha{InstanceBase: InstanceBase{Resource: r}, Instance: computeAlpha.Instance{NetworkInterfaces: []*computeAlpha.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/%s", testProject, testNetwork), AccessConfigs: acsAlpha}}}},
 			&InstanceBeta{InstanceBase: InstanceBase{Resource: r}, Instance: computeBeta.Instance{NetworkInterfaces: []*computeBeta.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/%s", testProject, testNetwork), AccessConfigs: acsBeta}}}},
 			false,
 		},
 		{
 			"bad name case",
 			&Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/bad!", testProject), AccessConfigs: acs}}}},
+			&InstanceAlpha{InstanceBase: InstanceBase{Resource: r}, Instance: computeAlpha.Instance{NetworkInterfaces: []*computeAlpha.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/bad!", testProject), AccessConfigs: acsAlpha}}}},
 			&InstanceBeta{InstanceBase: InstanceBase{Resource: r}, Instance: computeBeta.Instance{NetworkInterfaces: []*computeBeta.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/bad!", testProject), AccessConfigs: acsBeta}}}},
 			true,
 		},
 		{
 			"bad project case",
 			&Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/bad!/global/networks/%s", testNetwork), AccessConfigs: acs}}}},
+			&InstanceAlpha{InstanceBase: InstanceBase{Resource: r}, Instance: computeAlpha.Instance{NetworkInterfaces: []*computeAlpha.NetworkInterface{{Network: fmt.Sprintf("projects/bad!/global/networks/%s", testNetwork), AccessConfigs: acsAlpha}}}},
 			&InstanceBeta{InstanceBase: InstanceBase{Resource: r}, Instance: computeBeta.Instance{NetworkInterfaces: []*computeBeta.NetworkInterface{{Network: fmt.Sprintf("projects/bad!/global/networks/%s", testNetwork), AccessConfigs: acsBeta}}}},
 			true,
 		},
@@ -789,8 +934,9 @@ func TestInstanceValidateNetworks(t *testing.T) {
 	}
 	for _, tt := range tests {
 		s, _ := w.NewStep(tt.desc)
-		s.CreateInstances = &CreateInstances{Instances: []*Instance{tt.ci}, InstancesBeta: []*InstanceBeta{tt.ciBeta}}
+		s.CreateInstances = &CreateInstances{Instances: []*Instance{tt.ci}, InstancesAlpha: []*InstanceAlpha{tt.ciAlpha}, InstancesBeta: []*InstanceBeta{tt.ciBeta}}
 		assertTest(tt.shouldErr, tt.ci.validateNetworks(s), tt.desc)
+		assertTest(tt.shouldErr, tt.ciAlpha.validateNetworks(s), tt.desc+" alpha")
 		assertTest(tt.shouldErr, tt.ciBeta.validateNetworks(s), tt.desc+" beta")
 	}
 }

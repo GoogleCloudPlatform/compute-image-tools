@@ -31,11 +31,18 @@ import (
 // CreateInstances is a Daisy CreateInstances workflow step.
 type CreateInstances struct {
 	Instances     []*Instance
+	InstancesAlpha []*InstanceAlpha
 	InstancesBeta []*InstanceBeta
 }
 
 // UnmarshalJSON unmarshals Instance.
 func (ci *CreateInstances) UnmarshalJSON(b []byte) error {
+	var instancesAlpha []*InstanceAlpha
+	if err := json.Unmarshal(b, &instancesAlpha); err != nil {
+		return err
+	}
+	ci.InstancesAlpha = instancesAlpha
+
 	var instancesBeta []*InstanceBeta
 	if err := json.Unmarshal(b, &instancesBeta); err != nil {
 		return err
@@ -127,6 +134,12 @@ func (ci *CreateInstances) populate(ctx context.Context, s *Step) DError {
 	var errs DError
 	if ci.Instances != nil {
 		for _, i := range ci.Instances {
+			errs = addErrs(errs, (&i.InstanceBase).populate(ctx, i, s))
+		}
+	}
+
+	if ci.InstancesAlpha != nil {
+		for _, i := range ci.InstancesAlpha {
 			errs = addErrs(errs, (&i.InstanceBase).populate(ctx, i, s))
 		}
 	}

@@ -22,6 +22,7 @@ import (
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/stretchr/testify/assert"
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
@@ -53,6 +54,7 @@ func TestLogSerialOutput(t *testing.T) {
 	tests := []struct {
 		test, wantMessage1, wantMessage2 string
 		instance                         *Instance
+		instanceAlpha                    *InstanceAlpha
 		instanceBeta                     *InstanceBeta
 	}{
 		{
@@ -60,6 +62,7 @@ func TestLogSerialOutput(t *testing.T) {
 			"Streaming instance \"i1\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i1-serial-port0.log",
 			"",
 			&Instance{Instance: compute.Instance{Name: "i1"}},
+			&InstanceAlpha{Instance: computeAlpha.Instance{Name: "i1"}},
 			&InstanceBeta{Instance: computeBeta.Instance{Name: "i1"}},
 		},
 		{
@@ -67,6 +70,7 @@ func TestLogSerialOutput(t *testing.T) {
 			"Streaming instance \"i2\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i2-serial-port0.log",
 			"Instance \"i2\": error getting serial port: fail",
 			&Instance{Instance: compute.Instance{Name: "i2"}},
+			&InstanceAlpha{Instance: computeAlpha.Instance{Name: "i2"}},
 			&InstanceBeta{Instance: computeBeta.Instance{Name: "i2"}},
 		},
 		{
@@ -74,6 +78,7 @@ func TestLogSerialOutput(t *testing.T) {
 			"Streaming instance \"i3\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i3-serial-port0.log",
 			"",
 			&Instance{Instance: compute.Instance{Name: "i3"}},
+			&InstanceAlpha{Instance: computeAlpha.Instance{Name: "i3"}},
 			&InstanceBeta{Instance: computeBeta.Instance{Name: "i3"}},
 		},
 		{
@@ -81,6 +86,7 @@ func TestLogSerialOutput(t *testing.T) {
 			"Streaming instance \"i4\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i4-serial-port0.log",
 			"",
 			&Instance{Instance: compute.Instance{Name: "i4"}},
+			&InstanceAlpha{Instance: computeAlpha.Instance{Name: "i4"}},
 			&InstanceBeta{Instance: computeBeta.Instance{Name: "i4"}},
 		},
 	}
@@ -139,6 +145,9 @@ func TestLogSerialOutputStopsAfterTenRetries(t *testing.T) {
 	i := Instance{Instance: compute.Instance{Name: "i1"}}
 	testSerialOutput(&i, &i.InstanceBase)
 
+	iAlpha := InstanceAlpha{Instance: computeAlpha.Instance{Name: "i1Alpha"}}
+	testSerialOutput(&iAlpha, &iAlpha.InstanceBase)
+
 	iBeta := InstanceBeta{Instance: computeBeta.Instance{Name: "i1Beta"}}
 	testSerialOutput(&iBeta, &iBeta.InstanceBase)
 }
@@ -148,6 +157,10 @@ func TestCreateInstancesRun(t *testing.T) {
 	var createErr DError
 	w := testWorkflow()
 	w.ComputeClient.(*daisyCompute.TestClient).CreateInstanceFn = func(p, z string, i *compute.Instance) error {
+		i.SelfLink = "insertedLink"
+		return createErr
+	}
+	w.ComputeClient.(*daisyCompute.TestClient).CreateInstanceAlphaFn = func(p, z string, i *computeAlpha.Instance) error {
 		i.SelfLink = "insertedLink"
 		return createErr
 	}

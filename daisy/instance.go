@@ -26,6 +26,7 @@ import (
 	"time"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
@@ -89,8 +90,8 @@ type InstanceInterface interface {
 	setSourceMachineImage(machineImage string)
 }
 
-// InstanceBase is a base struct for GA/Beta instances.
-// It holds the shared properties between the two.
+// InstanceBase is a base struct for GA/Beta/Alpha instances.
+// It holds the shared properties between the three.
 type InstanceBase struct {
 	Resource
 
@@ -115,6 +116,16 @@ type InstanceBase struct {
 type Instance struct {
 	InstanceBase
 	compute.Instance
+
+	// Additional metadata to set for the instance.
+	Metadata map[string]string `json:"metadata,omitempty"`
+}
+
+// InstanceAlpha is used to create a GCE instance using Alpha API.
+// By default, output of serial port 1 will be streamed to the daisy logs directory.
+type InstanceAlpha struct {
+	InstanceBase
+	computeAlpha.Instance
 
 	// Additional metadata to set for the instance.
 	Metadata map[string]string `json:"metadata,omitempty"`
@@ -226,6 +237,113 @@ func (i *Instance) register(name string, s *Step, ir *instanceRegistry, errs DEr
 			diskName = d.InitializeParams.DiskName
 		}
 
+		errs = addErrs(errs, ir.w.disks.regAttach(d.DeviceName, diskName, name, d.Mode, s))
+	}
+
+	// Register network connections.
+	for _, n := range i.NetworkInterfaces {
+		nName := n.Network
+		errs = addErrs(errs, ir.w.networks.regConnect(nName, name, s))
+	}
+}
+
+func (i *InstanceAlpha) getMachineType() string {
+	return i.MachineType
+}
+
+func (i *InstanceAlpha) setMachineType(machineType string) {
+	i.MachineType = machineType
+}
+
+func (i *InstanceAlpha) getDescription() string {
+	return i.Description
+}
+func (i *InstanceAlpha) setDescription(description string) {
+	i.Description = description
+}
+
+func (i *InstanceAlpha) getName() string {
+	return i.Name
+}
+func (i *InstanceAlpha) setName(name string) {
+	i.Name = name
+}
+
+func (i *InstanceAlpha) getZone() string {
+	return i.Zone
+}
+
+func (i *InstanceAlpha) setZone(zone string) {
+	i.Zone = zone
+}
+
+func (i *InstanceAlpha) appendComputeMetadata(key string, value *string) {
+	i.Instance.Metadata.Items = append(i.Instance.Metadata.Items, &computeAlpha.MetadataItems{Key: key, Value: value})
+}
+
+func (i *InstanceAlpha) initializeComputeMetadata() {
+	if i.Instance.Metadata == nil {
+		i.Instance.Metadata = &computeAlpha.Metadata{}
+	}
+}
+
+func (i *InstanceAlpha) create(cc daisyCompute.Client) error {
+	return cc.CreateInstanceAlpha(i.Project, i.Zone, &i.Instance)
+}
+
+func (i *InstanceAlpha) delete(cc daisyCompute.Client, deleteDisk bool) error {
+	return deleteInstance(deleteDisk, cc, i.Project, i.Zone, i.Name)
+}
+
+func (i *InstanceAlpha) updateDisksAndNetworksBeforeCreate(w *Workflow) {
+	for _, d := range i.Disks {
+		if diskRes, ok := w.disks.get(d.Source); ok {
+			d.Source = diskRes.link
+		}
+		if d.InitializeParams != nil && d.InitializeParams.SourceImage != "" {
+			if image, ok := w.images.get(d.InitializeParams.SourceImage); ok {
+				d.InitializeParams.SourceImage = image.link
+			}
+		}
+	}
+
+	for _, n := range i.NetworkInterfaces {
+		if netRes, ok := w.networks.get(n.Network); ok {
+			n.Network = netRes.link
+		}
+		if subnetRes, ok := w.subnetworks.get(n.Subnetwork); ok {
+			n.Subnetwork = subnetRes.link
+		}
+	}
+}
+
+func (i *InstanceAlpha) getMetadata() map[string]string {
+	return i.Metadata
+}
+
+func (i *InstanceAlpha) setMetadata(md map[string]string) {
+	i.Metadata = md
+}
+
+func (i *InstanceAlpha) getSourceMachineImage() string {
+	return i.Instance.SourceMachineImage
+}
+
+func (i *InstanceAlpha) setSourceMachineImage(machineImage string) {
+	i.SourceMachineImage = machineImage
+}
+
+func (i *InstanceAlpha) register(name string, s *Step, ir *instanceRegistry, errs DError) {
+	// Register disk attachments.
+	for _, d := range i.Disks {
+		diskName := d.Source
+		if d.InitializeParams != nil {
+			parts := NamedSubexp(diskTypeURLRgx, d.InitializeParams.DiskType)
+			if parts["disktype"] == "local-ssd" {
+				continue
+			}
+			diskName = d.InitializeParams.DiskName
+		}
 		errs = addErrs(errs, ir.w.disks.regAttach(d.DeviceName, diskName, name, d.Mode, s))
 	}
 
@@ -410,6 +528,53 @@ func (i *Instance) populateDisks(w *Workflow) DError {
 	return nil
 }
 
+func (i *InstanceAlpha) populateDisks(w *Workflow) DError {
+	autonameIdx := 1
+	for di, d := range i.Disks {
+		d.Boot = di == 0
+		d.Mode = strOr(d.Mode, defaultDiskMode)
+		if diskURLRgx.MatchString(d.Source) {
+			d.Source = extendPartialURL(d.Source, i.Project)
+		}
+		p := d.InitializeParams
+		if p != nil {
+			// If name isn't set, set name to "instance-name", "instance-name-2", etc.
+			if p.DiskName == "" {
+				p.DiskName = i.Name
+				if autonameIdx > 1 {
+					p.DiskName = fmt.Sprintf("%s-%d", i.Name, autonameIdx)
+				}
+				autonameIdx++
+			}
+			if d.DeviceName == "" {
+				d.DeviceName = p.DiskName
+			}
+
+			// Extend SourceImage if short URL.
+			if imageURLRgx.MatchString(p.SourceImage) {
+				p.SourceImage = extendPartialURL(p.SourceImage, i.Project)
+			}
+
+			// Extend DiskType if short URL, or create extended URL.
+			p.DiskType = strOr(p.DiskType, defaultDiskType)
+			if diskTypeURLRgx.MatchString(p.DiskType) {
+				p.DiskType = extendPartialURL(p.DiskType, i.Project)
+			} else {
+				p.DiskType = fmt.Sprintf("projects/%s/zones/%s/diskTypes/%s", i.Project, i.Zone, p.DiskType)
+			}
+			parts := NamedSubexp(diskTypeURLRgx, p.DiskType)
+			if parts["disktype"] == "local-ssd" {
+				d.AutoDelete = true
+				d.Type = "SCRATCH"
+				p.DiskName = ""
+			}
+		} else if d.DeviceName == "" {
+			d.DeviceName = path.Base(d.Source)
+		}
+	}
+	return nil
+}
+
 func (i *InstanceBeta) populateDisks(w *Workflow) DError {
 	autonameIdx := 1
 	for di, d := range i.Disks {
@@ -545,6 +710,34 @@ func (i *Instance) populateNetworks() DError {
 	return nil
 }
 
+func (i *InstanceAlpha) populateNetworks() DError {
+	defaultAcs := []*computeAlpha.AccessConfig{{Type: defaultAccessConfigType}}
+
+	if i.NetworkInterfaces == nil {
+		i.NetworkInterfaces = []*computeAlpha.NetworkInterface{{}}
+	}
+	for _, n := range i.NetworkInterfaces {
+		if n.AccessConfigs == nil {
+			n.AccessConfigs = defaultAcs
+		}
+
+		// Only set deafult if no subnetwork or network set.
+		if n.Subnetwork == "" {
+			n.Network = strOr(n.Network, "global/networks/default")
+		}
+
+		if networkURLRegex.MatchString(n.Network) {
+			n.Network = extendPartialURL(n.Network, i.Project)
+		}
+
+		if subnetworkURLRegex.MatchString(n.Subnetwork) {
+			n.Subnetwork = extendPartialURL(n.Subnetwork, i.Project)
+		}
+	}
+
+	return nil
+}
+
 func (i *InstanceBeta) populateNetworks() DError {
 	defaultAcs := []*computeBeta.AccessConfig{{Type: defaultAccessConfigType}}
 
@@ -579,6 +772,16 @@ func (i *Instance) populateScopes() DError {
 	}
 	if i.ServiceAccounts == nil {
 		i.ServiceAccounts = []*compute.ServiceAccount{{Email: "default", Scopes: i.Scopes}}
+	}
+	return nil
+}
+
+func (i *InstanceAlpha) populateScopes() DError {
+	if i.Scopes == nil {
+		i.Scopes = append(i.Scopes, "https://www.googleapis.com/auth/devstorage.read_only")
+	}
+	if i.ServiceAccounts == nil {
+		i.ServiceAccounts = []*computeAlpha.ServiceAccount{{Email: "default", Scopes: i.Scopes}}
 	}
 	return nil
 }
@@ -630,6 +833,20 @@ type computeDisk struct {
 }
 
 func (i *Instance) getComputeDisks() []*computeDisk {
+	var computeDisks []*computeDisk
+	for _, d := range i.Disks {
+		computeDisk := computeDisk{mode: d.Mode, source: d.Source, hasInitializeParams: d.InitializeParams != nil, autoDelete: d.AutoDelete}
+		if computeDisk.hasInitializeParams {
+			computeDisk.diskName = d.InitializeParams.DiskName
+			computeDisk.sourceImage = d.InitializeParams.SourceImage
+			computeDisk.diskType = d.InitializeParams.DiskType
+		}
+		computeDisks = append(computeDisks, &computeDisk)
+	}
+	return computeDisks
+}
+
+func (i *InstanceAlpha) getComputeDisks() []*computeDisk {
 	var computeDisks []*computeDisk
 	for _, d := range i.Disks {
 		computeDisk := computeDisk{mode: d.Mode, source: d.Source, hasInitializeParams: d.InitializeParams != nil, autoDelete: d.AutoDelete}
@@ -780,6 +997,26 @@ func (i *Instance) validateNetworks(s *Step) (errs DError) {
 	return
 }
 
+func (i *InstanceAlpha) validateNetworks(s *Step) (errs DError) {
+	for _, n := range i.NetworkInterfaces {
+		if n.Subnetwork != "" {
+			_, err := s.w.subnetworks.regUse(n.Subnetwork, s)
+			if err != nil {
+				errs = addErrs(errs, err)
+			}
+		}
+
+		if n.Network != "" {
+			_, err := s.w.networks.regUse(n.Network, s)
+			if err != nil {
+				errs = addErrs(errs, err)
+				continue
+			}
+		}
+	}
+	return
+}
+
 func (i *InstanceBeta) validateNetworks(s *Step) (errs DError) {
 	for _, n := range i.NetworkInterfaces {
 		if n.Subnetwork != "" {
@@ -858,6 +1095,12 @@ func (ir *instanceRegistry) regCreate(name string, res *Resource, overWrite bool
 
 	// Find the Instance responsible for this.
 	for _, i := range (*s.CreateInstances).Instances {
+		if &i.Resource == res {
+			i.register(name, s, ir, errs)
+			return errs
+		}
+	}
+	for _, i := range (*s.CreateInstances).InstancesAlpha {
 		if &i.Resource == res {
 			i.register(name, s, ir, errs)
 			return errs

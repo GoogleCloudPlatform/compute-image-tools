@@ -22,6 +22,7 @@ import (
 	"path"
 	"regexp"
 
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
@@ -116,7 +117,7 @@ type ImageInterface interface {
 	populateGuestOSFeatures()
 }
 
-//ImageBase is a base struct for GA/Beta images. It holds the shared properties between the two.
+//ImageBase is a base struct for GA/Beta/Alpha images. It holds the shared properties between the two.
 type ImageBase struct {
 	Resource
 
@@ -276,6 +277,82 @@ func (i *ImageBeta) populateGuestOSFeatures() {
 		i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &computeBeta.GuestOsFeature{Type: f})
 	}
 }
+
+// ImageAlpha is used to create a GCE image using Alpha API.
+// Supported sources are a GCE disk or a RAW image listed in Workflow.Sources.
+type ImageAlpha struct {
+	ImageBase
+	computeAlpha.Image
+
+	// GuestOsFeatures to set for the image.
+	GuestOsFeatures guestOsFeatures `json:"guestOsFeatures,omitempty"`
+}
+
+func (i *ImageAlpha) getName() string {
+	return i.Name
+}
+
+func (i *ImageAlpha) setName(name string) {
+	i.Name = name
+}
+
+func (i *ImageAlpha) getDescription() string {
+	return i.Description
+}
+
+func (i *ImageAlpha) setDescription(description string) {
+	i.Description = description
+}
+
+func (i *ImageAlpha) getSourceDisk() string {
+	return i.SourceDisk
+}
+
+func (i *ImageAlpha) setSourceDisk(sourceDisk string) {
+	i.SourceDisk = sourceDisk
+}
+
+func (i *ImageAlpha) getSourceImage() string {
+	return i.SourceImage
+}
+
+func (i *ImageAlpha) setSourceImage(sourceImage string) {
+	i.SourceImage = sourceImage
+}
+
+func (i *ImageAlpha) hasRawDisk() bool {
+	return i.RawDisk != nil
+}
+
+func (i *ImageAlpha) getRawDiskSource() string {
+	return i.RawDisk.Source
+}
+
+func (i *ImageAlpha) setRawDiskSource(rawDiskSource string) {
+	i.RawDisk.Source = rawDiskSource
+}
+
+func (i *ImageAlpha) create(cc daisyCompute.Client) error {
+	return cc.CreateImageAlpha(i.Project, &i.Image)
+}
+
+func (i *ImageAlpha) markCreatedInWorkflow() {
+	i.createdInWorkflow = true
+}
+
+func (i *ImageAlpha) delete(cc daisyCompute.Client) error {
+	return cc.DeleteImage(i.Project, i.Name)
+}
+
+func (i *ImageAlpha) populateGuestOSFeatures() {
+	if i.GuestOsFeatures == nil {
+		return
+	}
+	for _, f := range i.GuestOsFeatures {
+		i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &computeAlpha.GuestOsFeature{Type: f})
+	}
+}
+
 
 // MarshalJSON is a hacky workaround to prevent Image from using compute.Image's implementation.
 func (i *Image) MarshalJSON() ([]byte, error) {

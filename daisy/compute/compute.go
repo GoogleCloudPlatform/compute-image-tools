@@ -45,6 +45,7 @@ type Client interface {
 	CreateImageAlpha(project string, i *computeAlpha.Image) error
 	CreateImageBeta(project string, i *computeBeta.Image) error
 	CreateInstance(project, zone string, i *compute.Instance) error
+	CreateInstanceAlpha(project, zone string, i *computeAlpha.Instance) error
 	CreateInstanceBeta(project, zone string, i *computeBeta.Instance) error
 	CreateNetwork(project string, n *compute.Network) error
 	CreateSnapshot(project, zone, disk string, s *compute.Snapshot) error
@@ -67,6 +68,7 @@ type Client interface {
 	GetSerialPortOutput(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
 	GetZone(project, zone string) (*compute.Zone, error)
 	GetInstance(project, zone, name string) (*compute.Instance, error)
+	GetInstanceAlpha(project, zone, name string) (*computeAlpha.Instance, error)
 	GetInstanceBeta(project, zone, name string) (*computeBeta.Instance, error)
 	GetDisk(project, zone, name string) (*compute.Disk, error)
 	GetDiskAlpha(project, zone, name string) (*computeAlpha.Disk, error)
@@ -94,6 +96,7 @@ type Client interface {
 	ListForwardingRules(project, zone string, opts ...ListCallOption) ([]*compute.ForwardingRule, error)
 	ListFirewallRules(project string, opts ...ListCallOption) ([]*compute.Firewall, error)
 	ListImages(project string, opts ...ListCallOption) ([]*compute.Image, error)
+	ListImagesAlpha(project string, opts ...ListCallOption) ([]*computeAlpha.Image, error)
 	GetSnapshot(project, name string) (*compute.Snapshot, error)
 	ListSnapshots(project string, opts ...ListCallOption) ([]*compute.Snapshot, error)
 	DeleteSnapshot(project, name string) error
@@ -132,6 +135,8 @@ func (o OrderBy) listCallOptionApply(i interface{}) interface{} {
 	switch c := i.(type) {
 	case *compute.FirewallsListCall:
 		return c.OrderBy(string(o))
+	case *computeAlpha.ImagesListCall:
+		return c.OrderBy(string(o))
 	case *compute.ImagesListCall:
 		return c.OrderBy(string(o))
 	case *computeBeta.MachineImagesListCall:
@@ -166,6 +171,8 @@ type Filter string
 func (o Filter) listCallOptionApply(i interface{}) interface{} {
 	switch c := i.(type) {
 	case *compute.FirewallsListCall:
+		return c.Filter(string(o))
+	case *computeAlpha.ImagesListCall:
 		return c.Filter(string(o))
 	case *compute.ImagesListCall:
 		return c.Filter(string(o))
@@ -614,6 +621,25 @@ func (c *client) CreateInstance(project, zone string, i *compute.Instance) error
 	return nil
 }
 
+// CreateInstanceAlpha creates a GCE image using Alpha API.
+func (c *client) CreateInstanceAlpha(project, zone string, i *computeAlpha.Instance) error {
+	op, err := c.RetryAlpha(c.rawAlpha.Instances.Insert(project, zone, i).Do)
+	if err != nil {
+		return err
+	}
+
+	if err := c.i.zoneOperationsWait(project, zone, op.Name); err != nil {
+		return err
+	}
+
+	var createdInstance *computeAlpha.Instance
+	if createdInstance, err = c.i.GetInstanceAlpha(project, zone, i.Name); err != nil {
+		return err
+	}
+	*i = *createdInstance
+	return nil
+}
+
 // CreateInstanceBeta creates a GCE image using Beta API.
 func (c *client) CreateInstanceBeta(project, zone string, i *computeBeta.Instance) error {
 	op, err := c.RetryBeta(c.rawBeta.Instances.Insert(project, zone, i).Do)
@@ -935,7 +961,16 @@ func (c *client) GetInstance(project, zone, name string) (*compute.Instance, err
 	return i, err
 }
 
-// GetInstance gets a GCE Instance using GA API.
+// GetInstance gets a GCE Instance using Alpha API.
+func (c *client) GetInstanceAlpha(project, zone, name string) (*computeAlpha.Instance, error) {
+	i, err := c.rawAlpha.Instances.Get(project, zone, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.rawAlpha.Instances.Get(project, zone, name).Do()
+	}
+	return i, err
+}
+
+// GetInstance gets a GCE Instance using Beta API.
 func (c *client) GetInstanceBeta(project, zone, name string) (*computeBeta.Instance, error) {
 	i, err := c.rawBeta.Instances.Get(project, zone, name).Do()
 	if shouldRetryWithWait(c.hc.Transport, err, 2) {
@@ -1178,6 +1213,31 @@ func (c *client) ListImages(project string, opts ...ListCallOption) ([]*compute.
 	call := c.raw.Images.List(project)
 	for _, opt := range opts {
 		call = opt.listCallOptionApply(call).(*compute.ImagesListCall)
+	}
+	for il, err := call.PageToken(pt).Do(); ; il, err = call.PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			il, err = call.PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		is = append(is, il.Items...)
+
+		if il.NextPageToken == "" {
+			return is, nil
+		}
+		pt = il.NextPageToken
+	}
+}
+
+// ListImagesAlpha gets a list of GCE Images.
+func (c *client) ListImagesAlpha(project string, opts ...ListCallOption) ([]*computeAlpha.Image, error) {
+	var is []*computeAlpha.Image
+	var pt string
+	call := c.rawAlpha.Images.List(project)
+
+	for _, opt := range opts {
+		call = opt.listCallOptionApply(call).(*computeAlpha.ImagesListCall)
 	}
 	for il, err := call.PageToken(pt).Do(); ; il, err = call.PageToken(pt).Do() {
 		if shouldRetryWithWait(c.hc.Transport, err, 2) {
