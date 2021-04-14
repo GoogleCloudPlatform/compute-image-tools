@@ -7,7 +7,8 @@
     "licenses": {"Description": "Optional licenses to add to the exported image."},
     "machine_type": "e2-standard-4",
     "workflow_root": {"Value": "/workflows", "Description": "Root of github workflows, defaults to /workflows in the container."},
-    "gcs_url": {"Required": true, "Description": "The GCS path that image raw file exported to."}
+    "gcs_url": {"Required": true, "Description": "The GCS path that image raw file exported to."},
+    "development": {"Value": "False", "Description": "Whether to build a development image"}
   },
   "Sources": {
     "dev.sh": "${dev_script}"
