@@ -22,7 +22,7 @@
   "ComputeEndpoint": {{$endpoint}},
   {{- else if eq .environment "staging" -}}
   "WorkProject": "bct-staging-images",
-  "PublishProject": "bct-staging-images",
+  "PublishProject": "oslogin-staging-project",
   "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_beta/projects/",
   "DeleteAfter": {{$delete_after}},
   {{- else -}}
