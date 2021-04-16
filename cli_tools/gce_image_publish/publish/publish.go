@@ -174,7 +174,7 @@ func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, s
 		}
 	}
 
-	fmt.Printf("[%q] Created a publish object successfully from %s\n", p.Name, path)
+	fmt.Printf("[%q] Created a publish object %+v successfully from %s\n", p.Name, p, path)
 	return &p, nil
 }
 
@@ -536,11 +536,13 @@ func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[str
 	pubImgs, ok := p.imagesCache[cacheKey]
 	if !ok {
 		var err error
+		fmt.Printf("Key %s not found from imagesCache, calling compute.ListImages...", cacheKey)
 		pubImgs, err = w.ComputeClient.ListImages(p.PublishProject, daisyCompute.OrderBy("creationTimestamp desc"))
 		if err != nil {
 			return nil, fmt.Errorf("computeClient.ListImages failed: %s", err)
 		}
 		if p.imagesCache != nil {
+			fmt.Printf("Saving ListImages result into imagesCache with key %s", cacheKey)
 			p.imagesCache[cacheKey] = pubImgs
 		}
 	}
