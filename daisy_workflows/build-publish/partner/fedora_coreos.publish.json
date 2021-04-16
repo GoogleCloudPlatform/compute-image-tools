@@ -1,0 +1,27 @@
+{
+  "Name": "fedora-coreos",
+  "WorkProject": "bct-staging-images",
+  "PublishProject": "oslogin-staging-images",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_beta/projects/",
+  "DeleteAfter": "24h*30*6",
+  "Images": [
+    {
+      "Prefix": "fedora-coreos-stable",
+      "Family": "fedora-coreos-stable",
+      "Description": "Fedora CoreOS Stable",
+      "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE"]
+    },
+    {
+      "Prefix": "fedora-coreos-testing",
+      "Family": "fedora-coreos-testing",
+      "Description": "Fedora CoreOS Testing",
+      "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE"]
+    },
+    {
+      "Prefix": "fedora-coreos-next",
+      "Family": "fedora-coreos-next",
+      "Description": "Fedora CoreOS Next",
+      "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE"]
+    }
+  ]
+}

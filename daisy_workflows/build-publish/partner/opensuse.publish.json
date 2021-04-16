@@ -1,0 +1,14 @@
+{
+  "Name": "opensuse",
+  "WorkProject": "bct-staging-images",
+  "PublishProject": "oslogin-staging-images",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_beta/projects/",
+  "DeleteAfter": "24h*30*6",
+  "Images": [
+    {
+      "Prefix": "opensuse-leap-15",
+      "Family": "opensuse-leap-15",
+      "Description": "openSUSE Leap 15"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "Name": "fedora",
+  "WorkProject": "bct-staging-images",
+  "PublishProject": "oslogin-staging-images",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_beta/projects/",
+  "DeleteAfter": "24h*30*6",
+  "Images": [
+    {
+      "Prefix": "fedora-33",
+      "Family": "fedora-33",
+      "Description": "Fedora 33",
+      "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE"]
+    }
+  ]
+}
