@@ -29,7 +29,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_image_publish/publish"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	computeAlpha "google.golang.org/api/compute/v0.alpha"
+	"google.golang.org/api/compute/v1"
 )
 
 var (
@@ -49,7 +49,6 @@ var (
 	noConfirm      = flag.Bool("skip_confirmation", false, "don't ask for confirmation")
 	ce             = flag.String("compute_endpoint_override", "", "API endpoint to override default, will override ComputeEndpoint in template")
 	filter         = flag.String("filter", "", "regular expression to filter images to publish by prefixes")
-	rolloutRate 	 = flag.String("rollout_rate","60", "The number of minutes between the image rolling out between zones. 0 minutes will not use a rollout policy.")
 )
 
 const (
@@ -135,7 +134,7 @@ func main() {
 
 	var errs []error
 	var ws []*daisy.Workflow
-	imagesCache := map[string][]*computeAlpha.Image{}
+	imagesCache := map[string][]*compute.Image{}
 	for _, path := range flag.Args() {
 		p, err := publish.CreatePublish(
 			*sourceVersion, *publishVersion, *workProject, *publishProject, *sourceGCS, *sourceProject, *ce, path, varMap, imagesCache)

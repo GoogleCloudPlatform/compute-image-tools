@@ -146,17 +146,17 @@ func (ci *CreateImages) run(ctx context.Context, s *Step) DError {
 			wg.Add(1)
 			go createImage(i, i.OverWrite)
 		}
-	} else {
-		if imageUsesBetaFeatures(ci.ImagesBeta) {
-			for _, i := range ci.ImagesBeta {
-				wg.Add(1)
-				go createImage(i, i.OverWrite)
-			}
-		} else {
-			for _, i := range ci.Images {
-				wg.Add(1)
-				go createImage(i, i.OverWrite)
-			}
+	}
+	if imageUsesBetaFeatures(ci.ImagesBeta) {
+		for _, i := range ci.ImagesBeta {
+			wg.Add(1)
+			go createImage(i, i.OverWrite)
+		}
+	}
+	if (!imageUsesAlphaFeatures(ci.ImagesAlpha) && !imageUsesBetaFeatures(ci.ImagesBeta)) {
+		for _, i := range ci.Images {
+			wg.Add(1)
+			go createImage(i, i.OverWrite)
 		}
 	}
 

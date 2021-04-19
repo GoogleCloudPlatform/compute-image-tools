@@ -313,20 +313,6 @@ func TestNewFromFile(t *testing.T) {
 						Metadata: map[string]string{"test_metadata": "this was a test"},
 					},
 				},
-				InstancesAlpha: []*InstanceAlpha{
-					{
-						Instance: computeAlpha.Instance{
-							Name:        "${bootstrap_instance_name}",
-							Disks:       []*computeAlpha.AttachedDisk{{Source: "bootstrap"}, {Source: "image"}},
-							MachineType: "${machine_type}",
-						},
-						InstanceBase: InstanceBase{
-							StartupScript: "shutdown /h",
-							Scopes:        []string{"scope1", "scope2"},
-						},
-						Metadata: map[string]string{"test_metadata": "this was a test"},
-					},
-				},
 				InstancesBeta: []*InstanceBeta{
 					{
 						Instance: computeBeta.Instance{
@@ -367,26 +353,6 @@ func TestNewFromFile(t *testing.T) {
 						Instance: compute.Instance{
 							Name:        "postinstallBeta",
 							MachineType: "${machine_type}",
-						},
-					},
-				},
-				InstancesAlpha: []*InstanceAlpha{
-					{
-						Instance: computeAlpha.Instance{
-							Name:        "postinstall",
-							Disks:       []*computeAlpha.AttachedDisk{{Source: "image"}, {Source: "bootstrap"}},
-							MachineType: "${machine_type}",
-						},
-						InstanceBase: InstanceBase{
-							StartupScript: "shutdown /h",
-							Scopes:        []string{"scope3", "scope4"},
-						},
-					},
-					{
-						Instance: computeAlpha.Instance{
-							Name:               "postinstallBeta",
-							MachineType:        "${machine_type}",
-							SourceMachineImage: "source-machine-image",
 						},
 					},
 				},

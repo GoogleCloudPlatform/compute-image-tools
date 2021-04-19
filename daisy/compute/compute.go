@@ -139,6 +139,8 @@ func (o OrderBy) listCallOptionApply(i interface{}) interface{} {
 		return c.OrderBy(string(o))
 	case *compute.ImagesListCall:
 		return c.OrderBy(string(o))
+	case *computeAlpha.MachineImagesListCall:
+		return c.OrderBy(string(o))
 	case *computeBeta.MachineImagesListCall:
 		return c.OrderBy(string(o))
 	case *compute.MachineTypesListCall:
@@ -175,6 +177,8 @@ func (o Filter) listCallOptionApply(i interface{}) interface{} {
 	case *computeAlpha.ImagesListCall:
 		return c.Filter(string(o))
 	case *compute.ImagesListCall:
+		return c.Filter(string(o))
+	case *computeAlpha.MachineImagesListCall:
 		return c.Filter(string(o))
 	case *computeBeta.MachineImagesListCall:
 		return c.Filter(string(o))
@@ -1230,7 +1234,7 @@ func (c *client) ListImages(project string, opts ...ListCallOption) ([]*compute.
 	}
 }
 
-// ListImagesAlpha gets a list of GCE Images.
+// ListImagesAlpha gets a list of GCE Images using Alpha API.
 func (c *client) ListImagesAlpha(project string, opts ...ListCallOption) ([]*computeAlpha.Image, error) {
 	var is []*computeAlpha.Image
 	var pt string

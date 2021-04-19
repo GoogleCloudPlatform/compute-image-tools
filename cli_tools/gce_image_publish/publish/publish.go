@@ -33,7 +33,7 @@ import (
 	"cloud.google.com/go/compute/metadata"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	computeAlpha "google.golang.org/api/compute/v0.alpha"
+	"google.golang.org/api/compute/v1"
 )
 
 // Publish holds info to create a daisy workflow for gce_image_publish
@@ -77,7 +77,7 @@ type Publish struct {
 	toObsolete    []string
 	toUndeprecate []string
 
-	imagesCache map[string][]*computeAlpha.Image
+	imagesCache map[string][]*compute.Image
 }
 
 // Image is a metadata holder for the image to be published/rollback
@@ -98,9 +98,7 @@ type Image struct {
 	// Optional DeprecationStatus.Obsolete entry for the image (RFC 3339).
 	ObsoleteDate *time.Time `json:",omitempty"`
 	// Optional ShieldedInstanceInitialState entry for secure-boot feature.
-	ShieldedInstanceInitialState *computeAlpha.InitialStateConfig `json:",omitempty"`
-	// Optional RolloutOverride entry for the image rollout policy. If populated the alpha API will be used.
-	RolloutOverride *computeAlpha.RolloutPolicy
+	ShieldedInstanceInitialState *compute.InitialStateConfig `json:",omitempty"`
 }
 
 var (
@@ -113,7 +111,7 @@ var (
 )
 
 // CreatePublish creates a publish object
-func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, path string, varMap map[string]string, imagesCache map[string][]*computeAlpha.Image) (*Publish, error) {
+func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, path string, varMap map[string]string, imagesCache map[string][]*compute.Image) (*Publish, error) {
 	p := Publish{
 		sourceVersion:  sourceVersion,
 		publishVersion: publishVersion,
@@ -245,7 +243,7 @@ func (p *Publish) CreateWorkflows(ctx context.Context, varMap map[string]string,
 
 const gcsImageObj = "root.tar.gz"
 
-func publishImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image, skipDuplicates, rep, noRoot bool) (*daisy.CreateImages, *daisy.DeprecateImages, *daisy.DeleteResources, error) {
+func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicates, rep, noRoot bool) (*daisy.CreateImages, *daisy.DeprecateImages, *daisy.DeleteResources, error) {
 	if skipDuplicates && rep {
 		return nil, nil, nil, errors.New("cannot set both skipDuplicates and replace")
 	}
@@ -258,16 +256,16 @@ func publishImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image, skipDup
 		sourceName = fmt.Sprintf("%s-%s", sourceName, p.sourceVersion)
 	}
 
-	var ds *computeAlpha.DeprecationStatus
+	var ds *compute.DeprecationStatus
 	if img.ObsoleteDate != nil {
-		ds = &computeAlpha.DeprecationStatus{
+		ds = &compute.DeprecationStatus{
 			State:    "ACTIVE",
 			Obsolete: img.ObsoleteDate.Format(time.RFC3339),
 		}
 	}
 
-	ci := daisy.ImageAlpha{
-		Image: computeAlpha.Image{
+	ci := daisy.Image{
+		Image: compute.Image{
 			Name:                         publishName,
 			Description:                  img.Description,
 			Licenses:                     img.Licenses,
@@ -299,11 +297,11 @@ func publishImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image, skipDup
 		} else {
 			source = fmt.Sprintf("%s/%s/%s", p.SourceGCSPath, sourceName, gcsImageObj)
 		}
-		ci.Image.RawDisk = &computeAlpha.ImageRawDisk{Source: source}
+		ci.Image.RawDisk = &compute.ImageRawDisk{Source: source}
 	} else {
 		return nil, nil, nil, errors.New("neither SourceProject or SourceGCSPath was set")
 	}
-	cis := &daisy.CreateImages{ImagesAlpha: []*daisy.ImageAlpha{&ci}}
+	cis := &daisy.CreateImages{Images: []*daisy.Image{&ci}}
 
 	dis := &daisy.DeprecateImages{}
 	drs := &daisy.DeleteResources{}
@@ -316,7 +314,7 @@ func publishImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image, skipDup
 				continue
 			} else if rep {
 				fmt.Printf("    Image %s, replacing\n", msg)
-				(*cis).ImagesAlpha[0].OverWrite = true
+				(*cis).Images[0].OverWrite = true
 				continue
 			}
 			return nil, nil, nil, errors.New(msg)
@@ -347,7 +345,7 @@ func publishImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image, skipDup
 			*dis = append(*dis, &daisy.DeprecateImage{
 				Image:   pubImg.Name,
 				Project: p.PublishProject,
-				DeprecationStatusAlpha: computeAlpha.DeprecationStatus{
+				DeprecationStatus: compute.DeprecationStatus{
 					State:       "DEPRECATED",
 					Replacement: fmt.Sprintf(fmt.Sprintf("https://www.googleapis.com/compute/v1/projects/%s/global/images/%s", p.PublishProject, publishName)),
 				},
@@ -364,7 +362,7 @@ func publishImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image, skipDup
 	return cis, dis, drs, nil
 }
 
-func rollbackImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image) (*daisy.DeleteResources, *daisy.DeprecateImages) {
+func rollbackImage(p *Publish, img *Image, pubImgs []*compute.Image) (*daisy.DeleteResources, *daisy.DeprecateImages) {
 	publishName := fmt.Sprintf("%s-%s", img.Prefix, p.publishVersion)
 	dr := &daisy.DeleteResources{}
 	dis := &daisy.DeprecateImages{}
@@ -486,7 +484,7 @@ func (p *Publish) deprecatePrintOut(deprecateImages *daisy.DeprecateImages) {
 	}
 }
 
-func (p *Publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubImgs []*computeAlpha.Image, img *Image, rb, sd, rep, noRoot bool) error {
+func (p *Publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubImgs []*compute.Image, img *Image, rb, sd, rep, noRoot bool) error {
 	var err error
 	var createImages *daisy.CreateImages
 	var deprecateImages *daisy.DeprecateImages
@@ -538,9 +536,9 @@ func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[str
 	pubImgs, ok := p.imagesCache[cacheKey]
 	if !ok {
 		var err error
-		pubImgs, err = w.ComputeClient.ListImagesAlpha(p.PublishProject, daisyCompute.OrderBy("creationTimestamp desc"))
+		pubImgs, err = w.ComputeClient.ListImages(p.PublishProject, daisyCompute.OrderBy("creationTimestamp desc"))
 		if err != nil {
-			return nil, fmt.Errorf("computeClient.ListImagesAlpha failed: %s", err)
+			return nil, fmt.Errorf("computeClient.ListImages failed: %s", err)
 		}
 		if p.imagesCache != nil {
 			p.imagesCache[cacheKey] = pubImgs

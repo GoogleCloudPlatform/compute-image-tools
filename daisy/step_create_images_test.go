@@ -102,12 +102,10 @@ func TestCreateImagesRun(t *testing.T) {
 		var cis *CreateImages
 		if tt.cia != nil {
 			cis = &CreateImages{ImagesAlpha: []*ImageAlpha{tt.cia}}
-		}	else {
-			if tt.cib != nil {
-				cis = &CreateImages{ImagesBeta: []*ImageBeta{tt.cib}}
-			} else {
-				cis = &CreateImages{Images: []*Image{tt.ci}}
-			}
+		} else if tt.cib != nil {
+			cis = &CreateImages{ImagesBeta: []*ImageBeta{tt.cib}}
+		} else {
+			cis = &CreateImages{Images: []*Image{tt.ci}}
 		}
 
 		if err := cis.run(ctx, s); err == nil && tt.shouldErr {

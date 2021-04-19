@@ -117,7 +117,7 @@ type ImageInterface interface {
 	populateGuestOSFeatures()
 }
 
-//ImageBase is a base struct for GA/Beta/Alpha images. It holds the shared properties between the two.
+//ImageBase is a base struct for GA/Beta/Alpha images. It holds the shared properties between them.
 type ImageBase struct {
 	Resource
 
