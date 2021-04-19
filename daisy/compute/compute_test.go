@@ -146,7 +146,7 @@ func TestCreates(t *testing.T) {
 			func() error { return c.CreateDisk(testProject, testZone, d) },
 			fmt.Sprintf("/%s/zones/%s/disks/%s?alt=json&prettyPrint=false", testProject, testZone, testDisk),
 			fmt.Sprintf("/%s/zones/%s/disks?alt=json&prettyPrint=false", testProject, testZone),
-			&compute.Disk{Name: testDisk, SelfLink: "foo"},
+			&compute.Disk{Name: testDisk},
 			d,
 		},
 		{
@@ -154,7 +154,7 @@ func TestCreates(t *testing.T) {
 			func() error { return c.CreateForwardingRule(testProject, testRegion, fr) },
 			fmt.Sprintf("/%s/regions/%s/forwardingRules/%s?alt=json&prettyPrint=false", testProject, testRegion, testForwardingRule),
 			fmt.Sprintf("/%s/regions/%s/forwardingRules?alt=json&prettyPrint=false", testProject, testRegion),
-			&compute.ForwardingRule{Name: testForwardingRule, SelfLink: "foo"},
+			&compute.ForwardingRule{Name: testForwardingRule},
 			fr,
 		},
 		{
@@ -162,7 +162,7 @@ func TestCreates(t *testing.T) {
 			func() error { return c.CreateFirewallRule(testProject, fir) },
 			fmt.Sprintf("/%s/global/firewalls/%s?alt=json&prettyPrint=false", testProject, testFirewallRule),
 			fmt.Sprintf("/%s/global/firewalls?alt=json&prettyPrint=false", testProject),
-			&compute.Firewall{Name: testFirewallRule, SelfLink: "foo"},
+			&compute.Firewall{Name: testFirewallRule},
 			fir,
 		},
 		{
@@ -170,7 +170,7 @@ func TestCreates(t *testing.T) {
 			func() error { return c.CreateImage(testProject, im) },
 			fmt.Sprintf("/%s/global/images/%s?alt=json&prettyPrint=false", testProject, testImage),
 			fmt.Sprintf("/%s/global/images?alt=json&prettyPrint=false", testProject),
-			&compute.Image{Name: testImage, SelfLink: "foo"},
+			&compute.Image{Name: testImage},
 			im,
 		},
 		{
@@ -178,7 +178,7 @@ func TestCreates(t *testing.T) {
 			func() error { return c.CreateImageAlpha(testProject, imAlpha) },
 			fmt.Sprintf("/%s/global/images/%s?alt=json&prettyPrint=false", testProject, testImageAlpha),
 			fmt.Sprintf("/%s/global/images?alt=json&prettyPrint=false", testProject),
-			&computeAlpha.Image{Name: testImageAlpha, SelfLink: "foo"},
+			&computeAlpha.Image{Name: testImageAlpha},
 			imAlpha,
 		},
 		{
@@ -186,7 +186,7 @@ func TestCreates(t *testing.T) {
 			func() error { return c.CreateImageBeta(testProject, imBeta) },
 			fmt.Sprintf("/%s/global/images/%s?alt=json&prettyPrint=false", testProject, testImageBeta),
 			fmt.Sprintf("/%s/global/images?alt=json&prettyPrint=false", testProject),
-			&computeBeta.Image{Name: testImageBeta, SelfLink: "foo"},
+			&computeBeta.Image{Name: testImageBeta},
 			imBeta,
 		},
 		{
@@ -194,7 +194,7 @@ func TestCreates(t *testing.T) {
 			func() error { return c.CreateMachineImage(testProject, mi) },
 			fmt.Sprintf("/%s/global/machineImages/%s?alt=json&prettyPrint=false", testProject, testMachineImage),
 			fmt.Sprintf("/%s/global/machineImages?alt=json&prettyPrint=false", testProject),
-			&computeBeta.MachineImage{Name: testMachineImage, SourceInstance: testInstance, SelfLink: "foo"},
+			&computeBeta.MachineImage{Name: testMachineImage, SourceInstance: testInstance},
 			mi,
 		},
 		{
@@ -202,7 +202,7 @@ func TestCreates(t *testing.T) {
 			func() error { return c.CreateInstance(testProject, testZone, in) },
 			fmt.Sprintf("/%s/zones/%s/instances/%s?alt=json&prettyPrint=false", testProject, testZone, testInstance),
 			fmt.Sprintf("/%s/zones/%s/instances?alt=json&prettyPrint=false", testProject, testZone),
-			&compute.Instance{Name: testInstance, SelfLink: "foo"},
+			&compute.Instance{Name: testInstance},
 			in,
 		},
 		{
@@ -210,7 +210,7 @@ func TestCreates(t *testing.T) {
 			func() error { return c.CreateInstanceAlpha(testProject, testZone, inAlpha) },
 			fmt.Sprintf("/%s/zones/%s/instances/%s?alt=json&prettyPrint=false", testProject, testZone, testInstanceAlpha),
 			fmt.Sprintf("/%s/zones/%s/instances?alt=json&prettyPrint=false", testProject, testZone),
-			&computeAlpha.Instance{Name: testInstanceAlpha, SelfLink: "foo"},
+			&computeAlpha.Instance{Name: testInstanceAlpha},
 			inAlpha,
 		},
 		{
@@ -218,7 +218,7 @@ func TestCreates(t *testing.T) {
 			func() error { return c.CreateInstanceBeta(testProject, testZone, inBeta) },
 			fmt.Sprintf("/%s/zones/%s/instances/%s?alt=json&prettyPrint=false", testProject, testZone, testInstanceBeta),
 			fmt.Sprintf("/%s/zones/%s/instances?alt=json&prettyPrint=false", testProject, testZone),
-			&computeBeta.Instance{Name: testInstanceBeta, SelfLink: "foo"},
+			&computeBeta.Instance{Name: testInstanceBeta},
 			inBeta,
 		},
 		{
@@ -226,7 +226,7 @@ func TestCreates(t *testing.T) {
 			func() error { return c.CreateNetwork(testProject, n) },
 			fmt.Sprintf("/%s/global/networks/%s?alt=json&prettyPrint=false", testProject, testNetwork),
 			fmt.Sprintf("/%s/global/networks?alt=json&prettyPrint=false", testProject),
-			&compute.Network{Name: testNetwork, SelfLink: "foo"},
+			&compute.Network{Name: testNetwork},
 			n,
 		},
 		{
@@ -234,7 +234,7 @@ func TestCreates(t *testing.T) {
 			func() error { return c.CreateSubnetwork(testProject, testRegion, sn) },
 			fmt.Sprintf("/%s/regions/%s/subnetworks/%s?alt=json&prettyPrint=false", testProject, testRegion, testSubnetwork),
 			fmt.Sprintf("/%s/regions/%s/subnetworks?alt=json&prettyPrint=false", testProject, testRegion),
-			&compute.Subnetwork{Name: testSubnetwork, SelfLink: "foo"},
+			&compute.Subnetwork{Name: testSubnetwork},
 			sn,
 		},
 		{
@@ -242,7 +242,7 @@ func TestCreates(t *testing.T) {
 			func() error { return c.CreateTargetInstance(testProject, testZone, ti) },
 			fmt.Sprintf("/%s/zones/%s/targetInstances/%s?alt=json&prettyPrint=false", testProject, testZone, testTargetInstance),
 			fmt.Sprintf("/%s/zones/%s/targetInstances?alt=json&prettyPrint=false", testProject, testZone),
-			&compute.TargetInstance{Name: testTargetInstance, SelfLink: "foo"},
+			&compute.TargetInstance{Name: testTargetInstance},
 			ti,
 		},
 	}
@@ -285,8 +285,8 @@ func TestStarts(t *testing.T) {
 	}
 	defer svr.Close()
 
-	startURL = fmt.Sprintf("/%s/zones/%s/instances/%s/start?alt=json&prettyPrint=false", testProject, testZone, testInstance)
-	opGetURL = fmt.Sprintf("/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone)
+	startURL = fmt.Sprintf("/projects/%s/zones/%s/instances/%s/start?alt=json&prettyPrint=false", testProject, testZone, testInstance)
+	opGetURL = fmt.Sprintf("/projects/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone)
 	if err := c.StartInstance(testProject, testZone, testInstance); err != nil {
 		t.Errorf("error running Start: %v", err)
 	}
@@ -309,8 +309,8 @@ func TestStops(t *testing.T) {
 	}
 	defer svr.Close()
 
-	stopURL = fmt.Sprintf("/%s/zones/%s/instances/%s/stop?alt=json&prettyPrint=false", testProject, testZone, testInstance)
-	opGetURL = fmt.Sprintf("/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone)
+	stopURL = fmt.Sprintf("/projects/%s/zones/%s/instances/%s/stop?alt=json&prettyPrint=false", testProject, testZone, testInstance)
+	opGetURL = fmt.Sprintf("/projects/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone)
 	if err := c.StopInstance(testProject, testZone, testInstance); err != nil {
 		t.Errorf("error running Stop: %v", err)
 	}
@@ -341,56 +341,56 @@ func TestDeletes(t *testing.T) {
 		{
 			"disks",
 			func() error { return c.DeleteDisk(testProject, testZone, testDisk) },
-			fmt.Sprintf("/%s/zones/%s/disks/%s?alt=json&prettyPrint=false", testProject, testZone, testDisk),
-			fmt.Sprintf("/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone),
+			fmt.Sprintf("/projects/%s/zones/%s/disks/%s?alt=json&prettyPrint=false", testProject, testZone, testDisk),
+			fmt.Sprintf("/projects/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone),
 		},
 		{
 			"forwardingRules",
 			func() error { return c.DeleteForwardingRule(testProject, testRegion, testForwardingRule) },
-			fmt.Sprintf("/%s/regions/%s/forwardingRules/%s?alt=json&prettyPrint=false", testProject, testRegion, testForwardingRule),
-			fmt.Sprintf("/%s/regions/%s/operations//wait?alt=json&prettyPrint=false", testProject, testRegion),
+			fmt.Sprintf("/projects/%s/regions/%s/forwardingRules/%s?alt=json&prettyPrint=false", testProject, testRegion, testForwardingRule),
+			fmt.Sprintf("/projects/%s/regions/%s/operations//wait?alt=json&prettyPrint=false", testProject, testRegion),
 		},
 		{
 			"FirewallRules",
 			func() error { return c.DeleteFirewallRule(testProject, testFirewallRule) },
-			fmt.Sprintf("/%s/global/firewalls/%s?alt=json&prettyPrint=false", testProject, testFirewallRule),
-			fmt.Sprintf("/%s/global/operations//wait?alt=json&prettyPrint=false", testProject),
+			fmt.Sprintf("/projects/%s/global/firewalls/%s?alt=json&prettyPrint=false", testProject, testFirewallRule),
+			fmt.Sprintf("/projects/%s/global/operations//wait?alt=json&prettyPrint=false", testProject),
 		},
 		{
 			"images",
 			func() error { return c.DeleteImage(testProject, testImage) },
-			fmt.Sprintf("/%s/global/images/%s?alt=json&prettyPrint=false", testProject, testImage),
-			fmt.Sprintf("/%s/global/operations//wait?alt=json&prettyPrint=false", testProject),
+			fmt.Sprintf("/projects/%s/global/images/%s?alt=json&prettyPrint=false", testProject, testImage),
+			fmt.Sprintf("/projects/%s/global/operations//wait?alt=json&prettyPrint=false", testProject),
 		},
 		{
 			"machineImages",
 			func() error { return c.DeleteMachineImage(testProject, testMachineImage) },
-			fmt.Sprintf("/%s/global/machineImages/%s?alt=json&prettyPrint=false", testProject, testMachineImage),
-			fmt.Sprintf("/%s/global/operations//wait?alt=json&prettyPrint=false", testProject),
+			fmt.Sprintf("/projects/%s/global/machineImages/%s?alt=json&prettyPrint=false", testProject, testMachineImage),
+			fmt.Sprintf("/projects/%s/global/operations//wait?alt=json&prettyPrint=false", testProject),
 		},
 		{
 			"instances",
 			func() error { return c.DeleteInstance(testProject, testZone, testInstance) },
-			fmt.Sprintf("/%s/zones/%s/instances/%s?alt=json&prettyPrint=false", testProject, testZone, testInstance),
-			fmt.Sprintf("/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone),
+			fmt.Sprintf("/projects/%s/zones/%s/instances/%s?alt=json&prettyPrint=false", testProject, testZone, testInstance),
+			fmt.Sprintf("/projects/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone),
 		},
 		{
 			"networks",
 			func() error { return c.DeleteNetwork(testProject, testNetwork) },
-			fmt.Sprintf("/%s/global/networks/%s?alt=json&prettyPrint=false", testProject, testNetwork),
-			fmt.Sprintf("/%s/global/operations//wait?alt=json&prettyPrint=false", testProject),
+			fmt.Sprintf("/projects/%s/global/networks/%s?alt=json&prettyPrint=false", testProject, testNetwork),
+			fmt.Sprintf("/projects/%s/global/operations//wait?alt=json&prettyPrint=false", testProject),
 		},
 		{
 			"subnetworks",
 			func() error { return c.DeleteSubnetwork(testProject, testRegion, testSubnetwork) },
-			fmt.Sprintf("/%s/regions/%s/subnetworks/%s?alt=json&prettyPrint=false", testProject, testRegion, testSubnetwork),
-			fmt.Sprintf("/%s/regions/%s/operations//wait?alt=json&prettyPrint=false", testProject, testRegion),
+			fmt.Sprintf("/projects/%s/regions/%s/subnetworks/%s?alt=json&prettyPrint=false", testProject, testRegion, testSubnetwork),
+			fmt.Sprintf("/projects/%s/regions/%s/operations//wait?alt=json&prettyPrint=false", testProject, testRegion),
 		},
 		{
 			"targetInstances",
 			func() error { return c.DeleteTargetInstance(testProject, testZone, testTargetInstance) },
-			fmt.Sprintf("/%s/zones/%s/targetInstances/%s?alt=json&prettyPrint=false", testProject, testZone, testTargetInstance),
-			fmt.Sprintf("/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone),
+			fmt.Sprintf("/projects/%s/zones/%s/targetInstances/%s?alt=json&prettyPrint=false", testProject, testZone, testTargetInstance),
+			fmt.Sprintf("/projects/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone),
 		},
 	}
 
@@ -405,9 +405,9 @@ func TestDeletes(t *testing.T) {
 
 func TestDeprecateImage(t *testing.T) {
 	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/global/images/%s/deprecate?alt=json&prettyPrint=false", testProject, testImage) {
+		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/projects/%s/global/images/%s/deprecate?alt=json&prettyPrint=false", testProject, testImage) {
 			fmt.Fprint(w, `{}`)
-		} else if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/global/operations//wait?alt=json&prettyPrint=false", testProject) {
+		} else if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/projects/%s/global/operations//wait?alt=json&prettyPrint=false", testProject) {
 			fmt.Fprint(w, `{"Status":"DONE"}`)
 		} else {
 			w.WriteHeader(500)
@@ -426,9 +426,9 @@ func TestDeprecateImage(t *testing.T) {
 
 func TestDeprecateImageAlpha(t *testing.T) {
 	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/global/images/%s/deprecate?alt=json&prettyPrint=false", testProject, testImageAlpha) {
+		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/projects/%s/global/images/%s/deprecate?alt=json&prettyPrint=false", testProject, testImageAlpha) {
 			fmt.Fprint(w, `{}`)
-		} else if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/global/operations//wait?alt=json&prettyPrint=false", testProject) {
+		} else if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/projects/%s/global/operations//wait?alt=json&prettyPrint=false", testProject) {
 			fmt.Fprint(w, `{"Status":"DONE"}`)
 		} else {
 			w.WriteHeader(500)
@@ -446,9 +446,9 @@ func TestDeprecateImageAlpha(t *testing.T) {
 }
 func TestAttachDisk(t *testing.T) {
 	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/instances/%s/attachDisk?alt=json&prettyPrint=false", testProject, testZone, testInstance) {
+		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/projects/%s/zones/%s/instances/%s/attachDisk?alt=json&prettyPrint=false", testProject, testZone, testInstance) {
 			fmt.Fprint(w, `{}`)
-		} else if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone) {
+		} else if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/projects/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone) {
 			fmt.Fprint(w, `{"Status":"DONE"}`)
 		} else {
 			w.WriteHeader(500)
@@ -467,9 +467,9 @@ func TestAttachDisk(t *testing.T) {
 
 func TestDetachDisk(t *testing.T) {
 	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/instances/%s/detachDisk?alt=json&deviceName=%s&prettyPrint=false", testProject, testZone, testInstance, testDisk) {
+		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/projects/%s/zones/%s/instances/%s/detachDisk?alt=json&deviceName=%s&prettyPrint=false", testProject, testZone, testInstance, testDisk) {
 			fmt.Fprint(w, `{}`)
-		} else if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone) {
+		} else if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/projects/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone) {
 			fmt.Fprint(w, `{"Status":"DONE"}`)
 		} else {
 			w.WriteHeader(500)
