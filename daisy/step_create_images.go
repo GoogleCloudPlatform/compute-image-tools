@@ -24,9 +24,9 @@ import (
 
 // CreateImages is a Daisy CreateImages workflow step.
 type CreateImages struct {
-	Images     []*Image
+	Images      []*Image
 	ImagesAlpha []*ImageAlpha
-	ImagesBeta []*ImageBeta
+	ImagesBeta  []*ImageBeta
 }
 
 // UnmarshalJSON unmarshals Image.
@@ -153,7 +153,7 @@ func (ci *CreateImages) run(ctx context.Context, s *Step) DError {
 			go createImage(i, i.OverWrite)
 		}
 	}
-	if (!imageUsesAlphaFeatures(ci.ImagesAlpha) && !imageUsesBetaFeatures(ci.ImagesBeta)) {
+	if !imageUsesAlphaFeatures(ci.ImagesAlpha) && !imageUsesBetaFeatures(ci.ImagesBeta) {
 		for _, i := range ci.Images {
 			wg.Add(1)
 			go createImage(i, i.OverWrite)

@@ -82,7 +82,7 @@ func TestCreateImagesRun(t *testing.T) {
 			cia: &ImageAlpha{
 				ImageBase: ImageBase{Resource: Resource{Project: testProject}, OverWrite: true},
 				Image: computeAlpha.Image{
-					Name: "alpha",
+					Name:       "alpha",
 					SourceDisk: testDisk,
 					RolloutOverride: &computeAlpha.RolloutPolicy{
 						DefaultRolloutTime: "2021-04-02T23:23:59.851301Z",
@@ -92,8 +92,8 @@ func TestCreateImagesRun(t *testing.T) {
 			shouldErr: false,
 		},
 		{
-			desc: "image location using beta API",
-			cib: &ImageBeta{ImageBase: ImageBase{Resource: Resource{Project: testProject}, OverWrite: true}, Image: computeBeta.Image{Name: "beta", SourceDisk: testDisk, StorageLocations: []string{"eu"}}},
+			desc:      "image location using beta API",
+			cib:       &ImageBeta{ImageBase: ImageBase{Resource: Resource{Project: testProject}, OverWrite: true}, Image: computeBeta.Image{Name: "beta", SourceDisk: testDisk, StorageLocations: []string{"eu"}}},
 			shouldErr: false,
 		},
 	}

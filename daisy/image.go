@@ -353,7 +353,6 @@ func (i *ImageAlpha) populateGuestOSFeatures() {
 	}
 }
 
-
 // MarshalJSON is a hacky workaround to prevent Image from using compute.Image's implementation.
 func (i *Image) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*i)
