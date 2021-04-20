@@ -351,6 +351,54 @@ periodics:
       - "-agent_endpoint={zone}-staging-osconfig.sandbox.googleapis.com:443"
       - "-endpoint=staging-osconfig.sandbox.googleapis.com:443"
       - -test_zones={
+                      "us-central1-a":15,
+                      "us-central1-b":15,
+                      "us-central1-c":15,
+                      "us-central1-f":15,
+                      "us-west1-a":15,
+                      "us-west1-b":15,
+                      "us-west1-c":15,
+                      "us-east1-b":15,
+                      "us-east1-c":15,
+                      "us-east1-d":15,
+                      "asia-northeast1-a":15,
+                      "asia-northeast1-b":15,
+                      "asia-northeast1-c":15,
+                      "europe-north1-a":15,
+                      "europe-north1-b":15,
+                      "europe-north1-c":15,
+                      "europe-west1-d":15,
+                      "europe-west1-b":15,
+                      "europe-west1-c":15,
+                      "asia-east1-a":15,
+                      "asia-east1-b":15,
+                      "asia-east1-c":15
+                    }
+      env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/compute-image-tools-test-service-account/creds.json
+      - name: ARTIFACTS
+        value: /artifacts
+      volumeMounts:
+      - name: compute-image-tools-test-service-account
+        mountPath: /etc/compute-image-tools-test-service-account
+        readOnly: true
+    volumes:
+    - name: compute-image-tools-test-service-account
+      secret:
+       secretName: compute-image-tools-test-service-account
+ - name: osconfig-staging
+   interval: 3h
+   agent: kubernetes
+   spec:
+    activeDeadlineSeconds: 10000
+    containers:
+    - image: gcr.io/compute-image-tools-test/osconfig-tests:latest
+      args:
+      - "-out_dir=/artifacts"
+      - "-agent_repo=staging"
+      - "-test_project_ids=compute-image-osconfig-agent,compute-image-osconfig-agent-2"
+      - -test_zones={
                       "us-central1-a":10,
                       "us-central1-b":10,
                       "us-central1-c":10,
@@ -361,12 +409,12 @@ periodics:
                       "us-east1-b":10,
                       "us-east1-c":10,
                       "us-east1-d":10,
-                      "asia-northeast1-a":10,
-                      "asia-northeast1-b":10,
-                      "asia-northeast1-c":10,
-                      "europe-north1-a":10,
-                      "europe-north1-b":10,
-                      "europe-north1-c":10,
+                      "us-east4-a":10,
+                      "us-east4-b":10,
+                      "us-east4-c":10,
+                      "europe-west4-a":10,
+                      "europe-west4-b":10,
+                      "europe-west4-c":10,
                       "europe-west1-d":10,
                       "europe-west1-b":10,
                       "europe-west1-c":10,
@@ -387,59 +435,11 @@ periodics:
     - name: compute-image-tools-test-service-account
       secret:
        secretName: compute-image-tools-test-service-account
- - name: osconfig-staging
-   interval: 3h
-   agent: kubernetes
-   spec:
-    activeDeadlineSeconds: 7200
-    containers:
-    - image: gcr.io/compute-image-tools-test/osconfig-tests:latest
-      args:
-      - "-out_dir=/artifacts"
-      - "-agent_repo=staging"
-      - "-test_project_ids=compute-image-osconfig-agent,compute-image-osconfig-agent-2"
-      - -test_zones={
-                      "us-central1-a":5,
-                      "us-central1-b":5,
-                      "us-central1-c":5,
-                      "us-central1-f":5,
-                      "us-west1-a":5,
-                      "us-west1-b":5,
-                      "us-west1-c":5,
-                      "us-east1-b":5,
-                      "us-east1-c":5,
-                      "us-east1-d":5,
-                      "us-east4-a":5,
-                      "us-east4-b":5,
-                      "us-east4-c":5,
-                      "europe-west4-a":5,
-                      "europe-west4-b":5,
-                      "europe-west4-c":5,
-                      "europe-west1-d":5,
-                      "europe-west1-b":5,
-                      "europe-west1-c":5,
-                      "asia-east1-a":5,
-                      "asia-east1-b":5,
-                      "asia-east1-c":5
-                    }
-      env:
-      - name: GOOGLE_APPLICATION_CREDENTIALS
-        value: /etc/compute-image-tools-test-service-account/creds.json
-      - name: ARTIFACTS
-        value: /artifacts
-      volumeMounts:
-      - name: compute-image-tools-test-service-account
-        mountPath: /etc/compute-image-tools-test-service-account
-        readOnly: true
-    volumes:
-    - name: compute-image-tools-test-service-account
-      secret:
-       secretName: compute-image-tools-test-service-account
  - name: osconfig-stable
    interval: 5h
    agent: kubernetes
    spec:
-    activeDeadlineSeconds: 7200
+    activeDeadlineSeconds: 14400
     containers:
     - image: gcr.io/compute-image-tools-test/osconfig-tests:latest
       args:
