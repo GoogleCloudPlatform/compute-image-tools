@@ -1,8 +1,8 @@
 {
   "Name": "freebsd-12",
   {{if eq .environment "oslogin-staging" -}}
-  "WorkProject": "oslogin-staging-images",
-  "PublishProject": "oslogin-staging-images",
+  "WorkProject": "oslogin-staging-project",
+  "PublishProject": "oslogin-staging-project",
   "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_beta/projects/",
   {{- end}}
   "DeleteAfter": "24h*30*6",
