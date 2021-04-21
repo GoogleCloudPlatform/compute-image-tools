@@ -94,7 +94,8 @@ def main():
       stdout = process.stdout.decode()
       logging.info('Package metadata is %s', stdout)
     except subprocess.CalledProcessError as e:
-      stderr = process.stderr.decode()
+      if process.stderr is not None:
+        stderr = process.stderr.decode()
       logging.error('Fail to execute cmd. %s %s', e, stderr)
       return
 
