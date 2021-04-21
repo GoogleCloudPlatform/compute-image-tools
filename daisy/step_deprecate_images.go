@@ -83,16 +83,16 @@ func (d *DeprecateImages) run(ctx context.Context, s *Step) DError {
 		wg.Add(1)
 		go func(di *DeprecateImage) {
 			defer wg.Done()
+			var err error
 			if di.DeprecationStatusAlpha.State != "" {
 				w.LogStepInfo(s.name, "DeprecateImages", "%q --> %q with DefaultRolloutTime %s.", di.Image, di.DeprecationStatusAlpha.State, di.DeprecationStatusAlpha.StateOverride.DefaultRolloutTime)
-				if err := w.ComputeClient.DeprecateImageAlpha(di.Project, di.Image, &di.DeprecationStatusAlpha); err != nil {
-					e <- newErr("failed to deprecate images", err)
-				}
+				err = w.ComputeClient.DeprecateImageAlpha(di.Project, di.Image, &di.DeprecationStatusAlpha)
 			} else {
 				w.LogStepInfo(s.name, "DeprecateImages", "%q --> %q.", di.Image, di.DeprecationStatus.State)
-				if err := w.ComputeClient.DeprecateImage(di.Project, di.Image, &di.DeprecationStatus); err != nil {
-					e <- newErr("failed to deprecate images", err)
-				}
+				err = w.ComputeClient.DeprecateImage(di.Project, di.Image, &di.DeprecationStatus)
+			}
+			if err != nil {
+				e <- newErr("failed to deprecate images", err)
 			}
 		}(di)
 	}
