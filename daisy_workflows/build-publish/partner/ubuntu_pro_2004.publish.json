@@ -1,5 +1,5 @@
 {
-  "Name": "freebsd-11",
+  "Name": "ubuntu-pro-2004",
   {{if eq .environment "oslogin-staging" -}}
   "WorkProject": "oslogin-staging-images",
   "PublishProject": "oslogin-staging-images",
@@ -8,9 +8,10 @@
   "DeleteAfter": "24h*30*6",
   "Images": [
     {
-      "Prefix": "freebsd-11",
-      "Family": "freebsd-11",
-      "Description": "FreeBSD 11.0"
+      "Prefix": "ubuntu-pro-2004",
+      "Family": "ubuntu-pro-2004-lts",
+      "Description": "Ubuntu Pro 20.04 LTS",
+      "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE"]
     }
   ]
 }

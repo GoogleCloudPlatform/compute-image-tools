@@ -1,8 +1,10 @@
 {
-  "Name": "sles",
-  "WorkProject": "bct-staging-images",
+  "Name": "sles-12",
+  {{if eq .environment "oslogin-staging" -}}
+  "WorkProject": "oslogin-staging-images",
   "PublishProject": "oslogin-staging-images",
   "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_beta/projects/",
+  {{- end}}
   "DeleteAfter": "24h*30*6",
   "Images": [
     {

@@ -1,5 +1,5 @@
 {
-  "Name": "ubuntu-1604-export",
+  "Name": "ubuntu-pro-1804-export",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -22,7 +22,7 @@
       "CreateDisks": [
         {
           "Name": "disk-image",
-          "SourceImage": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts",
+          "SourceImage": "projects/ubuntu-os-pro-cloud/global/images/family/ubuntu-pro-1804-lts",
           "Type": "pd-ssd"
         }
       ]
