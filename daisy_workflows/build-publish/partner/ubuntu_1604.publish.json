@@ -1,0 +1,15 @@
+{
+  "Name": "ubuntu",
+  "WorkProject": "bct-staging-images",
+  "PublishProject": "oslogin-staging-images",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_beta/projects/",
+  "DeleteAfter": "24h*30*6",
+  "Images": [
+    {
+      "Prefix": "ubuntu-1604",
+      "Family": "ubuntu-1604-lts",
+      "Description": "Ubuntu 16.04 LTS",
+      "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE"]
+    }
+  ]
+}

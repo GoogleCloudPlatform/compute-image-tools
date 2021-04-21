@@ -9,19 +9,7 @@
       "Prefix": "sles-12",
       "Family": "sles-12",
       "Description": "SUSE Enterprise Linux 12",
-      "Licenses": [
-        "projects/bct-staging-functional/global/licenses/sles-12"
-      ],
       "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE"]
-    },
-    {
-      "Prefix": "sles-15",
-      "Family": "sles-15",
-      "Description": "SUSE Enterprise Linux 15",
-      "Licenses": [
-        "projects/bct-staging-functional/global/licenses/sles-15"
-      ],
-      "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE", "SEV_CAPABLE"]
     }
   ]
 }

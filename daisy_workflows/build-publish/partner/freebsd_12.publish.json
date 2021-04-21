@@ -1,0 +1,14 @@
+{
+  "Name": "freebsd",
+  "WorkProject": "bct-staging-images",
+  "PublishProject": "oslogin-staging-images",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_beta/projects/",
+  "DeleteAfter": "24h*30*6",
+  "Images": [
+    {
+      "Prefix": "freebsd-12",
+      "Family": "freebsd-12",
+      "Description": "FreeBSD 12.0"
+    }
+  ]
+}
