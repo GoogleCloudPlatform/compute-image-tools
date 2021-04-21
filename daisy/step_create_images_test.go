@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"testing"
 
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
@@ -68,6 +69,7 @@ func TestCreateImagesRun(t *testing.T) {
 	tests := []struct {
 		desc      string
 		ci        *Image
+		cia       *ImageAlpha
 		cib       *ImageBeta
 		shouldErr bool
 	}{
@@ -75,12 +77,32 @@ func TestCreateImagesRun(t *testing.T) {
 		{desc: "raw image case", ci: &Image{ImageBase: ImageBase{Resource: Resource{Project: testProject}}, Image: compute.Image{Name: testImage, RawDisk: &compute.ImageRawDisk{Source: "gs://bucket/object"}}}, shouldErr: false},
 		{desc: "bad disk case", ci: &Image{ImageBase: ImageBase{Resource: Resource{Project: testProject}}, Image: compute.Image{Name: testImage, SourceDisk: "bad"}}, shouldErr: true},
 		{desc: "bad overwrite case", ci: &Image{ImageBase: ImageBase{Resource: Resource{Project: testProject}, OverWrite: true}, Image: compute.Image{Name: "bad", SourceDisk: testDisk}}, shouldErr: true},
-		{desc: "image location using beta API", cib: &ImageBeta{ImageBase: ImageBase{Resource: Resource{Project: testProject}, OverWrite: true}, Image: computeBeta.Image{Name: "beta", SourceDisk: testDisk, StorageLocations: []string{"eu"}}}, shouldErr: false},
+		{
+			desc: "image rolloutOverride using alpha API",
+			cia: &ImageAlpha{
+				ImageBase: ImageBase{Resource: Resource{Project: testProject}, OverWrite: true},
+				Image: computeAlpha.Image{
+					Name:       "alpha",
+					SourceDisk: testDisk,
+					RolloutOverride: &computeAlpha.RolloutPolicy{
+						DefaultRolloutTime: "2021-04-02T23:23:59.851301Z",
+					},
+				},
+			},
+			shouldErr: false,
+		},
+		{
+			desc:      "image location using beta API",
+			cib:       &ImageBeta{ImageBase: ImageBase{Resource: Resource{Project: testProject}, OverWrite: true}, Image: computeBeta.Image{Name: "beta", SourceDisk: testDisk, StorageLocations: []string{"eu"}}},
+			shouldErr: false,
+		},
 	}
 
 	for _, tt := range tests {
 		var cis *CreateImages
-		if tt.cib != nil {
+		if tt.cia != nil {
+			cis = &CreateImages{ImagesAlpha: []*ImageAlpha{tt.cia}}
+		} else if tt.cib != nil {
 			cis = &CreateImages{ImagesBeta: []*ImageBeta{tt.cib}}
 		} else {
 			cis = &CreateImages{Images: []*Image{tt.ci}}

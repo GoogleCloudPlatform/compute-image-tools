@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	compute "google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
@@ -107,6 +108,9 @@ type TestClient struct {
 	SetInstanceMetadataFn       func(project, zone, name string, md *compute.Metadata) error
 	SetCommonInstanceMetadataFn func(project string, md *compute.Metadata) error
 	RetryFn                     func(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
+
+	// Alpha API calls
+	CreateInstanceAlphaFn func(project, zone string, i *computeAlpha.Instance) error
 
 	// Beta API calls
 	GetGuestAttributesFn func(project, zone, name, queryPath, variableKey string) (*computeBeta.GuestAttributes, error)
@@ -663,4 +667,12 @@ func (c *TestClient) CreateInstanceBeta(project, zone string, i *computeBeta.Ins
 		return c.CreateInstanceBetaFn(project, zone, i)
 	}
 	return c.client.CreateInstanceBeta(project, zone, i)
+}
+
+// CreateInstanceAlpha uses the override method CreateInstanceAlphaFn or the real implementation.
+func (c *TestClient) CreateInstanceAlpha(project, zone string, i *computeAlpha.Instance) error {
+	if c.CreateInstanceBetaFn != nil {
+		return c.CreateInstanceAlphaFn(project, zone, i)
+	}
+	return c.client.CreateInstanceAlpha(project, zone, i)
 }
