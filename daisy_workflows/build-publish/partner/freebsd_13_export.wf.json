@@ -22,7 +22,7 @@
       "CreateDisks": [
         {
           "Name": "disk-image",
-          "SourceImage": "projects/freebsd-org-cloud-dev/global/images/family/freebsd-13-0-release",
+          "SourceImage": "projects/freebsd-org-cloud-dev/global/images/family/freebsd-13-0",
           "Type": "pd-ssd"
         }
       ]
