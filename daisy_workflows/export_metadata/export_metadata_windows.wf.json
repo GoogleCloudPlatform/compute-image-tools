@@ -69,6 +69,7 @@
       "WaitForInstancesSignal": [
         {
           "Name": "inst-exporter",
+          "Timeout": "15m",
           "SerialOutput": {
             "Port": 1,
             "FailureMatch": "ExportFailed:",
