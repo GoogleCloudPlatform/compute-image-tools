@@ -1,0 +1,16 @@
+{
+  "Name": "freebsd-13",
+  {{if eq .environment "oslogin-staging" -}}
+  "WorkProject": "oslogin-staging-project",
+  "PublishProject": "oslogin-staging-project",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_beta/projects/",
+  {{- end}}
+  "DeleteAfter": "24h*30*6",
+  "Images": [
+    {
+      "Prefix": "freebsd-13",
+      "Family": "freebsd-13",
+      "Description": "FreeBSD 13.0"
+    }
+  ]
+}

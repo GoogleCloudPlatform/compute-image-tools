@@ -1,0 +1,17 @@
+{
+  "Name": "ubuntu-pro-1604",
+  {{if eq .environment "oslogin-staging" -}}
+  "WorkProject": "oslogin-staging-project",
+  "PublishProject": "oslogin-staging-project",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_beta/projects/",
+  {{- end}}
+  "DeleteAfter": "24h*30*6",
+  "Images": [
+    {
+      "Prefix": "ubuntu-pro-1604",
+      "Family": "ubuntu-pro-1604-lts",
+      "Description": "Ubuntu Pro 16.04 LTS",
+      "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE"]
+    }
+  ]
+}

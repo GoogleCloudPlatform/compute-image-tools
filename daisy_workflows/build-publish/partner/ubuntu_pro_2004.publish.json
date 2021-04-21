@@ -1,0 +1,17 @@
+{
+  "Name": "ubuntu-pro-2004",
+  {{if eq .environment "oslogin-staging" -}}
+  "WorkProject": "oslogin-staging-project",
+  "PublishProject": "oslogin-staging-project",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_beta/projects/",
+  {{- end}}
+  "DeleteAfter": "24h*30*6",
+  "Images": [
+    {
+      "Prefix": "ubuntu-pro-2004",
+      "Family": "ubuntu-pro-2004-lts",
+      "Description": "Ubuntu Pro 20.04 LTS",
+      "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE"]
+    }
+  ]
+}

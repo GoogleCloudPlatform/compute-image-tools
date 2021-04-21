@@ -1,0 +1,17 @@
+{
+  "Name": "sles-12",
+  {{if eq .environment "oslogin-staging" -}}
+  "WorkProject": "oslogin-staging-project",
+  "PublishProject": "oslogin-staging-project",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_beta/projects/",
+  {{- end}}
+  "DeleteAfter": "24h*30*6",
+  "Images": [
+    {
+      "Prefix": "sles-12",
+      "Family": "sles-12",
+      "Description": "SUSE Enterprise Linux 12",
+      "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE"]
+    }
+  ]
+}
