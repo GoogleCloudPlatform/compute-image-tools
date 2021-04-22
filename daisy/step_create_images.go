@@ -54,10 +54,10 @@ func (ci *CreateImages) UnmarshalJSON(b []byte) error {
 
 func imageUsesAlphaFeatures(imagesAlpha []*ImageAlpha) bool {
 	for _, imageAlpha := range imagesAlpha {
-		if imageAlpha != nil && len(imageAlpha.RolloutOverride.DefaultRolloutTime) > 0 {
+		if imageAlpha != nil && imageAlpha.RolloutOverride != nil && len(imageAlpha.RolloutOverride.DefaultRolloutTime) > 0 {
 			return true
 		}
-		if imageAlpha != nil && len(imageAlpha.Deprecated.StateOverride.DefaultRolloutTime) > 0 {
+		if imageAlpha != nil && imageAlpha.Deprecated != nil && imageAlpha.Deprecated.StateOverride != nil && len(imageAlpha.Deprecated.StateOverride.DefaultRolloutTime) > 0 {
 			return true
 		}
 	}
