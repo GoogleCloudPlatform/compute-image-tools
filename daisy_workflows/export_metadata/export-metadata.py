@@ -86,16 +86,17 @@ def main():
     logging.error('Unknown Linux distribution.')
     return
 
-  version = ''
-  commit_hash = ''
   for package in guest_packages:
     cmd = cmd_prefix + [package]
+    process = None
     try:
-      stdout = subprocess.run(cmd, stdout=subprocess.PIPE, check=True).stdout
-      stdout = stdout.decode()
+      process = subprocess.run(cmd, stdout=subprocess.PIPE, check=True)
+      stdout = process.stdout.decode()
       logging.info('Package metadata is %s', stdout)
     except subprocess.CalledProcessError as e:
-      logging.error('Fail to execute cmd. %s', e)
+      if process.stderr is not None:
+        stderr = process.stderr.decode()
+      logging.error('Fail to execute cmd. %s %s', e, stderr)
       return
 
     package, epoch, version, commit_hash = stdout.split('\n', 3)
