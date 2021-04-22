@@ -159,12 +159,12 @@ func TestImageUsesAlphaFeaturesTrue(t *testing.T) {
 			wantResult: true,
 		},
 		{
-			desc: "Don't AlphaAPI, empty",
+			desc: "Do not use AlphaAPI, empty",
 			cia: []*ImageAlpha{{Image: computeAlpha.Image{}}},
 			wantResult: false,
 		},
 		{
-			desc: "Don't AlphaAPI, deprecated but with no StateOverride.",
+			desc: "Do not use AlphaAPI, deprecated with no StateOverride.",
 			cia: []*ImageAlpha{{Image: computeAlpha.Image{
 				Deprecated: &computeAlpha.DeprecationStatus{
 					State: "OBSOLETE",
@@ -173,7 +173,17 @@ func TestImageUsesAlphaFeaturesTrue(t *testing.T) {
 			wantResult: false,
 		},
 		{
-			desc: "Don't AlphaAPI, deprecated and StateOverride present with no value.",
+			desc: "Do not use AlphaAPI, deprecated with StateOverride = nil.",
+			cia: []*ImageAlpha{{Image: computeAlpha.Image{
+				Deprecated: &computeAlpha.DeprecationStatus{
+					State: "OBSOLETE",
+					StateOverride: nil,
+				},
+			}}},
+			wantResult: false,
+		},
+		{
+			desc: "Do not use AlphaAPI, deprecated and StateOverride present with no value.",
 			cia: []*ImageAlpha{{Image: computeAlpha.Image{
 				Deprecated: &computeAlpha.DeprecationStatus{
 					State: "OBSOLETE",
@@ -183,7 +193,14 @@ func TestImageUsesAlphaFeaturesTrue(t *testing.T) {
 			wantResult: false,
 		},
 		{
-			desc: "Don't AlphaAPI, RolloutOverride present with no value.",
+			desc: "Do not use AlphaAPI, Deprecated is nil.",
+			cia: []*ImageAlpha{{Image: computeAlpha.Image{
+				Deprecated: nil,
+			}}},
+			wantResult: false,
+		},
+		{
+			desc: "Do not use AlphaAPI, RolloutOverride present with all default values.",
 			cia: []*ImageAlpha{{Image: computeAlpha.Image{
 				RolloutOverride: &computeAlpha.RolloutPolicy{},
 			}}},
