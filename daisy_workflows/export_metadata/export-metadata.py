@@ -94,7 +94,7 @@ def main():
       stdout = process.stdout.decode()
       logging.info('Package metadata is %s', stdout)
     except subprocess.CalledProcessError as e:
-      logging.error('Fail to execute cmd. %s %s', e, e.stdout())
+      logging.error('Fail to execute cmd. %s %s', e, e.stderr())
       return
 
     package, epoch, version, commit_hash = stdout.split('\n', 3)
