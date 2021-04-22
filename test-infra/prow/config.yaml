@@ -41,6 +41,7 @@ periodics:
    interval: 24h
    agent: kubernetes
    spec:
+    activeDeadlineSeconds: 1800
     containers:
     - image: gcr.io/compute-image-tools-test/cleanerupper:latest
       args:

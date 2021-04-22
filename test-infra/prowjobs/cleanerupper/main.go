@@ -27,9 +27,11 @@ import (
 
 	osconfig "cloud.google.com/go/osconfig/apiv1beta"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	osconfigV1alpha "github.com/GoogleCloudPlatform/osconfig/e2e_tests/api/cloud.google.com/go/osconfig/apiv1alpha"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 
+	osconfigv1alphapb "github.com/GoogleCloudPlatform/osconfig/e2e_tests/api/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha"
 	osconfigpb "google.golang.org/genproto/googleapis/cloud/osconfig/v1beta"
 )
 
@@ -43,13 +45,14 @@ var (
 	oauthPath = flag.String("oauth", "", "oauth file to use to authenticate")
 	duration  = flag.Duration("duration", 24*time.Hour, "cleanup all resources with a lifetime greater than this")
 
-	instances     = flag.Bool("instances", true, "clean instances")
-	disks         = flag.Bool("disks", true, "clean disks")
-	images        = flag.Bool("images", true, "clean images")
-	machineImages = flag.Bool("machine_images", true, "clean machine images")
-	networks      = flag.Bool("networks", true, "clean networks")
-	snapshots     = flag.Bool("snapshots", true, "clean snapshots")
-	guestPolicies = flag.Bool("guest_policies", true, "clean guest policies")
+	instances           = flag.Bool("instances", true, "clean instances")
+	disks               = flag.Bool("disks", true, "clean disks")
+	images              = flag.Bool("images", true, "clean images")
+	machineImages       = flag.Bool("machine_images", true, "clean machine images")
+	networks            = flag.Bool("networks", true, "clean networks")
+	snapshots           = flag.Bool("snapshots", true, "clean snapshots")
+	guestPolicies       = flag.Bool("guest_policies", true, "clean guest policies")
+	osPolicyAssignments = flag.Bool("ospolicy_assignments", true, "clean ospolicy assignments")
 
 	now = time.Now()
 )
@@ -341,7 +344,7 @@ func cleanGuestPolicies(ctx context.Context, client *osconfig.Client, project st
 			fmt.Printf("Error calling ListGuestPolicies in project %q: %v\n", project, err)
 			return
 		}
-		if !shouldDelete(gp.Name, nil, "", gp.GetCreateTime().GetSeconds()) {
+		if !shouldDelete(gp.GetName(), nil, "", gp.GetCreateTime().GetSeconds()) {
 			continue
 		}
 		fmt.Printf("- %s\n", gp.GetName())
@@ -357,6 +360,48 @@ func cleanGuestPolicies(ctx context.Context, client *osconfig.Client, project st
 		}()
 	}
 	wg.Wait()
+}
+
+func cleanOSPolicyAssignments(ctx context.Context, computeClient daisyCompute.Client, client *osconfigV1alpha.OsConfigZonalClient, project string) {
+	fmt.Println("Cleaning OSPolicyAssignments:")
+	var wg sync.WaitGroup
+	zones, err := computeClient.ListZones(project)
+	if err != nil {
+		fmt.Printf("Error calling ListZones in project %q: %v\n", project, err)
+		return
+	}
+	for _, zone := range zones {
+		now := time.Now()
+		itr := client.ListOSPolicyAssignments(ctx, &osconfigv1alphapb.ListOSPolicyAssignmentsRequest{Parent: fmt.Sprintf("projects/%s/locations/%s", project, zone.Name)})
+		for {
+			ospa, err := itr.Next()
+			if err != nil {
+				if err == iterator.Done {
+					fmt.Println(time.Since(now), zone.Name)
+					break
+				}
+				fmt.Printf("Error calling ListOSPolicyAssignments in project %q: %v\n", project, err)
+				return
+			}
+			if !shouldDelete(ospa.GetName(), nil, ospa.GetDescription(), ospa.GetRevisionCreateTime().GetSeconds()) {
+				continue
+			}
+			if *dryRun {
+				continue
+			}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				op, err := client.DeleteOSPolicyAssignment(ctx, &osconfigv1alphapb.DeleteOSPolicyAssignmentRequest{Name: ospa.GetName()})
+				if err != nil {
+					fmt.Printf("Error deleting OSPolicyAssignment: %v\n", err)
+					return
+				}
+				op.Wait(ctx)
+			}()
+		}
+		wg.Wait()
+	}
 }
 
 func main() {
@@ -376,7 +421,19 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	osconfigClientV1alpha2, err := osconfig.NewClient(ctx, option.WithCredentialsFile(*oauthPath))
+	osconfigClientV1beta, err := osconfig.NewClient(ctx, option.WithCredentialsFile(*oauthPath))
+	if err != nil {
+		log.Fatal(err)
+	}
+	osconfigClientV1betaStaging, err := osconfig.NewClient(ctx, option.WithCredentialsFile(*oauthPath), option.WithEndpoint("staging-osconfig.sandbox.googleapis.com:443"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	osconfigZonalClientV1alpha, err := osconfigV1alpha.NewOsConfigZonalClient(ctx, option.WithCredentialsFile(*oauthPath))
+	if err != nil {
+		log.Fatal(err)
+	}
+	osconfigZonalClientV1alphaStaging, err := osconfigV1alpha.NewOsConfigZonalClient(ctx, option.WithCredentialsFile(*oauthPath), option.WithEndpoint("staging-osconfig.sandbox.googleapis.com:443"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -403,7 +460,12 @@ func main() {
 			cleanSnapshots(computeClient, p)
 		}
 		if *guestPolicies {
-			cleanGuestPolicies(ctx, osconfigClientV1alpha2, p)
+			cleanGuestPolicies(ctx, osconfigClientV1beta, p)
+			cleanGuestPolicies(ctx, osconfigClientV1betaStaging, p)
+		}
+		if *osPolicyAssignments {
+			cleanOSPolicyAssignments(ctx, computeClient, osconfigZonalClientV1alpha, p)
+			cleanOSPolicyAssignments(ctx, computeClient, osconfigZonalClientV1alphaStaging, p)
 		}
 		fmt.Println()
 	}
