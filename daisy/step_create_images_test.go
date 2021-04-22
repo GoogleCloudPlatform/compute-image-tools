@@ -119,8 +119,8 @@ func TestCreateImagesRun(t *testing.T) {
 
 func TestImageUsesAlphaFeaturesTrue(t *testing.T) {
 	tests := []struct {
-		desc      string
-		cia       []*ImageAlpha
+		desc       string
+		cia        []*ImageAlpha
 		wantResult bool
 	}{
 		{
@@ -159,8 +159,8 @@ func TestImageUsesAlphaFeaturesTrue(t *testing.T) {
 			wantResult: true,
 		},
 		{
-			desc: "Do not use AlphaAPI, empty",
-			cia: []*ImageAlpha{{Image: computeAlpha.Image{}}},
+			desc:       "Do not use AlphaAPI, empty",
+			cia:        []*ImageAlpha{{Image: computeAlpha.Image{}}},
 			wantResult: false,
 		},
 		{
@@ -176,7 +176,7 @@ func TestImageUsesAlphaFeaturesTrue(t *testing.T) {
 			desc: "Do not use AlphaAPI, deprecated with StateOverride = nil.",
 			cia: []*ImageAlpha{{Image: computeAlpha.Image{
 				Deprecated: &computeAlpha.DeprecationStatus{
-					State: "OBSOLETE",
+					State:         "OBSOLETE",
 					StateOverride: nil,
 				},
 			}}},
@@ -186,7 +186,7 @@ func TestImageUsesAlphaFeaturesTrue(t *testing.T) {
 			desc: "Do not use AlphaAPI, deprecated and StateOverride present with no value.",
 			cia: []*ImageAlpha{{Image: computeAlpha.Image{
 				Deprecated: &computeAlpha.DeprecationStatus{
-					State: "OBSOLETE",
+					State:         "OBSOLETE",
 					StateOverride: &computeAlpha.RolloutPolicy{},
 				},
 			}}},
