@@ -218,12 +218,14 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap):
     if sap:
       ks_post.append(FetchConfigPart(f'rhel-{major}-sap-post.cfg'))
 
-    # BYOS post.
-    if byos:
-      ks_post.append(FetchConfigPart('rhel-byos-post.cfg'))
-
   # Common posts.
   ks_post.append(FetchConfigPart(f'{el_version}-post.cfg'))
+
+  # RHEL BYOS post is a cleanup action and has to be after the common post.
+  if byos:
+    ks_post.append(FetchConfigPart('rhel-byos-post.cfg'))
+
+  # Common cleanup post.
   ks_post.append(FetchConfigPart('cleanup.cfg'))
 
   ks_file = [ks_options, ks_packages]
