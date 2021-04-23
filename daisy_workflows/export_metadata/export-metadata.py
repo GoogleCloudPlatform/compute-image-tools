@@ -94,7 +94,7 @@ def main():
       stdout = process.stdout.decode()
       logging.info('Package metadata is %s', stdout)
     except subprocess.CalledProcessError as e:
-      logging.error('Fail to execute cmd. %s, %s, %s', e)
+      logging.error('Fail to execute cmd. %s, %s, %s', e, e.stdout)
       return
 
     if distribution == 'enterprise_linux':
