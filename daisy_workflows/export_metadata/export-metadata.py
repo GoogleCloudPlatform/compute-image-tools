@@ -89,7 +89,7 @@ def main():
                                check=True)
     except subprocess.CalledProcessError as e:
       logging.info('failed to execute cmd: %s stdout: %s stderr: %s', e,
-                    e.stdout, e.stderr)
+                   e.stdout, e.stderr)
       continue
 
     stdout = process.stdout.decode()
@@ -129,7 +129,7 @@ def make_pkg_metadata(name, version, epoch, commit_hash):
   if epoch:
     version = '%s:%s' % (epoch, version)
 
-  return { 'name': name, 'version': version, 'commit_hash': commit_hash }
+  return {'name': name, 'version': version, 'commit_hash': commit_hash}
 
 
 if __name__ == '__main__':
