@@ -18,7 +18,6 @@ import json
 import logging
 import subprocess
 import tempfile
-import time
 
 import utils
 
@@ -95,7 +94,8 @@ def main():
       stdout = process.stdout.decode()
       logging.info('package metadata is %s', stdout)
     except subprocess.CalledProcessError as e:
-      logging.error('failed to execute cmd: %s\nstdout: %s\nstderr: %s', e, e.stdout, e.stderr)
+      logging.error('failed to execute cmd: %s\nstdout: %s\nstderr: %s', e,
+                    e.stdout, e.stderr)
       return
 
     try:
