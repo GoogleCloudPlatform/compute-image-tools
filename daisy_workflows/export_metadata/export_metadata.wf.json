@@ -60,7 +60,6 @@
           "Metadata": {
             "files_gcs_dir": "${SOURCESPATH}/export_metadata",
             "script": "export-metadata.py",
-            "metadata_dest": "${metadata_dest}",
             "image_id": "${image_id}",
             "image_name": "${image_name}",
             "image_family": "${image_family}",
@@ -94,11 +93,20 @@
         "Instances": ["inst-exporter"],
         "Disks":["disk-exporterprep", "source-disk"]
       }
+    },
+    "copy-to-destination": {
+      "CopyGCSObjects": [
+        {
+          "Source": "${OUTSPATH}/metadata.json",
+          "Destination": "${metadata_dest}"
+        }
+      ]
     }
   },
   "Dependencies": {
     "run": ["setup-disks"],
     "wait": ["run"],
-    "delete-inst": ["wait"]
+    "delete-inst": ["wait"],
+    "copy-to-destination": ["wait"]
   }
 }

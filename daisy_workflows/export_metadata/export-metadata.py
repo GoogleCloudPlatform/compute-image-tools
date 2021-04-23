@@ -4,7 +4,6 @@
 
 Parameters retrieved from instance metadata:
 
-metadata_dest: The Cloud Storage destination for the resultant image metadata.
 image_id: The resource id of the image.
 image_name: The name of the image in GCP.
 image_family: The family that image belongs.
@@ -24,8 +23,6 @@ import utils
 
 def main():
   # Get parameters from instance metadata.
-  metadata_dest = utils.GetMetadataAttribute('metadata_dest',
-                                             raise_on_not_found=True)
   image_id = utils.GetMetadataAttribute('image_id')
   image_name = utils.GetMetadataAttribute('image_name')
   image_family = utils.GetMetadataAttribute('image_family')
@@ -87,34 +84,24 @@ def main():
     return
 
   for package in guest_packages:
-    cmd = cmd_prefix + [package]
-    process = None
     try:
-      process = subprocess.run(cmd, capture_output=True, check=True)
-      stdout = process.stdout.decode()
-      logging.info('package metadata is %s', stdout)
+      process = subprocess.run(cmd_prefix + [package], capture_output=True,
+                               check=True)
     except subprocess.CalledProcessError as e:
-      logging.error('failed to execute cmd: %s\nstdout: %s\nstderr: %s', e,
+      logging.info('failed to execute cmd: %s stdout: %s stderr: %s', e,
                     e.stdout, e.stderr)
-      return
+      continue
+
+    stdout = process.stdout.decode()
 
     try:
       package, epoch, version, commit_hash = stdout.split('\n', 3)
     except ValueError:
-      logging.error('got malformed result from command')
-      return
+      logging.info('command result was malformed: %s', stdout)
+      continue
 
-    if 'none' in epoch:
-      # The epoch field is only present in certain packages and will return
-      # '(none)' otherwise.
-      epoch = ''
-    package_metadata = {
-        'name': package,
-        # Match debian version formatting of epoch, if present.
-        'version': '{}:{}'.format(epoch, version) if epoch else version,
-        'commit_hash': commit_hash,
-    }
-    image['packages'].append(package_metadata)
+    md = make_pkg_metadata(package, version, epoch, commit_hash)
+    image['packages'].append(md)
 
   # Write image metadata to a file.
   with tempfile.NamedTemporaryFile(mode='w', dir='/tmp', delete=False) as f:
@@ -125,18 +112,24 @@ def main():
   logging.info('Uploading image metadata to daisy outs path.')
   try:
     utils.UploadFile(f.name, outs_path + "/metadata.json")
-  except ValueError as e:
-    logging.error('Failed uploading metadata file %s', e)
-    return
-
-  logging.info('Uploading image metadata to destination.')
-  try:
-    utils.UploadFile(f.name, metadata_dest)
-  except ValueError as e:
+  except Exception as e:
     logging.error('Failed uploading metadata file %s', e)
     return
 
   logging.success('Export metadata was successful!')
+
+
+def make_pkg_metadata(name, version, epoch, commit_hash):
+  # The epoch field is only present in certain packages and will return
+  # '(none)' otherwise.
+  if 'none' in epoch:
+    epoch = ''
+
+  # Match debian style version which includes epoch.
+  if epoch:
+    version = '%s:%s' % (epoch, version)
+
+  return { 'name': name, 'version': version, 'commit_hash': commit_hash }
 
 
 if __name__ == '__main__':
