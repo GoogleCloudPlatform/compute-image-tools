@@ -18,6 +18,7 @@ import json
 import logging
 import subprocess
 import tempfile
+import time
 
 import utils
 
@@ -78,7 +79,7 @@ def main():
     #  This package is debian-only.
     guest_packages.append('google-cloud-packages-archive-keyring')
     cmd_prefix = ['chroot', '/mnt', 'dpkg-query', '-W', '--showformat',
-                  '${Package}\n${Version}\n${Git}']
+                  '${Package}\n\n${Version}\n${Git}']
   elif distribution == 'enterprise_linux':
       cmd_prefix = ['chroot', '/mnt', 'rpm', '-q', '--queryformat',
                     '%{NAME}\n%{EPOCH}\n%{VERSION}-%{RELEASE}\n%{VCS}']
@@ -90,14 +91,19 @@ def main():
     cmd = cmd_prefix + [package]
     process = None
     try:
-      process = subprocess.run(cmd, stdout=subprocess.PIPE, check=True)
+      process = subprocess.run(cmd, capture_output=True, check=True)
       stdout = process.stdout.decode()
-      logging.info('Package metadata is %s', stdout)
+      logging.info('package metadata is %s', stdout)
     except subprocess.CalledProcessError as e:
-      logging.error('Fail to execute cmd. %s %s', e, e.stderr())
+      logging.error('failed to execute cmd: %s\nstdout: %s\nstderr: %s', e, e.stdout, e.stderr)
       return
 
-    package, epoch, version, commit_hash = stdout.split('\n', 3)
+    try:
+      package, epoch, version, commit_hash = stdout.split('\n', 3)
+    except ValueError:
+      logging.error('got malformed result from command')
+      return
+
     if 'none' in epoch:
       # The epoch field is only present in certain packages and will return
       # '(none)' otherwise.
