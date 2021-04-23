@@ -87,17 +87,21 @@ def main():
     return
 
   for package in guest_packages:
+    epoch = 'none'
     cmd = cmd_prefix + [package]
-    process = None
     try:
-      process = subprocess.run(cmd, stdout=subprocess.PIPE, check=True)
+      process = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
       stdout = process.stdout.decode()
       logging.info('Package metadata is %s', stdout)
     except subprocess.CalledProcessError as e:
-      logging.error('Fail to execute cmd. %s %s', e, e.stderr())
+      logging.error('Fail to execute cmd. %s, %s, %s', e)
       return
 
-    package, epoch, version, commit_hash = stdout.split('\n', 3)
+    if distribution == 'enterprise_linux':
+      package, epoch, version, commit_hash = stdout.split('\n', 3)
+    elif distribution == 'debian':
+      package, version, commit_hash = stdout.split('\n', 2)
+
     if 'none' in epoch:
       # The epoch field is only present in certain packages and will return
       # '(none)' otherwise.
