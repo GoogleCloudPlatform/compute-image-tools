@@ -152,7 +152,7 @@ func (c *ScratchBucketCreator) getBucketAttrsIfInProject(project string, bucketN
 }
 
 func (c *ScratchBucketCreator) formatScratchBucketName(project string, location string) string {
-	bucket := strings.Replace(project, ":", "-", -1) + "-daisy-bkt"
+	bucket := strings.Replace(strings.Replace(project, "google.com", "google_com", -1), ":", "-", -1) + "-daisy-bkt"
 	if location != "" {
 		bucket = bucket + "-" + location
 	}
