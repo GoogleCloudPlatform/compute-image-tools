@@ -63,6 +63,29 @@ func TestCreateScratchBucketNoSourceFileDefaultBucketCreatedBasedOnDefaultRegion
 	assert.Nil(t, err)
 }
 
+func TestCreateScratchBucketNoSourceFileTranslateGoogleDomainDefaultBucketCreatedBasedOnDefaultRegion(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	project := "google.com:proJect1"
+	expectedBucket := "elgoog.com-project1-daisy-bkt-us"
+	expectedRegion := "US"
+	ctx := context.Background()
+
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().CreateBucket(expectedBucket, project, &storage.BucketAttrs{
+		Name:         expectedBucket,
+		Location:     defaultRegion,
+		StorageClass: defaultStorageClass,
+	}).Return(nil)
+
+	c := ScratchBucketCreator{mockStorageClient, ctx, createMockBucketIteratorWithRandomBuckets(mockCtrl, &ctx, mockStorageClient, project)}
+	bucket, region, err := c.CreateScratchBucket("", project, "")
+	assert.Equal(t, expectedBucket, bucket)
+	assert.Equal(t, expectedRegion, region)
+	assert.Nil(t, err)
+}
+
 func TestCreateScratchBucketNoSourceFileBucketCreatedBasedOnInputZone(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
