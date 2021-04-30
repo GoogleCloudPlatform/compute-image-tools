@@ -24,12 +24,19 @@ import (
 
 // CreateImages is a Daisy CreateImages workflow step.
 type CreateImages struct {
-	Images     []*Image
-	ImagesBeta []*ImageBeta
+	Images      []*Image
+	ImagesAlpha []*ImageAlpha
+	ImagesBeta  []*ImageBeta
 }
 
 // UnmarshalJSON unmarshals Image.
 func (ci *CreateImages) UnmarshalJSON(b []byte) error {
+	var imagesAlpha []*ImageAlpha
+	if err := json.Unmarshal(b, &imagesAlpha); err != nil {
+		return err
+	}
+	ci.ImagesAlpha = imagesAlpha
+
 	var imagesBeta []*ImageBeta
 	if err := json.Unmarshal(b, &imagesBeta); err != nil {
 		return err
@@ -45,6 +52,18 @@ func (ci *CreateImages) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func imageUsesAlphaFeatures(imagesAlpha []*ImageAlpha) bool {
+	for _, imageAlpha := range imagesAlpha {
+		if imageAlpha != nil && imageAlpha.RolloutOverride != nil && len(imageAlpha.RolloutOverride.DefaultRolloutTime) > 0 {
+			return true
+		}
+		if imageAlpha != nil && imageAlpha.Deprecated != nil && imageAlpha.Deprecated.StateOverride != nil && len(imageAlpha.Deprecated.StateOverride.DefaultRolloutTime) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func imageUsesBetaFeatures(imagesBeta []*ImageBeta) bool {
 	return false
 }
@@ -56,6 +75,12 @@ func (ci *CreateImages) populate(ctx context.Context, s *Step) DError {
 	var errs DError
 	if ci.Images != nil {
 		for _, i := range ci.Images {
+			errs = addErrs(errs, (&i.ImageBase).populate(ctx, i, s))
+		}
+	}
+
+	if ci.ImagesAlpha != nil {
+		for _, i := range ci.ImagesAlpha {
 			errs = addErrs(errs, (&i.ImageBase).populate(ctx, i, s))
 		}
 	}
@@ -116,7 +141,12 @@ func (ci *CreateImages) run(ctx context.Context, s *Step) DError {
 		ci.markCreatedInWorkflow()
 	}
 
-	if imageUsesBetaFeatures(ci.ImagesBeta) {
+	if imageUsesAlphaFeatures(ci.ImagesAlpha) {
+		for _, i := range ci.ImagesAlpha {
+			wg.Add(1)
+			go createImage(i, i.OverWrite)
+		}
+	} else if imageUsesBetaFeatures(ci.ImagesBeta) {
 		for _, i := range ci.ImagesBeta {
 			wg.Add(1)
 			go createImage(i, i.OverWrite)
