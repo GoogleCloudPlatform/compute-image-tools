@@ -25,7 +25,9 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
-func TestCreateInflater_File(t *testing.T) {
+func TestCreateFallbackInflater_File(t *testing.T) {
+	//Test the creation of a fallback inflater, which primarily uses API inflater
+	//and uses Daisy inflater as a fallback.
 	//TODO: remove SkipNow once inflater is switched to the fallback variant (not shadow)
 	t.SkipNow()
 
@@ -58,6 +60,46 @@ func TestCreateInflater_File(t *testing.T) {
 	assert.Nil(t, network.AccessConfigs, "AccessConfigs must be nil to allow ExternalIP to be allocated.")
 
 	apiInflater, ok := facade.apiInflater.(*apiInflater)
+	assert.True(t, ok)
+	assert.NotContains(t, apiInflater.guestOsFeatures,
+		&compute.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
+}
+
+func TestCreateShadowTestInflater_File(t *testing.T) {
+	//Test the creation of a shadow test inflater, which primarily uses Daisy
+	//inflater while API inflater is used only to verify its output against Daisy
+	//inflater
+	//TODO: remove/disable this test once API inflater is the default (fallback mode)
+
+	inflater, err := newInflater(ImageImportRequest{
+		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
+		Subnet:       "projects/subnet/subnet",
+		Network:      "projects/network/network",
+		Zone:         "us-west1-c",
+		ExecutionID:  "1234",
+		NoExternalIP: false,
+		WorkflowDir:  daisyWorkflows,
+	}, nil, &storage.Client{}, mockInspector{
+		t:                 t,
+		expectedReference: "gs://bucket/vmdk",
+		errorToReturn:     nil,
+		metaToReturn:      imagefile.Metadata{},
+	}, nil)
+	assert.NoError(t, err)
+	facade, ok := inflater.(*shadowTestInflaterFacade)
+	assert.True(t, ok)
+
+	daisyInflater, ok := facade.mainInflater.(*daisyInflater)
+	assert.True(t, ok)
+	assert.Equal(t, "zones/us-west1-c/disks/disk-1234", daisyInflater.inflatedDiskURI)
+	assert.Equal(t, "gs://bucket/vmdk", daisyInflater.wf.Vars["source_disk_file"].Value)
+	assert.Equal(t, "projects/subnet/subnet", daisyInflater.wf.Vars["import_subnet"].Value)
+	assert.Equal(t, "projects/network/network", daisyInflater.wf.Vars["import_network"].Value)
+
+	network := getWorkerNetwork(t, daisyInflater.wf)
+	assert.Nil(t, network.AccessConfigs, "AccessConfigs must be nil to allow ExternalIP to be allocated.")
+
+	apiInflater, ok := facade.shadowInflater.(*apiInflater)
 	assert.True(t, ok)
 	assert.NotContains(t, apiInflater.guestOsFeatures,
 		&compute.GuestOsFeature{Type: "UEFI_COMPATIBLE"})

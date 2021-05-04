@@ -52,8 +52,9 @@ func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, 
 		return nil, err
 	}
 
-	// TODO: Remove boolean guard when PD API is ready.
-	tryNativePDInflation := false
+	// This boolean switch controls whether native PD inflation is used, either
+	// as the primary inflation method or in a shadow test mode
+	tryNativePDInflation := true
 	if isImage(request.Source) || !tryNativePDInflation {
 		return di, nil
 	}
