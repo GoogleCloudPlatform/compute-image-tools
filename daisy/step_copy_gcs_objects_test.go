@@ -55,11 +55,13 @@ func TestCopyGCSObjectsValidate(t *testing.T) {
 			fmt.Fprint(w, `{}`)
 		} else if m == "GET" && u == "/b/bucket2?alt=json&prettyPrint=false&projection=full" {
 			fmt.Fprint(w, `{}`)
+		} else if m == "GET" && u == "/b/bucket/o?alt=json&delimiter=&endOffset=&pageToken=&prefix=&prettyPrint=false&projection=full&startOffset=&versions=false" {
+			fmt.Fprint(w, `{}`)
 		} else if m == "POST" && (u == "/b/bucket1/o?alt=json&prettyPrint=false&projection=full&uploadType=multipart" ||
-			u == "/upload/storage/v1/b/bucket1/o?alt=json&prettyPrint=false&projection=full&uploadType=multipart") {
+			u == "/upload/storage/v1/b/bucket1/o?alt=json&name=daisy-validate--abcdef&prettyPrint=false&projection=full&uploadType=multipart") {
 			fmt.Fprint(w, `{}`)
 		} else if m == "POST" && (u == "/b/bucket2/o?alt=json&prettyPrint=false&projection=full&uploadType=multipart" ||
-			u == "/upload/storage/v1/b/bucket2/o?alt=json&prettyPrint=false&projection=full&uploadType=multipart") {
+			u == "/upload/storage/v1/b/bucket2/o?alt=json&name=daisy-validate--abcdef&prettyPrint=false&projection=full&uploadType=multipart") {
 			fmt.Fprint(w, `{}`)
 		} else if m == "DELETE" && u == "/b/bucket1/o/abcdef?alt=json&prettyPrint=false" {
 			fmt.Fprint(w, `{}`)
@@ -73,7 +75,7 @@ func TestCopyGCSObjectsValidate(t *testing.T) {
 			fmt.Fprint(w, `{}`)
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "testGCSClient unknown request: %+v\n", r)
+			fmt.Fprintf(w, "testGCSClient copy unknown request: %+v\n", r)
 		}
 	}))
 	sc, err := storage.NewClient(context.Background(), option.WithEndpoint(ts.URL), option.WithHTTPClient(http.DefaultClient))
@@ -128,9 +130,9 @@ func TestCopyGCSObjectsRun(t *testing.T) {
 	}
 
 	for _, ws := range []*CopyGCSObjects{
-		{{Source: "gs://bucket", Destination: ""}},
-		{{Source: "", Destination: "gs://bucket"}},
-		{{Source: "gs://bucket/object/", Destination: "gs://bucket/object/", ACLRules: []*storage.ACLRule{{Entity: "someUser", Role: "OWNER"}}}},
+		{{Source: "gs://bucketerror", Destination: ""}},
+		{{Source: "", Destination: "gs://bucketerror"}},
+		{{Source: "gs://bucketerror/object/", Destination: "gs://bucketerror/object/", ACLRules: []*storage.ACLRule{{Entity: "someUser", Role: "OWNER"}}}},
 	} {
 		if err := ws.run(ctx, s); err == nil {
 			t.Error("expected error")

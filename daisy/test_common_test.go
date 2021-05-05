@@ -378,6 +378,14 @@ func newTestGCSClient() (*storage.Client, error) {
 			fmt.Fprint(w, `{}`)
 		} else if m == "GET" && u == "/b?alt=json&pageToken=&prefix=&prettyPrint=false&project=bar-project&projection=full" {
 			fmt.Fprint(w, `{"items": [{"name": "bar-project-daisy-bkt"}]}`)
+		} else if m == "GET" && u == "/b/gcs/o?alt=json&delimiter=&endOffset=&pageToken=&prefix=folder%2F&prettyPrint=false&projection=full&startOffset=&versions=false" {
+			fmt.Fprint(w, `{}`)
+		} else if m == "GET" && u == "/b/bucket/o?alt=json&delimiter=&endOffset=&pageToken=&prefix=object%2F&prettyPrint=false&projection=full&startOffset=&versions=false" {
+				fmt.Fprint(w, `{}`)
+		} else if m == "GET" && u == "/b/bucket/o?alt=json&delimiter=&endOffset=&pageToken=&prefix=&prettyPrint=false&projection=full&startOffset=&versions=false" {
+			fmt.Fprint(w, `{}`)
+		} else if m == "GET" && u == "/b/foo/o?alt=json&delimiter=&endOffset=&pageToken=&prefix=bar&prettyPrint=false&projection=full&startOffset=&versions=false" {
+				fmt.Fprint(w, `{}`)
 		} else if m == "POST" && u == "/b?alt=json&prettyPrint=false&project=foo-project" {
 			fmt.Fprint(w, `{}`)
 		} else {
