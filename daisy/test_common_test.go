@@ -306,7 +306,7 @@ func newTestGCSClient() (*storage.Client, error) {
 	getObjRgx := regexp.MustCompile(`/b/.+/o/.+alt=json&projection=full`)
 	getBktRgx := regexp.MustCompile(`/b/.+alt=json&prettyPrint=false&projection=full`)
 	deleteObjRgx := regexp.MustCompile(`/b/.+/o/.+alt=json`)
-	listObjsRgx := regexp.MustCompile(`/b/.+/o\?alt=json&delimiter=&pageToken=&prefix=.+&projection=full&versions=false`)
+	listObjsRgx := regexp.MustCompile(`/b/.+/o\?alt=json&delimiter=&endOffset=&pageToken=&prefix=.+&projection=full.+`)
 	listObjsNoPrefixRgx := regexp.MustCompile(`/b/.+/o\?alt=json&delimiter=&pageToken=&prefix=&projection=full&versions=false`)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -381,11 +381,11 @@ func newTestGCSClient() (*storage.Client, error) {
 		} else if m == "GET" && u == "/b/gcs/o?alt=json&delimiter=&endOffset=&pageToken=&prefix=folder%2F&prettyPrint=false&projection=full&startOffset=&versions=false" {
 			fmt.Fprint(w, `{}`)
 		} else if m == "GET" && u == "/b/bucket/o?alt=json&delimiter=&endOffset=&pageToken=&prefix=object%2F&prettyPrint=false&projection=full&startOffset=&versions=false" {
-				fmt.Fprint(w, `{}`)
+			fmt.Fprint(w, `{}`)
 		} else if m == "GET" && u == "/b/bucket/o?alt=json&delimiter=&endOffset=&pageToken=&prefix=&prettyPrint=false&projection=full&startOffset=&versions=false" {
 			fmt.Fprint(w, `{}`)
 		} else if m == "GET" && u == "/b/foo/o?alt=json&delimiter=&endOffset=&pageToken=&prefix=bar&prettyPrint=false&projection=full&startOffset=&versions=false" {
-				fmt.Fprint(w, `{}`)
+			fmt.Fprint(w, `{}`)
 		} else if m == "POST" && u == "/b?alt=json&prettyPrint=false&project=foo-project" {
 			fmt.Fprint(w, `{}`)
 		} else {
