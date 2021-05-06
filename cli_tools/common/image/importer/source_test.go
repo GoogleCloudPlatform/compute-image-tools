@@ -81,10 +81,10 @@ func TestGcsFilePathMustBeFullyQualified(t *testing.T) {
 
 func TestEnsureEitherFileOrImageIsPresent(t *testing.T) {
 	var cases = []struct {
-		name  string
-		file  fileSource
-		image string
-		valid bool
+		name           string
+		file           fileSource
+		image          string
+		valid          bool
 		verifyFileRead bool
 	}{
 		{
@@ -94,13 +94,13 @@ func TestEnsureEitherFileOrImageIsPresent(t *testing.T) {
 				bucket:  "bucket",
 				object:  "global/images/ubuntu-1604",
 			},
-			image: "global/images/ubuntu-1604",
-			valid: false,
+			image:          "global/images/ubuntu-1604",
+			valid:          false,
 			verifyFileRead: false,
 		},
 		{
-			name:  "neither",
-			valid: false,
+			name:           "neither",
+			valid:          false,
 			verifyFileRead: false,
 		},
 		{
@@ -110,13 +110,13 @@ func TestEnsureEitherFileOrImageIsPresent(t *testing.T) {
 				bucket:  "bucket",
 				object:  "global/images/ubuntu-1604",
 			},
-			valid: true,
+			valid:          true,
 			verifyFileRead: true,
 		},
 		{
-			name:  "only image",
-			image: "global/images/ubuntu-1604",
-			valid: true,
+			name:           "only image",
+			image:          "global/images/ubuntu-1604",
+			valid:          true,
 			verifyFileRead: false,
 		},
 	}
