@@ -35,7 +35,7 @@ func TestEmptyFilesAreRejected(t *testing.T) {
 
 	fileContent := ""
 
-	factory := NewSourceFactory(createMockStorageClient(t, source, fileContent))
+	factory := NewSourceFactory(createMockStorageClient(t, source, fileContent, true))
 	_, err := factory.Init(source.Path(), "")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot import an image from an empty file")
@@ -50,7 +50,7 @@ func TestGzipCompressedFilesAreRejected(t *testing.T) {
 
 	fileContent := test.CreateCompressedFile()
 
-	factory := NewSourceFactory(createMockStorageClient(t, source, fileContent))
+	factory := NewSourceFactory(createMockStorageClient(t, source, fileContent, true))
 	_, err := factory.Init(source.Path(), "")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "the input file is a gzip file, which is not supported")
@@ -65,7 +65,7 @@ func TestUncompressedFilesAreAllowed(t *testing.T) {
 
 	fileContent := "fileContent"
 
-	factory := NewSourceFactory(createMockStorageClient(t, source, fileContent))
+	factory := NewSourceFactory(createMockStorageClient(t, source, fileContent, true))
 	result, err := factory.Init(source.Path(), "")
 	assert.NoError(t, err)
 	assert.Equal(t, result, source)
@@ -85,6 +85,7 @@ func TestEnsureEitherFileOrImageIsPresent(t *testing.T) {
 		file  fileSource
 		image string
 		valid bool
+		verifyFileRead bool
 	}{
 		{
 			name: "both",
@@ -95,10 +96,12 @@ func TestEnsureEitherFileOrImageIsPresent(t *testing.T) {
 			},
 			image: "global/images/ubuntu-1604",
 			valid: false,
+			verifyFileRead: false,
 		},
 		{
 			name:  "neither",
 			valid: false,
+			verifyFileRead: false,
 		},
 		{
 			name: "only file",
@@ -108,17 +111,19 @@ func TestEnsureEitherFileOrImageIsPresent(t *testing.T) {
 				object:  "global/images/ubuntu-1604",
 			},
 			valid: true,
+			verifyFileRead: true,
 		},
 		{
 			name:  "only image",
 			image: "global/images/ubuntu-1604",
 			valid: true,
+			verifyFileRead: false,
 		},
 	}
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			factory := NewSourceFactory(createMockStorageClient(t, tt.file, "file-content"))
+			factory := NewSourceFactory(createMockStorageClient(t, tt.file, "file-content", tt.verifyFileRead))
 			_, err := factory.Init(tt.file.Path(), tt.image)
 			if tt.valid {
 				assert.NoError(t, err)
@@ -171,11 +176,13 @@ func TestImagePathIsValidated(t *testing.T) {
 	}
 }
 
-func createMockStorageClient(t *testing.T, filePath fileSource, fileContent string) *mocks.MockStorageClientInterface {
+func createMockStorageClient(t *testing.T, filePath fileSource, fileContent string, testExpectations bool) *mocks.MockStorageClientInterface {
 	mockCtrl := gomock.NewController(t)
 	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
-	mockStorageObject.EXPECT().NewReader().Return(ioutil.NopCloser(strings.NewReader(fileContent)), nil)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().GetObject(filePath.bucket, filePath.object).Return(mockStorageObject)
+	if testExpectations {
+		mockStorageObject.EXPECT().NewReader().Return(ioutil.NopCloser(strings.NewReader(fileContent)), nil)
+		mockStorageClient.EXPECT().GetObject(filePath.bucket, filePath.object).Return(mockStorageObject)
+	}
 	return mockStorageClient
 }
