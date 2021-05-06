@@ -219,14 +219,13 @@ func shouldRetryWithWait(tripper http.RoundTripper, err error, multiplier int) b
 		}
 	}
 
-
 	apiErr, ok := err.(*googleapi.Error)
 	var retry bool
 	switch {
 	case !ok && (strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "unexpected EOF")):
 		retry = true
 	case !ok && (strings.Contains(err.Error(), "server sent GOAWAY") || strings.Contains(err.Error(), "ENHANCE_YOUR_CALM")):
-		// The wait operation can return GOAWAY/ENHANCE_YOUR_CALM messages,
+		// The wait operation can return GOAWAY/ENHANCE_YOUR_CALM messages, so doubling the wait multiplier as it based on the retry count.
 		multiplier = multiplier * 2
 		retry = true
 	case !ok && tkValid:
