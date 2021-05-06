@@ -222,7 +222,7 @@ func shouldRetryWithWait(tripper http.RoundTripper, err error, multiplier int) b
 	apiErr, ok := err.(*googleapi.Error)
 	var retry bool
 	switch {
-	case !ok && (strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "unexpected EOF")):
+	case !ok && (strings.Contains(err.Error(), "connection reset by peer") || strings.Contains(err.Error(), "unexpected EOF")) || strings.Contains(err.Error(), "server sent GOAWAY"):
 		retry = true
 	case !ok && tkValid:
 		// Not a googleapi.Error and the token is still valid.
@@ -346,7 +346,7 @@ func (c *client) operationsWaitHelper(project, name string, getOperation operati
 
 		switch op.Status {
 		case "PENDING", "RUNNING":
-			time.Sleep(1 * time.Second)
+			time.Sleep(5 * time.Second)
 			continue
 		case "DONE":
 			if op.Error != nil {
