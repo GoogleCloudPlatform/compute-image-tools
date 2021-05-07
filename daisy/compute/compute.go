@@ -308,7 +308,7 @@ type operationGetterFunc func() (*compute.Operation, error)
 
 func (c *client) zoneOperationsWait(project, zone, name string) error {
 	return c.operationsWaitHelper(project, name, func() (op *compute.Operation, err error) {
-		op, err = c.Retry(c.raw.ZoneOperations.Wait(project, zone, name).Do)
+		op, err = c.RetryAttempts(40, c.raw.ZoneOperations.Wait(project, zone, name).Do)
 		if err != nil {
 			err = fmt.Errorf("failed to get zone operation %s: %v", name, err)
 		}
@@ -318,7 +318,7 @@ func (c *client) zoneOperationsWait(project, zone, name string) error {
 
 func (c *client) regionOperationsWait(project, region, name string) error {
 	return c.operationsWaitHelper(project, name, func() (op *compute.Operation, err error) {
-		op, err = c.Retry(c.raw.RegionOperations.Wait(project, region, name).Do)
+		op, err = c.RetryAttempts(40, c.raw.RegionOperations.Wait(project, region, name).Do)
 		if err != nil {
 			err = fmt.Errorf("failed to get region operation %s: %v", name, err)
 		}
@@ -328,7 +328,7 @@ func (c *client) regionOperationsWait(project, region, name string) error {
 
 func (c *client) globalOperationsWait(project, name string) error {
 	return c.operationsWaitHelper(project, name, func() (op *compute.Operation, err error) {
-		op, err = c.Retry(c.raw.GlobalOperations.Wait(project, name).Do)
+		op, err = c.RetryAttempts(40, c.raw.GlobalOperations.Wait(project, name).Do)
 		if err != nil {
 			err = fmt.Errorf("failed to get global operation %s: %v", name, err)
 		}
@@ -406,6 +406,54 @@ func (c *client) RetryBeta(f func(opts ...googleapi.CallOption) (*computeBeta.Op
 // oauth Token is no longer valid.
 func (c *client) RetryAlpha(f func(opts ...googleapi.CallOption) (*computeAlpha.Operation, error), opts ...googleapi.CallOption) (op *computeAlpha.Operation, err error) {
 	for i := 1; i < 4; i++ {
+		op, err = f(opts...)
+		if err == nil {
+			return op, nil
+		}
+		if !shouldRetryWithWait(c.hc.Transport, err, i) {
+			return nil, err
+		}
+	}
+	return
+}
+
+// RetryAttempts invokes the given function, retrying the specified number times if the HTTP
+// status response indicates the request should be attempted again or the
+// oauth Token is no longer valid.
+func (c *client) RetryAttempts(attempts int, f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error) {
+	for i := 1; i < attempts; i++ {
+		op, err = f(opts...)
+		if err == nil {
+			return op, nil
+		}
+		if !shouldRetryWithWait(c.hc.Transport, err, i) {
+			return nil, err
+		}
+	}
+	return
+}
+
+// RetryAttemptsBeta invokes the given function, retrying the specified number times if the HTTP
+// status response indicates the request should be attempted again or the
+// oauth Token is no longer valid.
+func (c *client) RetryAttemptsBeta(attempts int, f func(opts ...googleapi.CallOption) (*computeBeta.Operation, error), opts ...googleapi.CallOption) (op *computeBeta.Operation, err error) {
+	for i := 1; i < attempts; i++ {
+		op, err = f(opts...)
+		if err == nil {
+			return op, nil
+		}
+		if !shouldRetryWithWait(c.hc.Transport, err, i) {
+			return nil, err
+		}
+	}
+	return
+}
+
+// RetryAttemptsAlpha invokes the given function, retrying the specified number times if the HTTP
+// status response indicates the request should be attempted again or the
+// oauth Token is no longer valid.
+func (c *client) RetryAttemptsAlpha(attempts int, f func(opts ...googleapi.CallOption) (*computeAlpha.Operation, error), opts ...googleapi.CallOption) (op *computeAlpha.Operation, err error) {
+	for i := 1; i < attempts; i++ {
 		op, err = f(opts...)
 		if err == nil {
 			return op, nil
