@@ -1,6 +1,6 @@
 ## Compute Engine VM Image Export
 
-The `gce_vm_image_export` tool exports a VM image to Google Cloud Storage.
+The `gce_vm_image_export` tool exports a VM image, or a disk snapshot to Google Cloud Storage.
 It uses Daisy to perform exports while adding additional logic to perform
 export setup and clean-up, such as validating flags.
 
@@ -20,10 +20,15 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image
   `pantheon`.
 + `-destination_uri=DESTINATION_URI` The Google Cloud Storage URI destination for the exported
   virtual disk file. For example: gs://my-bucket/my-exported-image.vmdk.
-+ `-source_image=SOURCE_IMAGE` An existing Compute Engine image URI from which to 
+
+Exactly one of these must be specified:
++ `-source_image=SOURCE_IMAGE` An existing Compute Engine image URI from which to
+  export.
++ `-source_disk_snapshot=SOURCE_DISK_SNAPSHOT` An existing Compute Engine disk snapshot URI from which to
   export.
 
-#### Optional flags  
+
+#### Optional flags
 + `-format=FORMAT` Specify the format to export to, such as vmdk, vhdx, vpc, or qcow2.
 + `-project=PROJECT` Project to run in, overrides what is set in workflow.
 + `-network=NETWORK` Name of the network in your project to use for the image import. The network 
@@ -54,7 +59,8 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image
 
 ```
 gce_vm_image_export -client_id=CLIENT_ID -destination_uri=DESTINATION_URI
-        -source_image=SOURCE_IMAGE [-format=FORMAT] [-project=PROJECT] [-network=NETWORK]
+        (-source_image=SOURCE_IMAGE | -source_disk_snapshot=SOURCE_DISK_SNAPSHOT)
+        [-format=FORMAT] [-project=PROJECT] [-network=NETWORK]
         [-subnet=SUBNET] [-zone=ZONE] [-timeout=TIMEOUT] [-scratch_bucket_gcs_path=PATH]
         [-oauth=OAUTH_PATH] [-compute_endpoint_override=ENDPOINT] [-disable_gcs_logging]
         [-disable_cloud_logging] [-disable_stdout_logging] [-labels=KEY=VALUE,...]

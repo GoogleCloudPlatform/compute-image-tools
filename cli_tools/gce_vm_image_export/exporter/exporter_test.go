@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	clientID, destinationURI, sourceImage, format, network, subnet, labels string
+	clientID, destinationURI, sourceImage, sourceDiskSnapshot, format, network, subnet, labels string
 )
 
 func TestGetWorkflowPathWithoutFormatConversion(t *testing.T) {
@@ -43,10 +43,18 @@ func TestGetWorkflowPathWithFormatConversion(t *testing.T) {
 	}
 }
 
-func TestFlagsSouceImageNotProvided(t *testing.T) {
+func TestFlagsBothSourceImageAndSourceSnapshotNotProvided(t *testing.T) {
 	resetArgs()
 	sourceImage = ""
-	assertErrorOnValidate("Expected error for missing source_image flag", t)
+	sourceDiskSnapshot = ""
+	assertErrorOnValidate("Expected error for missing one of source_image and source_disk_snapshot flag", t)
+}
+
+func TestFlagsBothSourceImageAndSourceSnapshotProvided(t *testing.T) {
+	resetArgs()
+	sourceImage = "anImage"
+	sourceDiskSnapshot = "aSnapshot"
+	assertErrorOnValidate("Expected error for both source_image and source_disk_snapshot flags provided", t)
 }
 
 func TestFlagsClientIdNotProvided(t *testing.T) {
@@ -62,7 +70,7 @@ func TestFlagsDestinationUriNotProvided(t *testing.T) {
 }
 
 func assertErrorOnValidate(errorMsg string, t *testing.T) {
-	if _, err := validateAndParseFlags(clientID, destinationURI, sourceImage, labels); err == nil {
+	if _, err := validateAndParseFlags(clientID, destinationURI, sourceImage, sourceDiskSnapshot, labels); err == nil {
 		t.Error(errorMsg)
 	}
 }
@@ -73,6 +81,7 @@ func TestBuildDaisyVarsWithoutFormatConversion(t *testing.T) {
 	got := buildDaisyVars(
 		ws+destinationURI+ws,
 		ws+sourceImage+ws,
+		ws+sourceDiskSnapshot+ws,
 		ws+format+ws,
 		ws+network+ws,
 		ws+subnet+ws,
@@ -92,6 +101,7 @@ func TestBuildDaisyVarsWithFormatConversion(t *testing.T) {
 	got := buildDaisyVars(
 		ws+destinationURI+ws,
 		ws+sourceImage+ws,
+		ws+sourceDiskSnapshot+ws,
 		ws+"vmdk"+ws,
 		ws+network+ws,
 		ws+subnet+ws,
@@ -112,6 +122,7 @@ func TestBuildDaisyVarsWithSimpleImageName(t *testing.T) {
 	got := buildDaisyVars(
 		ws+destinationURI+ws,
 		ws+"anImage"+ws,
+		ws+""+ws,
 		ws+format+ws,
 		ws+network+ws,
 		ws+subnet+ws,
@@ -121,11 +132,27 @@ func TestBuildDaisyVarsWithSimpleImageName(t *testing.T) {
 	assert.Equal(t, "global/images/anImage", got["source_image"])
 }
 
+func TestBuildDaisyVarsWithSimpleSnapshotName(t *testing.T) {
+	resetArgs()
+	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000"
+	got := buildDaisyVars(
+		ws+destinationURI+ws,
+		ws+""+ws,
+		ws+"aSnapshot"+ws,
+		ws+format+ws,
+		ws+network+ws,
+		ws+subnet+ws,
+		ws+"aRegion"+ws,
+		"")
+
+	assert.Equal(t, "global/snapshots/aSnapshot", got["source_disk_snapshot"])
+}
+
 func TestBuildDaisyVarsWithComputeServiceAccount(t *testing.T) {
 	resetArgs()
 	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000"
 	got := buildDaisyVars(
-		"", "", "", "", "", "",
+		"", "", "", "", "", "", "",
 		ws+"account1"+ws)
 
 	assert.Equal(t, "account1", got["compute_service_account"])
@@ -135,7 +162,7 @@ func TestBuildDaisyVarsWithoutComputeServiceAccount(t *testing.T) {
 	resetArgs()
 	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000"
 	got := buildDaisyVars(
-		"", "", "", "", "", "",
+		"", "", "", "", "", "", "",
 		ws)
 
 	_, hasVar := got["compute_service_account"]
@@ -146,6 +173,7 @@ func resetArgs() {
 	clientID = "aClient"
 	destinationURI = "gs://bucket/exported_image"
 	sourceImage = "global/images/anImage"
+	sourceDiskSnapshot = ""
 	format = ""
 	network = "aNetwork"
 	subnet = "aSubnet"

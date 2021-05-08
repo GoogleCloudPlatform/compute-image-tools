@@ -42,16 +42,17 @@ var (
 
 // Parameter key shared with external packages
 const (
-	ClientIDFlagKey       = "client_id"
-	DestinationURIFlagKey = "destination_uri"
-	SourceImageFlagKey    = "source_image"
+	ClientIDFlagKey           = "client_id"
+	DestinationURIFlagKey     = "destination_uri"
+	SourceImageFlagKey        = "source_image"
+	SourceDiskSnapshotFlagKey = "source_disk_snapshot"
 )
 
 const (
 	logPrefix = "[image-export]"
 )
 
-func validateAndParseFlags(clientID string, destinationURI string, sourceImage string, labels string) (
+func validateAndParseFlags(clientID string, destinationURI string, sourceImage string, sourceDiskSnapshot string, labels string) (
 	map[string]string, error) {
 
 	if err := validation.ValidateStringFlagNotEmpty(clientID, ClientIDFlagKey); err != nil {
@@ -60,7 +61,10 @@ func validateAndParseFlags(clientID string, destinationURI string, sourceImage s
 	if err := validation.ValidateStringFlagNotEmpty(destinationURI, DestinationURIFlagKey); err != nil {
 		return nil, err
 	}
-	if err := validation.ValidateStringFlagNotEmpty(sourceImage, SourceImageFlagKey); err != nil {
+	if err := validation.ValidateExactlyOneOfStringFlagNotEmpty(map[string]string{
+		SourceImageFlagKey:        sourceImage,
+		SourceDiskSnapshotFlagKey: sourceDiskSnapshot,
+	}); err != nil {
 		return nil, err
 	}
 
@@ -82,11 +86,12 @@ func getWorkflowPath(format string, currentExecutablePath string) string {
 	return path.ToWorkingDir(WorkflowDir+ExportAndConvertWorkflow, currentExecutablePath)
 }
 
-func buildDaisyVars(destinationURI string, sourceImage string, format string, network string,
+func buildDaisyVars(destinationURI string, sourceImage string, sourceDiskSnapshot string, format string, network string,
 	subnet string, region string, computeServiceAccount string) map[string]string {
 
 	destinationURI = strings.TrimSpace(destinationURI)
 	sourceImage = strings.TrimSpace(sourceImage)
+	sourceDiskSnapshot = strings.TrimSpace(sourceDiskSnapshot)
 	format = strings.TrimSpace(format)
 	network = strings.TrimSpace(network)
 	subnet = strings.TrimSpace(subnet)
@@ -97,8 +102,15 @@ func buildDaisyVars(destinationURI string, sourceImage string, format string, ne
 
 	varMap["destination"] = destinationURI
 
-	varMap["source_image"] = param.GetGlobalResourcePath(
-		"images", sourceImage)
+	if sourceImage != "" {
+		varMap["source_image"] = param.GetGlobalResourcePath(
+			"images", sourceImage)
+	}
+
+	if sourceDiskSnapshot != "" {
+		varMap["source_disk_snapshot"] = param.GetGlobalResourcePath(
+			"snapshots", sourceDiskSnapshot)
+	}
 
 	if format != "" {
 		varMap["format"] = format
@@ -159,14 +171,14 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 }
 
 // Run runs export workflow.
-func Run(clientID string, destinationURI string, sourceImage string, format string,
+func Run(clientID string, destinationURI string, sourceImage string, sourceDiskSnapshot string, format string,
 	project *string, network string, subnet string, zone string, timeout string,
 	scratchBucketGcsPath string, oauth string, ce string, computeServiceAccount string, gcsLogsDisabled bool,
 	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, currentExecutablePath string) (*daisy.Workflow, error) {
 
 	log.SetPrefix(logPrefix + " ")
 
-	userLabels, err := validateAndParseFlags(clientID, destinationURI, sourceImage, labels)
+	userLabels, err := validateAndParseFlags(clientID, destinationURI, sourceImage, sourceDiskSnapshot, labels)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +206,7 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 		return nil, err
 	}
 
-	varMap := buildDaisyVars(destinationURI, sourceImage, format, network, subnet, *region, computeServiceAccount)
+	varMap := buildDaisyVars(destinationURI, sourceImage, sourceDiskSnapshot, format, network, subnet, *region, computeServiceAccount)
 
 	var w *daisy.Workflow
 	if w, err = runExportWorkflow(ctx, getWorkflowPath(format, currentExecutablePath), varMap, *project,
