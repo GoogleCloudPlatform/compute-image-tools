@@ -16,7 +16,7 @@ apt-get -y install \
   libaio-dev libevent-dev libmemcached-dev python-dev python-eventlet \
   python-pip sendip strongswan tcpflow traceroute zlib1g-dev dnsutils \
   default-jdk websockify iperf iperf3 pciutils mdadm libaio1 bind9 netcat \
-  telnet mz socat sg3-utils
+  nmap telnet mz socat sg3-utils
 
 if [[ $? -ne 0 ]]; then
   echo "BuildFailed: Package install failed."
