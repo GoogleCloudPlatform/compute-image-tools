@@ -146,13 +146,8 @@ function Configure-Network {
   # Register netkvmco.dll.
   Run-Command rundll32 'netkvmco.dll,RegisterNetKVMNetShHelper'
 
-  # Remove ReadOnly file attribute from host_file, if present.
-  if ((Get-ItemProperty -Path $script:hosts_file).attributes -like '*ReadOnly*') {
-    Set-ItemProperty -Path $Script:hosts_file -Name attributes -Value ((Get-ItemProperty -Path $script:hosts_file).attributes -BXOR [io.fileattributes]::ReadOnly)
-  }
-
-  # Make sure metadata server is in etc/hosts file.
-  Add-Content $script:hosts_file @'
+  # Make sure metadata server is in etc/hosts file, -Force in case the host file is read-only.
+  Add-Content -Force -Path $script:hosts_file -value @'
 
 # Google Compute Engine metadata server
     169.254.169.254    metadata.google.internal metadata
