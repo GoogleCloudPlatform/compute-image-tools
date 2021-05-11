@@ -3,8 +3,10 @@
   "DefaultTimeout": "90m",
   "Vars": {
     "source_image": {
-      "Required": true,
       "Description": "URL of the image to export"
+    },
+    "source_disk_snapshot": {
+      "Description": "URL of the disk snapshot to export"
     },
     "destination": {
       "Required": true,
@@ -45,6 +47,7 @@
         {
           "Name": "disk-${NAME}",
           "SourceImage": "${source_image}",
+          "SourceSnapshot": "${source_disk_snapshot}",
           "Type": "${export_instance_disk_type}",
           "FallbackToPdStandard": true
         }

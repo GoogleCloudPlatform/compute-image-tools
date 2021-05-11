@@ -15,12 +15,40 @@
 package validation
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
+
+func TestValidateOneOfStringFlagNotEmpty(t *testing.T) {
+	if err := ValidateExactlyOneOfStringFlagNotEmpty(map[string]string{
+		"source_image":         "anImage",
+		"source_disk_snapshot": "",
+	}); err != nil {
+		t.Errorf("error should be nil, but got %v", err)
+	}
+	if err := ValidateExactlyOneOfStringFlagNotEmpty(map[string]string{
+		"source_image":         "",
+		"source_disk_snapshot": "aSnapshot",
+	}); err != nil {
+		t.Errorf("error should be nil, but got %v", err)
+	}
+	if err := ValidateExactlyOneOfStringFlagNotEmpty(map[string]string{
+		"source_image":         "",
+		"source_disk_snapshot": "",
+	}); err == nil || !strings.HasPrefix(err.Error(), "Exactly one of") {
+		t.Errorf("error should be 'Exactly one of ...', but got %v", err)
+	}
+	if err := ValidateExactlyOneOfStringFlagNotEmpty(map[string]string{
+		"source_image":         "anImage",
+		"source_disk_snapshot": "aSnapshot",
+	}); err == nil || !strings.HasPrefix(err.Error(), "Exactly one of") {
+		t.Errorf("error should be 'Exactly one of ...', but got %v", err)
+	}
+}
 
 func TestValidateFqdnValidValue(t *testing.T) {
 	err := ValidateFqdn("host.domain", "hostname")
