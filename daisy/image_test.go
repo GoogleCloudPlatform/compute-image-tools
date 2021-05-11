@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"testing"
 
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
@@ -237,6 +238,103 @@ func TestImageBetaPopulate(t *testing.T) {
 		}
 	}
 }
+
+func TestImageAlphaPopulate(t *testing.T) {
+	ctx := context.Background()
+	w := testWorkflow()
+	w.Sources = map[string]string{"d": "d"}
+	s, _ := w.NewStep("s")
+
+	gcsAPIPath, _ := getGCSAPIPath("gs://bucket/d")
+	tests := []struct {
+		desc        string
+		input, want *ImageAlpha
+		wantErr     bool
+	}{
+		{
+			"SourceDisk case",
+			&ImageAlpha{Image: computeAlpha.Image{SourceDisk: "d"}},
+			&ImageAlpha{Image: computeAlpha.Image{SourceDisk: "d"}},
+			false,
+		},
+		{
+			"SourceDisk URL case",
+			&ImageAlpha{Image: computeAlpha.Image{SourceDisk: "projects/p/zones/z/disks/d"}},
+			&ImageAlpha{Image: computeAlpha.Image{SourceDisk: "projects/p/zones/z/disks/d"}},
+			false,
+		},
+		{
+			"extend SourceDisk URL case",
+			&ImageAlpha{ImageBase: ImageBase{Resource: Resource{Project: "p"}}, Image: computeAlpha.Image{SourceDisk: "zones/z/disks/d"}},
+			&ImageAlpha{Image: computeAlpha.Image{SourceDisk: "projects/p/zones/z/disks/d"}},
+			false,
+		},
+		{
+			"SourceImage case",
+			&ImageAlpha{Image: computeAlpha.Image{SourceImage: "i"}},
+			&ImageAlpha{Image: computeAlpha.Image{SourceImage: "i"}},
+			false,
+		},
+		{
+			"SourceImage URL case",
+			&ImageAlpha{Image: computeAlpha.Image{SourceImage: "projects/p/global/images/i"}},
+			&ImageAlpha{Image: computeAlpha.Image{SourceImage: "projects/p/global/images/i"}},
+			false,
+		},
+		{
+			"extend SourceImage URL case",
+			&ImageAlpha{ImageBase: ImageBase{Resource: Resource{Project: "p"}}, Image: computeAlpha.Image{SourceImage: "global/images/i"}},
+			&ImageAlpha{Image: computeAlpha.Image{SourceImage: "projects/p/global/images/i"}},
+			false,
+		},
+		{
+			"RawDisk.Source from Sources case",
+			&ImageAlpha{Image: computeAlpha.Image{RawDisk: &computeAlpha.ImageRawDisk{Source: "d"}}},
+			&ImageAlpha{Image: computeAlpha.Image{RawDisk: &computeAlpha.ImageRawDisk{Source: w.getSourceGCSAPIPath("d")}}},
+			false,
+		},
+		{
+			"RawDisk.Source GCS URL case",
+			&ImageAlpha{Image: computeAlpha.Image{RawDisk: &computeAlpha.ImageRawDisk{Source: "gs://bucket/d"}}},
+			&ImageAlpha{Image: computeAlpha.Image{RawDisk: &computeAlpha.ImageRawDisk{Source: gcsAPIPath}}},
+			false,
+		},
+		{
+			"GuestOsFeatures",
+			&ImageAlpha{Image: computeAlpha.Image{SourceImage: "i"}, ImageBase: ImageBase{}, GuestOsFeatures: guestOsFeatures{"foo", "bar"}},
+			&ImageAlpha{Image: computeAlpha.Image{SourceImage: "i", GuestOsFeatures: []*computeAlpha.GuestOsFeature{{Type: "foo"}, {Type: "bar"}}}, ImageBase: ImageBase{}, GuestOsFeatures: guestOsFeatures{"foo", "bar"}},
+			false,
+		},
+		{
+			"Bad RawDisk.Source case",
+			&ImageAlpha{ImageBase: ImageBase{Resource: Resource{}}, Image: computeAlpha.Image{RawDisk: &computeAlpha.ImageRawDisk{Source: "blah"}}},
+			nil,
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		err := (&tt.input.ImageBase).populate(ctx, tt.input, s)
+
+		// Test sanitation -- clean/set irrelevant fields.
+		if tt.want != nil {
+			tt.want.Name = tt.input.RealName
+			tt.want.Description = tt.input.Description
+		}
+		tt.input.Resource = Resource{} // These fields are tested in resource_test.
+
+		if tt.wantErr {
+			if err == nil {
+				t.Errorf("%s: should have returned an error but didn't", tt.desc)
+			}
+		} else if err != nil {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		} else if diffRes := diff(tt.input, tt.want, 0); diffRes != "" {
+			t.Errorf("%s: populated Image does not match expectation: (-got,+want)\n%s", tt.desc, diffRes)
+		}
+	}
+}
+
 func TestImageValidate(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
