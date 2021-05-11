@@ -146,8 +146,8 @@ function Configure-Network {
   # Register netkvmco.dll.
   Run-Command rundll32 'netkvmco.dll,RegisterNetKVMNetShHelper'
 
-  # Make sure metadata server is in etc/hosts file.
-  Add-Content $script:hosts_file @'
+  # Make sure metadata server is in etc/hosts file, -Force in case the host file is read-only.
+  Add-Content -Force -Path $script:hosts_file -value @'
 
 # Google Compute Engine metadata server
     169.254.169.254    metadata.google.internal metadata
