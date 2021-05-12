@@ -206,8 +206,43 @@ function check_package_install {
   fi
 }
 
+# Check that the root account and all non-system accounts have their password locked.
+# The locking doesn't occur during translation, but is rather an invariant we want
+# to enforce in the test images.
+#
+# If there's a test failure, perform the following steps:
+#  1. Export the image using gcloud:
+#      gcloud compute images export \
+#         --destination-uri=gs://bucket/image.qcow2 \
+#         --image=image-name \
+#         --export-format=qcow2
+#  2. Download the image from GCS.
+#  3  Reset the root password:
+#       virt-customize -a image.qcow2 --root-password password:a-temp-password
+#  4. Launch the VM:
+#       qemu-system-x86_64 -enable-kvm -m 4G -hda centos-6-4
+#  5. Login to root using the password from (3)
+#  6. Lock the password:
+#       passwd -l root
+#  7. Shutdown the VM, then launch again to verify that
+#     you cannot login to root using the temporary password.
+#  8. Re-import the image as a data disk.
+function check_passwords_locked {
+  for user in root $(awk -F: '($1 != "nobody") && ($3 >= 1000){print $1}' /etc/passwd); do
+    passwd -S "$user"
+    if passwd -S "$user" | grep -qP "$user LK?"; then
+      status "<$user> password locked"
+    else
+      fail "<$user> password not locked"
+    fi
+  done
+}
+
 # Ensure there's network connectivity before running the tests.
 wait_for_connectivity
+
+# Ensure test images were created with locked passwords.
+check_passwords_locked
 
 # Run tests.
 check_google_services
