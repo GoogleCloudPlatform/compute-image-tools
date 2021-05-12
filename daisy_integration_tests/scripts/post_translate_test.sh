@@ -220,7 +220,7 @@ function check_package_install {
 #  3  Reset the root password:
 #       virt-customize -a image.qcow2 --root-password password:a-temp-password
 #  4. Launch the VM:
-#       qemu-system-x86_64 -enable-kvm -m 4G -hda centos-6-4
+#       qemu-system-x86_64 -enable-kvm -m 4G -hda image.qcow2
 #  5. Login to root using the password from (3)
 #  6. Lock the password:
 #       passwd -l root
