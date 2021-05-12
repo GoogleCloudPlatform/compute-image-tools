@@ -364,6 +364,35 @@ def RunTest(test_func):
     traceback.print_exc()
 
 
+def DownloadFile(gcs_source_file, dest_file):
+  """Downloads a file from GCS.
+
+  Expects a source file in GCS and a local destination path.
+
+  Args:
+    gcs_source_file: string, the path of a source file to download.
+        ex: gs://path/to/orig_file.tar.gz
+    dest_file: string, the path to the resulting file.
+        ex: /path/to/new/file.tar.gz
+  """
+  # import 'google.cloud.storage' locally as 'google-cloud-storage' pip package
+  # is not a mandatory package for all utils users
+  from google.cloud import storage
+
+  bucket = r'(?P<bucket>[a-z0-9][-_.a-z0-9]*[a-z0-9])'
+  obj = r'(?P<obj>[^\*\?]+)'
+  prefix = r'gs://'
+  gs_regex = re.compile(r'{prefix}{bucket}/{obj}'.format(prefix=prefix,
+                                                         bucket=bucket,
+                                                         obj=obj))
+  match = gs_regex.match(gcs_source_file)
+
+  client = storage.Client()
+  bucket = client.get_bucket(match.group('bucket'))
+  blob = bucket.blob(match.group('obj'))
+  blob.download_to_filename(dest_file)
+
+
 def UploadFile(source_file, gcs_dest_file):
   """Uploads a file to GCS.
 
