@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"sync"
 
-	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -32,8 +31,6 @@ type DeprecateImage struct {
 	Image string
 	// DeprecationStatus to set for image.
 	DeprecationStatus compute.DeprecationStatus
-	// DeprecationStatus to set for image.
-	DeprecationStatusAlpha computeAlpha.DeprecationStatus
 	// Project image is in, overrides workflow Project.
 	Project string `json:",omitempty"`
 }
@@ -54,11 +51,7 @@ func (d *DeprecateImages) validate(ctx context.Context, s *Step) DError {
 			return Errf("cannot deprecate image %q: project does not exist: %q", di.Image, di.Project)
 		}
 
-		// Verify State is one of the deprecated states.
-		// The Alpha check also requires the value to not be emptry string as in that case the GA API will be used.
-		if di.DeprecationStatusAlpha.State != "" && strIn(di.DeprecationStatusAlpha.State, deprecationStates) {
-			return Errf("DeprecationStatusAlpha.State of %q not in %q", di.DeprecationStatusAlpha.State, deprecationStates)
-		} else if !strIn(di.DeprecationStatus.State, deprecationStates) {
+		if !strIn(di.DeprecationStatus.State, deprecationStates) {
 			return Errf("DeprecationStatus.State of %q not in %q", di.DeprecationStatus.State, deprecationStates)
 		}
 
@@ -83,15 +76,9 @@ func (d *DeprecateImages) run(ctx context.Context, s *Step) DError {
 		wg.Add(1)
 		go func(di *DeprecateImage) {
 			defer wg.Done()
-			var err error
-			if di.DeprecationStatusAlpha.State != "" {
-				w.LogStepInfo(s.name, "DeprecateImages", "%q --> %q with DefaultRolloutTime %s.", di.Image, di.DeprecationStatusAlpha.State, di.DeprecationStatusAlpha.StateOverride.DefaultRolloutTime)
-				err = w.ComputeClient.DeprecateImageAlpha(di.Project, di.Image, &di.DeprecationStatusAlpha)
-			} else {
-				w.LogStepInfo(s.name, "DeprecateImages", "%q --> %q.", di.Image, di.DeprecationStatus.State)
-				err = w.ComputeClient.DeprecateImage(di.Project, di.Image, &di.DeprecationStatus)
-			}
-			if err != nil {
+
+			w.LogStepInfo(s.name, "DeprecateImages", "%q --> %q.", di.Image, di.DeprecationStatus.State)
+			if err := w.ComputeClient.DeprecateImage(di.Project, di.Image, &di.DeprecationStatus); err != nil {
 				e <- newErr("failed to deprecate images", err)
 			}
 		}(di)
