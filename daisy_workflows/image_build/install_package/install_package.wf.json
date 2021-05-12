@@ -44,7 +44,7 @@
         {
           "Name": "inst-worker",
           "Disks": [{"Source": "disk-worker"},{"Source": "source-disk"}],
-          "MachineType": "n1-highcpu-4",
+          "MachineType": "e2-medium",
           "Metadata": {
             "files_gcs_dir": "${SOURCESPATH}/work",
             "prefix": "InstallPackage",

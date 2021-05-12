@@ -24,7 +24,7 @@ def get_mount_disk(image):
   # 2. partition 2 is the root mount for the installed system.
   #
   # Except on debian 10, which has out-of-order partitions.
-  if gpt and 'debian-10' not in image:
+  if gpt and 'debian-10' not in image and 'debian-11' not in image:
     return f'{devicepath}-part2'
   else:
     return f'{devicepath}-part1'
