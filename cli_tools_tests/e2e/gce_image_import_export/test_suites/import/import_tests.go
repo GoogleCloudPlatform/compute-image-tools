@@ -206,6 +206,12 @@ var basicCases = []*testCase{
 		osConfigNotSupported: true,
 		tip:                  slesOnDemandTip,
 	}, {
+		caseName:             "sles-15-0-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-15-0-unregistered",
+		os:                   "sles-15",
+		osConfigNotSupported: true,
+		tip:                  slesOnDemandTip,
+	}, {
 		caseName:             "sles-15-1-on-demand",
 		source:               "projects/compute-image-tools-test/global/images/sles-15-1-unregistered",
 		os:                   "sles-15",
@@ -215,6 +221,12 @@ var basicCases = []*testCase{
 		caseName:             "sles-15-2-on-demand",
 		source:               "projects/compute-image-tools-test/global/images/sles-15-2-unregistered",
 		os:                   "sles-15",
+		osConfigNotSupported: true,
+		tip:                  slesOnDemandTip,
+	}, {
+		caseName:             "sles-sap-15-0-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-sap-15-0-unregistered",
+		os:                   "sles-sap-15",
 		osConfigNotSupported: true,
 		tip:                  slesOnDemandTip,
 	}, {
