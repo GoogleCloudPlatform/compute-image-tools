@@ -122,6 +122,16 @@ _releases = [
     ),
     _SuseRelease(
         product='sles',
+        major='15',
+        minor='0',
+        cloud_product='sle-module-public-cloud/{major}/x86_64',
+        on_demand_rpms=_Tarball(
+            _on_demand_rpm_pattern.format(major=15, timestamp=1599058662),
+            '156e43507d4c74c532b2f03286f47a2b609d32521be3e96dbc8fbad0b2976231'
+        )
+    ),
+    _SuseRelease(
+        product='sles',
         major='12',
         minor='4|5',
         cloud_product='sle-module-public-cloud/{major}/x86_64',
