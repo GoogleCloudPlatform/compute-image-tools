@@ -19,35 +19,36 @@
 package mocks
 
 import (
+	reflect "reflect"
+
 	domain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
-// MockStorageObjectCreatorInterface is a mock of StorageObjectCreatorInterface interface
+// MockStorageObjectCreatorInterface is a mock of StorageObjectCreatorInterface interface.
 type MockStorageObjectCreatorInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockStorageObjectCreatorInterfaceMockRecorder
 }
 
-// MockStorageObjectCreatorInterfaceMockRecorder is the mock recorder for MockStorageObjectCreatorInterface
+// MockStorageObjectCreatorInterfaceMockRecorder is the mock recorder for MockStorageObjectCreatorInterface.
 type MockStorageObjectCreatorInterfaceMockRecorder struct {
 	mock *MockStorageObjectCreatorInterface
 }
 
-// NewMockStorageObjectCreatorInterface creates a new mock instance
+// NewMockStorageObjectCreatorInterface creates a new mock instance.
 func NewMockStorageObjectCreatorInterface(ctrl *gomock.Controller) *MockStorageObjectCreatorInterface {
 	mock := &MockStorageObjectCreatorInterface{ctrl: ctrl}
 	mock.recorder = &MockStorageObjectCreatorInterfaceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockStorageObjectCreatorInterface) EXPECT() *MockStorageObjectCreatorInterfaceMockRecorder {
 	return m.recorder
 }
 
-// GetObject mocks base method
+// GetObject mocks base method.
 func (m *MockStorageObjectCreatorInterface) GetObject(arg0, arg1 string) domain.StorageObject {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetObject", arg0, arg1)
@@ -55,7 +56,7 @@ func (m *MockStorageObjectCreatorInterface) GetObject(arg0, arg1 string) domain.
 	return ret0
 }
 
-// GetObject indicates an expected call of GetObject
+// GetObject indicates an expected call of GetObject.
 func (mr *MockStorageObjectCreatorInterfaceMockRecorder) GetObject(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObject", reflect.TypeOf((*MockStorageObjectCreatorInterface)(nil).GetObject), arg0, arg1)
