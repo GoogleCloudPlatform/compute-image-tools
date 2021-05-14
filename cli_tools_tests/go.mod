@@ -3,7 +3,7 @@ module github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests
 go 1.13
 
 require (
-	cloud.google.com/go/storage v1.13.0
+	cloud.google.com/go/storage v1.14.0
 	github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0
 	github.com/GoogleCloudPlatform/compute-image-tools/common v0.0.0
 	github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0
@@ -13,7 +13,7 @@ require (
 	github.com/golang/protobuf v1.5.1
 	github.com/google/go-cmp v0.5.5
 	github.com/google/uuid v1.2.0
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	google.golang.org/api v0.44.0
 	google.golang.org/protobuf v1.26.0
 )
