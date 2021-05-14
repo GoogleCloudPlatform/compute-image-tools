@@ -19,37 +19,38 @@
 package mocks
 
 import (
+	io "io"
+	reflect "reflect"
+
 	storage "cloud.google.com/go/storage"
 	domain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	gomock "github.com/golang/mock/gomock"
-	io "io"
-	reflect "reflect"
 )
 
-// MockStorageClientInterface is a mock of StorageClientInterface interface
+// MockStorageClientInterface is a mock of StorageClientInterface interface.
 type MockStorageClientInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockStorageClientInterfaceMockRecorder
 }
 
-// MockStorageClientInterfaceMockRecorder is the mock recorder for MockStorageClientInterface
+// MockStorageClientInterfaceMockRecorder is the mock recorder for MockStorageClientInterface.
 type MockStorageClientInterfaceMockRecorder struct {
 	mock *MockStorageClientInterface
 }
 
-// NewMockStorageClientInterface creates a new mock instance
+// NewMockStorageClientInterface creates a new mock instance.
 func NewMockStorageClientInterface(ctrl *gomock.Controller) *MockStorageClientInterface {
 	mock := &MockStorageClientInterface{ctrl: ctrl}
 	mock.recorder = &MockStorageClientInterfaceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockStorageClientInterface) EXPECT() *MockStorageClientInterfaceMockRecorder {
 	return m.recorder
 }
 
-// Buckets mocks base method
+// Buckets mocks base method.
 func (m *MockStorageClientInterface) Buckets(arg0 string) *storage.BucketIterator {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Buckets", arg0)
@@ -57,13 +58,13 @@ func (m *MockStorageClientInterface) Buckets(arg0 string) *storage.BucketIterato
 	return ret0
 }
 
-// Buckets indicates an expected call of Buckets
+// Buckets indicates an expected call of Buckets.
 func (mr *MockStorageClientInterfaceMockRecorder) Buckets(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Buckets", reflect.TypeOf((*MockStorageClientInterface)(nil).Buckets), arg0)
 }
 
-// Close mocks base method
+// Close mocks base method.
 func (m *MockStorageClientInterface) Close() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Close")
@@ -71,13 +72,13 @@ func (m *MockStorageClientInterface) Close() error {
 	return ret0
 }
 
-// Close indicates an expected call of Close
+// Close indicates an expected call of Close.
 func (mr *MockStorageClientInterfaceMockRecorder) Close() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockStorageClientInterface)(nil).Close))
 }
 
-// CreateBucket mocks base method
+// CreateBucket mocks base method.
 func (m *MockStorageClientInterface) CreateBucket(arg0, arg1 string, arg2 *storage.BucketAttrs) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateBucket", arg0, arg1, arg2)
@@ -85,13 +86,13 @@ func (m *MockStorageClientInterface) CreateBucket(arg0, arg1 string, arg2 *stora
 	return ret0
 }
 
-// CreateBucket indicates an expected call of CreateBucket
+// CreateBucket indicates an expected call of CreateBucket.
 func (mr *MockStorageClientInterfaceMockRecorder) CreateBucket(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBucket", reflect.TypeOf((*MockStorageClientInterface)(nil).CreateBucket), arg0, arg1, arg2)
 }
 
-// DeleteGcsPath mocks base method
+// DeleteGcsPath mocks base method.
 func (m *MockStorageClientInterface) DeleteGcsPath(arg0 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteGcsPath", arg0)
@@ -99,13 +100,13 @@ func (m *MockStorageClientInterface) DeleteGcsPath(arg0 string) error {
 	return ret0
 }
 
-// DeleteGcsPath indicates an expected call of DeleteGcsPath
+// DeleteGcsPath indicates an expected call of DeleteGcsPath.
 func (mr *MockStorageClientInterfaceMockRecorder) DeleteGcsPath(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteGcsPath", reflect.TypeOf((*MockStorageClientInterface)(nil).DeleteGcsPath), arg0)
 }
 
-// DeleteObject mocks base method
+// DeleteObject mocks base method.
 func (m *MockStorageClientInterface) DeleteObject(arg0 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteObject", arg0)
@@ -113,13 +114,13 @@ func (m *MockStorageClientInterface) DeleteObject(arg0 string) error {
 	return ret0
 }
 
-// DeleteObject indicates an expected call of DeleteObject
+// DeleteObject indicates an expected call of DeleteObject.
 func (mr *MockStorageClientInterfaceMockRecorder) DeleteObject(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteObject", reflect.TypeOf((*MockStorageClientInterface)(nil).DeleteObject), arg0)
 }
 
-// FindGcsFile mocks base method
+// FindGcsFile mocks base method.
 func (m *MockStorageClientInterface) FindGcsFile(arg0, arg1 string) (*storage.ObjectHandle, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindGcsFile", arg0, arg1)
@@ -128,13 +129,13 @@ func (m *MockStorageClientInterface) FindGcsFile(arg0, arg1 string) (*storage.Ob
 	return ret0, ret1
 }
 
-// FindGcsFile indicates an expected call of FindGcsFile
+// FindGcsFile indicates an expected call of FindGcsFile.
 func (mr *MockStorageClientInterfaceMockRecorder) FindGcsFile(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindGcsFile", reflect.TypeOf((*MockStorageClientInterface)(nil).FindGcsFile), arg0, arg1)
 }
 
-// FindGcsFileDepthLimited mocks base method
+// FindGcsFileDepthLimited mocks base method.
 func (m *MockStorageClientInterface) FindGcsFileDepthLimited(arg0, arg1 string, arg2 int) (*storage.ObjectHandle, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindGcsFileDepthLimited", arg0, arg1, arg2)
@@ -143,13 +144,13 @@ func (m *MockStorageClientInterface) FindGcsFileDepthLimited(arg0, arg1 string, 
 	return ret0, ret1
 }
 
-// FindGcsFileDepthLimited indicates an expected call of FindGcsFileDepthLimited
+// FindGcsFileDepthLimited indicates an expected call of FindGcsFileDepthLimited.
 func (mr *MockStorageClientInterfaceMockRecorder) FindGcsFileDepthLimited(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindGcsFileDepthLimited", reflect.TypeOf((*MockStorageClientInterface)(nil).FindGcsFileDepthLimited), arg0, arg1, arg2)
 }
 
-// GetBucket mocks base method
+// GetBucket mocks base method.
 func (m *MockStorageClientInterface) GetBucket(arg0 string) *storage.BucketHandle {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBucket", arg0)
@@ -157,13 +158,13 @@ func (m *MockStorageClientInterface) GetBucket(arg0 string) *storage.BucketHandl
 	return ret0
 }
 
-// GetBucket indicates an expected call of GetBucket
+// GetBucket indicates an expected call of GetBucket.
 func (mr *MockStorageClientInterfaceMockRecorder) GetBucket(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBucket", reflect.TypeOf((*MockStorageClientInterface)(nil).GetBucket), arg0)
 }
 
-// GetBucketAttrs mocks base method
+// GetBucketAttrs mocks base method.
 func (m *MockStorageClientInterface) GetBucketAttrs(arg0 string) (*storage.BucketAttrs, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBucketAttrs", arg0)
@@ -172,13 +173,13 @@ func (m *MockStorageClientInterface) GetBucketAttrs(arg0 string) (*storage.Bucke
 	return ret0, ret1
 }
 
-// GetBucketAttrs indicates an expected call of GetBucketAttrs
+// GetBucketAttrs indicates an expected call of GetBucketAttrs.
 func (mr *MockStorageClientInterfaceMockRecorder) GetBucketAttrs(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBucketAttrs", reflect.TypeOf((*MockStorageClientInterface)(nil).GetBucketAttrs), arg0)
 }
 
-// GetGcsFileContent mocks base method
+// GetGcsFileContent mocks base method.
 func (m *MockStorageClientInterface) GetGcsFileContent(arg0 *storage.ObjectHandle) ([]byte, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGcsFileContent", arg0)
@@ -187,13 +188,13 @@ func (m *MockStorageClientInterface) GetGcsFileContent(arg0 *storage.ObjectHandl
 	return ret0, ret1
 }
 
-// GetGcsFileContent indicates an expected call of GetGcsFileContent
+// GetGcsFileContent indicates an expected call of GetGcsFileContent.
 func (mr *MockStorageClientInterfaceMockRecorder) GetGcsFileContent(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGcsFileContent", reflect.TypeOf((*MockStorageClientInterface)(nil).GetGcsFileContent), arg0)
 }
 
-// GetObject mocks base method
+// GetObject mocks base method.
 func (m *MockStorageClientInterface) GetObject(arg0, arg1 string) domain.StorageObject {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetObject", arg0, arg1)
@@ -201,13 +202,13 @@ func (m *MockStorageClientInterface) GetObject(arg0, arg1 string) domain.Storage
 	return ret0
 }
 
-// GetObject indicates an expected call of GetObject
+// GetObject indicates an expected call of GetObject.
 func (mr *MockStorageClientInterfaceMockRecorder) GetObject(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObject", reflect.TypeOf((*MockStorageClientInterface)(nil).GetObject), arg0, arg1)
 }
 
-// GetObjectAttrs mocks base method
+// GetObjectAttrs mocks base method.
 func (m *MockStorageClientInterface) GetObjectAttrs(arg0, arg1 string) (*storage.ObjectAttrs, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetObjectAttrs", arg0, arg1)
@@ -216,13 +217,13 @@ func (m *MockStorageClientInterface) GetObjectAttrs(arg0, arg1 string) (*storage
 	return ret0, ret1
 }
 
-// GetObjectAttrs indicates an expected call of GetObjectAttrs
+// GetObjectAttrs indicates an expected call of GetObjectAttrs.
 func (mr *MockStorageClientInterfaceMockRecorder) GetObjectAttrs(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObjectAttrs", reflect.TypeOf((*MockStorageClientInterface)(nil).GetObjectAttrs), arg0, arg1)
 }
 
-// GetObjects mocks base method
+// GetObjects mocks base method.
 func (m *MockStorageClientInterface) GetObjects(arg0, arg1 string) domain.ObjectIteratorInterface {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetObjects", arg0, arg1)
@@ -230,13 +231,13 @@ func (m *MockStorageClientInterface) GetObjects(arg0, arg1 string) domain.Object
 	return ret0
 }
 
-// GetObjects indicates an expected call of GetObjects
+// GetObjects indicates an expected call of GetObjects.
 func (mr *MockStorageClientInterfaceMockRecorder) GetObjects(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObjects", reflect.TypeOf((*MockStorageClientInterface)(nil).GetObjects), arg0, arg1)
 }
 
-// WriteToGCS mocks base method
+// WriteToGCS mocks base method.
 func (m *MockStorageClientInterface) WriteToGCS(arg0, arg1 string, arg2 io.Reader) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WriteToGCS", arg0, arg1, arg2)
@@ -244,7 +245,7 @@ func (m *MockStorageClientInterface) WriteToGCS(arg0, arg1 string, arg2 io.Reade
 	return ret0
 }
 
-// WriteToGCS indicates an expected call of WriteToGCS
+// WriteToGCS indicates an expected call of WriteToGCS.
 func (mr *MockStorageClientInterfaceMockRecorder) WriteToGCS(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteToGCS", reflect.TypeOf((*MockStorageClientInterface)(nil).WriteToGCS), arg0, arg1, arg2)
