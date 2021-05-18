@@ -364,7 +364,7 @@ func (c *client) operationsWaitHelper(project, name string, getOperation operati
 
 		switch op.Status {
 		case "PENDING", "RUNNING":
-			time.Sleep(5 * time.Second)
+			time.Sleep(1 * time.Second)
 			continue
 		case "DONE":
 			if op.Error != nil {
