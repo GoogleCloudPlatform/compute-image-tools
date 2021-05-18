@@ -19,34 +19,35 @@
 package mocks
 
 import (
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockResourceLocationRetrieverInterface is a mock of ResourceLocationRetrieverInterface interface
+// MockResourceLocationRetrieverInterface is a mock of ResourceLocationRetrieverInterface interface.
 type MockResourceLocationRetrieverInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockResourceLocationRetrieverInterfaceMockRecorder
 }
 
-// MockResourceLocationRetrieverInterfaceMockRecorder is the mock recorder for MockResourceLocationRetrieverInterface
+// MockResourceLocationRetrieverInterfaceMockRecorder is the mock recorder for MockResourceLocationRetrieverInterface.
 type MockResourceLocationRetrieverInterfaceMockRecorder struct {
 	mock *MockResourceLocationRetrieverInterface
 }
 
-// NewMockResourceLocationRetrieverInterface creates a new mock instance
+// NewMockResourceLocationRetrieverInterface creates a new mock instance.
 func NewMockResourceLocationRetrieverInterface(ctrl *gomock.Controller) *MockResourceLocationRetrieverInterface {
 	mock := &MockResourceLocationRetrieverInterface{ctrl: ctrl}
 	mock.recorder = &MockResourceLocationRetrieverInterfaceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockResourceLocationRetrieverInterface) EXPECT() *MockResourceLocationRetrieverInterfaceMockRecorder {
 	return m.recorder
 }
 
-// GetLargestStorageLocation mocks base method
+// GetLargestStorageLocation mocks base method.
 func (m *MockResourceLocationRetrieverInterface) GetLargestStorageLocation(arg0 string) string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetLargestStorageLocation", arg0)
@@ -54,13 +55,13 @@ func (m *MockResourceLocationRetrieverInterface) GetLargestStorageLocation(arg0 
 	return ret0
 }
 
-// GetLargestStorageLocation indicates an expected call of GetLargestStorageLocation
+// GetLargestStorageLocation indicates an expected call of GetLargestStorageLocation.
 func (mr *MockResourceLocationRetrieverInterfaceMockRecorder) GetLargestStorageLocation(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLargestStorageLocation", reflect.TypeOf((*MockResourceLocationRetrieverInterface)(nil).GetLargestStorageLocation), arg0)
 }
 
-// GetZone mocks base method
+// GetZone mocks base method.
 func (m *MockResourceLocationRetrieverInterface) GetZone(arg0, arg1 string) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetZone", arg0, arg1)
@@ -69,7 +70,7 @@ func (m *MockResourceLocationRetrieverInterface) GetZone(arg0, arg1 string) (str
 	return ret0, ret1
 }
 
-// GetZone indicates an expected call of GetZone
+// GetZone indicates an expected call of GetZone.
 func (mr *MockResourceLocationRetrieverInterfaceMockRecorder) GetZone(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetZone", reflect.TypeOf((*MockResourceLocationRetrieverInterface)(nil).GetZone), arg0, arg1)

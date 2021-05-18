@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
@@ -39,9 +40,11 @@ var (
 	testForwardingRule       = "test-forwarding-rule"
 	testFirewallRule         = "test-firewall-rule"
 	testImage                = "test-image"
+	testImageAlpha           = "test-image-alpha"
 	testImageBeta            = "test-image-beta"
 	testMachineImage         = "test-machine-image"
 	testInstance             = "test-instance"
+	testInstanceAlpha        = "test-instance-alpha"
 	testInstanceBeta         = "test-instance-beta"
 	testNetwork              = "test-network"
 	testSubnetwork           = "test-subnetwork"
@@ -123,9 +126,11 @@ func TestCreates(t *testing.T) {
 	fr := &compute.ForwardingRule{Name: testForwardingRule}
 	fir := &compute.Firewall{Name: testFirewallRule}
 	im := &compute.Image{Name: testImage}
+	imAlpha := &computeAlpha.Image{Name: testImageAlpha}
 	imBeta := &computeBeta.Image{Name: testImageBeta}
 	mi := &computeBeta.MachineImage{Name: testMachineImage, SourceInstance: testInstance}
 	in := &compute.Instance{Name: testInstance}
+	inAlpha := &computeAlpha.Instance{Name: testInstanceAlpha}
 	inBeta := &computeBeta.Instance{Name: testInstanceBeta}
 	n := &compute.Network{Name: testNetwork}
 	sn := &compute.Subnetwork{Name: testSubnetwork}
@@ -170,6 +175,14 @@ func TestCreates(t *testing.T) {
 		},
 		{
 			"images",
+			func() error { return c.CreateImageAlpha(testProject, imAlpha) },
+			fmt.Sprintf("/%s/global/images/%s?alt=json&prettyPrint=false", testProject, testImageAlpha),
+			fmt.Sprintf("/%s/global/images?alt=json&prettyPrint=false", testProject),
+			&computeAlpha.Image{Name: testImageAlpha},
+			imAlpha,
+		},
+		{
+			"images",
 			func() error { return c.CreateImageBeta(testProject, imBeta) },
 			fmt.Sprintf("/%s/global/images/%s?alt=json&prettyPrint=false", testProject, testImageBeta),
 			fmt.Sprintf("/%s/global/images?alt=json&prettyPrint=false", testProject),
@@ -191,6 +204,14 @@ func TestCreates(t *testing.T) {
 			fmt.Sprintf("/%s/zones/%s/instances?alt=json&prettyPrint=false", testProject, testZone),
 			&compute.Instance{Name: testInstance},
 			in,
+		},
+		{
+			"instancesAlpha",
+			func() error { return c.CreateInstanceAlpha(testProject, testZone, inAlpha) },
+			fmt.Sprintf("/%s/zones/%s/instances/%s?alt=json&prettyPrint=false", testProject, testZone, testInstanceAlpha),
+			fmt.Sprintf("/%s/zones/%s/instances?alt=json&prettyPrint=false", testProject, testZone),
+			&computeAlpha.Instance{Name: testInstanceAlpha},
+			inAlpha,
 		},
 		{
 			"instancesBeta",
@@ -403,6 +424,26 @@ func TestDeprecateImage(t *testing.T) {
 	}
 }
 
+func TestDeprecateImageAlpha(t *testing.T) {
+	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/projects/%s/global/images/%s/deprecate?alt=json&prettyPrint=false", testProject, testImageAlpha) {
+			fmt.Fprint(w, `{}`)
+		} else if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/projects/%s/global/operations//wait?alt=json&prettyPrint=false", testProject) {
+			fmt.Fprint(w, `{"Status":"DONE"}`)
+		} else {
+			w.WriteHeader(500)
+			fmt.Fprintln(w, "URL and Method not recognized:", r.Method, r.URL)
+		}
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer svr.Close()
+
+	if err := c.DeprecateImageAlpha(testProject, testImageAlpha, &computeAlpha.DeprecationStatus{}); err != nil {
+		t.Fatalf("error running DeprecateImageAlpha: %v", err)
+	}
+}
 func TestAttachDisk(t *testing.T) {
 	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/projects/%s/zones/%s/instances/%s/attachDisk?alt=json&prettyPrint=false", testProject, testZone, testInstance) {

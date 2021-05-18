@@ -19,113 +19,114 @@
 package mocks
 
 import (
+	reflect "reflect"
+
 	compute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	gomock "github.com/golang/mock/gomock"
-	v0_alpha "google.golang.org/api/compute/v0.alpha"
-	v0_beta "google.golang.org/api/compute/v0.beta"
-	v1 "google.golang.org/api/compute/v1"
+	compute0 "google.golang.org/api/compute/v0.alpha"
+	compute1 "google.golang.org/api/compute/v0.beta"
+	compute2 "google.golang.org/api/compute/v1"
 	googleapi "google.golang.org/api/googleapi"
-	reflect "reflect"
 )
 
-// MockClient is a mock of Client interface
+// MockClient is a mock of Client interface.
 type MockClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockClientMockRecorder
 }
 
-// MockClientMockRecorder is the mock recorder for MockClient
+// MockClientMockRecorder is the mock recorder for MockClient.
 type MockClientMockRecorder struct {
 	mock *MockClient
 }
 
-// NewMockClient creates a new mock instance
+// NewMockClient creates a new mock instance.
 func NewMockClient(ctrl *gomock.Controller) *MockClient {
 	mock := &MockClient{ctrl: ctrl}
 	mock.recorder = &MockClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
-// AggregatedListDisks mocks base method
-func (m *MockClient) AggregatedListDisks(arg0 string, arg1 ...compute.ListCallOption) ([]*v1.Disk, error) {
+// AggregatedListDisks mocks base method.
+func (m *MockClient) AggregatedListDisks(arg0 string, arg1 ...compute.ListCallOption) ([]*compute2.Disk, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
 	for _, a := range arg1 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "AggregatedListDisks", varargs...)
-	ret0, _ := ret[0].([]*v1.Disk)
+	ret0, _ := ret[0].([]*compute2.Disk)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// AggregatedListDisks indicates an expected call of AggregatedListDisks
+// AggregatedListDisks indicates an expected call of AggregatedListDisks.
 func (mr *MockClientMockRecorder) AggregatedListDisks(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AggregatedListDisks", reflect.TypeOf((*MockClient)(nil).AggregatedListDisks), varargs...)
 }
 
-// AggregatedListInstances mocks base method
-func (m *MockClient) AggregatedListInstances(arg0 string, arg1 ...compute.ListCallOption) ([]*v1.Instance, error) {
+// AggregatedListInstances mocks base method.
+func (m *MockClient) AggregatedListInstances(arg0 string, arg1 ...compute.ListCallOption) ([]*compute2.Instance, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
 	for _, a := range arg1 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "AggregatedListInstances", varargs...)
-	ret0, _ := ret[0].([]*v1.Instance)
+	ret0, _ := ret[0].([]*compute2.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// AggregatedListInstances indicates an expected call of AggregatedListInstances
+// AggregatedListInstances indicates an expected call of AggregatedListInstances.
 func (mr *MockClientMockRecorder) AggregatedListInstances(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AggregatedListInstances", reflect.TypeOf((*MockClient)(nil).AggregatedListInstances), varargs...)
 }
 
-// AggregatedListSubnetworks mocks base method
-func (m *MockClient) AggregatedListSubnetworks(arg0 string, arg1 ...compute.ListCallOption) ([]*v1.Subnetwork, error) {
+// AggregatedListSubnetworks mocks base method.
+func (m *MockClient) AggregatedListSubnetworks(arg0 string, arg1 ...compute.ListCallOption) ([]*compute2.Subnetwork, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
 	for _, a := range arg1 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "AggregatedListSubnetworks", varargs...)
-	ret0, _ := ret[0].([]*v1.Subnetwork)
+	ret0, _ := ret[0].([]*compute2.Subnetwork)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// AggregatedListSubnetworks indicates an expected call of AggregatedListSubnetworks
+// AggregatedListSubnetworks indicates an expected call of AggregatedListSubnetworks.
 func (mr *MockClientMockRecorder) AggregatedListSubnetworks(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AggregatedListSubnetworks", reflect.TypeOf((*MockClient)(nil).AggregatedListSubnetworks), varargs...)
 }
 
-// AttachDisk mocks base method
-func (m *MockClient) AttachDisk(arg0, arg1, arg2 string, arg3 *v1.AttachedDisk) error {
+// AttachDisk mocks base method.
+func (m *MockClient) AttachDisk(arg0, arg1, arg2 string, arg3 *compute2.AttachedDisk) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AttachDisk", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// AttachDisk indicates an expected call of AttachDisk
+// AttachDisk indicates an expected call of AttachDisk.
 func (mr *MockClientMockRecorder) AttachDisk(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AttachDisk", reflect.TypeOf((*MockClient)(nil).AttachDisk), arg0, arg1, arg2, arg3)
 }
 
-// BasePath mocks base method
+// BasePath mocks base method.
 func (m *MockClient) BasePath() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BasePath")
@@ -133,209 +134,237 @@ func (m *MockClient) BasePath() string {
 	return ret0
 }
 
-// BasePath indicates an expected call of BasePath
+// BasePath indicates an expected call of BasePath.
 func (mr *MockClientMockRecorder) BasePath() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BasePath", reflect.TypeOf((*MockClient)(nil).BasePath))
 }
 
-// CreateDisk mocks base method
-func (m *MockClient) CreateDisk(arg0, arg1 string, arg2 *v1.Disk) error {
+// CreateDisk mocks base method.
+func (m *MockClient) CreateDisk(arg0, arg1 string, arg2 *compute2.Disk) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateDisk", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateDisk indicates an expected call of CreateDisk
+// CreateDisk indicates an expected call of CreateDisk.
 func (mr *MockClientMockRecorder) CreateDisk(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDisk", reflect.TypeOf((*MockClient)(nil).CreateDisk), arg0, arg1, arg2)
 }
 
-// CreateDiskAlpha mocks base method
-func (m *MockClient) CreateDiskAlpha(arg0, arg1 string, arg2 *v0_alpha.Disk) error {
+// CreateDiskAlpha mocks base method.
+func (m *MockClient) CreateDiskAlpha(arg0, arg1 string, arg2 *compute0.Disk) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateDiskAlpha", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateDiskAlpha indicates an expected call of CreateDiskAlpha
+// CreateDiskAlpha indicates an expected call of CreateDiskAlpha.
 func (mr *MockClientMockRecorder) CreateDiskAlpha(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDiskAlpha", reflect.TypeOf((*MockClient)(nil).CreateDiskAlpha), arg0, arg1, arg2)
 }
 
-// CreateDiskBeta mocks base method
-func (m *MockClient) CreateDiskBeta(arg0, arg1 string, arg2 *v0_beta.Disk) error {
+// CreateDiskBeta mocks base method.
+func (m *MockClient) CreateDiskBeta(arg0, arg1 string, arg2 *compute1.Disk) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateDiskBeta", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateDiskBeta indicates an expected call of CreateDiskBeta
+// CreateDiskBeta indicates an expected call of CreateDiskBeta.
 func (mr *MockClientMockRecorder) CreateDiskBeta(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDiskBeta", reflect.TypeOf((*MockClient)(nil).CreateDiskBeta), arg0, arg1, arg2)
 }
 
-// CreateFirewallRule mocks base method
-func (m *MockClient) CreateFirewallRule(arg0 string, arg1 *v1.Firewall) error {
+// CreateFirewallRule mocks base method.
+func (m *MockClient) CreateFirewallRule(arg0 string, arg1 *compute2.Firewall) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateFirewallRule", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateFirewallRule indicates an expected call of CreateFirewallRule
+// CreateFirewallRule indicates an expected call of CreateFirewallRule.
 func (mr *MockClientMockRecorder) CreateFirewallRule(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFirewallRule", reflect.TypeOf((*MockClient)(nil).CreateFirewallRule), arg0, arg1)
 }
 
-// CreateForwardingRule mocks base method
-func (m *MockClient) CreateForwardingRule(arg0, arg1 string, arg2 *v1.ForwardingRule) error {
+// CreateForwardingRule mocks base method.
+func (m *MockClient) CreateForwardingRule(arg0, arg1 string, arg2 *compute2.ForwardingRule) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateForwardingRule", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateForwardingRule indicates an expected call of CreateForwardingRule
+// CreateForwardingRule indicates an expected call of CreateForwardingRule.
 func (mr *MockClientMockRecorder) CreateForwardingRule(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateForwardingRule", reflect.TypeOf((*MockClient)(nil).CreateForwardingRule), arg0, arg1, arg2)
 }
 
-// CreateImage mocks base method
-func (m *MockClient) CreateImage(arg0 string, arg1 *v1.Image) error {
+// CreateImage mocks base method.
+func (m *MockClient) CreateImage(arg0 string, arg1 *compute2.Image) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateImage", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateImage indicates an expected call of CreateImage
+// CreateImage indicates an expected call of CreateImage.
 func (mr *MockClientMockRecorder) CreateImage(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateImage", reflect.TypeOf((*MockClient)(nil).CreateImage), arg0, arg1)
 }
 
-// CreateImageBeta mocks base method
-func (m *MockClient) CreateImageBeta(arg0 string, arg1 *v0_beta.Image) error {
+// CreateImageAlpha mocks base method.
+func (m *MockClient) CreateImageAlpha(arg0 string, arg1 *compute0.Image) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateImageAlpha", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateImageAlpha indicates an expected call of CreateImageAlpha.
+func (mr *MockClientMockRecorder) CreateImageAlpha(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateImageAlpha", reflect.TypeOf((*MockClient)(nil).CreateImageAlpha), arg0, arg1)
+}
+
+// CreateImageBeta mocks base method.
+func (m *MockClient) CreateImageBeta(arg0 string, arg1 *compute1.Image) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateImageBeta", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateImageBeta indicates an expected call of CreateImageBeta
+// CreateImageBeta indicates an expected call of CreateImageBeta.
 func (mr *MockClientMockRecorder) CreateImageBeta(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateImageBeta", reflect.TypeOf((*MockClient)(nil).CreateImageBeta), arg0, arg1)
 }
 
-// CreateInstance mocks base method
-func (m *MockClient) CreateInstance(arg0, arg1 string, arg2 *v1.Instance) error {
+// CreateInstance mocks base method.
+func (m *MockClient) CreateInstance(arg0, arg1 string, arg2 *compute2.Instance) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateInstance", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateInstance indicates an expected call of CreateInstance
+// CreateInstance indicates an expected call of CreateInstance.
 func (mr *MockClientMockRecorder) CreateInstance(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstance", reflect.TypeOf((*MockClient)(nil).CreateInstance), arg0, arg1, arg2)
 }
 
-// CreateInstanceBeta mocks base method
-func (m *MockClient) CreateInstanceBeta(arg0, arg1 string, arg2 *v0_beta.Instance) error {
+// CreateInstanceAlpha mocks base method.
+func (m *MockClient) CreateInstanceAlpha(arg0, arg1 string, arg2 *compute0.Instance) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateInstanceAlpha", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateInstanceAlpha indicates an expected call of CreateInstanceAlpha.
+func (mr *MockClientMockRecorder) CreateInstanceAlpha(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstanceAlpha", reflect.TypeOf((*MockClient)(nil).CreateInstanceAlpha), arg0, arg1, arg2)
+}
+
+// CreateInstanceBeta mocks base method.
+func (m *MockClient) CreateInstanceBeta(arg0, arg1 string, arg2 *compute1.Instance) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateInstanceBeta", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateInstanceBeta indicates an expected call of CreateInstanceBeta
+// CreateInstanceBeta indicates an expected call of CreateInstanceBeta.
 func (mr *MockClientMockRecorder) CreateInstanceBeta(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstanceBeta", reflect.TypeOf((*MockClient)(nil).CreateInstanceBeta), arg0, arg1, arg2)
 }
 
-// CreateMachineImage mocks base method
-func (m *MockClient) CreateMachineImage(arg0 string, arg1 *v0_beta.MachineImage) error {
+// CreateMachineImage mocks base method.
+func (m *MockClient) CreateMachineImage(arg0 string, arg1 *compute1.MachineImage) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateMachineImage", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateMachineImage indicates an expected call of CreateMachineImage
+// CreateMachineImage indicates an expected call of CreateMachineImage.
 func (mr *MockClientMockRecorder) CreateMachineImage(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMachineImage", reflect.TypeOf((*MockClient)(nil).CreateMachineImage), arg0, arg1)
 }
 
-// CreateNetwork mocks base method
-func (m *MockClient) CreateNetwork(arg0 string, arg1 *v1.Network) error {
+// CreateNetwork mocks base method.
+func (m *MockClient) CreateNetwork(arg0 string, arg1 *compute2.Network) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateNetwork", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateNetwork indicates an expected call of CreateNetwork
+// CreateNetwork indicates an expected call of CreateNetwork.
 func (mr *MockClientMockRecorder) CreateNetwork(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNetwork", reflect.TypeOf((*MockClient)(nil).CreateNetwork), arg0, arg1)
 }
 
-// CreateSnapshot mocks base method
-func (m *MockClient) CreateSnapshot(arg0, arg1, arg2 string, arg3 *v1.Snapshot) error {
+// CreateSnapshot mocks base method.
+func (m *MockClient) CreateSnapshot(arg0, arg1, arg2 string, arg3 *compute2.Snapshot) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateSnapshot", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateSnapshot indicates an expected call of CreateSnapshot
+// CreateSnapshot indicates an expected call of CreateSnapshot.
 func (mr *MockClientMockRecorder) CreateSnapshot(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSnapshot", reflect.TypeOf((*MockClient)(nil).CreateSnapshot), arg0, arg1, arg2, arg3)
 }
 
-// CreateSubnetwork mocks base method
-func (m *MockClient) CreateSubnetwork(arg0, arg1 string, arg2 *v1.Subnetwork) error {
+// CreateSubnetwork mocks base method.
+func (m *MockClient) CreateSubnetwork(arg0, arg1 string, arg2 *compute2.Subnetwork) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateSubnetwork", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateSubnetwork indicates an expected call of CreateSubnetwork
+// CreateSubnetwork indicates an expected call of CreateSubnetwork.
 func (mr *MockClientMockRecorder) CreateSubnetwork(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSubnetwork", reflect.TypeOf((*MockClient)(nil).CreateSubnetwork), arg0, arg1, arg2)
 }
 
-// CreateTargetInstance mocks base method
-func (m *MockClient) CreateTargetInstance(arg0, arg1 string, arg2 *v1.TargetInstance) error {
+// CreateTargetInstance mocks base method.
+func (m *MockClient) CreateTargetInstance(arg0, arg1 string, arg2 *compute2.TargetInstance) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateTargetInstance", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateTargetInstance indicates an expected call of CreateTargetInstance
+// CreateTargetInstance indicates an expected call of CreateTargetInstance.
 func (mr *MockClientMockRecorder) CreateTargetInstance(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTargetInstance", reflect.TypeOf((*MockClient)(nil).CreateTargetInstance), arg0, arg1, arg2)
 }
 
-// DeleteDisk mocks base method
+// DeleteDisk mocks base method.
 func (m *MockClient) DeleteDisk(arg0, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteDisk", arg0, arg1, arg2)
@@ -343,13 +372,13 @@ func (m *MockClient) DeleteDisk(arg0, arg1, arg2 string) error {
 	return ret0
 }
 
-// DeleteDisk indicates an expected call of DeleteDisk
+// DeleteDisk indicates an expected call of DeleteDisk.
 func (mr *MockClientMockRecorder) DeleteDisk(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteDisk", reflect.TypeOf((*MockClient)(nil).DeleteDisk), arg0, arg1, arg2)
 }
 
-// DeleteFirewallRule mocks base method
+// DeleteFirewallRule mocks base method.
 func (m *MockClient) DeleteFirewallRule(arg0, arg1 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteFirewallRule", arg0, arg1)
@@ -357,13 +386,13 @@ func (m *MockClient) DeleteFirewallRule(arg0, arg1 string) error {
 	return ret0
 }
 
-// DeleteFirewallRule indicates an expected call of DeleteFirewallRule
+// DeleteFirewallRule indicates an expected call of DeleteFirewallRule.
 func (mr *MockClientMockRecorder) DeleteFirewallRule(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFirewallRule", reflect.TypeOf((*MockClient)(nil).DeleteFirewallRule), arg0, arg1)
 }
 
-// DeleteForwardingRule mocks base method
+// DeleteForwardingRule mocks base method.
 func (m *MockClient) DeleteForwardingRule(arg0, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteForwardingRule", arg0, arg1, arg2)
@@ -371,13 +400,13 @@ func (m *MockClient) DeleteForwardingRule(arg0, arg1, arg2 string) error {
 	return ret0
 }
 
-// DeleteForwardingRule indicates an expected call of DeleteForwardingRule
+// DeleteForwardingRule indicates an expected call of DeleteForwardingRule.
 func (mr *MockClientMockRecorder) DeleteForwardingRule(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteForwardingRule", reflect.TypeOf((*MockClient)(nil).DeleteForwardingRule), arg0, arg1, arg2)
 }
 
-// DeleteImage mocks base method
+// DeleteImage mocks base method.
 func (m *MockClient) DeleteImage(arg0, arg1 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteImage", arg0, arg1)
@@ -385,13 +414,13 @@ func (m *MockClient) DeleteImage(arg0, arg1 string) error {
 	return ret0
 }
 
-// DeleteImage indicates an expected call of DeleteImage
+// DeleteImage indicates an expected call of DeleteImage.
 func (mr *MockClientMockRecorder) DeleteImage(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteImage", reflect.TypeOf((*MockClient)(nil).DeleteImage), arg0, arg1)
 }
 
-// DeleteInstance mocks base method
+// DeleteInstance mocks base method.
 func (m *MockClient) DeleteInstance(arg0, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteInstance", arg0, arg1, arg2)
@@ -399,13 +428,13 @@ func (m *MockClient) DeleteInstance(arg0, arg1, arg2 string) error {
 	return ret0
 }
 
-// DeleteInstance indicates an expected call of DeleteInstance
+// DeleteInstance indicates an expected call of DeleteInstance.
 func (mr *MockClientMockRecorder) DeleteInstance(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInstance", reflect.TypeOf((*MockClient)(nil).DeleteInstance), arg0, arg1, arg2)
 }
 
-// DeleteMachineImage mocks base method
+// DeleteMachineImage mocks base method.
 func (m *MockClient) DeleteMachineImage(arg0, arg1 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteMachineImage", arg0, arg1)
@@ -413,13 +442,13 @@ func (m *MockClient) DeleteMachineImage(arg0, arg1 string) error {
 	return ret0
 }
 
-// DeleteMachineImage indicates an expected call of DeleteMachineImage
+// DeleteMachineImage indicates an expected call of DeleteMachineImage.
 func (mr *MockClientMockRecorder) DeleteMachineImage(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMachineImage", reflect.TypeOf((*MockClient)(nil).DeleteMachineImage), arg0, arg1)
 }
 
-// DeleteNetwork mocks base method
+// DeleteNetwork mocks base method.
 func (m *MockClient) DeleteNetwork(arg0, arg1 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteNetwork", arg0, arg1)
@@ -427,13 +456,13 @@ func (m *MockClient) DeleteNetwork(arg0, arg1 string) error {
 	return ret0
 }
 
-// DeleteNetwork indicates an expected call of DeleteNetwork
+// DeleteNetwork indicates an expected call of DeleteNetwork.
 func (mr *MockClientMockRecorder) DeleteNetwork(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNetwork", reflect.TypeOf((*MockClient)(nil).DeleteNetwork), arg0, arg1)
 }
 
-// DeleteSnapshot mocks base method
+// DeleteSnapshot mocks base method.
 func (m *MockClient) DeleteSnapshot(arg0, arg1 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteSnapshot", arg0, arg1)
@@ -441,13 +470,13 @@ func (m *MockClient) DeleteSnapshot(arg0, arg1 string) error {
 	return ret0
 }
 
-// DeleteSnapshot indicates an expected call of DeleteSnapshot
+// DeleteSnapshot indicates an expected call of DeleteSnapshot.
 func (mr *MockClientMockRecorder) DeleteSnapshot(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSnapshot", reflect.TypeOf((*MockClient)(nil).DeleteSnapshot), arg0, arg1)
 }
 
-// DeleteSubnetwork mocks base method
+// DeleteSubnetwork mocks base method.
 func (m *MockClient) DeleteSubnetwork(arg0, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteSubnetwork", arg0, arg1, arg2)
@@ -455,13 +484,13 @@ func (m *MockClient) DeleteSubnetwork(arg0, arg1, arg2 string) error {
 	return ret0
 }
 
-// DeleteSubnetwork indicates an expected call of DeleteSubnetwork
+// DeleteSubnetwork indicates an expected call of DeleteSubnetwork.
 func (mr *MockClientMockRecorder) DeleteSubnetwork(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSubnetwork", reflect.TypeOf((*MockClient)(nil).DeleteSubnetwork), arg0, arg1, arg2)
 }
 
-// DeleteTargetInstance mocks base method
+// DeleteTargetInstance mocks base method.
 func (m *MockClient) DeleteTargetInstance(arg0, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteTargetInstance", arg0, arg1, arg2)
@@ -469,27 +498,41 @@ func (m *MockClient) DeleteTargetInstance(arg0, arg1, arg2 string) error {
 	return ret0
 }
 
-// DeleteTargetInstance indicates an expected call of DeleteTargetInstance
+// DeleteTargetInstance indicates an expected call of DeleteTargetInstance.
 func (mr *MockClientMockRecorder) DeleteTargetInstance(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTargetInstance", reflect.TypeOf((*MockClient)(nil).DeleteTargetInstance), arg0, arg1, arg2)
 }
 
-// DeprecateImage mocks base method
-func (m *MockClient) DeprecateImage(arg0, arg1 string, arg2 *v1.DeprecationStatus) error {
+// DeprecateImage mocks base method.
+func (m *MockClient) DeprecateImage(arg0, arg1 string, arg2 *compute2.DeprecationStatus) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeprecateImage", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// DeprecateImage indicates an expected call of DeprecateImage
+// DeprecateImage indicates an expected call of DeprecateImage.
 func (mr *MockClientMockRecorder) DeprecateImage(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeprecateImage", reflect.TypeOf((*MockClient)(nil).DeprecateImage), arg0, arg1, arg2)
 }
 
-// DetachDisk mocks base method
+// DeprecateImageAlpha mocks base method.
+func (m *MockClient) DeprecateImageAlpha(arg0, arg1 string, arg2 *compute0.DeprecationStatus) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeprecateImageAlpha", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeprecateImageAlpha indicates an expected call of DeprecateImageAlpha.
+func (mr *MockClientMockRecorder) DeprecateImageAlpha(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeprecateImageAlpha", reflect.TypeOf((*MockClient)(nil).DeprecateImageAlpha), arg0, arg1, arg2)
+}
+
+// DetachDisk mocks base method.
 func (m *MockClient) DetachDisk(arg0, arg1, arg2, arg3 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DetachDisk", arg0, arg1, arg2, arg3)
@@ -497,328 +540,358 @@ func (m *MockClient) DetachDisk(arg0, arg1, arg2, arg3 string) error {
 	return ret0
 }
 
-// DetachDisk indicates an expected call of DetachDisk
+// DetachDisk indicates an expected call of DetachDisk.
 func (mr *MockClientMockRecorder) DetachDisk(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachDisk", reflect.TypeOf((*MockClient)(nil).DetachDisk), arg0, arg1, arg2, arg3)
 }
 
-// GetDisk mocks base method
-func (m *MockClient) GetDisk(arg0, arg1, arg2 string) (*v1.Disk, error) {
+// GetDisk mocks base method.
+func (m *MockClient) GetDisk(arg0, arg1, arg2 string) (*compute2.Disk, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetDisk", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*v1.Disk)
+	ret0, _ := ret[0].(*compute2.Disk)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetDisk indicates an expected call of GetDisk
+// GetDisk indicates an expected call of GetDisk.
 func (mr *MockClientMockRecorder) GetDisk(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDisk", reflect.TypeOf((*MockClient)(nil).GetDisk), arg0, arg1, arg2)
 }
 
-// GetDiskAlpha mocks base method
-func (m *MockClient) GetDiskAlpha(arg0, arg1, arg2 string) (*v0_alpha.Disk, error) {
+// GetDiskAlpha mocks base method.
+func (m *MockClient) GetDiskAlpha(arg0, arg1, arg2 string) (*compute0.Disk, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetDiskAlpha", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*v0_alpha.Disk)
+	ret0, _ := ret[0].(*compute0.Disk)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetDiskAlpha indicates an expected call of GetDiskAlpha
+// GetDiskAlpha indicates an expected call of GetDiskAlpha.
 func (mr *MockClientMockRecorder) GetDiskAlpha(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDiskAlpha", reflect.TypeOf((*MockClient)(nil).GetDiskAlpha), arg0, arg1, arg2)
 }
 
-// GetDiskBeta mocks base method
-func (m *MockClient) GetDiskBeta(arg0, arg1, arg2 string) (*v0_beta.Disk, error) {
+// GetDiskBeta mocks base method.
+func (m *MockClient) GetDiskBeta(arg0, arg1, arg2 string) (*compute1.Disk, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetDiskBeta", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*v0_beta.Disk)
+	ret0, _ := ret[0].(*compute1.Disk)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetDiskBeta indicates an expected call of GetDiskBeta
+// GetDiskBeta indicates an expected call of GetDiskBeta.
 func (mr *MockClientMockRecorder) GetDiskBeta(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDiskBeta", reflect.TypeOf((*MockClient)(nil).GetDiskBeta), arg0, arg1, arg2)
 }
 
-// GetFirewallRule mocks base method
-func (m *MockClient) GetFirewallRule(arg0, arg1 string) (*v1.Firewall, error) {
+// GetFirewallRule mocks base method.
+func (m *MockClient) GetFirewallRule(arg0, arg1 string) (*compute2.Firewall, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetFirewallRule", arg0, arg1)
-	ret0, _ := ret[0].(*v1.Firewall)
+	ret0, _ := ret[0].(*compute2.Firewall)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetFirewallRule indicates an expected call of GetFirewallRule
+// GetFirewallRule indicates an expected call of GetFirewallRule.
 func (mr *MockClientMockRecorder) GetFirewallRule(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFirewallRule", reflect.TypeOf((*MockClient)(nil).GetFirewallRule), arg0, arg1)
 }
 
-// GetForwardingRule mocks base method
-func (m *MockClient) GetForwardingRule(arg0, arg1, arg2 string) (*v1.ForwardingRule, error) {
+// GetForwardingRule mocks base method.
+func (m *MockClient) GetForwardingRule(arg0, arg1, arg2 string) (*compute2.ForwardingRule, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetForwardingRule", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*v1.ForwardingRule)
+	ret0, _ := ret[0].(*compute2.ForwardingRule)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetForwardingRule indicates an expected call of GetForwardingRule
+// GetForwardingRule indicates an expected call of GetForwardingRule.
 func (mr *MockClientMockRecorder) GetForwardingRule(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetForwardingRule", reflect.TypeOf((*MockClient)(nil).GetForwardingRule), arg0, arg1, arg2)
 }
 
-// GetGuestAttributes mocks base method
-func (m *MockClient) GetGuestAttributes(arg0, arg1, arg2, arg3, arg4 string) (*v0_beta.GuestAttributes, error) {
+// GetGuestAttributes mocks base method.
+func (m *MockClient) GetGuestAttributes(arg0, arg1, arg2, arg3, arg4 string) (*compute1.GuestAttributes, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGuestAttributes", arg0, arg1, arg2, arg3, arg4)
-	ret0, _ := ret[0].(*v0_beta.GuestAttributes)
+	ret0, _ := ret[0].(*compute1.GuestAttributes)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetGuestAttributes indicates an expected call of GetGuestAttributes
+// GetGuestAttributes indicates an expected call of GetGuestAttributes.
 func (mr *MockClientMockRecorder) GetGuestAttributes(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGuestAttributes", reflect.TypeOf((*MockClient)(nil).GetGuestAttributes), arg0, arg1, arg2, arg3, arg4)
 }
 
-// GetImage mocks base method
-func (m *MockClient) GetImage(arg0, arg1 string) (*v1.Image, error) {
+// GetImage mocks base method.
+func (m *MockClient) GetImage(arg0, arg1 string) (*compute2.Image, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetImage", arg0, arg1)
-	ret0, _ := ret[0].(*v1.Image)
+	ret0, _ := ret[0].(*compute2.Image)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetImage indicates an expected call of GetImage
+// GetImage indicates an expected call of GetImage.
 func (mr *MockClientMockRecorder) GetImage(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImage", reflect.TypeOf((*MockClient)(nil).GetImage), arg0, arg1)
 }
 
-// GetImageBeta mocks base method
-func (m *MockClient) GetImageBeta(arg0, arg1 string) (*v0_beta.Image, error) {
+// GetImageAlpha mocks base method.
+func (m *MockClient) GetImageAlpha(arg0, arg1 string) (*compute0.Image, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetImageBeta", arg0, arg1)
-	ret0, _ := ret[0].(*v0_beta.Image)
+	ret := m.ctrl.Call(m, "GetImageAlpha", arg0, arg1)
+	ret0, _ := ret[0].(*compute0.Image)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetImageBeta indicates an expected call of GetImageBeta
+// GetImageAlpha indicates an expected call of GetImageAlpha.
+func (mr *MockClientMockRecorder) GetImageAlpha(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImageAlpha", reflect.TypeOf((*MockClient)(nil).GetImageAlpha), arg0, arg1)
+}
+
+// GetImageBeta mocks base method.
+func (m *MockClient) GetImageBeta(arg0, arg1 string) (*compute1.Image, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetImageBeta", arg0, arg1)
+	ret0, _ := ret[0].(*compute1.Image)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetImageBeta indicates an expected call of GetImageBeta.
 func (mr *MockClientMockRecorder) GetImageBeta(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImageBeta", reflect.TypeOf((*MockClient)(nil).GetImageBeta), arg0, arg1)
 }
 
-// GetImageFromFamily mocks base method
-func (m *MockClient) GetImageFromFamily(arg0, arg1 string) (*v1.Image, error) {
+// GetImageFromFamily mocks base method.
+func (m *MockClient) GetImageFromFamily(arg0, arg1 string) (*compute2.Image, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetImageFromFamily", arg0, arg1)
-	ret0, _ := ret[0].(*v1.Image)
+	ret0, _ := ret[0].(*compute2.Image)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetImageFromFamily indicates an expected call of GetImageFromFamily
+// GetImageFromFamily indicates an expected call of GetImageFromFamily.
 func (mr *MockClientMockRecorder) GetImageFromFamily(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImageFromFamily", reflect.TypeOf((*MockClient)(nil).GetImageFromFamily), arg0, arg1)
 }
 
-// GetInstance mocks base method
-func (m *MockClient) GetInstance(arg0, arg1, arg2 string) (*v1.Instance, error) {
+// GetInstance mocks base method.
+func (m *MockClient) GetInstance(arg0, arg1, arg2 string) (*compute2.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetInstance", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*v1.Instance)
+	ret0, _ := ret[0].(*compute2.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetInstance indicates an expected call of GetInstance
+// GetInstance indicates an expected call of GetInstance.
 func (mr *MockClientMockRecorder) GetInstance(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstance", reflect.TypeOf((*MockClient)(nil).GetInstance), arg0, arg1, arg2)
 }
 
-// GetInstanceBeta mocks base method
-func (m *MockClient) GetInstanceBeta(arg0, arg1, arg2 string) (*v0_beta.Instance, error) {
+// GetInstanceAlpha mocks base method.
+func (m *MockClient) GetInstanceAlpha(arg0, arg1, arg2 string) (*compute0.Instance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInstanceBeta", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*v0_beta.Instance)
+	ret := m.ctrl.Call(m, "GetInstanceAlpha", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*compute0.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetInstanceBeta indicates an expected call of GetInstanceBeta
+// GetInstanceAlpha indicates an expected call of GetInstanceAlpha.
+func (mr *MockClientMockRecorder) GetInstanceAlpha(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstanceAlpha", reflect.TypeOf((*MockClient)(nil).GetInstanceAlpha), arg0, arg1, arg2)
+}
+
+// GetInstanceBeta mocks base method.
+func (m *MockClient) GetInstanceBeta(arg0, arg1, arg2 string) (*compute1.Instance, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstanceBeta", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*compute1.Instance)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInstanceBeta indicates an expected call of GetInstanceBeta.
 func (mr *MockClientMockRecorder) GetInstanceBeta(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstanceBeta", reflect.TypeOf((*MockClient)(nil).GetInstanceBeta), arg0, arg1, arg2)
 }
 
-// GetLicense mocks base method
-func (m *MockClient) GetLicense(arg0, arg1 string) (*v1.License, error) {
+// GetLicense mocks base method.
+func (m *MockClient) GetLicense(arg0, arg1 string) (*compute2.License, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetLicense", arg0, arg1)
-	ret0, _ := ret[0].(*v1.License)
+	ret0, _ := ret[0].(*compute2.License)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetLicense indicates an expected call of GetLicense
+// GetLicense indicates an expected call of GetLicense.
 func (mr *MockClientMockRecorder) GetLicense(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLicense", reflect.TypeOf((*MockClient)(nil).GetLicense), arg0, arg1)
 }
 
-// GetMachineImage mocks base method
-func (m *MockClient) GetMachineImage(arg0, arg1 string) (*v0_beta.MachineImage, error) {
+// GetMachineImage mocks base method.
+func (m *MockClient) GetMachineImage(arg0, arg1 string) (*compute1.MachineImage, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMachineImage", arg0, arg1)
-	ret0, _ := ret[0].(*v0_beta.MachineImage)
+	ret0, _ := ret[0].(*compute1.MachineImage)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetMachineImage indicates an expected call of GetMachineImage
+// GetMachineImage indicates an expected call of GetMachineImage.
 func (mr *MockClientMockRecorder) GetMachineImage(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMachineImage", reflect.TypeOf((*MockClient)(nil).GetMachineImage), arg0, arg1)
 }
 
-// GetMachineType mocks base method
-func (m *MockClient) GetMachineType(arg0, arg1, arg2 string) (*v1.MachineType, error) {
+// GetMachineType mocks base method.
+func (m *MockClient) GetMachineType(arg0, arg1, arg2 string) (*compute2.MachineType, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMachineType", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*v1.MachineType)
+	ret0, _ := ret[0].(*compute2.MachineType)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetMachineType indicates an expected call of GetMachineType
+// GetMachineType indicates an expected call of GetMachineType.
 func (mr *MockClientMockRecorder) GetMachineType(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMachineType", reflect.TypeOf((*MockClient)(nil).GetMachineType), arg0, arg1, arg2)
 }
 
-// GetNetwork mocks base method
-func (m *MockClient) GetNetwork(arg0, arg1 string) (*v1.Network, error) {
+// GetNetwork mocks base method.
+func (m *MockClient) GetNetwork(arg0, arg1 string) (*compute2.Network, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetNetwork", arg0, arg1)
-	ret0, _ := ret[0].(*v1.Network)
+	ret0, _ := ret[0].(*compute2.Network)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetNetwork indicates an expected call of GetNetwork
+// GetNetwork indicates an expected call of GetNetwork.
 func (mr *MockClientMockRecorder) GetNetwork(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNetwork", reflect.TypeOf((*MockClient)(nil).GetNetwork), arg0, arg1)
 }
 
-// GetProject mocks base method
-func (m *MockClient) GetProject(arg0 string) (*v1.Project, error) {
+// GetProject mocks base method.
+func (m *MockClient) GetProject(arg0 string) (*compute2.Project, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetProject", arg0)
-	ret0, _ := ret[0].(*v1.Project)
+	ret0, _ := ret[0].(*compute2.Project)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetProject indicates an expected call of GetProject
+// GetProject indicates an expected call of GetProject.
 func (mr *MockClientMockRecorder) GetProject(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProject", reflect.TypeOf((*MockClient)(nil).GetProject), arg0)
 }
 
-// GetSerialPortOutput mocks base method
-func (m *MockClient) GetSerialPortOutput(arg0, arg1, arg2 string, arg3, arg4 int64) (*v1.SerialPortOutput, error) {
+// GetSerialPortOutput mocks base method.
+func (m *MockClient) GetSerialPortOutput(arg0, arg1, arg2 string, arg3, arg4 int64) (*compute2.SerialPortOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSerialPortOutput", arg0, arg1, arg2, arg3, arg4)
-	ret0, _ := ret[0].(*v1.SerialPortOutput)
+	ret0, _ := ret[0].(*compute2.SerialPortOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetSerialPortOutput indicates an expected call of GetSerialPortOutput
+// GetSerialPortOutput indicates an expected call of GetSerialPortOutput.
 func (mr *MockClientMockRecorder) GetSerialPortOutput(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSerialPortOutput", reflect.TypeOf((*MockClient)(nil).GetSerialPortOutput), arg0, arg1, arg2, arg3, arg4)
 }
 
-// GetSnapshot mocks base method
-func (m *MockClient) GetSnapshot(arg0, arg1 string) (*v1.Snapshot, error) {
+// GetSnapshot mocks base method.
+func (m *MockClient) GetSnapshot(arg0, arg1 string) (*compute2.Snapshot, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSnapshot", arg0, arg1)
-	ret0, _ := ret[0].(*v1.Snapshot)
+	ret0, _ := ret[0].(*compute2.Snapshot)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetSnapshot indicates an expected call of GetSnapshot
+// GetSnapshot indicates an expected call of GetSnapshot.
 func (mr *MockClientMockRecorder) GetSnapshot(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSnapshot", reflect.TypeOf((*MockClient)(nil).GetSnapshot), arg0, arg1)
 }
 
-// GetSubnetwork mocks base method
-func (m *MockClient) GetSubnetwork(arg0, arg1, arg2 string) (*v1.Subnetwork, error) {
+// GetSubnetwork mocks base method.
+func (m *MockClient) GetSubnetwork(arg0, arg1, arg2 string) (*compute2.Subnetwork, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSubnetwork", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*v1.Subnetwork)
+	ret0, _ := ret[0].(*compute2.Subnetwork)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetSubnetwork indicates an expected call of GetSubnetwork
+// GetSubnetwork indicates an expected call of GetSubnetwork.
 func (mr *MockClientMockRecorder) GetSubnetwork(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSubnetwork", reflect.TypeOf((*MockClient)(nil).GetSubnetwork), arg0, arg1, arg2)
 }
 
-// GetTargetInstance mocks base method
-func (m *MockClient) GetTargetInstance(arg0, arg1, arg2 string) (*v1.TargetInstance, error) {
+// GetTargetInstance mocks base method.
+func (m *MockClient) GetTargetInstance(arg0, arg1, arg2 string) (*compute2.TargetInstance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTargetInstance", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*v1.TargetInstance)
+	ret0, _ := ret[0].(*compute2.TargetInstance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetTargetInstance indicates an expected call of GetTargetInstance
+// GetTargetInstance indicates an expected call of GetTargetInstance.
 func (mr *MockClientMockRecorder) GetTargetInstance(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetInstance", reflect.TypeOf((*MockClient)(nil).GetTargetInstance), arg0, arg1, arg2)
 }
 
-// GetZone mocks base method
-func (m *MockClient) GetZone(arg0, arg1 string) (*v1.Zone, error) {
+// GetZone mocks base method.
+func (m *MockClient) GetZone(arg0, arg1 string) (*compute2.Zone, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetZone", arg0, arg1)
-	ret0, _ := ret[0].(*v1.Zone)
+	ret0, _ := ret[0].(*compute2.Zone)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetZone indicates an expected call of GetZone
+// GetZone indicates an expected call of GetZone.
 func (mr *MockClientMockRecorder) GetZone(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetZone", reflect.TypeOf((*MockClient)(nil).GetZone), arg0, arg1)
 }
 
-// InstanceStatus mocks base method
+// InstanceStatus mocks base method.
 func (m *MockClient) InstanceStatus(arg0, arg1, arg2 string) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "InstanceStatus", arg0, arg1, arg2)
@@ -827,13 +900,13 @@ func (m *MockClient) InstanceStatus(arg0, arg1, arg2 string) (string, error) {
 	return ret0, ret1
 }
 
-// InstanceStatus indicates an expected call of InstanceStatus
+// InstanceStatus indicates an expected call of InstanceStatus.
 func (mr *MockClientMockRecorder) InstanceStatus(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstanceStatus", reflect.TypeOf((*MockClient)(nil).InstanceStatus), arg0, arg1, arg2)
 }
 
-// InstanceStopped mocks base method
+// InstanceStopped mocks base method.
 func (m *MockClient) InstanceStopped(arg0, arg1, arg2 string) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "InstanceStopped", arg0, arg1, arg2)
@@ -842,361 +915,381 @@ func (m *MockClient) InstanceStopped(arg0, arg1, arg2 string) (bool, error) {
 	return ret0, ret1
 }
 
-// InstanceStopped indicates an expected call of InstanceStopped
+// InstanceStopped indicates an expected call of InstanceStopped.
 func (mr *MockClientMockRecorder) InstanceStopped(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstanceStopped", reflect.TypeOf((*MockClient)(nil).InstanceStopped), arg0, arg1, arg2)
 }
 
-// ListDisks mocks base method
-func (m *MockClient) ListDisks(arg0, arg1 string, arg2 ...compute.ListCallOption) ([]*v1.Disk, error) {
+// ListDisks mocks base method.
+func (m *MockClient) ListDisks(arg0, arg1 string, arg2 ...compute.ListCallOption) ([]*compute2.Disk, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ListDisks", varargs...)
-	ret0, _ := ret[0].([]*v1.Disk)
+	ret0, _ := ret[0].([]*compute2.Disk)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListDisks indicates an expected call of ListDisks
+// ListDisks indicates an expected call of ListDisks.
 func (mr *MockClientMockRecorder) ListDisks(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDisks", reflect.TypeOf((*MockClient)(nil).ListDisks), varargs...)
 }
 
-// ListFirewallRules mocks base method
-func (m *MockClient) ListFirewallRules(arg0 string, arg1 ...compute.ListCallOption) ([]*v1.Firewall, error) {
+// ListFirewallRules mocks base method.
+func (m *MockClient) ListFirewallRules(arg0 string, arg1 ...compute.ListCallOption) ([]*compute2.Firewall, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
 	for _, a := range arg1 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ListFirewallRules", varargs...)
-	ret0, _ := ret[0].([]*v1.Firewall)
+	ret0, _ := ret[0].([]*compute2.Firewall)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListFirewallRules indicates an expected call of ListFirewallRules
+// ListFirewallRules indicates an expected call of ListFirewallRules.
 func (mr *MockClientMockRecorder) ListFirewallRules(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFirewallRules", reflect.TypeOf((*MockClient)(nil).ListFirewallRules), varargs...)
 }
 
-// ListForwardingRules mocks base method
-func (m *MockClient) ListForwardingRules(arg0, arg1 string, arg2 ...compute.ListCallOption) ([]*v1.ForwardingRule, error) {
+// ListForwardingRules mocks base method.
+func (m *MockClient) ListForwardingRules(arg0, arg1 string, arg2 ...compute.ListCallOption) ([]*compute2.ForwardingRule, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ListForwardingRules", varargs...)
-	ret0, _ := ret[0].([]*v1.ForwardingRule)
+	ret0, _ := ret[0].([]*compute2.ForwardingRule)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListForwardingRules indicates an expected call of ListForwardingRules
+// ListForwardingRules indicates an expected call of ListForwardingRules.
 func (mr *MockClientMockRecorder) ListForwardingRules(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListForwardingRules", reflect.TypeOf((*MockClient)(nil).ListForwardingRules), varargs...)
 }
 
-// ListImages mocks base method
-func (m *MockClient) ListImages(arg0 string, arg1 ...compute.ListCallOption) ([]*v1.Image, error) {
+// ListImages mocks base method.
+func (m *MockClient) ListImages(arg0 string, arg1 ...compute.ListCallOption) ([]*compute2.Image, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
 	for _, a := range arg1 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ListImages", varargs...)
-	ret0, _ := ret[0].([]*v1.Image)
+	ret0, _ := ret[0].([]*compute2.Image)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListImages indicates an expected call of ListImages
+// ListImages indicates an expected call of ListImages.
 func (mr *MockClientMockRecorder) ListImages(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListImages", reflect.TypeOf((*MockClient)(nil).ListImages), varargs...)
 }
 
-// ListInstances mocks base method
-func (m *MockClient) ListInstances(arg0, arg1 string, arg2 ...compute.ListCallOption) ([]*v1.Instance, error) {
+// ListImagesAlpha mocks base method.
+func (m *MockClient) ListImagesAlpha(arg0 string, arg1 ...compute.ListCallOption) ([]*compute0.Image, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0}
+	for _, a := range arg1 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListImagesAlpha", varargs...)
+	ret0, _ := ret[0].([]*compute0.Image)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListImagesAlpha indicates an expected call of ListImagesAlpha.
+func (mr *MockClientMockRecorder) ListImagesAlpha(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0}, arg1...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListImagesAlpha", reflect.TypeOf((*MockClient)(nil).ListImagesAlpha), varargs...)
+}
+
+// ListInstances mocks base method.
+func (m *MockClient) ListInstances(arg0, arg1 string, arg2 ...compute.ListCallOption) ([]*compute2.Instance, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ListInstances", varargs...)
-	ret0, _ := ret[0].([]*v1.Instance)
+	ret0, _ := ret[0].([]*compute2.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListInstances indicates an expected call of ListInstances
+// ListInstances indicates an expected call of ListInstances.
 func (mr *MockClientMockRecorder) ListInstances(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListInstances", reflect.TypeOf((*MockClient)(nil).ListInstances), varargs...)
 }
 
-// ListLicenses mocks base method
-func (m *MockClient) ListLicenses(arg0 string, arg1 ...compute.ListCallOption) ([]*v1.License, error) {
+// ListLicenses mocks base method.
+func (m *MockClient) ListLicenses(arg0 string, arg1 ...compute.ListCallOption) ([]*compute2.License, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
 	for _, a := range arg1 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ListLicenses", varargs...)
-	ret0, _ := ret[0].([]*v1.License)
+	ret0, _ := ret[0].([]*compute2.License)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListLicenses indicates an expected call of ListLicenses
+// ListLicenses indicates an expected call of ListLicenses.
 func (mr *MockClientMockRecorder) ListLicenses(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListLicenses", reflect.TypeOf((*MockClient)(nil).ListLicenses), varargs...)
 }
 
-// ListMachineImages mocks base method
-func (m *MockClient) ListMachineImages(arg0 string, arg1 ...compute.ListCallOption) ([]*v0_beta.MachineImage, error) {
+// ListMachineImages mocks base method.
+func (m *MockClient) ListMachineImages(arg0 string, arg1 ...compute.ListCallOption) ([]*compute1.MachineImage, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
 	for _, a := range arg1 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ListMachineImages", varargs...)
-	ret0, _ := ret[0].([]*v0_beta.MachineImage)
+	ret0, _ := ret[0].([]*compute1.MachineImage)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListMachineImages indicates an expected call of ListMachineImages
+// ListMachineImages indicates an expected call of ListMachineImages.
 func (mr *MockClientMockRecorder) ListMachineImages(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMachineImages", reflect.TypeOf((*MockClient)(nil).ListMachineImages), varargs...)
 }
 
-// ListMachineTypes mocks base method
-func (m *MockClient) ListMachineTypes(arg0, arg1 string, arg2 ...compute.ListCallOption) ([]*v1.MachineType, error) {
+// ListMachineTypes mocks base method.
+func (m *MockClient) ListMachineTypes(arg0, arg1 string, arg2 ...compute.ListCallOption) ([]*compute2.MachineType, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ListMachineTypes", varargs...)
-	ret0, _ := ret[0].([]*v1.MachineType)
+	ret0, _ := ret[0].([]*compute2.MachineType)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListMachineTypes indicates an expected call of ListMachineTypes
+// ListMachineTypes indicates an expected call of ListMachineTypes.
 func (mr *MockClientMockRecorder) ListMachineTypes(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMachineTypes", reflect.TypeOf((*MockClient)(nil).ListMachineTypes), varargs...)
 }
 
-// ListNetworks mocks base method
-func (m *MockClient) ListNetworks(arg0 string, arg1 ...compute.ListCallOption) ([]*v1.Network, error) {
+// ListNetworks mocks base method.
+func (m *MockClient) ListNetworks(arg0 string, arg1 ...compute.ListCallOption) ([]*compute2.Network, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
 	for _, a := range arg1 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ListNetworks", varargs...)
-	ret0, _ := ret[0].([]*v1.Network)
+	ret0, _ := ret[0].([]*compute2.Network)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListNetworks indicates an expected call of ListNetworks
+// ListNetworks indicates an expected call of ListNetworks.
 func (mr *MockClientMockRecorder) ListNetworks(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNetworks", reflect.TypeOf((*MockClient)(nil).ListNetworks), varargs...)
 }
 
-// ListRegions mocks base method
-func (m *MockClient) ListRegions(arg0 string, arg1 ...compute.ListCallOption) ([]*v1.Region, error) {
+// ListRegions mocks base method.
+func (m *MockClient) ListRegions(arg0 string, arg1 ...compute.ListCallOption) ([]*compute2.Region, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
 	for _, a := range arg1 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ListRegions", varargs...)
-	ret0, _ := ret[0].([]*v1.Region)
+	ret0, _ := ret[0].([]*compute2.Region)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListRegions indicates an expected call of ListRegions
+// ListRegions indicates an expected call of ListRegions.
 func (mr *MockClientMockRecorder) ListRegions(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRegions", reflect.TypeOf((*MockClient)(nil).ListRegions), varargs...)
 }
 
-// ListSnapshots mocks base method
-func (m *MockClient) ListSnapshots(arg0 string, arg1 ...compute.ListCallOption) ([]*v1.Snapshot, error) {
+// ListSnapshots mocks base method.
+func (m *MockClient) ListSnapshots(arg0 string, arg1 ...compute.ListCallOption) ([]*compute2.Snapshot, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
 	for _, a := range arg1 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ListSnapshots", varargs...)
-	ret0, _ := ret[0].([]*v1.Snapshot)
+	ret0, _ := ret[0].([]*compute2.Snapshot)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListSnapshots indicates an expected call of ListSnapshots
+// ListSnapshots indicates an expected call of ListSnapshots.
 func (mr *MockClientMockRecorder) ListSnapshots(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSnapshots", reflect.TypeOf((*MockClient)(nil).ListSnapshots), varargs...)
 }
 
-// ListSubnetworks mocks base method
-func (m *MockClient) ListSubnetworks(arg0, arg1 string, arg2 ...compute.ListCallOption) ([]*v1.Subnetwork, error) {
+// ListSubnetworks mocks base method.
+func (m *MockClient) ListSubnetworks(arg0, arg1 string, arg2 ...compute.ListCallOption) ([]*compute2.Subnetwork, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ListSubnetworks", varargs...)
-	ret0, _ := ret[0].([]*v1.Subnetwork)
+	ret0, _ := ret[0].([]*compute2.Subnetwork)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListSubnetworks indicates an expected call of ListSubnetworks
+// ListSubnetworks indicates an expected call of ListSubnetworks.
 func (mr *MockClientMockRecorder) ListSubnetworks(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSubnetworks", reflect.TypeOf((*MockClient)(nil).ListSubnetworks), varargs...)
 }
 
-// ListTargetInstances mocks base method
-func (m *MockClient) ListTargetInstances(arg0, arg1 string, arg2 ...compute.ListCallOption) ([]*v1.TargetInstance, error) {
+// ListTargetInstances mocks base method.
+func (m *MockClient) ListTargetInstances(arg0, arg1 string, arg2 ...compute.ListCallOption) ([]*compute2.TargetInstance, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ListTargetInstances", varargs...)
-	ret0, _ := ret[0].([]*v1.TargetInstance)
+	ret0, _ := ret[0].([]*compute2.TargetInstance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListTargetInstances indicates an expected call of ListTargetInstances
+// ListTargetInstances indicates an expected call of ListTargetInstances.
 func (mr *MockClientMockRecorder) ListTargetInstances(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTargetInstances", reflect.TypeOf((*MockClient)(nil).ListTargetInstances), varargs...)
 }
 
-// ListZones mocks base method
-func (m *MockClient) ListZones(arg0 string, arg1 ...compute.ListCallOption) ([]*v1.Zone, error) {
+// ListZones mocks base method.
+func (m *MockClient) ListZones(arg0 string, arg1 ...compute.ListCallOption) ([]*compute2.Zone, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
 	for _, a := range arg1 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ListZones", varargs...)
-	ret0, _ := ret[0].([]*v1.Zone)
+	ret0, _ := ret[0].([]*compute2.Zone)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListZones indicates an expected call of ListZones
+// ListZones indicates an expected call of ListZones.
 func (mr *MockClientMockRecorder) ListZones(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListZones", reflect.TypeOf((*MockClient)(nil).ListZones), varargs...)
 }
 
-// ResizeDisk mocks base method
-func (m *MockClient) ResizeDisk(arg0, arg1, arg2 string, arg3 *v1.DisksResizeRequest) error {
+// ResizeDisk mocks base method.
+func (m *MockClient) ResizeDisk(arg0, arg1, arg2 string, arg3 *compute2.DisksResizeRequest) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResizeDisk", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// ResizeDisk indicates an expected call of ResizeDisk
+// ResizeDisk indicates an expected call of ResizeDisk.
 func (mr *MockClientMockRecorder) ResizeDisk(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResizeDisk", reflect.TypeOf((*MockClient)(nil).ResizeDisk), arg0, arg1, arg2, arg3)
 }
 
-// Retry mocks base method
-func (m *MockClient) Retry(arg0 func(...googleapi.CallOption) (*v1.Operation, error), arg1 ...googleapi.CallOption) (*v1.Operation, error) {
+// Retry mocks base method.
+func (m *MockClient) Retry(arg0 func(...googleapi.CallOption) (*compute2.Operation, error), arg1 ...googleapi.CallOption) (*compute2.Operation, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
 	for _, a := range arg1 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Retry", varargs...)
-	ret0, _ := ret[0].(*v1.Operation)
+	ret0, _ := ret[0].(*compute2.Operation)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Retry indicates an expected call of Retry
+// Retry indicates an expected call of Retry.
 func (mr *MockClientMockRecorder) Retry(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Retry", reflect.TypeOf((*MockClient)(nil).Retry), varargs...)
 }
 
-// RetryBeta mocks base method
-func (m *MockClient) RetryBeta(arg0 func(...googleapi.CallOption) (*v0_beta.Operation, error), arg1 ...googleapi.CallOption) (*v0_beta.Operation, error) {
+// RetryBeta mocks base method.
+func (m *MockClient) RetryBeta(arg0 func(...googleapi.CallOption) (*compute1.Operation, error), arg1 ...googleapi.CallOption) (*compute1.Operation, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
 	for _, a := range arg1 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "RetryBeta", varargs...)
-	ret0, _ := ret[0].(*v0_beta.Operation)
+	ret0, _ := ret[0].(*compute1.Operation)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// RetryBeta indicates an expected call of RetryBeta
+// RetryBeta indicates an expected call of RetryBeta.
 func (mr *MockClientMockRecorder) RetryBeta(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetryBeta", reflect.TypeOf((*MockClient)(nil).RetryBeta), varargs...)
 }
 
-// SetCommonInstanceMetadata mocks base method
-func (m *MockClient) SetCommonInstanceMetadata(arg0 string, arg1 *v1.Metadata) error {
+// SetCommonInstanceMetadata mocks base method.
+func (m *MockClient) SetCommonInstanceMetadata(arg0 string, arg1 *compute2.Metadata) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetCommonInstanceMetadata", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// SetCommonInstanceMetadata indicates an expected call of SetCommonInstanceMetadata
+// SetCommonInstanceMetadata indicates an expected call of SetCommonInstanceMetadata.
 func (mr *MockClientMockRecorder) SetCommonInstanceMetadata(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCommonInstanceMetadata", reflect.TypeOf((*MockClient)(nil).SetCommonInstanceMetadata), arg0, arg1)
 }
 
-// SetDiskAutoDelete mocks base method
+// SetDiskAutoDelete mocks base method.
 func (m *MockClient) SetDiskAutoDelete(arg0, arg1, arg2 string, arg3 bool, arg4 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetDiskAutoDelete", arg0, arg1, arg2, arg3, arg4)
@@ -1204,27 +1297,27 @@ func (m *MockClient) SetDiskAutoDelete(arg0, arg1, arg2 string, arg3 bool, arg4 
 	return ret0
 }
 
-// SetDiskAutoDelete indicates an expected call of SetDiskAutoDelete
+// SetDiskAutoDelete indicates an expected call of SetDiskAutoDelete.
 func (mr *MockClientMockRecorder) SetDiskAutoDelete(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDiskAutoDelete", reflect.TypeOf((*MockClient)(nil).SetDiskAutoDelete), arg0, arg1, arg2, arg3, arg4)
 }
 
-// SetInstanceMetadata mocks base method
-func (m *MockClient) SetInstanceMetadata(arg0, arg1, arg2 string, arg3 *v1.Metadata) error {
+// SetInstanceMetadata mocks base method.
+func (m *MockClient) SetInstanceMetadata(arg0, arg1, arg2 string, arg3 *compute2.Metadata) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetInstanceMetadata", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// SetInstanceMetadata indicates an expected call of SetInstanceMetadata
+// SetInstanceMetadata indicates an expected call of SetInstanceMetadata.
 func (mr *MockClientMockRecorder) SetInstanceMetadata(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetInstanceMetadata", reflect.TypeOf((*MockClient)(nil).SetInstanceMetadata), arg0, arg1, arg2, arg3)
 }
 
-// StartInstance mocks base method
+// StartInstance mocks base method.
 func (m *MockClient) StartInstance(arg0, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "StartInstance", arg0, arg1, arg2)
@@ -1232,13 +1325,13 @@ func (m *MockClient) StartInstance(arg0, arg1, arg2 string) error {
 	return ret0
 }
 
-// StartInstance indicates an expected call of StartInstance
+// StartInstance indicates an expected call of StartInstance.
 func (mr *MockClientMockRecorder) StartInstance(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartInstance", reflect.TypeOf((*MockClient)(nil).StartInstance), arg0, arg1, arg2)
 }
 
-// StopInstance mocks base method
+// StopInstance mocks base method.
 func (m *MockClient) StopInstance(arg0, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "StopInstance", arg0, arg1, arg2)
@@ -1246,7 +1339,7 @@ func (m *MockClient) StopInstance(arg0, arg1, arg2 string) error {
 	return ret0
 }
 
-// StopInstance indicates an expected call of StopInstance
+// StopInstance indicates an expected call of StopInstance.
 func (mr *MockClientMockRecorder) StopInstance(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopInstance", reflect.TypeOf((*MockClient)(nil).StopInstance), arg0, arg1, arg2)
