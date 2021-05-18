@@ -586,23 +586,27 @@ function Optimize-Image {
 }
 
 function Generate-NativeImage {
-  Write-Host 'Native Image Installation for PowerShell.'
-
-  $sc = {
-    # Speed up PowerShell startup.
-    # https://docs.microsoft.com/en-us/dotnet/framework/tools/ngen-exe-native-image-generator#faster-application-startup
-    $ngen = "$([Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory())ngen.exe"
-    [AppDomain]::CurrentDomain.GetAssemblies() | ForEach-Object {
-      if (! $_.Location) {
-        continue
-      }
-      Write-Output "Native Image Installation: $(Split-Path $_.Location -Leaf)"
-      & $ngen install $_.Location | Write-Output
-    }
-  }
-
-  Start-Job -ScriptBlock $sc | Wait-Job | Receive-Job | ForEach-Object {
-    Write-Host $_
+  <#
+    .SYOPSIS
+      Generates .Net Framework native image.
+    .DESCRIPTION
+      When .Net framework is updated during windows monthly update,
+      the native image should also be regenerated during image build.
+      It reduces the CPU load when a new VM is launched from the image.
+    .NOTES
+      Using PowerShell simple function to match the style.
+  #>
+  # Searching for ngen.exe location using the .Net CLR default path
+  # Ref: https://docs.microsoft.com/en-us/dotnet/framework/migration-guide/versions-and-dependencies
+  Write-Host 'Native Image Generation for .Net Framework'
+  Write-Host 'Searching for ngen.exe'
+  $ngenPath = (Get-ChildItem -Path "$env:SystemRoot\Microsoft.NET" -Recurse -Filter 'ngen.exe' -ErrorAction Stop).FullName
+  Write-Host "Found $($ngenPath.count): $(($ngenPath -join ';'))"
+  foreach ($ngen in $ngenPath) {
+    Write-Host "NGEN start: [$ngen]"
+    &$ngen executeQueuedItems /verbose
+    &$ngen update /force
+    Write-Host "NGEN finish: [$ngen]"
   }
 }
 
