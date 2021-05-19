@@ -1,9 +1,0 @@
-{
-  "blockdevices": [
-    {"name": "sda", "mountpoint": null, "type": "disk",
-      "children": [
-        {"name": "sda1", "mountpoint": "/", "type": "part"}
-      ]
-    }
-  ]
-}

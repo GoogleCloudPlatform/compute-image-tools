@@ -1,1 +1,0 @@
-sle-module-public-cloud
