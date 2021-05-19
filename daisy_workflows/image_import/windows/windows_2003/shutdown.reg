@@ -1,7 +1,0 @@
-Windows Registry Editor Version 5.00
-
-[HKEY_LOCAL_MACHINE\msoftware\Microsoft\Windows\CurrentVersion\policies\system]
-"ShutdownWithoutLogon"=dword:00000001
-
-[HKEY_LOCAL_MACHINE\msoftware\Microsoft\Windows NT\CurrentVersion\Windows]
-"ShutdownWarningDialogTimeout"=dword:00000001
