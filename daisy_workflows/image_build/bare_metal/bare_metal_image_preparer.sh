@@ -27,6 +27,7 @@ EOF
 # Install Packages.
 echo "Install rpm packages."
 yum -y install mcedaemon google-ecclesia-management-agent
+yum -y install gve
 
 # Check result
 if [[ $? -ne 0 ]]; then
