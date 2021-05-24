@@ -25,6 +25,7 @@ import (
 	"io/ioutil"
 	"path"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"text/template"
@@ -33,6 +34,7 @@ import (
 	"cloud.google.com/go/compute/metadata"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -77,7 +79,9 @@ type Publish struct {
 	toObsolete    []string
 	toUndeprecate []string
 
-	imagesCache map[string][]*compute.Image
+	rolloutPolicy []string
+
+	imagesCache map[string][]*computeAlpha.Image
 }
 
 // Image is a metadata holder for the image to be published/rollback
@@ -98,7 +102,9 @@ type Image struct {
 	// Optional DeprecationStatus.Obsolete entry for the image (RFC 3339).
 	ObsoleteDate *time.Time `json:",omitempty"`
 	// Optional ShieldedInstanceInitialState entry for secure-boot feature.
-	ShieldedInstanceInitialState *compute.InitialStateConfig `json:",omitempty"`
+	ShieldedInstanceInitialState *computeAlpha.InitialStateConfig `json:",omitempty"`
+	// RolloutPolicy entry for the image rollout policy.
+	RolloutPolicy *computeAlpha.RolloutPolicy `json:",omitempty"`
 }
 
 var (
@@ -111,7 +117,7 @@ var (
 )
 
 // CreatePublish creates a publish object
-func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, path string, varMap map[string]string, imagesCache map[string][]*compute.Image) (*Publish, error) {
+func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, path string, varMap map[string]string, imagesCache map[string][]*computeAlpha.Image) (*Publish, error) {
 	p := Publish{
 		sourceVersion:  sourceVersion,
 		publishVersion: publishVersion,
@@ -189,7 +195,7 @@ func (p *Publish) SetExpire() error {
 }
 
 // CreateWorkflows creates a list of daisy workflows from the publish object
-func (p *Publish) CreateWorkflows(ctx context.Context, varMap map[string]string, regex *regexp.Regexp, rollback, skipDup, replace, noRoot bool, oauth string) ([]*daisy.Workflow, error) {
+func (p *Publish) CreateWorkflows(ctx context.Context, varMap map[string]string, regex *regexp.Regexp, rollback, skipDup, replace, noRoot bool, oauth string, rolloutStartTime time.Time, rolloutRate int) ([]*daisy.Workflow, error) {
 	fmt.Printf("[%q] Preparing workflows from template\n", p.Name)
 
 	var ws []*daisy.Workflow
@@ -197,7 +203,7 @@ func (p *Publish) CreateWorkflows(ctx context.Context, varMap map[string]string,
 		if regex != nil && !regex.MatchString(img.Prefix) {
 			continue
 		}
-		w, err := p.createWorkflow(ctx, img, varMap, rollback, skipDup, replace, noRoot, oauth)
+		w, err := p.createWorkflow(ctx, img, varMap, rollback, skipDup, replace, noRoot, oauth, rolloutStartTime, rolloutRate)
 		if err != nil {
 			return nil, err
 		}
@@ -236,6 +242,11 @@ func (p *Publish) CreateWorkflows(ctx context.Context, varMap map[string]string,
 		printList(p.toDelete)
 	}
 
+	if len(p.rolloutPolicy) > 0 {
+		fmt.Println("  All images will have the following rollout policy:")
+		printList(p.rolloutPolicy)
+	}
+
 	return ws, nil
 }
 
@@ -243,10 +254,11 @@ func (p *Publish) CreateWorkflows(ctx context.Context, varMap map[string]string,
 
 const gcsImageObj = "root.tar.gz"
 
-func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicates, rep, noRoot bool) (*daisy.CreateImages, *daisy.DeprecateImages, *daisy.DeleteResources, error) {
+func publishImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image, skipDuplicates, rep, noRoot bool) (*daisy.CreateImages, *daisy.DeprecateImages, *daisy.DeleteResources, error) {
 	if skipDuplicates && rep {
 		return nil, nil, nil, errors.New("cannot set both skipDuplicates and replace")
 	}
+
 	publishName := img.Prefix
 	if p.publishVersion != "" {
 		publishName = fmt.Sprintf("%s-%s", publishName, p.publishVersion)
@@ -256,22 +268,23 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 		sourceName = fmt.Sprintf("%s-%s", sourceName, p.sourceVersion)
 	}
 
-	var ds *compute.DeprecationStatus
+	var ds *computeAlpha.DeprecationStatus
 	if img.ObsoleteDate != nil {
-		ds = &compute.DeprecationStatus{
+		ds = &computeAlpha.DeprecationStatus{
 			State:    "ACTIVE",
 			Obsolete: img.ObsoleteDate.Format(time.RFC3339),
 		}
 	}
 
-	ci := daisy.Image{
-		Image: compute.Image{
+	ci := daisy.ImageAlpha{
+		Image: computeAlpha.Image{
 			Name:                         publishName,
 			Description:                  img.Description,
 			Licenses:                     img.Licenses,
 			Family:                       img.Family,
 			Deprecated:                   ds,
 			ShieldedInstanceInitialState: img.ShieldedInstanceInitialState,
+			RolloutOverride:              img.RolloutPolicy,
 		},
 		ImageBase: daisy.ImageBase{
 			Resource: daisy.Resource{
@@ -297,11 +310,11 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 		} else {
 			source = fmt.Sprintf("%s/%s/%s", p.SourceGCSPath, sourceName, gcsImageObj)
 		}
-		ci.Image.RawDisk = &compute.ImageRawDisk{Source: source}
+		ci.Image.RawDisk = &computeAlpha.ImageRawDisk{Source: source}
 	} else {
 		return nil, nil, nil, errors.New("neither SourceProject or SourceGCSPath was set")
 	}
-	cis := &daisy.CreateImages{Images: []*daisy.Image{&ci}}
+	cis := &daisy.CreateImages{ImagesAlpha: []*daisy.ImageAlpha{&ci}}
 
 	dis := &daisy.DeprecateImages{}
 	drs := &daisy.DeleteResources{}
@@ -314,7 +327,7 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 				continue
 			} else if rep {
 				fmt.Printf("    Image %s, replacing\n", msg)
-				(*cis).Images[0].OverWrite = true
+				(*cis).ImagesAlpha[0].OverWrite = true
 				continue
 			}
 			return nil, nil, nil, errors.New(msg)
@@ -345,9 +358,10 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 			*dis = append(*dis, &daisy.DeprecateImage{
 				Image:   pubImg.Name,
 				Project: p.PublishProject,
-				DeprecationStatus: compute.DeprecationStatus{
-					State:       "DEPRECATED",
-					Replacement: fmt.Sprintf(fmt.Sprintf("https://www.googleapis.com/compute/v1/projects/%s/global/images/%s", p.PublishProject, publishName)),
+				DeprecationStatusAlpha: computeAlpha.DeprecationStatus{
+					State:         "DEPRECATED",
+					Replacement:   fmt.Sprintf(fmt.Sprintf("https://www.googleapis.com/compute/v1/projects/%s/global/images/%s", p.PublishProject, publishName)),
+					StateOverride: img.RolloutPolicy,
 				},
 			})
 		}
@@ -362,7 +376,7 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 	return cis, dis, drs, nil
 }
 
-func rollbackImage(p *Publish, img *Image, pubImgs []*compute.Image) (*daisy.DeleteResources, *daisy.DeprecateImages) {
+func rollbackImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image) (*daisy.DeleteResources, *daisy.DeprecateImages) {
 	publishName := fmt.Sprintf("%s-%s", img.Prefix, p.publishVersion)
 	dr := &daisy.DeleteResources{}
 	dis := &daisy.DeprecateImages{}
@@ -384,6 +398,10 @@ func rollbackImage(p *Publish, img *Image, pubImgs []*compute.Image) (*daisy.Del
 			*dis = append(*dis, &daisy.DeprecateImage{
 				Image:   pubImg.Name,
 				Project: p.PublishProject,
+				DeprecationStatusAlpha: computeAlpha.DeprecationStatus{
+					State:         "ACTIVE",
+					StateOverride: img.RolloutPolicy,
+				},
 			})
 			break
 		}
@@ -450,7 +468,7 @@ func (p *Publish) createPrintOut(createImages *daisy.CreateImages) {
 	if createImages == nil {
 		return
 	}
-	for _, ci := range createImages.Images {
+	for _, ci := range createImages.ImagesAlpha {
 		p.toCreate = append(p.toCreate, fmt.Sprintf("%s: (%s)", ci.Name, ci.Description))
 	}
 	return
@@ -473,22 +491,36 @@ func (p *Publish) deprecatePrintOut(deprecateImages *daisy.DeprecateImages) {
 
 	for _, di := range *deprecateImages {
 		image := path.Base(di.Image)
-		switch di.DeprecationStatus.State {
+		switch di.DeprecationStatusAlpha.State {
 		case "DEPRECATED":
 			p.toDeprecate = append(p.toDeprecate, image)
 		case "OBSOLETE":
 			p.toObsolete = append(p.toObsolete, image)
-		case "":
+		case "ACTIVE", "":
 			p.toUndeprecate = append(p.toUndeprecate, image)
 		}
 	}
 }
 
-func (p *Publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubImgs []*compute.Image, img *Image, rb, sd, rep, noRoot bool) error {
+func (p *Publish) rolloutPolicyPrintOut(rp *computeAlpha.RolloutPolicy) {
+	p.rolloutPolicy = append(p.rolloutPolicy, fmt.Sprintf("Default rollout time: %s", rp.DefaultRolloutTime))
+	var zones []string
+	for k := range rp.LocationRolloutPolicies {
+		zones = append(zones, k)
+	}
+	sort.Strings(zones)
+
+	for _, v := range zones {
+		p.rolloutPolicy = append(p.rolloutPolicy, fmt.Sprintf("Zone %s at %s", v[6:], rp.LocationRolloutPolicies[v]))
+	}
+}
+
+func (p *Publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubImgs []*computeAlpha.Image, img *Image, rb, sd, rep, noRoot bool) error {
 	var err error
 	var createImages *daisy.CreateImages
 	var deprecateImages *daisy.DeprecateImages
 	var deleteResources *daisy.DeleteResources
+
 	if rb {
 		deleteResources, deprecateImages = rollbackImage(p, img, pubImgs)
 	} else {
@@ -505,11 +537,12 @@ func (p *Publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubIm
 	p.createPrintOut(createImages)
 	p.deletePrintOut(deleteResources)
 	p.deprecatePrintOut(deprecateImages)
+	p.rolloutPolicyPrintOut(img.RolloutPolicy)
 
 	return nil
 }
 
-func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[string]string, rb, sd, rep, noRoot bool, oauth string) (*daisy.Workflow, error) {
+func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[string]string, rb, sd, rep, noRoot bool, oauth string, rolloutStartTime time.Time, rolloutRate int) (*daisy.Workflow, error) {
 	fmt.Printf("  - Creating publish workflow for %q\n", img.Prefix)
 	w := daisy.New()
 	for k, v := range varMap {
@@ -536,14 +569,20 @@ func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[str
 	pubImgs, ok := p.imagesCache[cacheKey]
 	if !ok {
 		var err error
-		pubImgs, err = w.ComputeClient.ListImages(p.PublishProject, daisyCompute.OrderBy("creationTimestamp desc"))
+		pubImgs, err = w.ComputeClient.ListImagesAlpha(p.PublishProject, daisyCompute.OrderBy("creationTimestamp desc"))
 		if err != nil {
-			return nil, fmt.Errorf("computeClient.ListImages failed: %s", err)
+			return nil, fmt.Errorf("computeClient.ListImagesAlpha failed: %s", err)
 		}
 		if p.imagesCache != nil {
 			p.imagesCache[cacheKey] = pubImgs
 		}
 	}
+
+	zones, err := w.ComputeClient.ListZones(w.Project)
+	if err != nil {
+		return nil, fmt.Errorf("computeClient.GetZone failed: %s", err)
+	}
+	img.RolloutPolicy = createRollOut(zones, rolloutStartTime, rolloutRate)
 
 	if err := p.populateWorkflow(ctx, w, pubImgs, img, rb, sd, rep, noRoot); err != nil {
 		return nil, fmt.Errorf("populateWorkflow failed: %s", err)
@@ -584,4 +623,49 @@ func calculateExpiryDate(deleteAfter string) (*time.Time, error) {
 	expiryDate := time.Now().UTC().Add(-deleteTime)
 
 	return &expiryDate, nil
+}
+
+func createRollOut(zones []*compute.Zone, rolloutStartTime time.Time, rolloutRate int) *computeAlpha.RolloutPolicy {
+	rp := computeAlpha.RolloutPolicy{}
+	rp.DefaultRolloutTime = rolloutStartTime.Format(time.RFC3339)
+
+	var regions map[string][]string
+	regions = make(map[string][]string)
+	maxRegionLength := 0
+
+	// Build a map of all the regions and determine the max number of zones in a region.
+	for _, z := range zones {
+		regions[z.Region] = append(regions[z.Region], z.Name)
+		if len(regions[z.Region]) > maxRegionLength {
+			maxRegionLength = len(regions[z.Region])
+		}
+	}
+
+	// Order the list of zones in each region.
+	for _, value := range regions {
+		sort.Strings(value)
+	}
+
+	// zoneList is the ordered list of zones to apply the rollout policy to.
+	var zoneList []string
+
+	// zoneList's order should be the first zone from each region, then second zone from each region, third zone from each region, etc.
+	// us-central1-a, us-central2-b, us-central3-c, us-central1-a, us-central2-b, us-central3-c
+	for zoneCount := 0; zoneCount < maxRegionLength; zoneCount++ {
+		for _, value := range regions {
+			// If the region has a zone at the current zoneCount, add that zone to the zoneList.
+			if zoneCount < len(value) {
+				zoneList = append(zoneList, value[zoneCount])
+			}
+		}
+	}
+
+	var rolloutPolicy map[string]string
+	rolloutPolicy = make(map[string]string)
+
+	for i, zone := range zoneList {
+		rolloutPolicy[fmt.Sprintf("zones/%s", zone)] = rolloutStartTime.Add(time.Duration(rolloutRate*i) * time.Minute).Format(time.RFC3339)
+	}
+	rp.LocationRolloutPolicies = rolloutPolicy
+	return &rp
 }
