@@ -652,10 +652,10 @@ func createRollOut(zones []*compute.Zone, rolloutStartTime time.Time, rolloutRat
 	// zoneList's order should be the first zone from each region, then second zone from each region, third zone from each region, etc.
 	// us-central1-a, us-central2-b, us-central3-c, us-central1-a, us-central2-b, us-central3-c
 	for zoneCount := 0; zoneCount < maxRegionLength; zoneCount++ {
-		for _, value := range regions {
+		for _, regionZones := range regions {
 			// If the region has a zone at the current zoneCount, add that zone to the zoneList.
-			if zoneCount < len(value) {
-				zoneList = append(zoneList, value[zoneCount])
+			if zoneCount < len(regionZones) {
+				zoneList = append(zoneList, regionZones[zoneCount])
 			}
 		}
 	}
