@@ -719,11 +719,11 @@ func TestCreateRollOut(t *testing.T) {
 					Region: "https://www.googleapis.com/compute/v1/projects/projectname/regions/us-central2",
 				},
 				{
-					Name:   "us-central2-b",
+					Name:   "us-central2-c",
 					Region: "https://www.googleapis.com/compute/v1/projects/projectname/regions/us-central2",
 				},
 				{
-					Name:   "us-central2-c",
+					Name:   "us-central2-b",
 					Region: "https://www.googleapis.com/compute/v1/projects/projectname/regions/us-central2",
 				},
 				{
