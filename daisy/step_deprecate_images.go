@@ -46,7 +46,7 @@ func (d *DeprecateImages) populate(ctx context.Context, s *Step) DError {
 }
 
 func (d *DeprecateImages) validate(ctx context.Context, s *Step) DError {
-	deprecationStates := []string{"", "DEPRECATED", "OBSOLETE", "DELETED"}
+	deprecationStates := []string{"", "ACTIVE", "DEPRECATED", "OBSOLETE", "DELETED"}
 	for _, di := range *d {
 		if exists, err := projectExists(s.w.ComputeClient, di.Project); err != nil {
 			return Errf("cannot deprecate image %q: bad project lookup: %q, error: %v", di.Image, di.Project, err)
@@ -56,7 +56,7 @@ func (d *DeprecateImages) validate(ctx context.Context, s *Step) DError {
 
 		// Verify State is one of the deprecated states.
 		// The Alpha check also requires the value to not be emptry string as in that case the GA API will be used.
-		if di.DeprecationStatusAlpha.State != "" && strIn(di.DeprecationStatusAlpha.State, deprecationStates) {
+		if di.DeprecationStatusAlpha.State != "" && !strIn(di.DeprecationStatusAlpha.State, deprecationStates) {
 			return Errf("DeprecationStatusAlpha.State of %q not in %q", di.DeprecationStatusAlpha.State, deprecationStates)
 		} else if !strIn(di.DeprecationStatus.State, deprecationStates) {
 			return Errf("DeprecationStatus.State of %q not in %q", di.DeprecationStatus.State, deprecationStates)

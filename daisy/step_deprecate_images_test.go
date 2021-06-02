@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -101,6 +102,21 @@ func TestDeprecateImagesValidate(t *testing.T) {
 		{
 			"bad project case",
 			&DeprecateImage{Image: "i1", Project: "bad"},
+			true,
+		},
+		{
+			"alpha DEPRECATED case",
+			&DeprecateImage{Image: "i1", Project: testProject, DeprecationStatusAlpha: computeAlpha.DeprecationStatus{State: "DEPRECATED"}},
+			false,
+		},
+		{
+			"alpha unDEPRECATED case",
+			&DeprecateImage{Image: "i1", Project: testProject, DeprecationStatusAlpha: computeAlpha.DeprecationStatus{State: "ACTIVE"}},
+			false,
+		},
+		{
+			"alpha bad case",
+			&DeprecateImage{Image: "i1", Project: testProject, DeprecationStatusAlpha: computeAlpha.DeprecationStatus{State: "BAD"}},
 			true,
 		},
 	}
