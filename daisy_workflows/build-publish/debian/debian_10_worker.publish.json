@@ -6,7 +6,10 @@
 */}}
 {
   "Name": "debian-10-worker",
-  {{$endpoint := `"https://www.googleapis.com/compute/beta/projects/"` -}}
+  {
+    {$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -
+    }
+  }
   {{if eq .environment "test" -}}
   "WorkProject": "gce-image-builder",
   "PublishProject": "compute-image-tools-test",

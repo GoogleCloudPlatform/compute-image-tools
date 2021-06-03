@@ -2,7 +2,7 @@
   "Name": "rhel-8-metal-dev",
   "WorkProject": "bct-staging-images",
   "PublishProject": "bct-staging-images",
-  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_beta/projects/",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_alpha/projects/",
   "DeleteAfter": "24h*30*6",
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [

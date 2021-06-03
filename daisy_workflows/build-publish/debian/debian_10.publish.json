@@ -9,7 +9,10 @@
 {
   "Name": "debian",
   {{$work_project := printf "%q" "gce-image-builder" -}}
-  {{$endpoint := `"https://www.googleapis.com/compute/beta/projects/"` -}}
+  {
+    {$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -
+    }
+  }
   {{$delete_after := `"24h*30*6"` -}}
   {{if eq .environment "test" -}}
   "WorkProject": {{$work_project}},
@@ -23,7 +26,7 @@
   {{- else if eq .environment "staging" -}}
   "WorkProject": "bct-staging-images",
   "PublishProject": "oslogin-staging-project",
-  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_beta/projects/",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_alpha/projects/",
   "DeleteAfter": {{$delete_after}},
   {{- else -}}
   "WorkProject": {{$work_project}},
