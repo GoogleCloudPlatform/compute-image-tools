@@ -7,7 +7,7 @@ require (
 	cloud.google.com/go/logging v1.2.0 // indirect
 	cloud.google.com/go/storage v1.14.0
 	cos.googlesource.com/cos/tools.git v0.0.0-20210104210903-4b3bc7d49b79 // indirect
-	github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20210519521119-aeddd2df9d23
+	github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20210602225313-48e47c546e6f
 	github.com/GoogleCloudPlatform/compute-image-tools/mocks v0.0.0-20200416045929-22b14b6b7c19
 	github.com/GoogleCloudPlatform/compute-image-tools/proto/go v0.0.0
 	github.com/GoogleCloudPlatform/osconfig v0.0.0-20210202205636-8f5a30e8969f
