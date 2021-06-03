@@ -1,7 +1,7 @@
 {
   "Name": "rhel-8",
   "WorkProject": "gce-image-builder",
-  "ComputeEndpoint": "https://www.googleapis.com/compute/beta/projects/",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/alpha/projects/",
   "DeleteAfter": "24h*30*6",
   {{if eq .environment "test" -}}
   "PublishProject": "bct-prod-images",
@@ -10,7 +10,7 @@
   {{- else if eq .environment "staging" -}}
   "PublishProject": "bct-staging-images",
   "WorkProject": "bct-staging-images",
-  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_beta/projects/",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_alpha/projects/",
   {{- else -}}
   "PublishProject": "gce-image-builder",
   {{- end}}
