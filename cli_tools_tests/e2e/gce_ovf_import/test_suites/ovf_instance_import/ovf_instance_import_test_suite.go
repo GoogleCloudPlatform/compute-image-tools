@@ -89,6 +89,8 @@ func TestSuite(
 			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Ubuntu 1604 from Virtualbox"))
 		instanceImportUbuntu16FromAWS := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Ubuntu 1604 from AWS"))
+		instanceImportWithNetworkTags := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Import with network tags"))
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, e2e.CLITestType){}
@@ -99,6 +101,7 @@ func TestSuite(
 		testsMap[testType][instanceImportDebian9] = runOVFInstanceImportDebian9
 		testsMap[testType][instanceImportUbuntu16FromVirtualBox] = runOVFInstanceImportUbuntu16FromVirtualBox
 		testsMap[testType][instanceImportUbuntu16FromAWS] = runOVFInstanceImportUbuntu16FromAWS
+		testsMap[testType][instanceImportWithNetworkTags] = runInstanceImportWithNetworkTags
 	}
 
 	// gcloud only tests
@@ -263,6 +266,26 @@ func runOVFInstanceImportUbuntu16FromAWS(ctx context.Context, testCase *junitxml
 			MachineType: "n1-standard-4",
 		}}
 
+	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
+}
+
+func runInstanceImportWithNetworkTags(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+
+	suffix := path.RandString(5)
+	props := &ovfInstanceImportTestProperties{
+		instanceName: fmt.Sprintf("test-instance-aws-ova-ubuntu-1604-%v", suffix),
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{
+			VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
+				"daisy_integration_tests/scripts/post_translate_test.sh", logger),
+			Zone:                  testProjectConfig.TestZone,
+			ExpectedStartupOutput: "All tests passed!",
+			FailureMatches:        []string{"FAILED:", "TestFailed:"},
+			SourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+			Os:                    "centos-7",
+			MachineType:           "n2-standard-2",
+			Tags:                  []string{"tag1", "tag2"},
+		}}
 	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
