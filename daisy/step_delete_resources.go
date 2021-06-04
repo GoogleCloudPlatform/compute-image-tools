@@ -35,7 +35,7 @@ type DeleteResources struct {
 	Networks      []string `json:",omitempty"`
 	Subnetworks   []string `json:",omitempty"`
 	GCSPaths      []string `json:",omitempty"`
-	Firewall      []string `json:",omitempty"`
+	Firewalls     []string `json:",omitempty"`
 }
 
 func (d *DeleteResources) populate(ctx context.Context, s *Step) DError {
@@ -69,9 +69,9 @@ func (d *DeleteResources) populate(ctx context.Context, s *Step) DError {
 			d.Subnetworks[i] = extendPartialURL(subnetwork, s.w.Project)
 		}
 	}
-	for i, firewall := range d.Firewall {
+	for i, firewall := range d.Firewalls {
 		if firewallRuleURLRegex.MatchString(firewall) {
-			d.Firewall[i] = extendPartialURL(firewall, s.w.Project)
+			d.Firewalls[i] = extendPartialURL(firewall, s.w.Project)
 		}
 	}
 	return nil
@@ -351,6 +351,21 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) DError {
 		}(d)
 	}
 
+	// Delete firewalls after instance have been deleted
+	for _, n := range d.Firewalls {
+		wg.Add(1)
+		go func(n string) {
+			defer wg.Done()
+			w.LogStepInfo(s.name, "DeleteResources", "Deleting firewall %q.", n)
+			if err := w.firewallRules.delete(n); err != nil {
+				if err.etype() == resourceDNEError {
+					w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error deleting firewall %q: %v", n, err)
+				}
+				e <- err
+			}
+		}(n)
+	}
+
 	// Delete subnetworks after instances.
 	for _, sn := range d.Subnetworks {
 		wg.Add(1)
@@ -368,21 +383,6 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) DError {
 
 	if abort, ret := waitGroup(&wg, e, w); abort {
 		return ret
-	}
-
-	// Delete firewalls after subnetworks have been deleted
-	for _, n := range d.Firewall {
-		wg.Add(1)
-		go func(n string) {
-			defer wg.Done()
-			w.LogStepInfo(s.name, "DeleteResources", "Deleting firewall %q.", n)
-			if err := w.firewallRules.delete(n); err != nil {
-				if err.etype() == resourceDNEError {
-					w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error deleting firewall %q: %v", n, err)
-				}
-				e <- err
-			}
-		}(n)
 	}
 
 	// Delete networks after firewalls have been deleted

@@ -34,7 +34,7 @@ func TestDeleteResourcesPopulate(t *testing.T) {
 		MachineImages: []string{"i", "global/machineImages/i"},
 		Instances:     []string{"i", "zones/z/instances/i"},
 		Networks:      []string{"n", "global/networks/n"},
-		Firewall:      []string{"n", "global/firewalls/n"},
+		Firewalls:     []string{"n", "global/firewalls/n"},
 	}
 
 	if err := (s.DeleteResources).populate(context.Background(), s); err != nil {
@@ -47,7 +47,7 @@ func TestDeleteResourcesPopulate(t *testing.T) {
 		MachineImages: []string{"i", fmt.Sprintf("projects/%s/global/machineImages/i", w.Project)},
 		Instances:     []string{"i", fmt.Sprintf("projects/%s/zones/z/instances/i", w.Project)},
 		Networks:      []string{"n", fmt.Sprintf("projects/%s/global/networks/n", w.Project)},
-		Firewall:      []string{"n", fmt.Sprintf("projects/%s/global/firewalls/n", w.Project)},
+		Firewalls:     []string{"n", fmt.Sprintf("projects/%s/global/firewalls/n", w.Project)},
 	}
 	if diffRes := diff(s.DeleteResources, want, 0); diffRes != "" {
 		t.Errorf("DeleteResources not populated as expected: (-got,+want)\n%s", diffRes)
@@ -79,7 +79,7 @@ func TestDeleteResourcesRun(t *testing.T) {
 		Disks:         []string{"d0"},
 		Networks:      []string{"n0"},
 		GCSPaths:      []string{"gs://foo/bar"},
-		Firewall:      []string{"f0"},
+		Firewalls:     []string{"f0"},
 	}
 	if err := dr.run(ctx, s); err != nil {
 		t.Fatalf("error running DeleteResources.run(): %v", err)
@@ -209,7 +209,7 @@ func TestDeleteResourcesValidate(t *testing.T) {
 		Instances:     []string{"in0"},
 		Networks:      []string{"n0"},
 		GCSPaths:      []string{"gs://foo/bar"},
-		Firewall:      []string{"f0"},
+		Firewalls:     []string{"f0"},
 	}
 	if err := dr.validate(ctx, s); err != nil {
 		t.Errorf("validation should not have failed: %v", err)
