@@ -42,7 +42,7 @@ type FirewallRule struct {
 	Resource
 }
 
-// MarshalJSON is a hacky workaround to compute.Firewalls's implementation.
+// MarshalJSON is a hacky workaround to compute.Firewall's implementation.
 func (fir *FirewallRule) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*fir)
 }
