@@ -366,7 +366,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) DError {
 		}(n)
 	}
 
-	// Delete subnetworks after instances.
+	// Delete subnetworks after firewalls.
 	for _, sn := range d.Subnetworks {
 		wg.Add(1)
 		go func(sn string) {
@@ -385,7 +385,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) DError {
 		return ret
 	}
 
-	// Delete networks after firewalls have been deleted
+	// Delete networks after subnetworks have been deleted
 	for _, n := range d.Networks {
 		wg.Add(1)
 		go func(n string) {
