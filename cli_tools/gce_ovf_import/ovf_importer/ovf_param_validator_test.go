@@ -239,6 +239,18 @@ func Test_ValidateAndParseParams_ErrorMessages(t *testing.T) {
 			},
 			expectErrorToContain: "failed to parse key-value pair",
 		}, {
+			name: "don't allow empty tag",
+			paramModifier: func(params *domain.OVFImportParams) {
+				params.Tags = "a,,b"
+			},
+			expectErrorToContain: "tags cannot be empty",
+		}, {
+			name: "tags must be RFC1035 compliant",
+			paramModifier: func(params *domain.OVFImportParams) {
+				params.Tags = "a,&,b"
+			},
+			expectErrorToContain: "tag `&` is not RFC1035 compliant",
+		}, {
 			name: "Don't allow invalid timeout",
 			paramModifier: func(params *domain.OVFImportParams) {
 				params.Timeout = "300"
@@ -390,6 +402,14 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 			},
 			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
 				assert.Equal(t, map[string]string{"env": "test", "region": "us"}, params.UserLabels)
+			},
+		}, {
+			name: "Parse tags",
+			paramModifier: func(params *domain.OVFImportParams) {
+				params.Tags = "a,b,c"
+			},
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
+				assert.Equal(t, []string{"a", "b", "c"}, params.UserTags)
 			},
 		}, {
 			name: "Convert empty release track to GA",

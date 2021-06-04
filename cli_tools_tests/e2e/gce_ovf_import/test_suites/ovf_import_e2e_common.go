@@ -47,6 +47,7 @@ type OvfImportTestProperties struct {
 	Network                   string
 	Subnet                    string
 	Project                   string
+	Tags                      []string
 	ComputeServiceAccount     string
 	InstanceServiceAccount    string
 	NoInstanceServiceAccount  bool
@@ -75,6 +76,12 @@ func BuildArgsMap(props *OvfImportTestProperties, testProjectConfig *testconfig.
 	wrapperArgs = append(wrapperArgs, fmt.Sprintf("-zone=%v", testProjectConfig.TestZone))
 	wrapperArgs = append(wrapperArgs, fmt.Sprintf("-build-id=%v", path.RandString(10)))
 
+	if len(props.Tags) > 0 {
+		tags := strings.Join(props.Tags, ",")
+		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--tags=%v", tags))
+		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--tags=%v", tags))
+		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-tags=%v", tags))
+	}
 	if props.Os != "" {
 		gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--os=%v", props.Os))
 		gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--os=%v", props.Os))
@@ -236,6 +243,22 @@ func VerifyInstance(instance *gcp.InstanceBeta, client daisyCompute.Client,
 				fmt.Sprintf("Instance subnetwork (%v) does not match subnetwork flag value: %v", networkInterface.Subnetwork, props.Subnet))
 			return
 		}
+	}
+
+	// Verify that the instance's tags match the user's request (regardless of order).
+	expectedTags := map[string]struct{}{}
+	for _, tag := range props.Tags {
+		expectedTags[tag] = struct{}{}
+	}
+	actualTags := map[string]struct{}{}
+	for _, tag := range instance.Tags.Items {
+		actualTags[tag] = struct{}{}
+	}
+	if !reflect.DeepEqual(expectedTags, actualTags) {
+		e2e.Failure(testCase, logger,
+			fmt.Sprintf("Instance's tags don't match import request. Expected=`%v`, Actual=`%v`",
+				props.Tags, instance.Tags.Items))
+		return
 	}
 
 	// Verify instance service account

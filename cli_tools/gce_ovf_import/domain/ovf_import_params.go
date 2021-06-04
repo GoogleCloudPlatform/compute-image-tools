@@ -94,6 +94,7 @@ type OVFImportParams struct {
 	Deadline time.Time
 
 	UserLabels            map[string]string
+	UserTags              []string
 	NodeAffinities        []*compute.SchedulingNodeAffinity
 	NodeAffinitiesBeta    []*computeBeta.SchedulingNodeAffinity
 	InstanceAccessScopes  []string

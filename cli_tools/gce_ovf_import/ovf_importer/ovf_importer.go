@@ -191,6 +191,14 @@ func (oi *OVFImporter) updateImportedInstance(w *daisy.Workflow) {
 		instance.Scheduling.NodeAffinities = oi.params.NodeAffinities
 		instanceBeta.Scheduling.NodeAffinities = oi.params.NodeAffinitiesBeta
 	}
+	if len(oi.params.UserTags) > 0 {
+		instance.Tags = &compute.Tags{
+			Items: oi.params.UserTags,
+		}
+		instanceBeta.Tags = &computeBeta.Tags{
+			Items: oi.params.UserTags,
+		}
+	}
 	if oi.params.Hostname != "" {
 		instance.Hostname = oi.params.Hostname
 		instanceBeta.Hostname = oi.params.Hostname

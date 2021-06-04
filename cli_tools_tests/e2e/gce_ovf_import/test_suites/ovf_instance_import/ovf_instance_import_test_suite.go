@@ -146,6 +146,7 @@ func runOVFInstanceImportUbuntu3DisksNetworkSettingsName(ctx context.Context, te
 			MachineType:           "n1-standard-4",
 			Network:               fmt.Sprintf("%v-vpc-1", testProjectConfig.TestProjectID),
 			Subnet:                fmt.Sprintf("%v-subnet-1", testProjectConfig.TestProjectID),
+			Tags:                  []string{"tag1", "tag2", "tag3"},
 		}}
 
 	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
@@ -170,6 +171,7 @@ func runOVFInstanceImportWindows2012R2TwoDisksNetworkSettingsPath(ctx context.Co
 			Network:               fmt.Sprintf("global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
 			Subnet: fmt.Sprintf("projects/%v/regions/%v/subnetworks/%v-subnet-1",
 				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
+			Tags: []string{"tag1", "tag2", "tag3"},
 		}}
 
 	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)

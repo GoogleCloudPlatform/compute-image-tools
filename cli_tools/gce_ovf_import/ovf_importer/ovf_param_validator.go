@@ -16,6 +16,7 @@ package ovfimporter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -154,6 +155,18 @@ func (p *ParamValidatorAndPopulator) ValidateAndPopulate(params *ovfdomain.OVFIm
 		params.UserLabels, err = param.ParseKeyValues(params.Labels)
 		if err != nil {
 			return err
+		}
+	}
+
+	if params.Tags != "" {
+		params.UserTags = strings.Split(params.Tags, ",")
+		for _, tag := range params.UserTags {
+			if tag == "" {
+				return errors.New("tags cannot be empty")
+			}
+			if err := validation.ValidateRfc1035Label(tag); err != nil {
+				return fmt.Errorf("tag `%v` is not RFC1035 compliant", tag)
+			}
 		}
 	}
 
