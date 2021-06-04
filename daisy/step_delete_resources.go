@@ -35,6 +35,7 @@ type DeleteResources struct {
 	Networks      []string `json:",omitempty"`
 	Subnetworks   []string `json:",omitempty"`
 	GCSPaths      []string `json:",omitempty"`
+	Firewalls     []string `json:",omitempty"`
 }
 
 func (d *DeleteResources) populate(ctx context.Context, s *Step) DError {
@@ -66,6 +67,11 @@ func (d *DeleteResources) populate(ctx context.Context, s *Step) DError {
 	for i, subnetwork := range d.Subnetworks {
 		if subnetworkURLRegex.MatchString(subnetwork) {
 			d.Subnetworks[i] = extendPartialURL(subnetwork, s.w.Project)
+		}
+	}
+	for i, firewall := range d.Firewalls {
+		if firewallRuleURLRegex.MatchString(firewall) {
+			d.Firewalls[i] = extendPartialURL(firewall, s.w.Project)
 		}
 	}
 	return nil
@@ -345,7 +351,22 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) DError {
 		}(d)
 	}
 
-	// Delete subnetworks after instances.
+	// Delete firewalls after instance have been deleted
+	for _, n := range d.Firewalls {
+		wg.Add(1)
+		go func(n string) {
+			defer wg.Done()
+			w.LogStepInfo(s.name, "DeleteResources", "Deleting firewall %q.", n)
+			if err := w.firewallRules.delete(n); err != nil {
+				if err.etype() == resourceDNEError {
+					w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error deleting firewall %q: %v", n, err)
+				}
+				e <- err
+			}
+		}(n)
+	}
+
+	// Delete subnetworks after firewalls.
 	for _, sn := range d.Subnetworks {
 		wg.Add(1)
 		go func(sn string) {

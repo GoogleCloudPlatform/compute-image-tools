@@ -34,6 +34,7 @@ func TestDeleteResourcesPopulate(t *testing.T) {
 		MachineImages: []string{"i", "global/machineImages/i"},
 		Instances:     []string{"i", "zones/z/instances/i"},
 		Networks:      []string{"n", "global/networks/n"},
+		Firewalls:     []string{"n", "global/firewalls/n"},
 	}
 
 	if err := (s.DeleteResources).populate(context.Background(), s); err != nil {
@@ -46,6 +47,7 @@ func TestDeleteResourcesPopulate(t *testing.T) {
 		MachineImages: []string{"i", fmt.Sprintf("projects/%s/global/machineImages/i", w.Project)},
 		Instances:     []string{"i", fmt.Sprintf("projects/%s/zones/z/instances/i", w.Project)},
 		Networks:      []string{"n", fmt.Sprintf("projects/%s/global/networks/n", w.Project)},
+		Firewalls:     []string{"n", fmt.Sprintf("projects/%s/global/firewalls/n", w.Project)},
 	}
 	if diffRes := diff(s.DeleteResources, want, 0); diffRes != "" {
 		t.Errorf("DeleteResources not populated as expected: (-got,+want)\n%s", diffRes)
@@ -62,11 +64,13 @@ func TestDeleteResourcesRun(t *testing.T) {
 	mis := []*Resource{{RealName: "mi0", link: "link"}, {RealName: "mi1", link: "link"}}
 	ds := []*Resource{{RealName: "d0", link: "link"}, {RealName: "d1", link: "link"}}
 	ns := []*Resource{{RealName: "n0", link: "link"}, {RealName: "n1", link: "link"}}
+	fs := []*Resource{{RealName: "f0", link: "link"}, {RealName: "f1", link: "link"}}
 	w.instances.m = map[string]*Resource{"in0": ins[0], "in1": ins[1], "in2": ins[2]}
 	w.images.m = map[string]*Resource{"im0": ims[0], "im1": ims[1]}
 	w.machineImages.m = map[string]*Resource{"mi0": mis[0], "mi1": mis[1]}
 	w.disks.m = map[string]*Resource{"d0": ds[0], "d1": ds[1]}
 	w.networks.m = map[string]*Resource{"n0": ns[0], "n1": ns[1]}
+	w.firewallRules.m = map[string]*Resource{"f0": fs[0], "f1": fs[1]}
 
 	dr := &DeleteResources{
 		Instances:     []string{"in0"},
@@ -75,6 +79,7 @@ func TestDeleteResourcesRun(t *testing.T) {
 		Disks:         []string{"d0"},
 		Networks:      []string{"n0"},
 		GCSPaths:      []string{"gs://foo/bar"},
+		Firewalls:     []string{"f0"},
 	}
 	if err := dr.run(ctx, s); err != nil {
 		t.Fatalf("error running DeleteResources.run(): %v", err)
@@ -95,6 +100,8 @@ func TestDeleteResourcesRun(t *testing.T) {
 		{ds[1], false},
 		{ns[0], true},
 		{ns[1], false},
+		{fs[0], true},
+		{fs[1], false},
 	}
 	for _, c := range deletedChecks {
 		if c.shouldBeDeleted {
@@ -154,19 +161,22 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	miC, _ := w.NewStep("miCreator")
 	inC, _ := w.NewStep("inCreator")
 	nC, _ := w.NewStep("nCreator")
+	fC, _ := w.NewStep("fCreator")
 	s, _ := w.NewStep("s")
-	w.AddDependency(s, dC, imC, miC, inC, nC)
+	w.AddDependency(s, dC, imC, miC, inC, nC, fC)
 	otherDeleter, _ := w.NewStep("otherDeleter")
 	ds := []*Resource{{RealName: "d0", link: "link", creator: dC}, {RealName: "d1", link: "link", creator: dC}, {RealName: "d2", link: "link", creator: dC}}
 	ims := []*Resource{{RealName: "im0", link: "link", creator: imC}, {RealName: "im1", link: "link", creator: imC}}
 	mis := []*Resource{{RealName: "mi0", link: "link", creator: miC}, {RealName: "mi1", link: "link", creator: miC}}
 	ins := []*Resource{{RealName: "in0", link: "link", creator: inC}, {RealName: "in1", link: "link", creator: inC}}
 	ns := []*Resource{{RealName: "n0", link: "link", creator: nC}, {RealName: "n1", link: "link", creator: nC}, {RealName: "n2", link: "link", creator: nC}}
+	fs := []*Resource{{RealName: "f0", link: "link", creator: fC}, {RealName: "f1", link: "link", creator: fC}, {RealName: "f2", link: "link", creator: fC}}
 	w.instances.m = map[string]*Resource{"in0": ins[0], "in1": ins[1]}
 	w.images.m = map[string]*Resource{"im0": ims[0], "im1": ims[1]}
 	w.machineImages.m = map[string]*Resource{"mi0": mis[0], "mi1": mis[1]}
 	w.disks.m = map[string]*Resource{"d0": ds[0], "d1": ds[1]}
 	w.networks.m = map[string]*Resource{"n0": ns[0], "n1": ns[1]}
+	w.firewallRules.m = map[string]*Resource{"f0": fs[0], "f1": fs[1]}
 	ads := []*compute.AttachedDisk{{Source: "d1"}}
 	inC.CreateInstances = &CreateInstances{
 		Instances: []*Instance{
@@ -199,12 +209,13 @@ func TestDeleteResourcesValidate(t *testing.T) {
 		Instances:     []string{"in0"},
 		Networks:      []string{"n0"},
 		GCSPaths:      []string{"gs://foo/bar"},
+		Firewalls:     []string{"f0"},
 	}
 	if err := dr.validate(ctx, s); err != nil {
 		t.Errorf("validation should not have failed: %v", err)
 	}
-	got := []*Resource{ds[0], ds[1], ims[0], ims[1], mis[0], mis[1], ins[0], ins[1], ns[0], ns[1]}
-	want := []*Resource{&(*ds[0]), &(*ds[1]), &(*ims[0]), &(*ims[1]), &(*mis[0]), &(*mis[1]), &(*ins[0]), &(*ins[1]), &(*ns[0]), &(*ns[1])}
+	got := []*Resource{ds[0], ds[1], ims[0], ims[1], mis[0], mis[1], ins[0], ins[1], ns[0], ns[1], fs[0], fs[1]}
+	want := []*Resource{&(*ds[0]), &(*ds[1]), &(*ims[0]), &(*ims[1]), &(*mis[0]), &(*mis[1]), &(*ins[0]), &(*ins[1]), &(*ns[0]), &(*ns[1]), &(*fs[0]), &(*fs[1])}
 	want[0].deleter = s
 	want[1].deleter = s
 	want[2].deleter = s
