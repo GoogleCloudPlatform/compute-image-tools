@@ -22,6 +22,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -41,7 +42,8 @@ func TestBootableDiskProcessor_Process_WritesSourceDiskVar(t *testing.T) {
 	request := ImageImportRequest{
 		OS: "opensuse-15",
 	}
-	p, err := newBootableDiskProcessor(request, opensuse15workflow, logging.NewToolLogger(t.Name()))
+	p, err := newBootableDiskProcessor(request, opensuse15workflow, logging.NewToolLogger(t.Name()),
+		distro.FromGcloudOSArgumentMustParse("windows-2008r2"))
 	assert.NoError(t, err)
 	_, err = p.process(persistentDisk{uri: "uri"})
 	assert.Equal(t, "uri", p.(*bootableDiskProcessor).workflow.Vars["source_disk"].Value)
@@ -52,7 +54,8 @@ func TestBootableDiskProcessor_Process_WritesSourceDiskVar(t *testing.T) {
 func TestBootableDiskProcessor_SetsWorkflowNameToGcloudPrefix(t *testing.T) {
 	args := defaultImportArgs()
 	args.DaisyLogLinePrefix = "disk-1"
-	processor, e := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()))
+	processor, e := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()),
+		distro.FromGcloudOSArgumentMustParse("windows-2008r2"))
 	assert.NoError(t, e)
 	assert.Equal(t, "disk-1-translate", (processor.(*bootableDiskProcessor)).workflow.Name)
 }
@@ -165,7 +168,8 @@ func TestBootableDiskProcessor_PermitsUnsetStorageLocation(t *testing.T) {
 
 func TestBootableDiskProcessor_SupportsCancel(t *testing.T) {
 	args := defaultImportArgs()
-	processor, e := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()))
+	processor, e := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()),
+		distro.FromGcloudOSArgumentMustParse("windows-2008r2"))
 	assert.NoError(t, e)
 
 	realProcessor := processor.(*bootableDiskProcessor)
@@ -175,7 +179,8 @@ func TestBootableDiskProcessor_SupportsCancel(t *testing.T) {
 }
 
 func createAndRunPrePostFunctions(t *testing.T, request ImageImportRequest) *bootableDiskProcessor {
-	translator, e := newBootableDiskProcessor(request, opensuse15workflow, logging.NewToolLogger(t.Name()))
+	translator, e := newBootableDiskProcessor(request, opensuse15workflow, logging.NewToolLogger(t.Name()),
+		distro.FromGcloudOSArgumentMustParse("windows-2008r2"))
 	assert.NoError(t, e)
 	realTranslator := translator.(*bootableDiskProcessor)
 	// A concrete logger is required since the import/export logging framework writes a log entry

@@ -30,3 +30,14 @@ func customizeErrorToDetectionResults(osID, detectedDistro, detectedMajor,
 	}
 	return original
 }
+
+func customizeErrorToDetectionResults2(osID string, detected distro.Release, original error) error {
+	fromUser, _ := distro.FromGcloudOSArgument(osID)
+	if fromUser != nil && detected != nil && !fromUser.ImportCompatible(detected) {
+		// The error is already logged by Daisy, so skipping re-logging it here.
+		return fmt.Errorf("%q was detected on your disk, "+
+			"but %q was specified. Please verify and re-import",
+			detected.AsGcloudArg(), fromUser.AsGcloudArg())
+	}
+	return original
+}

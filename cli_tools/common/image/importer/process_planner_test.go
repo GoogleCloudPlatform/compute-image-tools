@@ -24,6 +24,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	mock_disk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk/mocks"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
@@ -131,6 +132,7 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 			expectedResults: &processingPlan{
 				requiredLicenses:        []string{"projects/debian-cloud/global/licenses/debian-8-jessie"},
 				translationWorkflowPath: "workflowroot/image_import/debian/translate_debian_8.wf.json",
+				detectedOs:              distro.FromGcloudOSArgumentMustParse("windows-10"),
 			},
 		},
 		{
@@ -148,6 +150,7 @@ func Test_DefaultPlanner_Plan_InspectionSucceeds(t *testing.T) {
 			expectedResults: &processingPlan{
 				requiredLicenses:        []string{"projects/rhel-cloud/global/licenses/rhel-8-byos"},
 				translationWorkflowPath: "workflowroot/image_import/enterprise_linux/translate_rhel_8_byol.wf.json",
+				detectedOs:              distro.FromGcloudOSArgumentMustParse("rhel-8"),
 			},
 		},
 		{

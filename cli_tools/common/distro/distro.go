@@ -183,6 +183,17 @@ func newLinuxRelease(distro string, major string, minor string) (Release, error)
 	}
 }
 
+// FromGcloudOSArgumentMustParse parses the argument provided to the `--os` flag of
+// `gcloud compute images import`, and returns a Release if it represents a
+// release we *may* support. If osFlagValue does not parse, the call panics.
+func FromGcloudOSArgumentMustParse(osFlagValue string) Release {
+	r, err := FromGcloudOSArgument(osFlagValue)
+	if err != nil {
+		panic(err)
+	}
+	return r
+}
+
 // FromGcloudOSArgument parses the argument provided to the `--os` flag of
 // `gcloud compute images import`, and returns a Release if it represents a
 // release we *may* support. The caller is responsible for verifying

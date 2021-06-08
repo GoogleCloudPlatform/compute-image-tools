@@ -24,7 +24,7 @@ import (
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 )
 
-func TestParseGcloudOsParam_HappyCases(t *testing.T) {
+func TestFromGcloudOSArgument_HappyCases(t *testing.T) {
 	daisy_utils.GetSortedOSIDs()
 	for _, osID := range daisy_utils.GetSortedOSIDs() {
 		t.Run(osID, func(t *testing.T) {
@@ -48,7 +48,7 @@ func TestParseGcloudOsParam_HappyCases(t *testing.T) {
 	}
 }
 
-func TestParseGcloudOsParam_DistroNameErrors(t *testing.T) {
+func TestFromGcloudOSArgument_DistroNameErrors(t *testing.T) {
 	var cases = []struct {
 		in  string
 		err string
@@ -78,7 +78,7 @@ func TestParseGcloudOsParam_DistroNameErrors(t *testing.T) {
 	}
 }
 
-func TestParseGcloudOsParam_VersionErrors(t *testing.T) {
+func TestFromGcloudOSArgument_VersionErrors(t *testing.T) {
 	var cases = []struct {
 		in  string
 		err string
@@ -103,6 +103,17 @@ func TestParseGcloudOsParam_VersionErrors(t *testing.T) {
 			assert.Contains(t, e.Error(), tt.err)
 		})
 	}
+}
+
+func TestFromGcloudOSArgumentMustParse_HappyCase(t *testing.T) {
+	expected, _ := FromGcloudOSArgument("debian-10")
+	assert.Equal(t, expected, FromGcloudOSArgumentMustParse("debian-10"))
+}
+
+func TestFromGcloudOSArgumentMustParse_PanicsOnParseFailure(t *testing.T) {
+	assert.PanicsWithError(t, "expected pattern of `distro-version`. Actual: `notadistro`", func() {
+		FromGcloudOSArgumentMustParse("notadistro")
+	})
 }
 
 func TestDistroFromComponents_HappyCasesLinux(t *testing.T) {
