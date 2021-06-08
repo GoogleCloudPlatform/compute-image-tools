@@ -42,8 +42,7 @@ func (b *bootableDiskProcessor) process(pd persistentDisk) (persistentDisk, erro
 	if err != nil {
 		b.logger.User("Finished making disk bootable")
 		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.request.Network, b.workflow)
-		err = customizeErrorToDetectionResults2(b.request.OS,
-			b.detectedOs, err)
+		err = customizeErrorToDetectionResults(b.request.OS, b.detectedOs, err)
 	}
 	if b.workflow.Logger != nil {
 		for _, trace := range b.workflow.Logger.ReadSerialPortLogs() {

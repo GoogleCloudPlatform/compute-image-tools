@@ -18,26 +18,14 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
 )
 
-func customizeErrorToDetectionResults(osID, detectedDistro, detectedMajor,
-	detectedMinor string, original error) error {
-	fromUser, _ := distro.FromGcloudOSArgument(osID)
-	detected, _ := distro.FromComponents(detectedDistro, detectedMajor, detectedMinor, "")
-	if fromUser != nil && detected != nil && !fromUser.ImportCompatible(detected) {
+// customizeErrorToDetectionResults returns a custom error message when the detected OS doesn't match the detected OS.
+func customizeErrorToDetectionResults(osIDFromUser string, detectionResults distro.Release, original error) error {
+	fromUser, _ := distro.FromGcloudOSArgument(osIDFromUser)
+	if fromUser != nil && detectionResults != nil && !fromUser.ImportCompatible(detectionResults) {
 		// The error is already logged by Daisy, so skipping re-logging it here.
 		return fmt.Errorf("%q was detected on your disk, "+
 			"but %q was specified. Please verify and re-import",
-			detected.AsGcloudArg(), fromUser.AsGcloudArg())
-	}
-	return original
-}
-
-func customizeErrorToDetectionResults2(osID string, detected distro.Release, original error) error {
-	fromUser, _ := distro.FromGcloudOSArgument(osID)
-	if fromUser != nil && detected != nil && !fromUser.ImportCompatible(detected) {
-		// The error is already logged by Daisy, so skipping re-logging it here.
-		return fmt.Errorf("%q was detected on your disk, "+
-			"but %q was specified. Please verify and re-import",
-			detected.AsGcloudArg(), fromUser.AsGcloudArg())
+			detectionResults.AsGcloudArg(), fromUser.AsGcloudArg())
 	}
 	return original
 }
