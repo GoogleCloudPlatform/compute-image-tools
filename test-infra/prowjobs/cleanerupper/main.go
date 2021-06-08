@@ -25,13 +25,13 @@ import (
 	"sync"
 	"time"
 
+	osconfigV1alpha "cloud.google.com/go/osconfig/apiv1alpha"
 	osconfig "cloud.google.com/go/osconfig/apiv1beta"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	osconfigV1alpha "github.com/GoogleCloudPlatform/osconfig/e2e_tests/api/cloud.google.com/go/osconfig/apiv1alpha"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 
-	osconfigv1alphapb "github.com/GoogleCloudPlatform/osconfig/e2e_tests/api/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha"
+	osconfigv1alphapb "google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha"
 	osconfigpb "google.golang.org/genproto/googleapis/cloud/osconfig/v1beta"
 )
 
