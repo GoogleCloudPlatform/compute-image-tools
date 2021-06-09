@@ -31,7 +31,7 @@
   "ComputeEndpoint": {{$endpoint}},
   "DeleteAfter": {{$delete_after}},
   {{- end}}
-  {{$guest_features := `["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE", "GVNIC"]` -}}
+  {{$guest_features := `["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE"]` -}}
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
