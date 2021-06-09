@@ -91,10 +91,10 @@ func runImageExportRawTest(ctx context.Context, testCase *junitxml.TestCase, log
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	suffix := path.RandString(5)
-	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
+	bucketName := fmt.Sprintf("%v-test-image-eu", testProjectConfig.TestProjectID)
 	objectName := fmt.Sprintf("e2e-export-raw-test-%v", suffix)
 	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
-	zone := "us-east1-c"
+	zone := "europe-west1-c"
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
@@ -122,10 +122,10 @@ func runImageExportVMDKTest(ctx context.Context, testCase *junitxml.TestCase, lo
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	suffix := path.RandString(5)
-	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
+	bucketName := fmt.Sprintf("%v-test-image-asia", testProjectConfig.TestProjectID)
 	objectName := fmt.Sprintf("e2e-export-vmdk-test-%v", suffix)
 	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
-	zone := "northamerica-northeast1-c"
+	zone := "asia-east1-c"
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
