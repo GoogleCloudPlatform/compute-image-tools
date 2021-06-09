@@ -7,22 +7,18 @@
     "source_image_project": "bct-prod-images",
     "build_date": "${DATE}",
     "workflow_root": {"Value": "/workflows", "Description": "Root of github workflows, defaults to /workflows in the container."},
-    "gcs_url": {"Required": true, "Description": "The GCS path that image raw file exported to."},
-    "development": {"Value": "True", "Description": "Whether to build a development image"}
+    "gcs_url": {"Required": true, "Description": "The GCS path that image raw file exported to."}
   },
   "Steps": {
     "build-bare-metal": {
       "Timeout": "70m",
       "IncludeWorkflow": {
-        "Path": "development.wf.json",
+        "Path": "../../image_build/bare_metal/bare_metal_linux.wf.json",
         "Vars": {
           "base_image": "projects/${source_image_project}/global/images/family/rhel-7",
           "workflow_root": "${workflow_root}",
-          "build_date": "${build_date}",
           "gcs_url": "${gcs_url}",
-          "image_prefix": "rhel-7-metal-dev",
-          "development": "${development}",
-          "dev_script": "../../image_build/bare_metal/bare_metal_image_preparer.sh"
+          "development": "True"
         }
       }
     }
