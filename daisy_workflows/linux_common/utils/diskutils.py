@@ -71,10 +71,6 @@ def MountDisk(disk) -> guestfs.GuestFS:
   g.gcp_image_major = str(g.inspect_get_major_version(roots[0]))
   g.gcp_image_minor = str(g.inspect_get_minor_version(roots[0]))
 
-  log_key_value('detected_distro', g.gcp_image_distro)
-  log_key_value('detected_major_version', g.gcp_image_major)
-  log_key_value('detected_minor_version', g.gcp_image_minor)
-
   for device in sorted(list(mps.keys()), key=len):
     try:
       g.mount(mps[device], device)

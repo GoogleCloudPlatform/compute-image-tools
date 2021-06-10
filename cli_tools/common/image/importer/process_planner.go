@@ -23,6 +23,7 @@ import (
 	"google.golang.org/api/compute/v1"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -47,6 +48,7 @@ type processingPlan struct {
 	requiredLicenses        []string
 	requiredFeatures        []*compute.GuestOsFeature
 	translationWorkflowPath string
+	detectedOs              distro.Release
 }
 
 // metadataChangesRequired returns whether metadata needs to be updated on the
@@ -68,10 +70,13 @@ func (p *defaultPlanner) plan(pd persistentDisk) (*processingPlan, error) {
 	}
 
 	inspectionResults, inspectionError := p.inspectDisk(pd.uri)
-
+	var detectedOs distro.Release
 	osID := p.request.OS
 	requiresUEFI := p.request.UefiCompatible
 	if inspectionError == nil && inspectionResults != nil {
+		if inspectionResults.GetOsCount() == 1 && inspectionResults.GetOsRelease() != nil {
+			detectedOs, _ = distro.FromGcloudOSArgument(inspectionResults.GetOsRelease().CliFormatted)
+		}
 		if osID == "" && inspectionResults.GetOsCount() == 1 && inspectionResults.GetOsRelease() != nil {
 			osID = inspectionResults.GetOsRelease().CliFormatted
 			if p.request.BYOL {
@@ -111,6 +116,7 @@ func (p *defaultPlanner) plan(pd persistentDisk) (*processingPlan, error) {
 		requiredLicenses:        []string{settings.LicenseURI},
 		requiredFeatures:        requiredGuestOSFeatures,
 		translationWorkflowPath: path.Join(p.request.WorkflowDir, "image_import", settings.WorkflowPath),
+		detectedOs:              detectedOs,
 	}, nil
 }
 

@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
@@ -27,9 +28,10 @@ import (
 )
 
 type bootableDiskProcessor struct {
-	request  ImageImportRequest
-	workflow *daisy.Workflow
-	logger   logging.Logger
+	request    ImageImportRequest
+	workflow   *daisy.Workflow
+	logger     logging.Logger
+	detectedOs distro.Release
 }
 
 func (b *bootableDiskProcessor) process(pd persistentDisk) (persistentDisk, error) {
@@ -40,10 +42,7 @@ func (b *bootableDiskProcessor) process(pd persistentDisk) (persistentDisk, erro
 	if err != nil {
 		b.logger.User("Finished making disk bootable")
 		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.request.Network, b.workflow)
-		err = customizeErrorToDetectionResults(b.request.OS,
-			b.workflow.GetSerialConsoleOutputValue("detected_distro"),
-			b.workflow.GetSerialConsoleOutputValue("detected_major_version"),
-			b.workflow.GetSerialConsoleOutputValue("detected_minor_version"), err)
+		err = customizeErrorToDetectionResults(b.logger, b.request.OS, b.detectedOs, err)
 	}
 	if b.workflow.Logger != nil {
 		for _, trace := range b.workflow.Logger.ReadSerialPortLogs() {
@@ -58,7 +57,7 @@ func (b *bootableDiskProcessor) cancel(reason string) bool {
 	return true
 }
 
-func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger logging.Logger) (processor, error) {
+func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger logging.Logger, detectedOs distro.Release) (processor, error) {
 	vars := map[string]string{
 		"image_name":           request.ImageName,
 		"install_gce_packages": strconv.FormatBool(!request.NoGuestEnvironment),
@@ -89,9 +88,10 @@ func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger 
 	workflow.Name = logPrefix + "translate"
 
 	return &bootableDiskProcessor{
-		request:  request,
-		workflow: workflow,
-		logger:   logger,
+		request:    request,
+		workflow:   workflow,
+		logger:     logger,
+		detectedOs: detectedOs,
 	}, err
 }
 
