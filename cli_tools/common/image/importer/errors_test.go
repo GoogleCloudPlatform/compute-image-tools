@@ -4,9 +4,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 )
 
 func Test_customizeErrorToDetectionResults(t *testing.T) {
@@ -50,7 +51,8 @@ func Test_customizeErrorToDetectionResults(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual := customizeErrorToDetectionResults(tt.fromUser, tt.detectedDistro, tt.original)
+			actual := customizeErrorToDetectionResults(logging.NewToolLogger("test"),
+				tt.fromUser, tt.detectedDistro, tt.original)
 			assert.EqualError(t, actual, tt.wantErr)
 		})
 	}
