@@ -169,14 +169,14 @@ func runOVFMachineImageImportCentos74StorageLocation(ctx context.Context, testCa
 	suffix := path.RandString(5)
 	props := &ovfMachineImageImportTestProperties{
 		machineImageName: fmt.Sprintf("test-gmi-storage-location-%v", suffix),
-		storageLocation:  "us-west2",
+		storageLocation:  "asia-east1",
 		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{
 			VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 				"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-			Zone:                  testProjectConfig.TestZone,
+			Zone:                  "asia-east1-c",
 			ExpectedStartupOutput: "All tests passed!",
 			FailureMatches:        []string{"FAILED:", "TestFailed:"},
-			SourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+			SourceURI:             fmt.Sprintf("gs://%v-asia/ova/centos-7.4/", ovaBucket),
 			Os:                    "centos-7",
 			MachineType:           "n2-standard-2",
 		}}
@@ -195,10 +195,10 @@ func runMachineImageImportDisabledDefaultServiceAccountSuccessTest(ctx context.C
 		machineImageName: fmt.Sprintf("test-without-service-account-%v", suffix),
 		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-			Zone:                   testProjectConfig.TestZone,
+			Zone:                   "europe-west1-c",
 			ExpectedStartupOutput:  "All tests passed!",
 			FailureMatches:         []string{"FAILED:", "TestFailed:"},
-			SourceURI:              fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+			SourceURI:              fmt.Sprintf("gs://%v-eu/ova/centos-7.4/", ovaBucket),
 			Os:                     "centos-7",
 			MachineType:            "n1-standard-4",
 			Project:                testVariables.ProjectID,
@@ -222,7 +222,7 @@ func runMachineImageImportOSDefaultServiceAccountWithMissingPermissionsSuccessTe
 		machineImageName: fmt.Sprintf("test-missing-cse-permissions-%v", suffix),
 		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-			Zone:                   testProjectConfig.TestZone,
+			Zone:                   "us-west1-c",
 			ExpectedStartupOutput:  "All tests passed!",
 			FailureMatches:         []string{"FAILED:", "TestFailed:"},
 			SourceURI:              fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
@@ -296,10 +296,10 @@ func runMachineImageImportDefaultServiceAccountCustomAccessScope(ctx context.Con
 		machineImageName: fmt.Sprintf("test-custom-sc-default-sa-%v", suffix),
 		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-			Zone:                  testProjectConfig.TestZone,
+			Zone:                  "asia-southeast1-c",
 			ExpectedStartupOutput: "All tests passed!",
 			FailureMatches:        []string{"FAILED:", "TestFailed:"},
-			SourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+			SourceURI:             fmt.Sprintf("gs://%v-asia/ova/centos-7.4/", ovaBucket),
 			Os:                    "centos-7",
 			MachineType:           "n1-standard-4",
 			Project:               testVariables.ProjectID,

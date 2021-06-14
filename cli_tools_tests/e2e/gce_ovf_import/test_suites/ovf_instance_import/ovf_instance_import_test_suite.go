@@ -185,10 +185,10 @@ func runOVFInstanceImportWindows2016(ctx context.Context, testCase *junitxml.Tes
 		instanceName: fmt.Sprintf("test-instance-w2k16-%v", suffix),
 		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.ps1", logger),
-			Zone:                  testProjectConfig.TestZone,
+			Zone:                  "asia-east1-c",
 			ExpectedStartupOutput: "All Tests Passed",
 			FailureMatches:        []string{"Test Failed:"},
-			SourceURI:             fmt.Sprintf("gs://%v/ova/w2k16/w2k16.ovf", ovaBucket),
+			SourceURI:             fmt.Sprintf("gs://%v-asia/ova/w2k16/w2k16.ovf", ovaBucket),
 			Os:                    "windows-2016",
 			MachineType:           "n2-standard-2",
 			IsWindows:             true,
@@ -205,10 +205,10 @@ func runOVFInstanceImportWindows2008R2FourNICs(ctx context.Context, testCase *ju
 		instanceName: fmt.Sprintf("test-instance-w2k8r2-%v", suffix),
 		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.ps1", logger),
-			Zone:                  testProjectConfig.TestZone,
+			Zone:                  "europe-west2-c",
 			ExpectedStartupOutput: "All Tests Passed",
 			FailureMatches:        []string{"Test Failed:"},
-			SourceURI:             fmt.Sprintf("gs://%v/ova/win2008r2-all-updates-four-nic.ova", ovaBucket),
+			SourceURI:             fmt.Sprintf("gs://%v-eu/ova/win2008r2-all-updates-four-nic.ova", ovaBucket),
 			Os:                    "windows-2008r2",
 			InstanceMetadata:      skipOSConfigMetadata,
 			IsWindows:             true,
@@ -225,7 +225,8 @@ func runOVFInstanceImportDebian9(ctx context.Context, testCase *junitxml.TestCas
 	// b/141321520
 	props := &ovfInstanceImportTestProperties{
 		instanceName: fmt.Sprintf("test-instance-debian-9-%v", suffix),
-		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{Zone: testProjectConfig.TestZone,
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{
+			Zone:        "us-west1-c",
 			SourceURI:   fmt.Sprintf("gs://%v/ova/bitnami-tomcat-8.5.43-0-linux-debian-9-x86_64.ova", ovaBucket),
 			Os:          "debian-9",
 			MachineType: "n1-standard-4",
@@ -242,13 +243,14 @@ func runOVFInstanceImportUbuntu16FromVirtualBox(ctx context.Context, testCase *j
 		instanceName: fmt.Sprintf("test-instance-virtualbox-6-%v", suffix),
 		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-			Zone:                  testProjectConfig.TestZone,
+			Zone:                  "asia-southeast1-c",
 			ExpectedStartupOutput: "All tests passed!",
 			FailureMatches:        []string{"FAILED:", "TestFailed:"},
-			SourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-16.04-virtualbox.ova", ovaBucket),
+			SourceURI:             fmt.Sprintf("gs://%v-asia/ova/ubuntu-16.04-virtualbox.ova", ovaBucket),
 			Os:                    "ubuntu-1604",
 			MachineType:           "n1-standard-4",
-		}}
+		},
+	}
 
 	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
@@ -259,11 +261,13 @@ func runOVFInstanceImportUbuntu16FromAWS(ctx context.Context, testCase *junitxml
 	suffix := path.RandString(5)
 	props := &ovfInstanceImportTestProperties{
 		instanceName: fmt.Sprintf("test-instance-aws-ova-ubuntu-1604-%v", suffix),
-		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{Zone: testProjectConfig.TestZone,
-			SourceURI:   fmt.Sprintf("gs://%v/ova/aws-ova-ubuntu-1604.ova", ovaBucket),
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{
+			Zone:        "europe-west4-c",
+			SourceURI:   fmt.Sprintf("gs://%v-eu/ova/aws-ova-ubuntu-1604.ova", ovaBucket),
 			Os:          "ubuntu-1604",
 			MachineType: "n1-standard-4",
-		}}
+		},
+	}
 
 	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
@@ -278,19 +282,21 @@ func runInstanceImportDisabledDefaultServiceAccountSuccessTest(ctx context.Conte
 	suffix := path.RandString(5)
 	props := &ovfInstanceImportTestProperties{
 		instanceName: fmt.Sprintf("test-without-service-account-%v", suffix),
-		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
-			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-			Zone:                   testProjectConfig.TestZone,
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{
+			VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
+				"daisy_integration_tests/scripts/post_translate_test.sh", logger),
+			Zone:                   "asia-northeast1-c",
 			ExpectedStartupOutput:  "All tests passed!",
 			FailureMatches:         []string{"FAILED:", "TestFailed:"},
-			SourceURI:              fmt.Sprintf("gs://%v/ova/OL7U9_x86_64-olvm-b77.ova", ovaBucket),
+			SourceURI:              fmt.Sprintf("gs://%v-asia/ova/OL7U9_x86_64-olvm-b77.ova", ovaBucket),
 			Os:                     "centos-7",
 			MachineType:            "n1-standard-4",
 			Project:                testVariables.ProjectID,
 			ComputeServiceAccount:  testVariables.ComputeServiceAccount,
 			InstanceServiceAccount: testVariables.InstanceServiceAccount,
 			InstanceAccessScopes:   "https://www.googleapis.com/auth/compute,https://www.googleapis.com/auth/datastore",
-		}}
+		},
+	}
 	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
@@ -307,16 +313,17 @@ func runInstanceImportDefaultServiceAccountWithMissingPermissionsSuccessTest(ctx
 		instanceName: fmt.Sprintf("test-missing-ce-permissions-%v", suffix),
 		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-			Zone:                   testProjectConfig.TestZone,
+			Zone:                   "europe-west3-c",
 			ExpectedStartupOutput:  "All tests passed!",
 			FailureMatches:         []string{"FAILED:", "TestFailed:"},
-			SourceURI:              fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
+			SourceURI:              fmt.Sprintf("gs://%v-eu/ova/centos-7.4/", ovaBucket),
 			Os:                     "centos-7",
 			MachineType:            "n1-standard-4",
 			Project:                testVariables.ProjectID,
 			ComputeServiceAccount:  testVariables.ComputeServiceAccount,
 			InstanceServiceAccount: testVariables.InstanceServiceAccount,
-		}}
+		},
+	}
 	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
@@ -376,7 +383,7 @@ func runInstanceImportDefaultServiceAccountCustomAccessScope(ctx context.Context
 		instanceName: fmt.Sprintf("test-scopes-on-default-cse-%v", suffix),
 		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-			Zone:                  testProjectConfig.TestZone,
+			Zone:                  "us-east1-c",
 			ExpectedStartupOutput: "All tests passed!",
 			FailureMatches:        []string{"FAILED:", "TestFailed:"},
 			SourceURI:             fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
@@ -396,7 +403,7 @@ func runInstanceImportDefaultServiceAccountNoAccessScope(ctx context.Context, te
 		instanceName: fmt.Sprintf("test-default-sa-no-scopes-%v", suffix),
 		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-			Zone:                   testProjectConfig.TestZone,
+			Zone:                   "us-east4-c",
 			ExpectedStartupOutput:  "All tests passed!",
 			FailureMatches:         []string{"FAILED:", "TestFailed:"},
 			SourceURI:              fmt.Sprintf("gs://%v/ova/centos-7.4/", ovaBucket),
