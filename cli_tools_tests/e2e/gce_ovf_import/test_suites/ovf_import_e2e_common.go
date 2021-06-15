@@ -65,15 +65,15 @@ func BuildArgsMap(props *OvfImportTestProperties, testProjectConfig *testconfig.
 	project := GetProject(props, testProjectConfig)
 	gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--project=%v", project))
 	gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--source-uri=%v", props.SourceURI))
-	gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--zone=%v", testProjectConfig.TestZone))
+	gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--zone=%v", props.Zone))
 
 	gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--project=%v", project))
 	gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--source-uri=%v", props.SourceURI))
-	gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--zone=%v", testProjectConfig.TestZone))
+	gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--zone=%v", props.Zone))
 
 	wrapperArgs = append(wrapperArgs, fmt.Sprintf("-project=%v", project))
 	wrapperArgs = append(wrapperArgs, fmt.Sprintf("-ovf-gcs-path=%v", props.SourceURI))
-	wrapperArgs = append(wrapperArgs, fmt.Sprintf("-zone=%v", testProjectConfig.TestZone))
+	wrapperArgs = append(wrapperArgs, fmt.Sprintf("-zone=%v", props.Zone))
 	wrapperArgs = append(wrapperArgs, fmt.Sprintf("-build-id=%v", path.RandString(10)))
 
 	if len(props.Tags) > 0 {

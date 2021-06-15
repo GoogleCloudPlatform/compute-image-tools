@@ -466,7 +466,7 @@ func verifyImportedInstance(
 	logger.Printf("Verifying imported instance...")
 	instance, err := gcp.CreateInstanceBetaObject(ctx, project, props.Zone, props.instanceName, props.IsWindows)
 	if err != nil {
-		e2e.Failure(testCase, logger, fmt.Sprintf("Image '%v' doesn't exist after import: %v", props.instanceName, err))
+		e2e.Failure(testCase, logger, fmt.Sprintf("Instance '%v' doesn't exist after import: %v", props.instanceName, err))
 		return
 	}
 
