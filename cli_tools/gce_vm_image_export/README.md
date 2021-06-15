@@ -30,6 +30,7 @@ Exactly one of these must be specified:
 
 #### Optional flags
 + `-format=FORMAT` Specify the format to export to, such as vmdk, vhdx, vpc, or qcow2.
++ `-qemu_options=QEMU_OPTIONS` Provide qemu CLI options.
 + `-project=PROJECT` Project to run in, overrides what is set in workflow.
 + `-network=NETWORK` Name of the network in your project to use for the image import. The network 
   must have access to Google Cloud Storage. If not specified, the  network named 'default' is used.
@@ -60,7 +61,7 @@ Exactly one of these must be specified:
 ```
 gce_vm_image_export -client_id=CLIENT_ID -destination_uri=DESTINATION_URI
         (-source_image=SOURCE_IMAGE | -source_disk_snapshot=SOURCE_DISK_SNAPSHOT)
-        [-format=FORMAT] [-project=PROJECT] [-network=NETWORK]
+        [-format=FORMAT] [-qemu_options=QEMU_OPTIONS] [-project=PROJECT] [-network=NETWORK]
         [-subnet=SUBNET] [-zone=ZONE] [-timeout=TIMEOUT] [-scratch_bucket_gcs_path=PATH]
         [-oauth=OAUTH_PATH] [-compute_endpoint_override=ENDPOINT] [-disable_gcs_logging]
         [-disable_cloud_logging] [-disable_stdout_logging] [-labels=KEY=VALUE,...]

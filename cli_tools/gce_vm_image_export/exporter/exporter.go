@@ -86,13 +86,14 @@ func getWorkflowPath(format string, currentExecutablePath string) string {
 	return path.ToWorkingDir(WorkflowDir+ExportAndConvertWorkflow, currentExecutablePath)
 }
 
-func buildDaisyVars(destinationURI string, sourceImage string, sourceDiskSnapshot string, format string, network string,
-	subnet string, region string, computeServiceAccount string) map[string]string {
+func buildDaisyVars(destinationURI string, sourceImage string, sourceDiskSnapshot string, format string, qemuOptions string,
+	network string, subnet string, region string, computeServiceAccount string) map[string]string {
 
 	destinationURI = strings.TrimSpace(destinationURI)
 	sourceImage = strings.TrimSpace(sourceImage)
 	sourceDiskSnapshot = strings.TrimSpace(sourceDiskSnapshot)
 	format = strings.TrimSpace(format)
+	qemuOptions = strings.TrimSpace(qemuOptions)
 	network = strings.TrimSpace(network)
 	subnet = strings.TrimSpace(subnet)
 	region = strings.TrimSpace(region)
@@ -114,6 +115,9 @@ func buildDaisyVars(destinationURI string, sourceImage string, sourceDiskSnapsho
 
 	if format != "" {
 		varMap["format"] = format
+	}
+	if qemuOptions != "" {
+		varMap["qemu_options"] = qemuOptions
 	}
 	if subnet != "" {
 		varMap["export_subnet"] = param.GetRegionalResourcePath(
@@ -172,7 +176,7 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 
 // Run runs export workflow.
 func Run(clientID string, destinationURI string, sourceImage string, sourceDiskSnapshot string, format string,
-	project *string, network string, subnet string, zone string, timeout string,
+	qemuOptions string, project *string, network string, subnet string, zone string, timeout string,
 	scratchBucketGcsPath string, oauth string, ce string, computeServiceAccount string, gcsLogsDisabled bool,
 	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, currentExecutablePath string) (*daisy.Workflow, error) {
 
@@ -206,7 +210,7 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 		return nil, err
 	}
 
-	varMap := buildDaisyVars(destinationURI, sourceImage, sourceDiskSnapshot, format, network, subnet, *region, computeServiceAccount)
+	varMap := buildDaisyVars(destinationURI, sourceImage, sourceDiskSnapshot, format, qemuOptions, network, subnet, *region, computeServiceAccount)
 
 	var w *daisy.Workflow
 	if w, err = runExportWorkflow(ctx, getWorkflowPath(format, currentExecutablePath), varMap, *project,
