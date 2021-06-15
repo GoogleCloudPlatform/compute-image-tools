@@ -30,6 +30,7 @@ var (
 	sourceImage           = flag.String(exporter.SourceImageFlagKey, "", "Compute Engine image from which to export")
 	sourceDiskSnapshot    = flag.String(exporter.SourceDiskSnapshotFlagKey, "", "Compute Engine disk snapshot from which to export")
 	format                = flag.String("format", "", "Specify the format to export to, such as vmdk, vhdx, vpc, or qcow2.")
+	qemuOptions           = flag.String("qemu_options", "", "Provide additional qemu options.")
 	project               = flag.String("project", "", "Project to run in, overrides what is set in workflow.")
 	network               = flag.String("network", "", "Name of the network in your project to use for the image export. The network must have access to Google Cloud Storage. If not specified, the network named default is used.")
 	subnet                = flag.String("subnet", "", "Name of the subnetwork in your project to use for the image export. If	the network resource is in legacy mode, do not provide this property. If the network is in auto subnet mode, providing the subnetwork is optional. If the network is in custom subnet mode, then this field should be specified. Zone should be specified if this field is specified.")
@@ -47,7 +48,7 @@ var (
 
 func exportEntry() (service.Loggable, error) {
 	currentExecutablePath := string(os.Args[0])
-	wf, err := exporter.Run(*clientID, *destinationURI, *sourceImage, *sourceDiskSnapshot, *format, project,
+	wf, err := exporter.Run(*clientID, *destinationURI, *sourceImage, *sourceDiskSnapshot, *format, *qemuOptions, project,
 		*network, *subnet, *zone, *timeout, *scratchBucketGcsPath, *oauth, *ce, *computeServiceAccount,
 		*gcsLogsDisabled, *cloudLogsDisabled, *stdoutLogsDisabled, *labels, currentExecutablePath)
 	return service.NewLoggableFromWorkflow(wf), err
