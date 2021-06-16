@@ -17,9 +17,12 @@ package exporter
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"strings"
+
+	"google.golang.org/api/option"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
@@ -30,7 +33,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	"google.golang.org/api/option"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 // Make file paths mutable
@@ -206,6 +209,9 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 		return nil, err
 	}
 
+	if err = validateImageExists(computeClient, *project, sourceImage); err != nil {
+		return nil, err
+	}
 	varMap := buildDaisyVars(destinationURI, sourceImage, sourceDiskSnapshot, format, network, subnet, *region, computeServiceAccount)
 
 	var w *daisy.Workflow
@@ -218,4 +224,13 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 		return w, err
 	}
 	return w, nil
+}
+
+func validateImageExists(computeClient daisyCompute.Client, project string, sourceImage string) (err error) {
+	_, err = computeClient.GetImage(project, sourceImage)
+	if err != nil {
+		log.Printf("Error when fetching image %q: %q.", sourceImage, err)
+		return fmt.Errorf("Image %q not found", sourceImage)
+	}
+	return nil
 }
