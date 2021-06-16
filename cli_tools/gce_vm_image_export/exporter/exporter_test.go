@@ -15,10 +15,14 @@
 package exporter
 
 import (
+	"errors"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 )
 
 var (
@@ -167,6 +171,23 @@ func TestBuildDaisyVarsWithoutComputeServiceAccount(t *testing.T) {
 
 	_, hasVar := got["compute_service_account"]
 	assert.False(t, hasVar)
+}
+
+func TestValidateImageExists_ReturnsNoError_WhenImageFound(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockComputeClient := mocks.NewMockClient(mockCtrl)
+	mockComputeClient.EXPECT().GetImage("project", "image").Return(nil, nil)
+	assert.NoError(t, validateImageExists(mockComputeClient, "project", "image"))
+}
+
+func TestValidateImageExists_ReturnsError_WhenImageNotFound(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockComputeClient := mocks.NewMockClient(mockCtrl)
+	mockComputeClient.EXPECT().GetImage("project", "image").Return(nil, errors.New("image not found"))
+	assert.EqualError(t, validateImageExists(mockComputeClient, "project", "image"),
+		"Image \"image\" not found")
 }
 
 func resetArgs() {
