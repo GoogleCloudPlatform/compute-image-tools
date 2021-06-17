@@ -120,27 +120,29 @@ func runImageImportDataDiskTest(ctx context.Context, testCase *junitxml.TestCase
 
 	suffix := path.RandString(5)
 	imageName := "e2e-test-image-import-data-disk-" + suffix
+	zone := "europe-west2-c"
+	sourceFile := fmt.Sprintf("gs://%v-test-image-eu/image-file-10g-vmdk", testProjectConfig.TestProjectID)
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
 			fmt.Sprintf("-image_name=%s", imageName), "-data_disk",
-			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("-source_file=%v", sourceFile),
+			fmt.Sprintf("-zone=%v", zone),
 		},
 		e2e.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
 			"--docker-image-tag=latest", "--data-disk", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--source-file=%v", sourceFile),
+			fmt.Sprintf("--zone=%v", zone),
 		},
 		e2e.GcloudBetaLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
 			"--docker-image-tag=latest", "--data-disk", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--source-file=%v", sourceFile),
+			fmt.Sprintf("--zone=%v", zone),
 		},
 		e2e.GcloudGaLatestWrapperRelease: {"compute", "images", "import", imageName, "--quiet",
 			"--data-disk", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--source-file=%v", sourceFile),
+			fmt.Sprintf("--zone=%v", zone),
 		},
 	}
 
@@ -152,27 +154,29 @@ func runImageImportOSTest(ctx context.Context, testCase *junitxml.TestCase, logg
 
 	suffix := path.RandString(5)
 	imageName := "e2e-test-image-import-os-" + suffix
+	zone := "asia-southeast1-c"
+	sourceFile := fmt.Sprintf("gs://%v-test-image-asia/image-file-10g-vmdk", testProjectConfig.TestProjectID)
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
 			fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9",
-			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("-source_file=%v", sourceFile),
+			fmt.Sprintf("-zone=%v", zone),
 		},
 		e2e.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
 			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--source-file=%v", sourceFile),
+			fmt.Sprintf("--zone=%v", zone),
 		},
 		e2e.GcloudBetaLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
 			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--source-file=%v", sourceFile),
+			fmt.Sprintf("--zone=%v", zone),
 		},
 		e2e.GcloudGaLatestWrapperRelease: {"compute", "images", "import", imageName, "--quiet",
 			"--os=debian-9", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--source-file=%v", sourceFile),
+			fmt.Sprintf("--zone=%v", zone),
 		},
 	}
 
@@ -184,26 +188,27 @@ func runImageImportOSFromImageTest(ctx context.Context, testCase *junitxml.TestC
 
 	suffix := path.RandString(5)
 	imageName := "e2e-test-image-import-os-from-image-" + suffix
+	zone := "europe-west4-c"
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9", "-source_image=e2e-test-image-10g",
-			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9", "-source_image=e2e-test-image-10g-eu",
+			fmt.Sprintf("-zone=%v", zone),
 		},
 		e2e.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
 			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-			"--source-image=e2e-test-image-10g",
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			"--source-image=e2e-test-image-10g-eu",
+			fmt.Sprintf("--zone=%v", zone),
 		},
 		e2e.GcloudBetaLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
 			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-			"--source-image=e2e-test-image-10g",
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			"--source-image=e2e-test-image-10g-eu",
+			fmt.Sprintf("--zone=%v", zone),
 		},
 		e2e.GcloudGaLatestWrapperRelease: {"compute", "images", "import", imageName, "--quiet",
 			"--os=debian-9", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-			"--source-image=e2e-test-image-10g",
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			"--source-image=e2e-test-image-10g-eu",
+			fmt.Sprintf("--zone=%v", zone),
 		},
 	}
 
@@ -401,30 +406,32 @@ func runImageImportOSWithDisabledDefaultServiceAccountServiceSuccessTest(ctx con
 
 	suffix := path.RandString(5)
 	imageName := "e2e-test-import-without-service-account-" + suffix
+	zone := "asia-northeast1-c"
+	sourceFile := fmt.Sprintf("gs://%v-test-image-asia/image-file-10g-vmdk", testProjectConfig.TestProjectID)
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testVariables.ProjectID),
 			fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9",
-			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("-source_file=%v", sourceFile),
+			fmt.Sprintf("-zone=%v", zone),
 			fmt.Sprintf("-compute_service_account=%v", testVariables.ComputeServiceAccount),
 		},
 		e2e.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
 			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
-			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--source-file=%v", sourceFile),
+			fmt.Sprintf("--zone=%v", zone),
 			fmt.Sprintf("--compute_service_account=%v", testVariables.ComputeServiceAccount),
 		},
 		e2e.GcloudBetaLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
 			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
-			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--source-file=%v", sourceFile),
+			fmt.Sprintf("--zone=%v", zone),
 			fmt.Sprintf("--compute_service_account=%v", testVariables.ComputeServiceAccount),
 		},
 		e2e.GcloudGaLatestWrapperRelease: {"compute", "images", "import", imageName, "--quiet",
 			"--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
-			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--source-file=%v", sourceFile),
+			fmt.Sprintf("--zone=%v", zone),
 			fmt.Sprintf("--compute_service_account=%v", testVariables.ComputeServiceAccount),
 		},
 	}
@@ -444,30 +451,32 @@ func runImageImportOSDefaultServiceAccountWithMissingPermissionsSuccessTest(ctx 
 
 	suffix := path.RandString(5)
 	imageName := "e2e-test-import-missing-permission-" + suffix
+	zone := "europe-west3-c"
+	sourceFile := fmt.Sprintf("gs://%v-test-image-eu/image-file-10g-vmdk", testProjectConfig.TestProjectID)
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testVariables.ProjectID),
 			fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9",
-			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("-source_file=%v", sourceFile),
+			fmt.Sprintf("-zone=%v", zone),
 			fmt.Sprintf("-compute_service_account=%v", testVariables.ComputeServiceAccount),
 		},
 		e2e.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
 			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
-			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--source-file=%v", sourceFile),
+			fmt.Sprintf("--zone=%v", zone),
 			fmt.Sprintf("--compute_service_account=%v", testVariables.ComputeServiceAccount),
 		},
 		e2e.GcloudBetaLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
 			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
-			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--source-file=%v", sourceFile),
+			fmt.Sprintf("--zone=%v", zone),
 			fmt.Sprintf("--compute_service_account=%v", testVariables.ComputeServiceAccount),
 		},
 		e2e.GcloudGaLatestWrapperRelease: {"compute", "images", "import", imageName, "--quiet",
 			"--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
-			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--source-file=%v", sourceFile),
+			fmt.Sprintf("--zone=%v", zone),
 			fmt.Sprintf("--compute_service_account=%v", testVariables.ComputeServiceAccount),
 		},
 	}
@@ -488,30 +497,31 @@ func runImageImportOSWithDisabledDefaultServiceAccountServiceFailTest(ctx contex
 	suffix := path.RandString(5)
 	imageName := "e2e-test-import-without-service-account-fail-" + suffix
 	defaultAccount := "default"
+	zone := "us-east1-c"
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testVariables.ProjectID),
 			fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9",
 			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("-zone=%v", zone),
 			fmt.Sprintf("-compute_service_account=%v", defaultAccount),
 		},
 		e2e.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
 			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
 			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--zone=%v", zone),
 			fmt.Sprintf("--compute_service_account=%v", defaultAccount),
 		},
 		e2e.GcloudBetaLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
 			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
 			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--zone=%v", zone),
 			fmt.Sprintf("--compute_service_account=%v", defaultAccount),
 		},
 		e2e.GcloudGaLatestWrapperRelease: {"compute", "images", "import", imageName, "--quiet",
 			"--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
 			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--zone=%v", zone),
 			fmt.Sprintf("--compute_service_account=%v", defaultAccount),
 		},
 	}
@@ -532,30 +542,31 @@ func runImageImportOSDefaultServiceAccountWithMissingPermissionsFailTest(ctx con
 	suffix := path.RandString(5)
 	imageName := "e2e-test-missing-permission-fail-" + suffix
 	defaultAccount := "default"
+	zone := "us-east4-c"
 
 	argsMap := map[e2e.CLITestType][]string{
 		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testVariables.ProjectID),
 			fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9",
 			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("-zone=%v", zone),
 			fmt.Sprintf("-compute_service_account=%v", defaultAccount),
 		},
 		e2e.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
 			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
 			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--zone=%v", zone),
 			fmt.Sprintf("--compute_service_account=%v", defaultAccount),
 		},
 		e2e.GcloudBetaLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
 			"--docker-image-tag=latest", "--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
 			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--zone=%v", zone),
 			fmt.Sprintf("--compute_service_account=%v", defaultAccount),
 		},
 		e2e.GcloudGaLatestWrapperRelease: {"compute", "images", "import", imageName, "--quiet",
 			"--os=debian-9", fmt.Sprintf("--project=%v", testVariables.ProjectID),
 			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--zone=%v", zone),
 			fmt.Sprintf("--compute_service_account=%v", defaultAccount),
 		},
 	}
