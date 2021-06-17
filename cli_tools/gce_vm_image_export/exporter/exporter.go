@@ -226,11 +226,22 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 	return w, nil
 }
 
-func validateImageExists(computeClient daisyCompute.Client, project string, sourceImage string) (err error) {
-	_, err = computeClient.GetImage(project, sourceImage)
+// validateImageExists checks whether imageName exists in the specified project.
+//
+// This validates when imageName is a valid image name, and skips validation if
+// the imageName is a URI, or something that's not recognized as an image.
+// The simplistic validation avoids false negatives; Daisy has robust logic for
+// interpreting the various permutations of specifying an image and project,
+// and we don't want to copy that here, since this is a convenience method to create
+// user-friendly messages.
+func validateImageExists(computeClient daisyCompute.Client, project string, imageName string) (err error) {
+	if err := validation.ValidateImageName(imageName); err != nil {
+		return nil
+	}
+	_, err = computeClient.GetImage(project, imageName)
 	if err != nil {
-		log.Printf("Error when fetching image %q: %q.", sourceImage, err)
-		return fmt.Errorf("Image %q not found", sourceImage)
+		log.Printf("Error when fetching image %q: %q.", imageName, err)
+		return fmt.Errorf("Image %q not found", imageName)
 	}
 	return nil
 }
