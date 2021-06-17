@@ -17,7 +17,6 @@ package exporter
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -241,7 +240,7 @@ func validateImageExists(computeClient daisyCompute.Client, project string, imag
 	_, err = computeClient.GetImage(project, imageName)
 	if err != nil {
 		log.Printf("Error when fetching image %q: %q.", imageName, err)
-		return fmt.Errorf("Image %q not found", imageName)
+		return daisy.Errf("Image %q not found", imageName)
 	}
 	return nil
 }
