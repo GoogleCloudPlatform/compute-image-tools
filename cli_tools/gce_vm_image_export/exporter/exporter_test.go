@@ -181,6 +181,15 @@ func TestValidateImageExists_ReturnsNoError_WhenImageFound(t *testing.T) {
 	assert.NoError(t, validateImageExists(mockComputeClient, "project", "image"))
 }
 
+func TestValidateImageExists_SkipsValidation_WhenSourceImageIsURI(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockComputeClient := mocks.NewMockClient(mockCtrl)
+	// No expectations on the mockComputeClient means the test fails if the mock detects calls.
+	assert.NoError(t, validateImageExists(mockComputeClient,
+		"project", "projects/project/global/image/image-name"))
+}
+
 func TestValidateImageExists_ReturnsError_WhenImageNotFound(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
