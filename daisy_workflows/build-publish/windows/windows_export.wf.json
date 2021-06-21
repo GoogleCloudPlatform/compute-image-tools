@@ -1,0 +1,46 @@
+{
+  "Vars": {
+    "install_disk": "disk-install",
+    "build_date": {
+      "Required": true,
+      "Description": "The build date of the image."
+    },
+    "gcs_url": {
+      "Required": true,
+      "Description": "The GCS url of where to save the images."
+    },
+    "gcs_interal_url": {
+      "Required": true,
+      "Description": "The GCS url of where to save the internal image."
+    },
+    "workflow_root": {
+      "Required": true,
+      "Description": "Root of github workflows."
+    }
+  },
+  "Steps": {
+    "disk-export": {
+      "Timeout": "30m",
+      "IncludeWorkflow": {
+        "Path": "${workflow_root}/export/disk_export.wf.json",
+        "Vars": {
+          "source_disk": "${install_disk}",
+          "Destination": "${gcs_url}"
+        }
+      }
+    },
+    "internal-copy": {
+      "CopyGCSObjects": [
+        {
+          "Source": "${gcs_url}",
+          "Destination": "${gcs_interal_url}"
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "internal-copy": [
+      "disk-export"
+    ]
+  }
+}
