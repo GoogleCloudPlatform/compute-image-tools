@@ -6,7 +6,6 @@
 */}}
 {
   "Name": "windows-server-2019-dc-core-for-containers-uefi",
-  "SourceGCSPath": "gs://gce-image-archive/windows_uefi",
   {{$work_project := `"gce-image-builder"` -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*6"` -}}

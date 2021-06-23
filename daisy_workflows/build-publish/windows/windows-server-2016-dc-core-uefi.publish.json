@@ -8,7 +8,6 @@
 */}}
 {
   "Name": "windows-server-2016-dc-core-uefi",
-  "SourceGCSPath": "gs://gce-image-archive/windows-uefi",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*6"` -}}
