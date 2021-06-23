@@ -1,0 +1,86 @@
+{
+  "Name": "windows-2016-dc-uefi",
+  "Project": "gce-image-builder",
+  "Zone": "us-central1-b",
+  "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
+  "Vars": {
+    "build_date": {
+      "Value": "${TIMESTAMP}",
+      "Description": "Build datestamp used to version the image."
+    },
+    "media": {
+      "Required": true,
+      "Description": "GCS or local path to Windows ISO."
+    },
+    "pwsh": {
+      "Required": true,
+      "Description": "GCS or local path to PowerShell v7+ installer"
+    },
+    "dotnet48": {
+      "Required": true,
+      "Description": "GCS or local path to Microsoft .NET Framework 4.8 offline installer"
+    },
+    "cloudsdk": {
+      "Required": true,
+      "Description": "GCS or local path to Cloud SDK installer"
+    },
+    "updates": {
+      "Required": true,
+      "Description": "GCS or local filesystem location containing Windows update files."
+    },
+    "gcs_url": {
+      "Required": true,
+      "Description": "The GCS url that the image raw file exported to."
+    },
+    "gcs_internal_url": {
+      "Required": true,
+      "Description": "The GCS url that the exported image is saved to for internal use."
+    },
+    "google_cloud_repo": {
+      "Value": "stable",
+      "Description": "The Google Cloud Repo branch to use."
+    },
+    "workflow_root": {
+      "Value": "/workflows",
+      "Description": "Root of github workflows, defaults to /workflows in the container."
+    }
+  },
+  "Steps": {
+    "build": {
+      "Timeout": "4h",
+      "IncludeWorkflow": {
+        "Path": "${workflow_root}/image_build/windows/windows-server-2016-dc-uefi-payg.wf.json",
+        "Vars": {
+          "install_disk": "disk-install",
+          "install_disk_size": "50",
+          "updates": "${updates}",
+          "drivers_bucket": "gs://gce-windows-drivers-public/release/win6.3-signed/",
+          "edition": "Windows Server 2016 SERVERDATACENTER",
+          "media": "${media}",
+          "cloud_sdk": "${cloud_sdk}",
+          "pwsh": "${pwsh}",
+          "google_cloud_repo": "${google_cloud_repo}",
+          "uefi_build": "true",
+          "workflow_root": "${workflow_root}"
+        }
+      }
+    },
+    "windows-export": {
+      "Timeout": "60m",
+      "IncludeWorkflow": {
+        "Path": "./windows_export.wf.json",
+        "Vars": {
+          "build_date": "${build_date}",
+          "gcs_url": "${gcs_url}",
+          "gcs_internal_url": "${gcs_internal_url}",
+          "workflow_root": "${workflow_root}"
+        }
+      }
+    }
+  },
+  "Dependencies": {
+    "windows-export": [
+      "build"
+    ]
+  }
+}
