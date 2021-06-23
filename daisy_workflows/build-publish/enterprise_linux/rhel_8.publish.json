@@ -23,12 +23,12 @@
   {{- else if eq .environment "oslogin-staging" -}}
   "WorkProject": "oslogin-staging-project",
   "PublishProject": "oslogin-staging-project",
-  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_alpha/projects/",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
   "DeleteAfter": {{$delete_after}},
   {{- else if eq .environment "staging" -}}
-  "WorkProject": "gce-staging-images",
+  "WorkProject": "oslogin-staging-project",
   "PublishProject": "gce-staging-images",
-  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_alpha/projects/",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
   "DeleteAfter": {{$delete_after}},
   {{- else -}}
   "WorkProject": {{$work_project}},
