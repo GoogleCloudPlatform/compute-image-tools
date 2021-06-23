@@ -4,6 +4,10 @@
   "WorkProject": "oslogin-staging-project",
   "PublishProject": "oslogin-staging-project",
   "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_alpha/projects/",
+  {{- else if eq .environment "staging" -}}
+  "WorkProject": "gce-staging-images",
+  "PublishProject": "gce-staging-images",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_alpha/projects/",
   {{- end}}
   "DeleteAfter": "24h*30*6",
   "Images": [

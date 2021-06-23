@@ -20,12 +20,17 @@
   "WorkProject": {{$work_project}},
   "PublishProject": "rocky-linux-cloud",
   "ComputeEndpoint": {{$endpoint}},
-  {{- else if eq .environment "staging" -}}
-  "WorkProject": "bct-staging-images",
+  {{- else if eq .environment "oslogin-staging" -}}
+  "WorkProject": "oslogin-staging-project",
   "PublishProject": "oslogin-staging-project",
   "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_alpha/projects/",
   "DeleteAfter": {{$delete_after}},
-  {{- else -}}
+  {{- else if eq .environment "staging" -}}
+  "WorkProject": "gce-staging-images",
+  "PublishProject": "gce-staging-images",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_alpha/projects/",
+  "DeleteAfter": {{$delete_after}},
+  {{- else -}
   "WorkProject": {{$work_project}},
   "PublishProject": {{$work_project}},
   "ComputeEndpoint": {{$endpoint}},
