@@ -43,7 +43,7 @@
       "Family": "debian-11",
       "Description": "Debian, Debian GNU/Linux, 11 (bullseye), amd64 built on {{$time}}, supports Shielded VM features",
       "Licenses": [
-        {{if or .environment "staging" .environment "oslogin-staging" -}}
+        {{if (or (eq .environment "staging") (eq .environment "oslogin-staging")) -}}
         "projects/bct-staging-functional/global/licenses/debian-11-bullseye"
         {{- else -}}
         "projects/debian-cloud/global/licenses/debian-11-bullseye"
