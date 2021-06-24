@@ -30,12 +30,12 @@
   "PublishProject": "gce-staging-images",
   "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
   "DeleteAfter": {{$delete_after}},
-  {{- else -}
+  {{- else -}}
   "WorkProject": {{$work_project}},
   "PublishProject": {{$work_project}},
   "ComputeEndpoint": {{$endpoint}},
   "DeleteAfter": {{$delete_after}},
-  {{- end -}}
+  {{- end}}
   {{$guest_features := `["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE"]` -}}
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
