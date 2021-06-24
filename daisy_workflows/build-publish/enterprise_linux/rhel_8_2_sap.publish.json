@@ -44,7 +44,7 @@
       "Family": "rhel-8-2-sap-ha",
       "Description": "Red Hat, Red Hat Enterprise Linux for SAP with HA and Update Services, 8.2, x86_64 built on {{$time}}, supports Shielded VM features",
       "Licenses": [
-        {{if eq .environment "staging" -}}
+        {{if or .environment "staging" .environment "oslogin-staging" -}}
         "projects/bct-staging-functional/global/licenses/rhel-8-server"
         {{- else -}}
         "projects/rhel-sap-cloud/global/licenses/rhel-8-sap"

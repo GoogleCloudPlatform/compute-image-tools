@@ -44,7 +44,7 @@
       "Prefix": "centos-8",
       "Description": "CentOS, CentOS, 8, x86_64 built on {{$time}}, supports Shielded VM features",
       "Licenses": [
-        {{if eq .environment "staging" -}}
+        {{if or .environment "staging" .environment "oslogin-staging" -}}
         "projects/bct-staging-functional/global/licenses/centos-8"
         {{- else -}}
         "projects/centos-cloud/global/licenses/centos-8"

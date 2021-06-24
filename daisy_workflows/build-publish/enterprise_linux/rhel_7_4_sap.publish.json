@@ -44,7 +44,7 @@
       "Family": "rhel-7-4-sap",
       "Description": "Red Hat, Red Hat Enterprise Linux for SAP with Update Services, 7.4, x86_64 built on {{$time}}, supports Shielded VM features",
       "Licenses": [
-        {{if eq .environment "staging" -}}
+        {{if or .environment "staging" .environment "oslogin-staging" -}}
         "projects/bct-staging-functional/global/licenses/rhel-7-server"
         {{- else -}}
         "projects/rhel-sap-cloud/global/licenses/rhel-7-sap-us"

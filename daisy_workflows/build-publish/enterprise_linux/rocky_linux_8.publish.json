@@ -44,7 +44,7 @@
       "Prefix": "rocky-linux-8",
       "Description": "Rocky Linux, Rocky Linux, 8, x86_64 built on {{$time}}",
       "Licenses": [
-        {{if eq .environment "staging" -}}
+        {{if or .environment "staging" .environment "oslogin-staging" -}}
         "projects/bct-staging-functional/global/licenses/rocky-linux-8"
         {{- else -}}
         "projects/rocky-linux-cloud/global/licenses/rocky-linux-8"

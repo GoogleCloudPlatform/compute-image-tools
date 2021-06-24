@@ -44,7 +44,7 @@
       "Prefix": "rhel-8-byos",
       "Description": "Red Hat, Red Hat Enterprise Linux, 8, BYOS x86_64 built on {{$time}}, supports Shielded VM features",
       "Licenses": [
-        {{if eq .environment "staging" -}}
+        {{if or .environment "staging" .environment "oslogin-staging" -}}
         "projects/bct-staging-functional/global/licenses/rhel-8-byos"
         {{- else -}}
         "projects/rhel-cloud/global/licenses/rhel-8-byos"

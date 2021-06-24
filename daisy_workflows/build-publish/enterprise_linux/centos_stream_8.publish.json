@@ -44,7 +44,7 @@
       "Prefix": "centos-stream-8",
       "Description": "CentOS, CentOS, Stream 8, x86_64 built on {{$time}}, supports Shielded VM features",
       "Licenses": [
-        {{if eq .environment "staging" -}}
+        {{if or .environment "staging" .environment "oslogin-staging" -}}
         "projects/bct-staging-functional/global/licenses/centos-stream"
         {{- else -}}
         "projects/centos-cloud/global/licenses/centos-stream"
