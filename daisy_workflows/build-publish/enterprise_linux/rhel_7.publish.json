@@ -44,7 +44,7 @@
       "Prefix": "rhel-7",
       "Description": "Red Hat, Red Hat Enterprise Linux, 7, x86_64 built on {{$time}}, supports Shielded VM features",
       "Licenses": [
-        {{if or .environment "staging" .environment "oslogin-staging" -}}
+        {{if (or (eq .environment "staging") (eq .environment "oslogin-staging")) -}}
         "projects/bct-staging-functional/global/licenses/rhel-7-server"
         {{- else -}}
         "projects/rhel-cloud/global/licenses/rhel-7-server"

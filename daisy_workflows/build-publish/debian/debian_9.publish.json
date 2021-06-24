@@ -43,7 +43,7 @@
       "Family": "debian-9",
       "Description": "Debian, Debian GNU/Linux, 9 (stretch), amd64 built on {{$time}}",
       "Licenses": [
-        {{if or .environment "staging" .environment "oslogin-staging" -}}
+        {{if (or (eq .environment "staging") (eq .environment "oslogin-staging")) -}}
         "projects/bct-staging-functional/global/licenses/debian-9-stretch"
         {{- else -}}
         "projects/debian-cloud/global/licenses/debian-9-stretch"
