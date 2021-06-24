@@ -292,7 +292,7 @@ func (inflater *apiInflater) getCalculateChecksumWorkflow(diskURI string) *daisy
 const (
 	checksumScriptConst = `
 		function serialOutputKeyValuePair() {
-			echo "<serial-output key:'$1' value:'$2'>"
+			stdbuf -oL echo "$1: <serial-output key:'$2' value:'$3'>"
 		}
 		CHECK_DEVICE=sdb
 		BLOCK_COUNT=$(cat /sys/class/block/$CHECK_DEVICE/size)
@@ -303,6 +303,6 @@ const (
 		CHECKSUM2=$(sudo dd if=/dev/$CHECK_DEVICE ibs=512 skip=$(( 2000000 - $CHECK_COUNT )) count=$CHECK_COUNT | md5sum)
 		CHECKSUM3=$(sudo dd if=/dev/$CHECK_DEVICE ibs=512 skip=$(( 20000000 - $CHECK_COUNT )) count=$CHECK_COUNT | md5sum)
 		CHECKSUM4=$(sudo dd if=/dev/$CHECK_DEVICE ibs=512 skip=$(( $BLOCK_COUNT - $CHECK_COUNT )) count=$CHECK_COUNT | md5sum)
-		echo "Checksum: $(serialOutputKeyValuePair "disk-checksum" "$CHECKSUM1-$CHECKSUM2-$CHECKSUM3-$CHECKSUM4")"
+		serialOutputKeyValuePair "Checksum" "disk-checksum" "$CHECKSUM1-$CHECKSUM2-$CHECKSUM3-$CHECKSUM4"
 		echo "Checksum calculated."`
 )
