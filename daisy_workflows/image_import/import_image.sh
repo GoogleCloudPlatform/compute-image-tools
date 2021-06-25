@@ -176,7 +176,7 @@ function copyImageToScratchDisk() {
   echo "Import: Copied image from ${SOURCE_URL} to ${IMAGE_PATH}: ${out}"
 }
 
-function serialOutputKeyValuePair() {
+function serialOutputPrefixedKeyValue() {
   stdbuf -oL echo "$1: <serial-output key:'$2' value:'$3'>"
 }
 
@@ -191,7 +191,7 @@ function diskChecksum() {
   CHECKSUM2=$(sudo dd if=/dev/$CHECK_DEVICE ibs=512 skip=$(( 2000000 - $CHECK_COUNT )) count=$CHECK_COUNT | md5sum)
   CHECKSUM3=$(sudo dd if=/dev/$CHECK_DEVICE ibs=512 skip=$(( 20000000 - $CHECK_COUNT )) count=$CHECK_COUNT | md5sum)
   CHECKSUM4=$(sudo dd if=/dev/$CHECK_DEVICE ibs=512 skip=$(( $BLOCK_COUNT - $CHECK_COUNT )) count=$CHECK_COUNT | md5sum)
-  serialOutputKeyValuePair "Import" "disk-checksum" "$CHECKSUM1-$CHECKSUM2-$CHECKSUM3-$CHECKSUM4"
+  serialOutputPrefixedKeyValue "Import" "disk-checksum" "$CHECKSUM1-$CHECKSUM2-$CHECKSUM3-$CHECKSUM4"
 }
 
 copyImageToScratchDisk
@@ -227,9 +227,9 @@ IMPORT_FILE_FORMAT=$(qemu-img info "${IMAGE_PATH}" | grep -m1 "file format" | gr
 SIZE_GB=$(awk "BEGIN {print int(((${SIZE_BYTES} - 1)/${BYTES_1GB}) + 1)}")
 echo "Import: Importing ${IMAGE_PATH} of size ${SIZE_GB}GB to ${DISKNAME} in ${ZONE}." 2> /dev/null
 
-serialOutputKeyValuePair "Import" "target-size-gb" "${SIZE_GB}"
-serialOutputKeyValuePair "Import" "source-size-gb" "${SOURCE_SIZE_GB}"
-serialOutputKeyValuePair "Import" "import-file-format" "${IMPORT_FILE_FORMAT}"
+serialOutputPrefixedKeyValue "Import" "target-size-gb" "${SIZE_GB}"
+serialOutputPrefixedKeyValue "Import" "source-size-gb" "${SOURCE_SIZE_GB}"
+serialOutputPrefixedKeyValue "Import" "import-file-format" "${IMPORT_FILE_FORMAT}"
 
 ensureCapacityOfDisk "${DISKNAME}" "${SIZE_GB}" "${ZONE}" /dev/sdc
 

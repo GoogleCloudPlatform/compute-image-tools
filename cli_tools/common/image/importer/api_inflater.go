@@ -291,7 +291,7 @@ func (inflater *apiInflater) getCalculateChecksumWorkflow(diskURI string) *daisy
 // Dup logic in import_image.sh. If change anything here, please change in both places.
 const (
 	checksumScriptConst = `
-		function serialOutputKeyValuePair() {
+		function serialOutputPrefixedKeyValue() {
 			stdbuf -oL echo "$1: <serial-output key:'$2' value:'$3'>"
 		}
 		CHECK_DEVICE=sdb
@@ -303,6 +303,6 @@ const (
 		CHECKSUM2=$(sudo dd if=/dev/$CHECK_DEVICE ibs=512 skip=$(( 2000000 - $CHECK_COUNT )) count=$CHECK_COUNT | md5sum)
 		CHECKSUM3=$(sudo dd if=/dev/$CHECK_DEVICE ibs=512 skip=$(( 20000000 - $CHECK_COUNT )) count=$CHECK_COUNT | md5sum)
 		CHECKSUM4=$(sudo dd if=/dev/$CHECK_DEVICE ibs=512 skip=$(( $BLOCK_COUNT - $CHECK_COUNT )) count=$CHECK_COUNT | md5sum)
-		serialOutputKeyValuePair "Checksum" "disk-checksum" "$CHECKSUM1-$CHECKSUM2-$CHECKSUM3-$CHECKSUM4"
+		serialOutputPrefixedKeyValue "Checksum" "disk-checksum" "$CHECKSUM1-$CHECKSUM2-$CHECKSUM3-$CHECKSUM4"
 		echo "Checksum calculated."`
 )
