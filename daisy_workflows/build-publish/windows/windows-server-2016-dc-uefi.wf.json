@@ -52,15 +52,12 @@
         "Path": "${workflow_root}/image_build/windows/windows-server-2016-dc-uefi-payg.wf.json",
         "Vars": {
           "install_disk": "disk-install",
-          "install_disk_size": "50",
           "updates": "${updates}",
-          "drivers_bucket": "gs://gce-windows-drivers-public/release/win6.3-signed/",
-          "edition": "Windows Server 2016 SERVERDATACENTER",
+          "dotnet48": "${dotnet48}",
+          "pwsh": "${pwsh}",
           "media": "${media}",
           "cloudsdk": "${cloudsdk}",
-          "pwsh": "${pwsh}",
           "google_cloud_repo": "${google_cloud_repo}",
-          "uefi_build": "true",
           "workflow_root": "${workflow_root}"
         }
       }

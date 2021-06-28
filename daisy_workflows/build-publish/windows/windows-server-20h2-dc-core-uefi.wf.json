@@ -52,15 +52,12 @@
         "Path": "${workflow_root}/image_build/windows/windows-server-sac-20h2-dc-core-uefi-payg.wf.json",
         "Vars": {
           "install_disk": "disk-install",
-          "install_disk_size": "40",
           "updates": "${updates}",
-          "drivers_bucket": "gs://gce-windows-drivers-public/release/win6.3-signed/",
-          "edition": "Windows Server SERVERDATACENTERACORE",
+          "dotnet48": "${dotnet48}",
+          "pwsh": "${pwsh}",
           "media": "${media}",
           "cloudsdk": "${cloudsdk}",
-          "pwsh": "${pwsh}",
           "google_cloud_repo": "${google_cloud_repo}",
-          "uefi_build": "true",
           "workflow_root": "${workflow_root}"
         }
       }
