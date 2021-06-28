@@ -57,7 +57,7 @@
           "drivers_bucket": "gs://gce-windows-drivers-public/release/win6.3-signed/",
           "edition": "Windows Server 2019 SERVERDATACENTERCORE",
           "media": "${media}",
-          "cloud_sdk": "${cloud_sdk}",
+          "cloudsdk": "${cloudsdk}",
           "pwsh": "${pwsh}",
           "google_cloud_repo": "${google_cloud_repo}",
           "uefi_build": "true",
