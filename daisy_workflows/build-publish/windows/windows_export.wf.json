@@ -9,7 +9,7 @@
       "Required": true,
       "Description": "The GCS url of where to save the images."
     },
-    "gcs_interal_url": {
+    "gcs_internal_url": {
       "Required": true,
       "Description": "The GCS url of where to save the internal image."
     },
@@ -33,7 +33,7 @@
       "CopyGCSObjects": [
         {
           "Source": "${gcs_url}",
-          "Destination": "${gcs_interal_url}"
+          "Destination": "${gcs_internal_url}"
         }
       ]
     }
