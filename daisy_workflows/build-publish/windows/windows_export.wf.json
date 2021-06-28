@@ -25,7 +25,7 @@
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
           "source_disk": "${install_disk}",
-          "Destination": "${gcs_url}"
+          "destination": "${gcs_url}"
         }
       }
     },
