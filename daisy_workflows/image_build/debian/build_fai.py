@@ -101,6 +101,12 @@ def main():
   CopyToConfigSpace('/files/fai_config/sources/repository.GCE_SPECIFIC',
                     'hooks/repository.GCE_SPECIFIC',
                     config_space)
+  # SSHD config for GCE.
+  os.mkdir(config_space + 'scripts/GCE_SPECIFIC')
+  CopyToConfigSpace('/files/fai_config/scripts/12-sshd',
+                    'scripts/GCE_SPECIFIC/12-sshd',
+                    config_space)
+  os.chmod(config_space + 'scripts/GCE_SPECIFIC/12-sshd', 0o755)
   fai_classes += ['GCE_SPECIFIC']
 
   # GCE staging package repo.
