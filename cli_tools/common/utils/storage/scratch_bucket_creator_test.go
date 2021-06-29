@@ -68,7 +68,7 @@ func TestCreateScratchBucketNoSourceFileTranslateGoogleDomainDefaultBucketCreate
 	defer mockCtrl.Finish()
 
 	project := "google.com:proJect1"
-	expectedBucket := "elgoog.com-project1-daisy-bkt-us"
+	expectedBucket := "elgoog_com-project1-daisy-bkt-us"
 	expectedRegion := "US"
 	ctx := context.Background()
 
