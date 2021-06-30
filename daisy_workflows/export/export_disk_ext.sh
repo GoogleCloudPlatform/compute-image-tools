@@ -19,7 +19,7 @@ function serialOutputPrefixedKeyValue() {
 }
 
 # Verify VM has network access to Storage API by checking a public bucket
-curl --silent --fail "https://storage.googleapis.com/storage/v1/b/gcp-public-data-landsat" &> /dev/null;
+gsutil ls &> /dev/null;
 if [[ $? -ne 0 ]]; then
   echo "ExportFailed: Cannot access Google APIs. Ensure that VPC settings allow VMs to access Google APIs either via external IP or Private Google Access. More info at: https://cloud.google.com/vpc/docs/configure-private-google-access"
   exit
