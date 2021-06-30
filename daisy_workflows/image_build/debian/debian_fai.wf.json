@@ -12,6 +12,7 @@
     "build_files/build.py": "./build_fai.py",
     "build_files/fai_config/packages/GCE_SPECIFIC": "./fai_config/packages/GCE_SPECIFIC",
     "build_files/fai_config/scripts/10-gce-clean": "./fai_config/scripts/10-gce-clean",
+    "build_files/fai_config/scripts/12-sshd": "./fai_config/scripts/12-sshd",
     "build_files/fai_config/sources/file_modes": "./fai_config/sources/file_modes",
     "build_files/fai_config/sources/GCE_SPECIFIC": "./fai_config/sources/GCE_SPECIFIC",
     "build_files/fai_config/sources/GCE_STAGING": "./fai_config/sources/GCE_STAGING",
