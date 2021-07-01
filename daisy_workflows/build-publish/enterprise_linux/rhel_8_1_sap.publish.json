@@ -19,7 +19,7 @@
   {{- else if eq .environment "prod" -}}
   "WorkProject": {{$work_project}},
   "PublishProject": "rhel-sap-cloud",
-  "ComputeEndpoint": {{$endpoint}}
+  "ComputeEndpoint": {{$endpoint}},
   {{- else if eq .environment "oslogin-staging" -}}
   "WorkProject": "oslogin-staging-project",
   "PublishProject": "oslogin-staging-project",
