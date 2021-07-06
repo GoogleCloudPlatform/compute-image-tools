@@ -39,8 +39,9 @@ var (
 		"EU":   {[]string{"europe-west1", "europe-west4", "europe-north1", "europe-west2", "europe-west3", "europe-west6"}, true},
 		"ASIA": {[]string{"asia-east1", "asia-south1", "asia-southeast1", "asia-northeast1", "asia-northeast2", "asia-northeast3", "asia-southeast2", "asia-east2"}, true},
 
-		"EUR4": {[]string{"europe-west4", "europe-north1"}, false},
-		"NAM4": {[]string{"us-central1", "us-east1"}, false},
+		"EUR4":  {[]string{"europe-west4", "europe-north1"}, false},
+		"NAM4":  {[]string{"us-central1", "us-east1"}, false},
+		"ASIA1": {[]string{"asia-northeast1", "asia-northeast2"}, false},
 	}
 )
 
