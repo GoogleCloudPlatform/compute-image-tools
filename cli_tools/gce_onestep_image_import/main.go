@@ -50,7 +50,7 @@ func main() {
 }
 
 func printHelpLink() {
-	log.Println("Reference to https://cloud.google.com/compute/docs/import/import-aws-image for more detailed help.")
+	log.Println("Refer to https://cloud.google.com/compute/docs/import/import-aws-image for more detailed help.")
 }
 
 func initLoggingParams(args *importer.OneStepImportArguments) service.InputParams {
