@@ -30,11 +30,16 @@ func main() {
 	importerArgs, err := importer.NewOneStepImportArguments(os.Args[1:])
 	if err != nil {
 		log.Println(err)
+		printHelpLink()
 		os.Exit(1)
 	}
 
 	importEntry := func() (service.Loggable, error) {
-		return importer.Run(importerArgs)
+		loggable, importErr := importer.Run(importerArgs)
+		if importErr != nil {
+			printHelpLink()
+		}
+		return loggable, importErr
 	}
 
 	// 2. Run Onestep Importer
@@ -42,6 +47,10 @@ func main() {
 		service.OneStepImageImportAction, initLoggingParams(importerArgs), importerArgs.ProjectPtr, importEntry); err != nil {
 		os.Exit(1)
 	}
+}
+
+func printHelpLink() {
+	log.Println("Reference to https://cloud.google.com/compute/docs/import/import-aws-image for more detailed help.")
 }
 
 func initLoggingParams(args *importer.OneStepImportArguments) service.InputParams {
