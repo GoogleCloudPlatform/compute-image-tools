@@ -793,11 +793,23 @@ func New() *Workflow {
 }
 
 // NewFromFile reads and unmarshals a workflow file.
-// Recursively reads subworkflow steps as well.
-func NewFromFile(file string) (*Workflow, error) {
-	w := New()
+// Recursively reads sub and included steps as well.
+func NewFromFile(file string) (w *Workflow, err error) {
+	w = New()
 	if err := readWorkflow(file, w); err != nil {
 		return nil, err
+	}
+	for _, step := range w.Steps {
+		if step.SubWorkflow != nil && step.SubWorkflow.Path != "" {
+			step.SubWorkflow.Workflow, err = w.NewSubWorkflowFromFile(step.SubWorkflow.Path)
+		} else if step.IncludeWorkflow != nil && step.IncludeWorkflow.Path != "" {
+			step.IncludeWorkflow.Workflow, err = w.NewIncludedWorkflowFromFile(step.IncludeWorkflow.Path)
+		} else {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
 	return w, nil
 }

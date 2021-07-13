@@ -27,7 +27,7 @@ type SubWorkflow struct {
 }
 
 func (s *SubWorkflow) populate(ctx context.Context, st *Step) DError {
-	if s.Path != "" {
+	if s.Path != "" && s.Workflow == nil {
 		var err error
 		if s.Workflow, err = st.w.NewSubWorkflowFromFile(s.Path); err != nil {
 			return ToDError(err)

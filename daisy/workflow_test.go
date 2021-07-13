@@ -32,6 +32,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	"github.com/stretchr/testify/assert"
 	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
@@ -236,6 +237,65 @@ func TestNewFromFileError(t *testing.T) {
 			t.Errorf("did not get expected error from NewFromFile():\ngot: %q\nwant: %q", err.Error(), tt.error)
 		}
 	}
+}
+
+func TestNewIncludedWorkflowFromFile_UsesResourcesFromParent(t *testing.T) {
+	parent := New()
+	parent.workflowDir = "./test_data"
+	included, err := parent.NewIncludedWorkflowFromFile("TestNewIncludedWorkflowFromFile_UsesResourcesFromParent.wf.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertEqual(t, parent.Cancel, included.Cancel, "Cancel")
+	assertEqual(t, parent, included.parent, "parent")
+	assertEqual(t, parent.disks, included.disks, "disks")
+	assertEqual(t, parent.forwardingRules, included.forwardingRules, "forwardingRules")
+	assertEqual(t, parent.images, included.images, "images")
+	assertEqual(t, parent.machineImages, included.machineImages, "machineImages")
+	assertEqual(t, parent.instances, included.instances, "instances")
+	assertEqual(t, parent.networks, included.networks, "networks")
+	assertEqual(t, parent.subnetworks, included.subnetworks, "subnetworks")
+	assertEqual(t, parent.targetInstances, included.targetInstances, "targetInstances")
+	assertEqual(t, parent.snapshots, included.snapshots, "snapshots")
+	assertEqual(t, parent.objects, included.objects, "objects")
+}
+
+func assertEqual(t *testing.T, expected, actual interface{}, msg string) {
+	t.Helper()
+	if expected != actual {
+		t.Error(msg)
+	}
+}
+
+func TestNewFromFile_ReadsChildWorkflows(t *testing.T) {
+	parent, derr := NewFromFile("./test_data/TestNewFromFile_ReadsChildWorkflows.parent.wf.json")
+	if derr != nil {
+		t.Fatal(derr)
+	}
+
+	// Included Workflow
+	includedStep1 := parent.Steps["include-workflow"].IncludeWorkflow
+	assert.NotNil(t, includedStep1, "NewFromFile should read and parse included workflow")
+	assert.Equal(t, map[string]string{
+		"k1": "v1",
+	}, includedStep1.Vars, "included workflow should have variables that were declared in its step in the parent.")
+	includedStep2 := includedStep1.Workflow.Steps["include-workflow"].IncludeWorkflow
+	assert.NotNil(t, includedStep2, "NewFromFile should read and parse included workflows recursively")
+	assert.Equal(t, map[string]string{
+		"k3": "v3",
+	}, includedStep2.Vars, "included workflow should have variables that were declared in its step in the parent.")
+
+	// Sub Workflow
+	subStep1 := parent.Steps["sub-workflow"].SubWorkflow
+	assert.NotNil(t, subStep1, "NewFromFile should read and parse included workflow")
+	assert.Equal(t, map[string]string{
+		"k2": "v2",
+	}, subStep1.Vars, "sub workflow should have variables that were declared in its step in the parent.")
+	subStep2 := subStep1.Workflow.Steps["sub-workflow"].SubWorkflow
+	assert.NotNil(t, subStep2, "NewFromFile should read and parse sub workflows recursively")
+	assert.Equal(t, map[string]string{
+		"k4": "v4",
+	}, subStep2.Vars, "sub workflow should have variables that were declared in its step in the parent.")
 }
 
 func TestNewFromFile(t *testing.T) {
@@ -470,24 +530,6 @@ func TestNewFromFile(t *testing.T) {
 				}},
 			},
 		},
-		"include-workflow": {
-			name: "include-workflow",
-			IncludeWorkflow: &IncludeWorkflow{
-				Vars: map[string]string{
-					"key": "value",
-				},
-				Path: "./test_sub.wf.json",
-			},
-		},
-		"sub-workflow": {
-			name: "sub-workflow",
-			SubWorkflow: &SubWorkflow{
-				Vars: map[string]string{
-					"key": "value",
-				},
-				Path: "./test_sub.wf.json",
-			},
-		},
 	}
 	want.Dependencies = map[string][]string{
 		"create-disks":          {},
@@ -498,8 +540,6 @@ func TestNewFromFile(t *testing.T) {
 		"create-image-locality": {"postinstall-stopped"},
 		"create-image":          {"create-image-locality"},
 		"create-machine-image":  {"create-image"},
-		"include-workflow":      {"create-image"},
-		"sub-workflow":          {"create-image"},
 	}
 
 	for _, s := range want.Steps {
