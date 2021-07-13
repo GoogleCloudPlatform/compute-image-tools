@@ -70,7 +70,7 @@ func (inflater *daisyInflater) Inflate() (persistentDisk, shadowTestFields, erro
 	checksum := inflater.wf.GetSerialConsoleOutputValue("disk-checksum")
 	return persistentDisk{
 			uri:        inflater.inflatedDiskURI,
-			sizeGb:     getAllocatedDiskSize(string_utils.SafeStringToInt(targetSizeGB)),
+			sizeGb:     enforceMinimumDiskSize(string_utils.SafeStringToInt(targetSizeGB)),
 			sourceGb:   string_utils.SafeStringToInt(sourceSizeGB),
 			sourceType: importFileFormat,
 		}, shadowTestFields{
@@ -195,15 +195,15 @@ func calculateScratchDiskSize(metadata imagefile.Metadata) int64 {
 	// This uses the historic padding calculation from import_image.sh: add ten percent,
 	// and round up.
 	padded := int64(float64(metadata.PhysicalSizeGB)*1.1) + 1
-	return getAllocatedDiskSize(padded)
+	return enforceMinimumDiskSize(padded)
 }
 
 // Ensure a minimum of 10GB (the minimum size of a GCP disk)
 func calculateInflatedSize(metadata imagefile.Metadata) int64 {
-	return getAllocatedDiskSize(metadata.VirtualSizeGB)
+	return enforceMinimumDiskSize(metadata.VirtualSizeGB)
 }
 
-func getAllocatedDiskSize(size int64) int64 {
+func enforceMinimumDiskSize(size int64) int64 {
 	if size < defaultInflationDiskSizeGB {
 		return defaultInflationDiskSizeGB
 	}
