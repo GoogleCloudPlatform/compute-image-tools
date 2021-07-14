@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	clientID, destinationURI, sourceImage, sourceDiskSnapshot, format, network, subnet, labels string
+	destinationURI, sourceImage, sourceDiskSnapshot, format, network, subnet, labels string
 )
 
 func TestGetWorkflowPathWithoutFormatConversion(t *testing.T) {
@@ -61,12 +61,6 @@ func TestFlagsBothSourceImageAndSourceSnapshotProvided(t *testing.T) {
 	assertErrorOnValidate("Expected error for both source_image and source_disk_snapshot flags provided", t)
 }
 
-func TestFlagsClientIdNotProvided(t *testing.T) {
-	resetArgs()
-	clientID = ""
-	assertErrorOnValidate("Expected error for missing client_id flag", t)
-}
-
 func TestFlagsDestinationUriNotProvided(t *testing.T) {
 	resetArgs()
 	destinationURI = ""
@@ -74,7 +68,7 @@ func TestFlagsDestinationUriNotProvided(t *testing.T) {
 }
 
 func assertErrorOnValidate(errorMsg string, t *testing.T) {
-	if _, err := validateAndParseFlags(clientID, destinationURI, sourceImage, sourceDiskSnapshot, labels); err == nil {
+	if _, err := validateAndParseFlags(destinationURI, sourceImage, sourceDiskSnapshot, labels); err == nil {
 		t.Error(errorMsg)
 	}
 }
@@ -200,7 +194,6 @@ func TestValidateImageExists_ReturnsError_WhenImageNotFound(t *testing.T) {
 }
 
 func resetArgs() {
-	clientID = "aClient"
 	destinationURI = "gs://bucket/exported_image"
 	sourceImage = "global/images/anImage"
 	sourceDiskSnapshot = ""

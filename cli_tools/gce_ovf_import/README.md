@@ -26,14 +26,14 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_impo
 
 #### Required flags
 + `-ovf-gcs-path` GCS path to OVF descriptor, OVA file or a directory with OVF package.
-+ `-client-id` Identifies the client of the OVF importer. For example: `gcloud` or
-  `pantheon`.
  
 Exactly one of these must be specified:
 + `-instance-names` Name of the VM instances to create.
 + `-machine-image-name` Name of the machine image to create.
 
 #### Optional flags
++ `-client-id` Identifies the client of the OVF importer. For example: `gcloud` or
+  `pantheon`.
 + `-no-guest-environment` Google Guest Environment will not be installed on the image
 + `-can-ip-forward` If provided, allows the instances to send and receive packets with non-matching
   destination or source IP addresses.
@@ -121,8 +121,8 @@ Exactly one of these must be specified:
 
 Import into a VM instance:
 ```
-gce_ovf_import -instance-names=INSTANCE_NAME -client-id=CLIENT_ID 
--source-uri=OVF_GCS_FILE_PATH
+gce_ovf_import -instance-names=INSTANCE_NAME -source-uri=OVF_GCS_FILE_PATH
+[-client-id=CLIENT_ID]
 [-can-ip-forward] [-custom-cpu=CUSTOM_CPU -custom-memory=CUSTOM_MEMORY]
 [-deletion-protection] [-description=DESCRIPTION]
 [-labels=[KEY=VALUE,…]] [-machine-type=MACHINE_TYPE]
@@ -144,8 +144,8 @@ gce_ovf_import -instance-names=INSTANCE_NAME -client-id=CLIENT_ID
 
 Import into a machine image:
 ```
-gce_ovf_import -machine-image-name=MACHINE_IMAGE_NAME -client-id=CLIENT_ID 
--source-uri=OVF_GCS_FILE_PATH
+gce_ovf_import -machine-image-name=MACHINE_IMAGE_NAME -source-uri=OVF_GCS_FILE_PATH
+[-client-id=CLIENT_ID]
 [-can-ip-forward] [-custom-cpu=CUSTOM_CPU -custom-memory=CUSTOM_MEMORY]
 [-deletion-protection] [-description=DESCRIPTION]
 [-labels=[KEY=VALUE,…]] [-machine-type=MACHINE_TYPE]

@@ -66,10 +66,6 @@ func (args *imageImportArgs) populateAndValidate(populator param.Populator,
 		args.ExecutionID = path.RandString(5)
 	}
 
-	if args.ClientID == "" {
-		return fmt.Errorf("%s has to be specified", importer.ClientFlag)
-	}
-
 	importer.FixBYOLAndOSArguments(&args.OS, &args.BYOL)
 	args.Source, err = sourceFactory.Init(args.SourceFile, args.SourceImage)
 	if err != nil {

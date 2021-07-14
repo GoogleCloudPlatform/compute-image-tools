@@ -18,10 +18,11 @@ import (
 	"fmt"
 	"testing"
 
-	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+
+	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 )
 
 var validReleaseTracks = []string{"ga", "beta", "alpha"}
@@ -76,12 +77,13 @@ func TestInstanceExportZoneInvalid(t *testing.T) {
 	assert.Equal(t, zoneError, validator.ValidateAndParseParams(params))
 }
 
-func TestInstanceExportFlagsClientIdNotProvided(t *testing.T) {
+func TestInstanceExportFlagsAllowsClientIdNotProvided(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
+	validator := createDefaultParamValidator(mockCtrl, true)
 	params := ovfexportdomain.GetAllInstanceExportArgs()
 	params.ClientID = ""
-	assertErrorOnValidate(t, params, createDefaultParamValidator(mockCtrl, false))
+	assert.Nil(t, validator.ValidateAndParseParams(params))
 }
 
 func TestInstanceExportFlagsInvalidReleaseTrack(t *testing.T) {
@@ -156,13 +158,13 @@ func TestMachineImageExportFlagsOvfGcsPathFlagNotValid(t *testing.T) {
 	assertErrorOnValidate(t, params, validator)
 }
 
-func TestMachineImageExportFlagsClientIdNotProvided(t *testing.T) {
+func TestMachineImageExportFlagsAllowsClientIdNotProvided(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	validator := createDefaultParamValidator(mockCtrl, false)
+	validator := createDefaultParamValidator(mockCtrl, true)
 	params := ovfexportdomain.GetAllMachineImageExportArgs()
 	params.ClientID = ""
-	assertErrorOnValidate(t, params, validator)
+	assert.Nil(t, validator.ValidateAndParseParams(params))
 }
 
 func TestMachineImageExportFlagsAllValidBucketOnlyPathTrailingSlash(t *testing.T) {

@@ -26,14 +26,14 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_expo
 
 #### Required flags
 + `-destination-uri` GCS path to the exported OVF package or OVA archive.
-+ `-client-id` Identifies the client of the OVF exporter. For example: `gcloud` or
-  `pantheon`.
 
 Exactly one of these must be specified:
 + `-instance-name` Name of the VM instances to export.
 + `-machine-image-name` Name of the machine image to export.
 
 #### Optional flags
++ `-client-id` Identifies the client of the OVF exporter. For example: `gcloud` or
+  `pantheon`.
 + `-ovf-format=OVF_FORMAT` One of: `ovf` or `ova`. Defaults to `ovf`. If `ova`
   is specified, exported OVF package will be packed as an OVA archive and
   individual files will be removed from GCS.  
@@ -65,8 +65,8 @@ Exactly one of these must be specified:
 
 Export a VM instance:
 ```
-gce_ovf_export -destination-uri=GCS_PATH -client-id=CLIENT_ID
--instance-name=INSTANCE_NAME [-ovf-format=OVF_FORMAT]
+gce_ovf_export -destination-uri=GCS_PATH -instance-name=INSTANCE_NAME
+[-client-id=CLIENT_ID] [-ovf-format=OVF_FORMAT]
 [-disk-export-format=DISK_FORMAT] [--os] [-network=NETWORK] [-subnet=SUBNET]
 [-timeout=TIMEOUT; default="2h"] [-project=PROJECT]
 [-scratch-bucket-gcs-path=SCRATCH_BUCKET_PATH] [-oauth=OAUTH_FILE_PATH]
@@ -77,8 +77,8 @@ gce_ovf_export -destination-uri=GCS_PATH -client-id=CLIENT_ID
 
 Export a machine image:
 ```
-gce_ovf_export -destination-uri=GCS_PATH -client-id=CLIENT_ID
--machine-image-name=MACHINE_IMAGE [-ovf-format=OVF_FORMAT] 
+gce_ovf_export -destination-uri=GCS_PATH -machine-image-name=MACHINE_IMAGE 
+[-client-id=CLIENT_ID] [-ovf-format=OVF_FORMAT] 
 [-disk-export-format=DISK_FORMAT] [--os] [-network=NETWORK] [-subnet=SUBNET]
 [-timeout=TIMEOUT; default="2h"] [-project=PROJECT]
 [-scratch-bucket-gcs-path=SCRATCH_BUCKET_PATH] [-oauth=OAUTH_FILE_PATH]

@@ -203,35 +203,25 @@ func Test_ValidateAndParseParams_ErrorMessages(t *testing.T) {
 				params.MachineImageName = ""
 			},
 			expectErrorToContain: "Either the flag -instance-names or -machine-image-name must be provided",
-		},
-		{
+		}, {
 			name: "Only one of {InstanceNames, MachineImageNames} allowed",
 			paramModifier: func(params *domain.OVFImportParams) {
 				params.InstanceNames = "a"
 				params.MachineImageName = "a"
 			},
 			expectErrorToContain: "-instance-names and -machine-image-name can't be provided at the same time",
-		},
-		{
+		}, {
 			name: "hostname is validated for syntax",
 			paramModifier: func(params *domain.OVFImportParams) {
 				params.Hostname = "host|name"
 			},
 			expectErrorToContain: "The flag `hostname` must conform to RFC 1035 requirements for valid hostnames",
-		},
-		{
+		}, {
 			name: "hostname is validated for length",
 			paramModifier: func(params *domain.OVFImportParams) {
 				params.Hostname = "host.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain.domain"
 			},
 			expectErrorToContain: "The flag `hostname` must conform to RFC 1035 requirements for valid hostnames",
-		},
-		{
-			name: "require ClientID",
-			paramModifier: func(params *domain.OVFImportParams) {
-				params.ClientID = ""
-			},
-			expectErrorToContain: "flag -client-id must be provided",
 		}, {
 			name: "labels must be parseable",
 			paramModifier: func(params *domain.OVFImportParams) {
@@ -316,6 +306,14 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 
 	cases := []testCase{
 		{
+			name: "allow empty clientID",
+			paramModifier: func(params *domain.OVFImportParams) {
+				params.ClientID = ""
+			},
+			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
+				assert.Equal(t, "", params.ClientID)
+			},
+		}, {
 			name: "replace empty network with default when subnet empty",
 			paramModifier: func(params *domain.OVFImportParams) {
 				params.Network = ""

@@ -224,7 +224,7 @@ func Test_populateAndValidate_SupportsSysprep(t *testing.T) {
 	assert.True(t, parseAndPopulate(t, "-sysprep_windows").SysprepWindows)
 }
 
-func Test_populateAndValidate_FailsWhenClientIdMissing(t *testing.T) {
+func Test_populateAndValidate_ClientIdIsOptional(t *testing.T) {
 	args, err := parseArgsFromUser([]string{"-image_name=i", "-data_disk"})
 	assert.NoError(t, err)
 	err = args.populateAndValidate(mockPopulator{
@@ -232,7 +232,8 @@ func Test_populateAndValidate_FailsWhenClientIdMissing(t *testing.T) {
 		region:          "us-west2",
 		storageLocation: "us",
 	}, mockSourceFactory{})
-	assert.EqualError(t, err, "client_id has to be specified")
+	assert.NoError(t, err)
+	assert.Equal(t, "", args.ClientID)
 }
 
 func Test_populateAndValidate_BackfillsStorageLocationIfMissing(t *testing.T) {

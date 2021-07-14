@@ -32,9 +32,13 @@ func TestTrimAndLowerImageName(t *testing.T) {
 	assert.Equal(t, "imagename", expectSuccessfulParse(t, args...).ImageName)
 }
 
-func TestFailWhenClientIDNotProvided(t *testing.T) {
+func TestAllowMissingClientID(t *testing.T) {
 	args := setUpArgs(clientFlag)
-	assert.EqualError(t, expectFailedValidation(t, args), "The flag -client_id must be provided")
+	importArgs, err := NewOneStepImportArguments(args)
+	assert.NoError(t, err)
+	err = importArgs.validate()
+	assert.NoError(t, err)
+	assert.Equal(t, "", importArgs.ClientID)
 }
 
 func TestTrimAndLowerClientID(t *testing.T) {

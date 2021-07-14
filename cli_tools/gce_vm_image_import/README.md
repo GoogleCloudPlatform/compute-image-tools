@@ -18,8 +18,6 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image
 
 #### Required flags
 + `-image_name=IMAGE_NAME` Name of the disk image to create.
-+ `-client_id=CLIENT_ID` Identifies the client of the importer. For example: `gcloud` or
-  `pantheon`.
   
 Exactly one of these must be specified:
 + `-source_file=SOURCE_FILE` Google Cloud Storage URI of the virtual disk file
@@ -28,6 +26,8 @@ Exactly one of these must be specified:
   import.
 
 #### Optional flags  
++ `-client_id=CLIENT_ID` Identifies the client of the importer. For example: `gcloud` or
+  `pantheon`.
 + `-no_guest_environment` Google Guest Environment will not be installed on the image.
 + `-family=FAMILY` Family to set for the translated image.
 + `-description=DESCRIPTION` Description to set for the translated image.
@@ -84,7 +84,7 @@ Exactly one of these must be specified:
 ### Usage
 
 ```
-gce_vm_image_import -image_name=IMAGE_NAME -client_id=CLIENT_ID [--data-disk | --byol --os=OS]
+gce_vm_image_import -image_name=IMAGE_NAME [-client_id=CLIENT_ID] [--data-disk | --byol --os=OS]
         (-source-file=SOURCE_FILE | -source-image=SOURCE_IMAGE) [-no-guest-environment] 
         [-family=FAMILY] [-description=DESCRIPTION] [-network=NETWORK] [-subnet=SUBNET]
         [-zone=ZONE] [-timeout=TIMEOUT] [-project=PROJECT] [-scratch_bucket_gcs_path=PATH]

@@ -142,10 +142,6 @@ func (p *ParamValidatorAndPopulator) ValidateAndPopulate(params *ovfdomain.OVFIm
 		return err
 	}
 
-	if err := validation.ValidateStringFlagNotEmpty(params.ClientID, ClientIDFlagKey); err != nil {
-		return err
-	}
-
 	if _, err := storageutils.GetBucketNameFromGCSPath(params.OvfOvaGcsPath); err != nil {
 		return daisy.Errf("%v should be a path to OVF or OVA package in Cloud Storage", OvfGcsPathFlagKey)
 	}

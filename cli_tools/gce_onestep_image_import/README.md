@@ -18,8 +18,6 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_onestep_
 
 #### Required flags
 + `-image_name=IMAGE_NAME` Name of the disk image to create.
-+ `-client_id=CLIENT_ID` Identifies the client of the importer. For example: `gcloud` or
-  `pantheon`.
 + `-os=OS` Specifies the OS of the image being imported. Execute the tool with `-help` to
   see the list of currently-supported operating systems.
   
@@ -48,6 +46,8 @@ To import from AWS, exactly one of the groups must be specified:
       where you want to export the image.
 
 #### Optional flags
++ `-client_id=CLIENT_ID` Identifies the client of the importer. For example: `gcloud` or
+  `pantheon`.
 + `-no_guest_environment` Google Guest Environment will not be installed on the image.
 + `-family=FAMILY` Family to set for the translated image.
 + `-description=DESCRIPTION` Description to set for the translated image.
@@ -85,12 +85,13 @@ To import from AWS, exactly one of the groups must be specified:
 ### Usage
 
 ```
-gce_onestep_image_import -image_name=IMAGE_NAME -client_id=CLIENT_ID -os=OS
+gce_onestep_image_import -image_name=IMAGE_NAME -os=OS
         -aws_access_key_id=AWS_ACCESS_KEY_ID -aws_secret_access_key=AWS_SECRET_ACCESS_KEY
         -aws_session_token=AWS_SESSION_TOKEN -aws_region=AWS_REGION
         (-aws_source_ami_file_path=AWS_SOURCE_AMI_FILE_PATH |
          -aws_ami_id=AWS_AMI_ID -aws_ami_export_location=AWS_AMI_EXPORT_LOCATION)
-         [-no-guest-environment] [-family=FAMILY] [-description=DESCRIPTION] [-network=NETWORK]
+        [-client_id=CLIENT_ID] [-no-guest-environment] [-family=FAMILY]
+        [-description=DESCRIPTION] [-network=NETWORK]
         [-subnet=SUBNET] [-zone=ZONE] [-timeout=TIMEOUT] [-project=PROJECT]
         [-scratch_bucket_gcs_path=PATH] [-oauth=OAUTH_PATH] 
         [-compute_endpoint_override=ENDPOINT] [-disable_gcs_logging]
