@@ -391,6 +391,12 @@ try {
     'Image imported into GCE using BYOL worklfow' > 'C:\Program Files\Google\Compute Engine\sysprep\byol_image'
   }
 
+  # Cleanup
+  if (Test-Path -Path "$Env:Programfiles\Google\Compute Engine\metadata_scripts\network.ps1") {
+    Write-Output "Deleting file $Env:Programfiles\Google\Compute Engine\metadata_scripts\network.ps1"
+    Remove-Item -Path "$Env:Programfiles\Google\Compute Engine\metadata_scripts\network.ps1" -Force
+  }
+
   Write-Output 'Translate complete.'
   Stop-Computer -force
   exit 0
