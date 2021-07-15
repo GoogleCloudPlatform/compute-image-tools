@@ -19,36 +19,36 @@ $adapter = Get-NetAdapter | ? {$_.Status -eq "up"}
 $interface = $adapter | Get-NetIPInterface -AddressFamily IPv4
 
 If ($interface.Dhcp -eq "Disabled") {
-  Write-Output "Translate: $($interface.InterfaceAlias) does not have DHCP enabled. Enabling DHCP."
+  Write-Host "Translate: $($interface.InterfaceAlias) does not have DHCP enabled. Enabling DHCP."
   # Remove existing gateway
   If (($interface | Get-NetIPConfiguration).Ipv4DefaultGateway) {
-    Write-Output "Translate: Removing IPv4 default gateway for $($interface.InterfaceAlias)."
+    Write-Host "Translate: Removing IPv4 default gateway for $($interface.InterfaceAlias)."
     $interface | Remove-NetRoute -Confirm:$false
   }
 
   # Enable DHCP
-  Write-Output "Translate: Enabling DHCP for $($interface.InterfaceAlias)."
+  Write-Host "Translate: Enabling DHCP for $($interface.InterfaceAlias)."
   $interface | Set-NetIPInterface -DHCP Enabled
 
   # Configure the DNS Servers automatically
-  Write-Output "Translate: Configure the DNS to use DNS servers from DHCP for $($interface.InterfaceAlias)."
+  Write-Host "Translate: Configure the DNS to use DNS servers from DHCP for $($interface.InterfaceAlias)."
   $interface | Set-DnsClientServerAddress -ResetServerAddresses
 
   # Restart the network adapter
-  Write-Output "Translate: Restarting network adapter: $($adapter.Name)."
+  Write-Host "Translate: Restarting network adapter: $($adapter.Name)."
   $adapter | Restart-NetAdapter
 
   # Give the network time to initialize.
   & ping 127.0.0.1 -n 30
 } else {
-  Write-Output "Translate: $($interface.InterfaceAlias) is configured for DHCP."
+  Write-Host "Translate: $($interface.InterfaceAlias) is configured for DHCP."
 }
 
 # Log DNS Server information
-Write-Output 'DNS client configuration:'
+Write-Host 'DNS client configuration:'
 $interface | Get-DnsClientServerAddress
 
 # Test connection to packages.cloud.google.com and log results.
-Write-Output 'Testing connection to packages.cloud.google.com:'
+Write-Host 'Testing connection to packages.cloud.google.com:'
 Test-NetConnection -ComputerName packages.cloud.google.com -Port 443
 Test-NetConnection -ComputerName packages.cloud.google.com -Port 80
