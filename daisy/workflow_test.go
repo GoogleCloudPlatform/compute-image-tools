@@ -572,6 +572,43 @@ func TestNewStep(t *testing.T) {
 	}
 }
 
+func TestNewFromFile_PopulatesVariables(t *testing.T) {
+	ctx := context.Background()
+	client, err := newTestGCSClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	td, err := ioutil.TempDir(os.TempDir(), "")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %v", err)
+	}
+	defer os.RemoveAll(td)
+	tf := filepath.Join(td, "test.cred")
+	if err := ioutil.WriteFile(tf, []byte(`{ "type": "service_account" }`), 0600); err != nil {
+		t.Fatalf("error creating temp file: %v", err)
+	}
+
+	wf, err := NewFromFile("./test_data/TestNewFromFile_PopulatesVariables.parent.wf.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	wf.Zone = "wf-zone"
+	wf.Project = "bar-project"
+	wf.OAuthPath = tf
+	wf.Logger = &MockLogger{}
+	wf.StorageClient = client
+	wf.externalLogging = true
+
+	err = wf.populate(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	child := wf.Steps["include-workflow"].IncludeWorkflow
+	assert.Equal(t, "v1", child.Vars["k1"])
+	assert.Equal(t, "image-v1", (*child.Workflow.Steps["create-disks"].CreateDisks)[0].SourceImage)
+}
+
 func TestPopulate(t *testing.T) {
 	ctx := context.Background()
 	client, err := newTestGCSClient()

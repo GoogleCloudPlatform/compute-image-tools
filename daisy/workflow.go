@@ -521,16 +521,6 @@ func (w *Workflow) populate(ctx context.Context) DError {
 	}
 	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
 
-	// We do this here, and not in validate, as embedded startup scripts could
-	// have what we think are daisy variables.
-	if err := w.validateVarsSubbed(); err != nil {
-		return err
-	}
-
-	if err := w.substituteSourceVars(ctx, reflect.ValueOf(w).Elem()); err != nil {
-		return err
-	}
-
 	if w.Logger == nil {
 		w.createLogger(ctx)
 	}
@@ -543,6 +533,17 @@ func (w *Workflow) populate(ctx context.Context) DError {
 			return Errf("error populating step %q: %v", name, err)
 		}
 	}
+
+	// We do this here, and not in validate, as embedded startup scripts could
+	// have what we think are daisy variables.
+	if err := w.validateVarsSubbed(); err != nil {
+		return err
+	}
+
+	if err := w.substituteSourceVars(ctx, reflect.ValueOf(w).Elem()); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -588,7 +589,7 @@ func (w *Workflow) ID() string {
 }
 
 // NewIncludedWorkflowFromFile reads and unmarshals a workflow with the same resources as the parent.
-func (w *Workflow) NewIncludedWorkflowFromFile(file string) (*Workflow, error) {
+func (w *Workflow) NewIncludedWorkflowFromFile(file string) (*Workflow, DError) {
 	iw := New()
 	w.includeWorkflow(iw)
 	if !filepath.IsAbs(file) {
@@ -623,7 +624,7 @@ func (w *Workflow) NewSubWorkflow() *Workflow {
 }
 
 // NewSubWorkflowFromFile reads and unmarshals a workflow as a child to this workflow.
-func (w *Workflow) NewSubWorkflowFromFile(file string) (*Workflow, error) {
+func (w *Workflow) NewSubWorkflowFromFile(file string) (*Workflow, DError) {
 	sw := w.NewSubWorkflow()
 	if !filepath.IsAbs(file) {
 		file = filepath.Join(w.workflowDir, file)
@@ -799,18 +800,6 @@ func NewFromFile(file string) (w *Workflow, err error) {
 	if err := readWorkflow(file, w); err != nil {
 		return nil, err
 	}
-	for _, step := range w.Steps {
-		if step.SubWorkflow != nil && step.SubWorkflow.Path != "" {
-			step.SubWorkflow.Workflow, err = w.NewSubWorkflowFromFile(step.SubWorkflow.Path)
-		} else if step.IncludeWorkflow != nil && step.IncludeWorkflow.Path != "" {
-			step.IncludeWorkflow.Workflow, err = w.NewIncludedWorkflowFromFile(step.IncludeWorkflow.Path)
-		} else {
-			continue
-		}
-		if err != nil {
-			return nil, err
-		}
-	}
 	return w, nil
 }
 
@@ -842,7 +831,7 @@ func JSONError(file string, data []byte, err error) error {
 	return fmt.Errorf("%s: JSON syntax error in line %d: %s \n%s\n%s^", file, line, err, data[start:end], strings.Repeat(" ", pos))
 }
 
-func readWorkflow(file string, w *Workflow) DError {
+func readWorkflow(file string, w *Workflow) (derr DError) {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return newErr("failed to read workflow file", err)
@@ -861,9 +850,20 @@ func readWorkflow(file string, w *Workflow) DError {
 		w.OAuthPath = filepath.Join(w.workflowDir, w.OAuthPath)
 	}
 
-	for name, s := range w.Steps {
-		s.name = name
-		s.w = w
+	for name, step := range w.Steps {
+		step.name = name
+		step.w = w
+
+		if step.SubWorkflow != nil && step.SubWorkflow.Path != "" {
+			step.SubWorkflow.Workflow, derr = w.NewSubWorkflowFromFile(step.SubWorkflow.Path)
+		} else if step.IncludeWorkflow != nil && step.IncludeWorkflow.Path != "" {
+			step.IncludeWorkflow.Workflow, derr = w.NewIncludedWorkflowFromFile(step.IncludeWorkflow.Path)
+		} else {
+			continue
+		}
+		if derr != nil {
+			return derr
+		}
 	}
 
 	return nil
