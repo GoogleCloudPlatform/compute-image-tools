@@ -366,10 +366,7 @@ try {
   # Only needed and applicable to 2008R2.
   $netkvm = Get-WMIObject Win32_NetworkAdapter -filter "ServiceName='netkvm'"
   $netkvm | ForEach-Object {
-    Write-Output "Translate: Setting IPv4 to use DHCP for $($_.NetConnectionID)"
-    & netsh interface ip set address "$($_.NetConnectionID)" dhcp
-    Write-Output "Translate: Setting DNS to use DHCP for $($_.NetConnectionID)"
-    & netsh interface ipv4 set dnsservers "$($_.NetConnectionID)" dhcp
+    & netsh interface ipv4 set dnsservers "$($_.NetConnectionID)" dhcp | Out-Null
   }
 
   Enable-RemoteDesktop
