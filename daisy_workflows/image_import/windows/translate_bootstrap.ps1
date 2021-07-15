@@ -61,6 +61,7 @@ function Setup-ScriptRunner {
   $metadata_scripts = "${script:os_drive}\Program Files\Google\Compute Engine\metadata_scripts"
   New-Item "${metadata_scripts}\"  -Force -ItemType Directory | Out-Null
   Copy-Item "${script:components_dir}\run_startup_scripts.cmd" "${metadata_scripts}\run_startup_scripts.cmd" -Verbose
+  Copy-Item "${script:components_dir}\network.ps1" "${metadata_scripts}\network.ps1" -Verbose
   # This file must be unicode with no trailing new line and exactly match the source.
   (Get-Content "${script:components_dir}\GCEStartup" | Out-String).TrimEnd() | Out-File -Encoding Unicode -NoNewline "${script:os_drive}\Windows\System32\Tasks\GCEStartup"
 

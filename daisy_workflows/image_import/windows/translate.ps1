@@ -366,7 +366,10 @@ try {
   # Only needed and applicable to 2008R2.
   $netkvm = Get-WMIObject Win32_NetworkAdapter -filter "ServiceName='netkvm'"
   $netkvm | ForEach-Object {
-    & netsh interface ipv4 set dnsservers "$($_.NetConnectionID)" dhcp | Out-Null
+    Write-Output "Translate: Setting IPv4 to use DHCP for $($_.NetConnectionID)"
+    & netsh interface ip set address "$($_.NetConnectionID)" dhcp
+    Write-Output "Translate: Setting DNS to use DHCP for $($_.NetConnectionID)"
+    & netsh interface ipv4 set dnsservers "$($_.NetConnectionID)" dhcp
   }
 
   Enable-RemoteDesktop
@@ -389,6 +392,12 @@ try {
 
   if ($script:is_byol.ToLower() -eq 'true') {
     'Image imported into GCE using BYOL worklfow' > 'C:\Program Files\Google\Compute Engine\sysprep\byol_image'
+  }
+
+  # Cleanup
+  if (Test-Path -Path "$Env:Programfiles\Google\Compute Engine\metadata_scripts\network.ps1") {
+    Write-Output "Deleting file $Env:Programfiles\Google\Compute Engine\metadata_scripts\network.ps1"
+    Remove-Item -Path "$Env:Programfiles\Google\Compute Engine\metadata_scripts\network.ps1" -Force
   }
 
   Write-Output 'Translate complete.'
