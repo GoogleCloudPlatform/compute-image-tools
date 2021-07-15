@@ -18,12 +18,17 @@ function serialOutputPrefixedKeyValue() {
   stdbuf -oL echo "$1: <serial-output key:'$2' value:'$3'>"
 }
 
-# Verify VM has network access to Storage API by checking a public bucket
-gsutil ls &> /dev/null;
-if [[ $? -ne 0 ]]; then
-  echo "ExportFailed: Cannot access Google APIs. Ensure that VPC settings allow VMs to access Google APIs either via external IP or Private Google Access. More info at: https://cloud.google.com/vpc/docs/configure-private-google-access"
-  exit
-fi
+# Verify VM has network access to Compute and Storage API endpoints
+for endpoint in "https://compute.googleapis.com" "https://storage.googleapis.com"
+do
+  STATUSCODE=$(curl --head --silent --write-out '%{http_code}'  --output /dev/null $endpoint)
+  if [ $STATUSCODE -ge 200 ] ; then
+    continue
+  else
+    echo "ExportFailed: Cannot access Google APIs at $endpoint. Ensure that VPC settings, including DNS, Firewall Rules, and Private Google Access, allow VMs to access Google APIs."
+    exit
+  fi
+done
 
 BYTES_1GB=1073741824
 URL="http://metadata/computeMetadata/v1/instance/attributes"
