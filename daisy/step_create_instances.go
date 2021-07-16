@@ -57,7 +57,7 @@ func logSerialOutput(ctx context.Context, s *Step, ii InstanceInterface, ib *Ins
 	defer w.stepWait.Done()
 
 	logsObj := path.Join(w.logsPath, fmt.Sprintf("%s-serial-port%d.log", ii.getName(), port))
-	w.LogStepInfo(s.name, "CreateInstances", "Streaming instance %q serial port %d output to https://storage.cloud.google.com/%s/%s", ii.getName(), port, w.bucket, logsObj)
+	w.LogStepInfo(s.name, "CreateInstances", "Streaming instance %q serial port %d output to https://storage.cloud.google.com/%s/%s (https://console.cloud.google.com/storage/browser/_details/%s/%s)", ii.getName(), port, w.bucket, logsObj, w.bucket, logsObj)
 	var start int64
 	var buf bytes.Buffer
 	var gcsErr bool

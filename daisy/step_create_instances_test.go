@@ -57,28 +57,28 @@ func TestLogSerialOutput(t *testing.T) {
 	}{
 		{
 			"Error but instance stopped",
-			"Streaming instance \"i1\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i1-serial-port0.log",
+			"Streaming instance \"i1\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i1-serial-port0.log (https://console.cloud.google.com/storage/browser/_details/test-bucket/i1-serial-port0.log)",
 			"",
 			&Instance{Instance: compute.Instance{Name: "i1"}},
 			&InstanceBeta{Instance: computeBeta.Instance{Name: "i1"}},
 		},
 		{
 			"Error but instance running",
-			"Streaming instance \"i2\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i2-serial-port0.log",
+			"Streaming instance \"i2\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i2-serial-port0.log (https://console.cloud.google.com/storage/browser/_details/test-bucket/i2-serial-port0.log)",
 			"Instance \"i2\": error getting serial port: fail",
 			&Instance{Instance: compute.Instance{Name: "i2"}},
 			&InstanceBeta{Instance: computeBeta.Instance{Name: "i2"}},
 		},
 		{
 			"Normal flow",
-			"Streaming instance \"i3\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i3-serial-port0.log",
+			"Streaming instance \"i3\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i3-serial-port0.log (https://console.cloud.google.com/storage/browser/_details/test-bucket/i3-serial-port0.log)",
 			"",
 			&Instance{Instance: compute.Instance{Name: "i3"}},
 			&InstanceBeta{Instance: computeBeta.Instance{Name: "i3"}},
 		},
 		{
 			"Error but instance deleted",
-			"Streaming instance \"i4\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i4-serial-port0.log",
+			"Streaming instance \"i4\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i4-serial-port0.log (https://console.cloud.google.com/storage/browser/_details/test-bucket/i4-serial-port0.log)",
 			"",
 			&Instance{Instance: compute.Instance{Name: "i4"}},
 			&InstanceBeta{Instance: computeBeta.Instance{Name: "i4"}},
