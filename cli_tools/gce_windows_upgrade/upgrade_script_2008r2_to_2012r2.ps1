@@ -43,14 +43,23 @@ online disk noerr
   }
 
   # Find the drive which contains install media.
-  $Drives = Get-WmiObject Win32_LogicalDisk
-  ForEach ($Drive in $Drives) {
-    if (Test-Path "$($Drive.DeviceID)\Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English") {
-      $script:install_media_drive = "$($Drive.DeviceID)"
+  For ($i=1; $i -le 5; $i++) {
+    $Drives = Get-WmiObject Win32_LogicalDisk
+    ForEach ($Drive in $Drives) {
+      if (Test-Path "$($Drive.DeviceID)\Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English") {
+        $script:install_media_drive = "$($Drive.DeviceID)"
+      }
     }
+    if ($script:install_media_drive) {
+      break
+    }
+    Write-Host "Install media not found, retrying in 5 seconds. Attempt $i of 5."
+    Start-Sleep -Seconds 5
   }
+
+
   if (!$script:install_media_drive) {
-    throw "No install media found."
+    throw "No install media found after 5 attempts."
   }
   Write-Host "Detected install media folder drive letter: $script:install_media_drive"
 
