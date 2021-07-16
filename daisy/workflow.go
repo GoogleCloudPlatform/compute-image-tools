@@ -154,6 +154,7 @@ type Workflow struct {
 	networks        *networkRegistry
 	subnetworks     *subnetworkRegistry
 	targetInstances *targetInstanceRegistry
+	targetPools    	*targetPoolRegistry
 	objects         *objectRegistry
 	snapshots       *snapshotRegistry
 
@@ -163,6 +164,7 @@ type Workflow struct {
 	diskCache           twoDResourceCache
 	subnetworkCache     twoDResourceCache
 	targetInstanceCache twoDResourceCache
+	targetPoolCache     twoDResourceCache
 	forwardingRuleCache twoDResourceCache
 	imageCache          oneDResourceCache
 	imageFamilyCache    oneDResourceCache
@@ -578,6 +580,7 @@ func (w *Workflow) includeWorkflow(iw *Workflow) {
 	iw.networks = w.networks
 	iw.subnetworks = w.subnetworks
 	iw.targetInstances = w.targetInstances
+	iw.targetPools = w.targetPools
 	iw.snapshots = w.snapshots
 	iw.objects = w.objects
 }
@@ -773,6 +776,7 @@ func New() *Workflow {
 	w.subnetworks = newSubnetworkRegistry(w)
 	w.objects = newObjectRegistry(w)
 	w.targetInstances = newTargetInstanceRegistry(w)
+	w.targetPools = newTargetPoolRegistry(w)
 	w.snapshots = newSnapshotRegistry(w)
 	w.addCleanupHook(func() DError {
 		w.instances.cleanup() // instances need to be done before disks/networks
@@ -781,6 +785,7 @@ func New() *Workflow {
 		w.disks.cleanup()
 		w.forwardingRules.cleanup()
 		w.targetInstances.cleanup()
+		w.targetPools.cleanup()
 		w.firewallRules.cleanup()
 		w.subnetworks.cleanup()
 		w.networks.cleanup()

@@ -51,6 +51,7 @@ type Client interface {
 	CreateSnapshot(project, zone, disk string, s *compute.Snapshot) error
 	CreateSubnetwork(project, region string, n *compute.Subnetwork) error
 	CreateTargetInstance(project, zone string, ti *compute.TargetInstance) error
+	CreateTargetPool(project, region string, tp *compute.TargetPool) error
 	DeleteDisk(project, zone, name string) error
 	DeleteForwardingRule(project, region, name string) error
 	DeleteFirewallRule(project, name string) error
@@ -61,6 +62,7 @@ type Client interface {
 	DeleteNetwork(project, name string) error
 	DeleteSubnetwork(project, region, name string) error
 	DeleteTargetInstance(project, zone, name string) error
+	DeleteTargetPool(project, region, name string) error
 	DeprecateImage(project, name string, deprecationstatus *compute.DeprecationStatus) error
 	DeprecateImageAlpha(project, name string, deprecationstatus *computeAlpha.DeprecationStatus) error
 	GetMachineType(project, zone, machineType string) (*compute.MachineType, error)
@@ -83,6 +85,7 @@ type Client interface {
 	GetNetwork(project, name string) (*compute.Network, error)
 	GetSubnetwork(project, region, name string) (*compute.Subnetwork, error)
 	GetTargetInstance(project, zone, name string) (*compute.TargetInstance, error)
+	GetTargetPool(project, region, name string) (*compute.TargetPool, error)
 	InstanceStatus(project, zone, name string) (string, error)
 	InstanceStopped(project, zone, name string) (bool, error)
 	ListMachineTypes(project, zone string, opts ...ListCallOption) ([]*compute.MachineType, error)
@@ -104,6 +107,7 @@ type Client interface {
 	AggregatedListSubnetworks(project string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
 	ListSubnetworks(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
 	ListTargetInstances(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error)
+	ListTargetPools(project, region string, opts ...ListCallOption) ([]*compute.TargetPool, error)
 	ResizeDisk(project, zone, disk string, drr *compute.DisksResizeRequest) error
 	SetInstanceMetadata(project, zone, name string, md *compute.Metadata) error
 	SetCommonInstanceMetadata(project string, md *compute.Metadata) error
@@ -723,6 +727,26 @@ func (c *client) CreateTargetInstance(project, zone string, ti *compute.TargetIn
 	return nil
 }
 
+// CreateTargetPool creates a GCE Target Pool, which can be used for network
+// TCP/UDP load balancing
+func (c *client) CreateTargetPool(project, region string, tp *compute.TargetPool) error {
+	op, err := c.Retry(c.raw.TargetPools.Insert(project, region, tp).Do)
+	if err != nil {
+		return err
+	}
+
+	if err := c.i.regionOperationsWait(project, region, op.Name); err != nil {
+		return err
+	}
+
+	var createdTargetPool *compute.TargetPool
+	if createdTargetPool, err = c.i.GetTargetPool(project, region, tp.Name); err != nil {
+		return err
+	}
+	*tp = *createdTargetPool
+	return nil
+}
+
 // DeleteFirewallRule deletes a GCE FirewallRule.
 func (c *client) DeleteFirewallRule(project, name string) error {
 	op, err := c.Retry(c.raw.Firewalls.Delete(project, name).Do)
@@ -832,6 +856,17 @@ func (c *client) DeleteTargetInstance(project, zone, name string) error {
 
 	return c.i.zoneOperationsWait(project, zone, op.Name)
 }
+
+// DeleteTargetPool deletes a GCE TargetPool.
+func (c *client) DeleteTargetPool(project, region, name string) error {
+	op, err := c.Retry(c.raw.TargetPools.Delete(project, region, name).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.regionOperationsWait(project, region, op.Name)
+}
+
 
 // DeprecateImage sets deprecation status on a GCE image.
 func (c *client) DeprecateImage(project, name string, deprecationstatus *compute.DeprecationStatus) error {
@@ -1426,6 +1461,15 @@ func (c *client) GetTargetInstance(project, zone, name string) (*compute.TargetI
 	return n, err
 }
 
+// GetTargetPool gets a GCE TargetPool.
+func (c *client) GetTargetPool(project, region, name string) (*compute.TargetPool, error) {
+	n, err := c.raw.TargetPools.Get(project, region, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.TargetPools.Get(project, region, name).Do()
+	}
+	return n, err
+}
+
 // ListTargetInstances gets a list of GCE TargetInstances.
 func (c *client) ListTargetInstances(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error) {
 	var tis []*compute.TargetInstance
@@ -1447,6 +1491,30 @@ func (c *client) ListTargetInstances(project, zone string, opts ...ListCallOptio
 			return tis, nil
 		}
 		pt = til.NextPageToken
+	}
+}
+
+// ListTargetPools gets a list of GCE TargetPools.
+func (c *client) ListTargetPools(project, region string, opts ...ListCallOption) ([]*compute.TargetPool, error) {
+	var tps []*compute.TargetPool
+	var pt string
+	call := c.raw.TargetPools.List(project, region)
+	for _, opt := range opts {
+		call = opt.listCallOptionApply(call).(*compute.TargetPoolsListCall)
+	}
+	for tpl, err := call.PageToken(pt).Do(); ; tpl, err = call.PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			tpl, err = call.PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		tps = append(tps, tpl.Items...)
+
+		if tpl.NextPageToken == "" {
+			return tps, nil
+		}
+		pt = tpl.NextPageToken
 	}
 }
 

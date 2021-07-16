@@ -60,6 +60,7 @@ type TestClient struct {
 	CreateSnapshotFn            func(project, zone, disk string, s *compute.Snapshot) error
 	CreateSubnetworkFn          func(project, region string, n *compute.Subnetwork) error
 	CreateTargetInstanceFn      func(project, zone string, ti *compute.TargetInstance) error
+	CreateTargetPoolFn          func(project, region string, ti *compute.TargetPool) error
 	StartInstanceFn             func(project, zone, name string) error
 	StopInstanceFn              func(project, zone, name string) error
 	DeleteDiskFn                func(project, zone, name string) error
@@ -70,6 +71,7 @@ type TestClient struct {
 	DeleteNetworkFn             func(project, name string) error
 	DeleteSubnetworkFn          func(project, region, name string) error
 	DeleteTargetInstanceFn      func(project, zone, name string) error
+	DeleteTargetPoolFn      		func(project, region, name string) error
 	DeprecateImageFn            func(project, name string, deprecationstatus *compute.DeprecationStatus) error
 	GetMachineTypeFn            func(project, zone, machineType string) (*compute.MachineType, error)
 	ListMachineTypesFn          func(project, zone string, opts ...ListCallOption) ([]*compute.MachineType, error)
@@ -101,7 +103,9 @@ type TestClient struct {
 	GetSubnetworkFn             func(project, region, name string) (*compute.Subnetwork, error)
 	ListSubnetworksFn           func(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
 	GetTargetInstanceFn         func(project, zone, name string) (*compute.TargetInstance, error)
+	GetTargetPoolFn         		func(project, region, name string) (*compute.TargetPool, error)
 	ListTargetInstancesFn       func(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error)
+	ListTargetPoolsFn       		func(project, region string, opts ...ListCallOption) ([]*compute.TargetPool, error)
 	InstanceStatusFn            func(project, zone, name string) (string, error)
 	InstanceStoppedFn           func(project, zone, name string) (bool, error)
 	ResizeDiskFn                func(project, zone, disk string, drr *compute.DisksResizeRequest) error
@@ -213,6 +217,14 @@ func (c *TestClient) CreateTargetInstance(project, zone string, ti *compute.Targ
 	return c.client.CreateTargetInstance(project, zone, ti)
 }
 
+// CreateTargetPool uses the override method CreateTargetPoolFn or the real implementation.
+func (c *TestClient) CreateTargetPool(project, region string, tp *compute.TargetPool) error {
+	if c.CreateTargetPoolFn != nil {
+		return c.CreateTargetPoolFn(project, region, tp)
+	}
+	return c.client.CreateTargetPool(project, region, tp)
+}
+
 // StartInstance uses the override method StartInstanceFn or the real implementation.
 func (c *TestClient) StartInstance(project, zone, name string) error {
 	if c.StartInstanceFn != nil {
@@ -291,6 +303,14 @@ func (c *TestClient) DeleteTargetInstance(project, zone, name string) error {
 		return c.DeleteTargetInstanceFn(project, zone, name)
 	}
 	return c.client.DeleteTargetInstance(project, zone, name)
+}
+
+// DeleteTargetPool uses the override method DeleteTargetPoolFn or the real implementation.
+func (c *TestClient) DeleteTargetPool(project, region, name string) error {
+	if c.DeleteTargetPoolFn != nil {
+		return c.DeleteTargetPoolFn(project, region, name)
+	}
+	return c.client.DeleteTargetPool(project, region, name)
 }
 
 // DeprecateImage uses the override method DeprecateImageFn or the real implementation.
@@ -541,12 +561,28 @@ func (c *TestClient) GetTargetInstance(project, zone, name string) (*compute.Tar
 	return c.client.GetTargetInstance(project, zone, name)
 }
 
+// GetTargetPool uses the override method GetTargetPoolFn or the real implementation.
+func (c *TestClient) GetTargetPool(project, region, name string) (*compute.TargetPool, error) {
+	if c.GetTargetPoolFn != nil {
+		return c.GetTargetPoolFn(project, region, name)
+	}
+	return c.client.GetTargetPool(project, region, name)
+}
+
 // ListTargetInstances uses the override method ListTargetInstancesFn or the real implementation.
 func (c *TestClient) ListTargetInstances(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error) {
 	if c.ListTargetInstancesFn != nil {
 		return c.ListTargetInstancesFn(project, zone, opts...)
 	}
 	return c.client.ListTargetInstances(project, zone, opts...)
+}
+
+// ListTargetPools uses the override method ListTargetPoolsFn or the real implementation.
+func (c *TestClient) ListTargetPools(project, region string, opts ...ListCallOption) ([]*compute.TargetPool, error) {
+	if c.ListTargetPoolsFn != nil {
+		return c.ListTargetPoolsFn(project, region, opts...)
+	}
+	return c.client.ListTargetPools(project, region, opts...)
 }
 
 // GetSerialPortOutput uses the override method GetSerialPortOutputFn or the real implementation.

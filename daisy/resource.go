@@ -160,6 +160,9 @@ func (w *Workflow) resourceExists(url string) (bool, DError) {
 	case targetInstanceURLRegex.MatchString(url):
 		result := NamedSubexp(targetInstanceURLRegex, url)
 		return w.targetInstanceExists(result["project"], result["zone"], result["targetInstance"])
+	case targetPoolURLRegex.MatchString(url):
+		result := NamedSubexp(targetPoolURLRegex, url)
+		return w.targetPoolExists(result["project"], result["region"], result["targetPool"])
 	case forwardingRuleURLRegex.MatchString(url):
 		result := NamedSubexp(forwardingRuleURLRegex, url)
 		return w.forwardingRuleExists(result["project"], result["region"], result["forwardingRule"])

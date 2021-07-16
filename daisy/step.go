@@ -56,6 +56,7 @@ type Step struct {
 	CreateNetworks            *CreateNetworks            `json:",omitempty"`
 	CreateSnapshots           *CreateSnapshots           `json:",omitempty"`
 	CreateSubnetworks         *CreateSubnetworks         `json:",omitempty"`
+	CreateTargetPools         *CreateTargetPools         `json:",omitempty"`
 	CreateTargetInstances     *CreateTargetInstances     `json:",omitempty"`
 	CopyGCSObjects            *CopyGCSObjects            `json:",omitempty"`
 	ResizeDisks               *ResizeDisks               `json:",omitempty"`
