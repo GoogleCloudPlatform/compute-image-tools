@@ -15,21 +15,26 @@
 
 if [ ! -e /reboot.txt ]; then
     logger -p daemon.info "BOOTED"
+    echo "BOOTED" > /dev/console
     echo > /reboot.txt
 else
     logger -p daemon.info "REBOOT"
+    echo "REBOOT" > /dev/console
 fi
 
 while [ 1 ]; do
   if [ -e /dev/sda ]; then
     # Linux style
     printf TotalDisks:%d\\n `ls /dev/sd* | grep [a-z]$ | wc -l` | logger -p daemon.info
+    printf TotalDisks:%d\\n `ls /dev/sd* | grep [a-z]$ | wc -l` > /dev/console
   elif [ -e /dev/da0 ]; then
     # BSD style
     printf TotalDisks:%d\\n `ls /dev/da* | grep da[0-9]$ | wc -l` | logger -p daemon.info
+    printf TotalDisks:%d\\n `ls /dev/da* | grep da[0-9]$ | wc -l` > /dev/console
   else
     # unknown
     logger -p daemon.info "TotalDisksUnrecognized"
+    echo "TotalDisksUnrecognized" > /dev/console
   fi
 
   # Avoid flooding the logs, otherwise we might lose the BOOTED/REBOOT message

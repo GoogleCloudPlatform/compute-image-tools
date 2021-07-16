@@ -19,7 +19,9 @@ sleep 10
 if ! ls /reboot.txt; then
   echo "REBOOT" > /reboot.txt
   logger -p daemon.info "BOOTED"
+  echo "BOOTED" > /dev/console
 else
   cat /reboot.txt | logger -p daemon.info
+  cat /reboot.txt > /dev/console
 fi
 sync

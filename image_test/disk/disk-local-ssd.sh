@@ -54,8 +54,10 @@ if [ $IS_SCSI -eq 1 ]; then
   # check for Multiqueue SCSI on Linux
   if [ $IS_BSD -eq 0 ]; then
     grep scsi_mod.use_blk_mq=Y /proc/cmdline &> /dev/null \
-      && logger -p daemon.info "Multiqueue is enable" \
-      || logger -p daemon.info "Multiqueue is DISABLED"
+      && (logger -p daemon.info "Multiqueue is enable"; \
+          echo "Multiqueue is enable" > /dev/console)\
+      || (logger -p daemon.info "Multiqueue is DISABLED"; \
+          echo "Multiqueue is DISABLED" > /dev/console)
   fi
 fi
 
@@ -88,6 +90,8 @@ umount $MOUNT_POINT
 mount $PARTITION $MOUNT_POINT
 if [ $CHECK_STRING = $(cat $MOUNT_POINT/$CHECK_FILENAME) ]; then
   logger -p daemon.info "CheckSuccessful"
+  echo "CheckSuccessful" > /dev/console
 else
   logger -p daemon.info "CheckFailed"
+  echo "CheckFailed" > /dev/console
 fi

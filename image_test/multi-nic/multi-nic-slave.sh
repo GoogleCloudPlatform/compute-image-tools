@@ -14,3 +14,4 @@
 # limitations under the License.
 
 logger -p daemon.info BOOTED
+echo BOOTED > /dev/console
