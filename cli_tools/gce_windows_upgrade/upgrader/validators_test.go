@@ -18,12 +18,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
-	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 )
 
 func init() {
@@ -45,7 +46,7 @@ func TestValidateParams(t *testing.T) {
 
 	u = newTestUpgrader().upgrader
 	u.ClientID = ""
-	tcs = append(tcs, testCase{"No client id", u, "The flag -client-id must be provided", DefaultTimeout})
+	tcs = append(tcs, testCase{"clientID is optional", u, "", DefaultTimeout})
 
 	u = newTestUpgrader().upgrader
 	u.SourceOS = "android"

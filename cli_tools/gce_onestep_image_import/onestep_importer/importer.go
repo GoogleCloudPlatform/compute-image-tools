@@ -235,9 +235,6 @@ func (args *OneStepImportArguments) validate() error {
 	if err := daisyUtils.ValidateOS(args.OS); err != nil {
 		return err
 	}
-	if err := validation.ValidateStringFlagNotEmpty(args.ClientID, clientFlag); err != nil {
-		return err
-	}
 
 	return nil
 }

@@ -16,8 +16,6 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image
 ### Flags
 
 #### Required flags
-+ `-client_id=CLIENT_ID` Identifies the client of the importer. For example: `gcloud` or
-  `pantheon`.
 + `-destination_uri=DESTINATION_URI` The Google Cloud Storage URI destination for the exported
   virtual disk file. For example: gs://my-bucket/my-exported-image.vmdk.
 
@@ -29,6 +27,8 @@ Exactly one of these must be specified:
 
 
 #### Optional flags
++ `-client_id=CLIENT_ID` Identifies the client of the importer. For example: `gcloud` or
+  `pantheon`.
 + `-format=FORMAT` Specify the format to export to, such as vmdk, vhdx, vpc, or qcow2.
 + `-project=PROJECT` Project to run in, overrides what is set in workflow.
 + `-network=NETWORK` Name of the network in your project to use for the image import. The network 
@@ -58,7 +58,7 @@ Exactly one of these must be specified:
 ### Usage
 
 ```
-gce_vm_image_export -client_id=CLIENT_ID -destination_uri=DESTINATION_URI
+gce_vm_image_export -destination_uri=DESTINATION_URI [-client_id=CLIENT_ID]
         (-source_image=SOURCE_IMAGE | -source_disk_snapshot=SOURCE_DISK_SNAPSHOT)
         [-format=FORMAT] [-project=PROJECT] [-network=NETWORK]
         [-subnet=SUBNET] [-zone=ZONE] [-timeout=TIMEOUT] [-scratch_bucket_gcs_path=PATH]

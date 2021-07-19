@@ -51,9 +51,6 @@ func (validator *ovfExportParamValidatorImpl) ValidateAndParseParams(params *ovf
 		return daisy.Errf("-%v and -%v can't be provided at the same time", ovfexportdomain.InstanceNameFlagKey, ovfexportdomain.MachineImageNameFlagKey)
 	}
 
-	if err := validation.ValidateStringFlagNotEmpty(params.ClientID, ovfexportdomain.ClientIDFlagKey); err != nil {
-		return err
-	}
 	if err := validation.ValidateStringFlagNotEmpty(params.DestinationURI, ovfexportdomain.DestinationURIFlagKey); err != nil {
 		return err
 	}

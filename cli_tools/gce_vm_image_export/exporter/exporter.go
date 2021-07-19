@@ -54,12 +54,8 @@ const (
 	logPrefix = "[image-export]"
 )
 
-func validateAndParseFlags(clientID string, destinationURI string, sourceImage string, sourceDiskSnapshot string, labels string) (
-	map[string]string, error) {
+func validateAndParseFlags(destinationURI string, sourceImage string, sourceDiskSnapshot string, labels string) (map[string]string, error) {
 
-	if err := validation.ValidateStringFlagNotEmpty(clientID, ClientIDFlagKey); err != nil {
-		return nil, err
-	}
 	if err := validation.ValidateStringFlagNotEmpty(destinationURI, DestinationURIFlagKey); err != nil {
 		return nil, err
 	}
@@ -180,7 +176,7 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 
 	log.SetPrefix(logPrefix + " ")
 
-	userLabels, err := validateAndParseFlags(clientID, destinationURI, sourceImage, sourceDiskSnapshot, labels)
+	userLabels, err := validateAndParseFlags(destinationURI, sourceImage, sourceDiskSnapshot, labels)
 	if err != nil {
 		return nil, err
 	}
