@@ -867,7 +867,6 @@ func (c *client) DeleteTargetPool(project, region, name string) error {
 	return c.i.regionOperationsWait(project, region, op.Name)
 }
 
-
 // DeprecateImage sets deprecation status on a GCE image.
 func (c *client) DeprecateImage(project, name string, deprecationstatus *compute.DeprecationStatus) error {
 	op, err := c.Retry(c.raw.Images.Deprecate(project, name, deprecationstatus).Do)

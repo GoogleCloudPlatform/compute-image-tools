@@ -71,7 +71,7 @@ type TestClient struct {
 	DeleteNetworkFn             func(project, name string) error
 	DeleteSubnetworkFn          func(project, region, name string) error
 	DeleteTargetInstanceFn      func(project, zone, name string) error
-	DeleteTargetPoolFn      		func(project, region, name string) error
+	DeleteTargetPoolFn          func(project, region, name string) error
 	DeprecateImageFn            func(project, name string, deprecationstatus *compute.DeprecationStatus) error
 	GetMachineTypeFn            func(project, zone, machineType string) (*compute.MachineType, error)
 	ListMachineTypesFn          func(project, zone string, opts ...ListCallOption) ([]*compute.MachineType, error)
@@ -103,9 +103,9 @@ type TestClient struct {
 	GetSubnetworkFn             func(project, region, name string) (*compute.Subnetwork, error)
 	ListSubnetworksFn           func(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
 	GetTargetInstanceFn         func(project, zone, name string) (*compute.TargetInstance, error)
-	GetTargetPoolFn         		func(project, region, name string) (*compute.TargetPool, error)
+	GetTargetPoolFn             func(project, region, name string) (*compute.TargetPool, error)
 	ListTargetInstancesFn       func(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error)
-	ListTargetPoolsFn       		func(project, region string, opts ...ListCallOption) ([]*compute.TargetPool, error)
+	ListTargetPoolsFn           func(project, region string, opts ...ListCallOption) ([]*compute.TargetPool, error)
 	InstanceStatusFn            func(project, zone, name string) (string, error)
 	InstanceStoppedFn           func(project, zone, name string) (bool, error)
 	ResizeDiskFn                func(project, zone, disk string, drr *compute.DisksResizeRequest) error

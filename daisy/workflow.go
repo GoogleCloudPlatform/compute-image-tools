@@ -154,7 +154,7 @@ type Workflow struct {
 	networks        *networkRegistry
 	subnetworks     *subnetworkRegistry
 	targetInstances *targetInstanceRegistry
-	targetPools    	*targetPoolRegistry
+	targetPools     *targetPoolRegistry
 	objects         *objectRegistry
 	snapshots       *snapshotRegistry
 
