@@ -114,5 +114,11 @@ func (w *Workflow) validateVarsSubbed() DError {
 			}
 		}
 		return nil
+	}, func(v reflect.Value) traverseAction {
+		_, ok := v.Interface().(*Workflow)
+		if ok {
+			return prune
+		}
+		return continueTraverse
 	})
 }

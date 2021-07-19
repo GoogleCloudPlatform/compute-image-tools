@@ -107,7 +107,21 @@ func TestIncludeWorkflowPopulate(t *testing.T) {
 	}
 }
 
-func TestIncludeWorkflowRun(t *testing.T) {}
+func TestIncludeWorkflowPopulate_SkipsReadingPathWhenWorkflowNil(t *testing.T) {
+	child := testWorkflow()
+	parent := testWorkflow()
+	parent.Steps = map[string]*Step{
+		"child": {
+			IncludeWorkflow: &IncludeWorkflow{
+				Path:     "test-will-fail-if-this-is-read",
+				Workflow: child,
+			},
+		},
+	}
+	if err := parent.populate(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestIncludeWorkflowValidate(t *testing.T) {
 	ctx := context.Background()

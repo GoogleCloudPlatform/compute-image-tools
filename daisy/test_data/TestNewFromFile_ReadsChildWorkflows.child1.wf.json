@@ -1,0 +1,20 @@
+{
+  "steps": {
+    "include-workflow": {
+      "IncludeWorkflow": {
+        "path": "./TestNewFromFile_ReadsChildWorkflows.child2.wf.json",
+        "Vars": {
+          "k3": "v3"
+        }
+      }
+    },
+    "sub-workflow": {
+      "SubWorkflow": {
+        "path": "./TestNewFromFile_ReadsChildWorkflows.child2.wf.json",
+        "Vars": {
+          "k4": "v4"
+        }
+      }
+    }
+  }
+}

@@ -159,6 +159,13 @@ func (w *Workflow) substituteSourceVars(ctx context.Context, v reflect.Value) DE
 	})
 }
 
+type traverseAction uint
+
+const (
+	continueTraverse traverseAction = iota
+	prune
+)
+
 // traverseData traverses complex data structures and runs
 // a function, f, on its basic data types.
 // Traverses arrays, maps, slices, and public fields of structs.
@@ -166,10 +173,20 @@ func (w *Workflow) substituteSourceVars(ctx context.Context, v reflect.Value) DE
 // Slices, maps, and structs will not have f called on them, but will
 // traverse their subelements.
 // Errors returned from f will be returned by traverseDataStructure.
-func traverseData(v reflect.Value, f func(reflect.Value) DError) DError {
+// actions allows the caller to determine which action to take at a node.
+// The default action is 'continueTraverse'.
+func traverseData(v reflect.Value, f func(reflect.Value) DError, actions ...func(reflect.Value) traverseAction) DError {
+
 	if !v.CanSet() {
 		// Don't run on private fields.
 		return nil
+	}
+
+	for _, action := range actions {
+		switch action(v) {
+		case prune:
+			return nil
+		}
 	}
 
 	switch v.Kind() {
@@ -180,13 +197,13 @@ func traverseData(v reflect.Value, f func(reflect.Value) DError) DError {
 			return nil
 		}
 		// I'm a pointer, dereference me.
-		return traverseData(v.Elem(), f)
+		return traverseData(v.Elem(), f, actions...)
 	}
 
 	switch v.Kind() {
 	case reflect.Array, reflect.Slice:
 		for i := 0; i < v.Len(); i++ {
-			if err := traverseData(v.Index(i), f); err != nil {
+			if err := traverseData(v.Index(i), f, actions...); err != nil {
 				return err
 			}
 		}
@@ -201,10 +218,10 @@ func traverseData(v reflect.Value, f func(reflect.Value) DError) DError {
 			newKv.Set(kv)
 			newVv := reflect.New(vv.Type()).Elem()
 			newVv.Set(vv)
-			if err := traverseData(newKv, f); err != nil {
+			if err := traverseData(newKv, f, actions...); err != nil {
 				return err
 			}
-			if err := traverseData(newVv, f); err != nil {
+			if err := traverseData(newVv, f, actions...); err != nil {
 				return err
 			}
 
@@ -215,7 +232,7 @@ func traverseData(v reflect.Value, f func(reflect.Value) DError) DError {
 		}
 	case reflect.Struct:
 		for i := 0; i < v.NumField(); i++ {
-			if err := traverseData(v.Field(i), f); err != nil {
+			if err := traverseData(v.Field(i), f, actions...); err != nil {
 				return err
 			}
 		}
