@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	targetPoolURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?regions/(?P<zone>%[2]s)/TargetPools/(?P<targetPool>%[2]s)$`, projectRgxStr, rfc1035))
+	targetPoolURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?regions/(?P<zone>%[2]s)/targetPools/(?P<targetPool>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
 func (w *Workflow) targetPoolExists(project, zone, targetInstance string) (bool, DError) {
@@ -43,7 +43,7 @@ func (tp *TargetPool) populate(ctx context.Context, s *Step) DError {
 }
 
 func (tp *TargetPool) validate(ctx context.Context, s *Step) DError {
-	pre := fmt.Sprintf("cannot create target-pool %q", tp.daisyName)
+	pre := fmt.Sprintf("cannot create target pool %q", tp.daisyName)
 	errs := tp.Resource.validate(ctx, s, pre)
 
 	if tp.Name == "" {
@@ -77,7 +77,7 @@ func (tpr *targetPoolRegistry) deleteFn(res *Resource) DError {
 	m := NamedSubexp(targetPoolURLRegex, res.link)
 	err := tpr.w.ComputeClient.DeleteTargetPool(m["project"], m["region"], m["targetPool"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
-		return typedErr(resourceDNEError, "failed to delete targetpool", err)
+		return typedErr(resourceDNEError, "failed to delete target pool", err)
 	}
-	return newErr("failed to delete targetpool", err)
+	return newErr("failed to delete target pool", err)
 }
