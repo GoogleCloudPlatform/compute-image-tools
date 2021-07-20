@@ -33,6 +33,8 @@ type IncludeWorkflow struct {
 }
 
 func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) DError {
+	// Typically s.Workflow is instantiated when the parent workflow is read in NewFromFile.
+	// Workflow could be nil when the parent workflow is constructed manually using Go structs.
 	if i.Path != "" && i.Workflow == nil {
 		var err error
 		if i.Workflow, err = s.w.NewIncludedWorkflowFromFile(i.Path); err != nil {

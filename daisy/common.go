@@ -159,10 +159,14 @@ func (w *Workflow) substituteSourceVars(ctx context.Context, v reflect.Value) DE
 	})
 }
 
+// traverseAction allows callers of traverseData to customize the function's traversal.
 type traverseAction uint
 
 const (
-	continueTraverse traverseAction = iota
+	// Continue the traversal; this is the default action of
+	// traverseData, which traverses to all nodes.
+	continueTraversal traverseAction = iota
+	// Do not process this node or any of its children.
 	prune
 )
 

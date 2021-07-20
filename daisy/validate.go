@@ -119,6 +119,6 @@ func (w *Workflow) validateVarsSubbed() DError {
 		if ok {
 			return prune
 		}
-		return continueTraverse
+		return continueTraversal
 	})
 }
