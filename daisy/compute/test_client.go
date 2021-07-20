@@ -54,6 +54,7 @@ type TestClient struct {
 	CreateDiskFn                func(project, zone string, d *compute.Disk) error
 	CreateForwardingRuleFn      func(project, region string, fr *compute.ForwardingRule) error
 	CreateFirewallRuleFn        func(project string, i *compute.Firewall) error
+	CreateHealthCheckFn					func(project string, i *compute.HealthCheck) error
 	CreateImageFn               func(project string, i *compute.Image) error
 	CreateInstanceFn            func(project, zone string, i *compute.Instance) error
 	CreateNetworkFn             func(project string, n *compute.Network) error
@@ -65,6 +66,7 @@ type TestClient struct {
 	DeleteDiskFn                func(project, zone, name string) error
 	DeleteForwardingRuleFn      func(project, region, name string) error
 	DeleteFirewallRuleFn        func(project, name string) error
+	DeleteHealthCheckFn         func(project, name string) error
 	DeleteImageFn               func(project, name string) error
 	DeleteInstanceFn            func(project, zone, name string) error
 	DeleteNetworkFn             func(project, name string) error
@@ -89,7 +91,9 @@ type TestClient struct {
 	GetForwardingRuleFn         func(project, region, name string) (*compute.ForwardingRule, error)
 	ListForwardingRulesFn       func(project, region string, opts ...ListCallOption) ([]*compute.ForwardingRule, error)
 	GetFirewallRuleFn           func(project, name string) (*compute.Firewall, error)
+	GetHealthCheckFn            func(project, name string) (*compute.HealthCheck, error)
 	ListFirewallRulesFn         func(project string, opts ...ListCallOption) ([]*compute.Firewall, error)
+	ListHealthChecksFn          func(project string, opts ...ListCallOption) ([]*compute.HealthCheck, error)
 	GetImageFn                  func(project, name string) (*compute.Image, error)
 	GetImageFromFamilyFn        func(project, family string) (*compute.Image, error)
 	ListImagesFn                func(project string, opts ...ListCallOption) ([]*compute.Image, error)
@@ -173,6 +177,14 @@ func (c *TestClient) CreateFirewallRule(project string, i *compute.Firewall) err
 	return c.client.CreateFirewallRule(project, i)
 }
 
+// CreateHealthCheck uses the override method CreateHealthCheckFn or the real implementation.
+func (c *TestClient) CreateHealthCheck(project string, i *compute.HealthCheck) error {
+	if c.CreateHealthCheckFn != nil {
+		return c.CreateHealthCheckFn(project, i)
+	}
+	return c.client.CreateHealthCheck(project, i)
+}
+
 // CreateImage uses the override method CreateImageFn or the real implementation.
 func (c *TestClient) CreateImage(project string, i *compute.Image) error {
 	if c.CreateImageFn != nil {
@@ -251,6 +263,14 @@ func (c *TestClient) DeleteFirewallRule(project, name string) error {
 		return c.DeleteFirewallRuleFn(project, name)
 	}
 	return c.client.DeleteFirewallRule(project, name)
+}
+
+// DeleteHealthCheck uses the override method DeleteHealthCheckFn or the real implementation.
+func (c *TestClient) DeleteHealthCheck(project, name string) error {
+	if c.DeleteHealthCheckFn != nil {
+		return c.DeleteHealthCheckFn(project, name)
+	}
+	return c.client.DeleteHealthCheck(project, name)
 }
 
 // DeleteImage uses the override method DeleteImageFn or the real implementation.
@@ -445,12 +465,28 @@ func (c *TestClient) GetFirewallRule(project, name string) (*compute.Firewall, e
 	return c.client.GetFirewallRule(project, name)
 }
 
+// GetHealthCheck uses the override method GetHealthCheckFn or the real implementation.
+func (c *TestClient) GetHealthCheck(project, name string) (*compute.HealthCheck, error) {
+	if c.GetHealthCheckFn != nil {
+		return c.GetHealthCheckFn(project, name)
+	}
+	return c.client.GetHealthCheck(project, name)
+}
+
 // ListFirewallRules uses the override method ListFirewallRulesFn or the real implementation.
 func (c *TestClient) ListFirewallRules(project string, opts ...ListCallOption) ([]*compute.Firewall, error) {
 	if c.ListFirewallRulesFn != nil {
 		return c.ListFirewallRulesFn(project, opts...)
 	}
 	return c.client.ListFirewallRules(project, opts...)
+}
+
+// ListHealthChecks uses the override method ListHealthChecksFn or the real implementation.
+func (c *TestClient) ListHealthChecks(project string, opts ...ListCallOption) ([]*compute.HealthCheck, error) {
+	if c.ListHealthChecksFn != nil {
+		return c.ListHealthChecksFn(project, opts...)
+	}
+	return c.client.ListHealthChecks(project, opts...)
 }
 
 // GetImage uses the override method GetImageFn or the real implementation.

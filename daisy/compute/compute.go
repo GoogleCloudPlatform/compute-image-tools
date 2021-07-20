@@ -41,6 +41,7 @@ type Client interface {
 	CreateDiskBeta(project, zone string, d *computeBeta.Disk) error
 	CreateForwardingRule(project, region string, fr *compute.ForwardingRule) error
 	CreateFirewallRule(project string, i *compute.Firewall) error
+	CreateHealthCheck(project string, i *compute.HealthCheck) error
 	CreateImage(project string, i *compute.Image) error
 	CreateImageAlpha(project string, i *computeAlpha.Image) error
 	CreateImageBeta(project string, i *computeBeta.Image) error
@@ -54,6 +55,7 @@ type Client interface {
 	DeleteDisk(project, zone, name string) error
 	DeleteForwardingRule(project, region, name string) error
 	DeleteFirewallRule(project, name string) error
+	DeleteHealthCheck(project, name string) error
 	DeleteImage(project, name string) error
 	DeleteInstance(project, zone, name string) error
 	StartInstance(project, zone, name string) error
@@ -75,6 +77,7 @@ type Client interface {
 	GetDiskBeta(project, zone, name string) (*computeBeta.Disk, error)
 	GetForwardingRule(project, region, name string) (*compute.ForwardingRule, error)
 	GetFirewallRule(project, name string) (*compute.Firewall, error)
+	GetHealthCheck(project, name string)(*compute.HealthCheck, error)
 	GetImage(project, name string) (*compute.Image, error)
 	GetImageAlpha(project, name string) (*computeAlpha.Image, error)
 	GetImageBeta(project, name string) (*computeBeta.Image, error)
@@ -95,6 +98,7 @@ type Client interface {
 	ListDisks(project, zone string, opts ...ListCallOption) ([]*compute.Disk, error)
 	ListForwardingRules(project, zone string, opts ...ListCallOption) ([]*compute.ForwardingRule, error)
 	ListFirewallRules(project string, opts ...ListCallOption) ([]*compute.Firewall, error)
+	ListHealthChecks(project string, opts ...ListCallOption) ([]*compute.HealthCheck, error)
 	ListImages(project string, opts ...ListCallOption) ([]*compute.Image, error)
 	ListImagesAlpha(project string, opts ...ListCallOption) ([]*computeAlpha.Image, error)
 	GetSnapshot(project, name string) (*compute.Snapshot, error)
@@ -160,6 +164,8 @@ func (o OrderBy) listCallOptionApply(i interface{}) interface{} {
 	case *compute.DisksAggregatedListCall:
 		return c.OrderBy(string(o))
 	case *compute.SubnetworksAggregatedListCall:
+		return c.OrderBy(string(o))
+	case *compute.HealthChecksListCall:
 		return c.OrderBy(string(o))
 	}
 	return i
@@ -545,6 +551,24 @@ func (c *client) CreateFirewallRule(project string, i *compute.Firewall) error {
 	return nil
 }
 
+func (c *client) CreateHealthCheck(project string, i *compute.HealthCheck) error {
+	op, err := c.Retry(c.raw.HealthChecks.Insert(project, i).Do)
+	if err != nil {
+		return err
+	}
+
+	if err := c.i.globalOperationsWait(project, op.Name); err != nil {
+		return err
+	}
+
+	var createdHealthCheck *compute.HealthCheck
+	if createdHealthCheck, err = c.i.GetHealthCheck(project, i.Name); err != nil {
+		return err
+	}
+	*i = *createdHealthCheck
+	return nil
+}
+
 // CreateImage creates a GCE image.
 // Only one of sourceDisk or sourceFile must be specified, sourceDisk is the
 // url (full or partial) to the source disk, sourceFile is the full Google
@@ -732,6 +756,17 @@ func (c *client) DeleteFirewallRule(project, name string) error {
 
 	return c.i.globalOperationsWait(project, op.Name)
 }
+
+// DeleteHealthCheck deletes a GCE HealthCheck.
+func (c *client) DeleteHealthCheck(project, name string) error {
+	op, err := c.Retry(c.raw.HealthChecks.Delete(project, name).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.globalOperationsWait(project, op.Name)
+}
+
 
 // DeleteImage deletes a GCE image.
 func (c *client) DeleteImage(project, name string) error {
@@ -1154,6 +1189,15 @@ func (c *client) GetFirewallRule(project, name string) (*compute.Firewall, error
 	return i, err
 }
 
+// GetHealthCheck gets a GCE HealthCheck.
+func (c *client) GetHealthCheck(project, name string) (*compute.HealthCheck, error) {
+	i, err := c.raw.HealthChecks.Get(project, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.HealthChecks.Get(project, name).Do()
+	}
+	return i, err
+}
+
 // ListFirewallRules gets a list of GCE FirewallRules.
 func (c *client) ListFirewallRules(project string, opts ...ListCallOption) ([]*compute.Firewall, error) {
 	var is []*compute.Firewall
@@ -1175,6 +1219,30 @@ func (c *client) ListFirewallRules(project string, opts ...ListCallOption) ([]*c
 			return is, nil
 		}
 		pt = il.NextPageToken
+	}
+}
+
+// ListHealthChecks gets a list of GCE HealthChecks.
+func (c *client) ListHealthChecks(project string, opts ...ListCallOption) ([]*compute.HealthCheck, error) {
+	var hcs []*compute.HealthCheck
+	var pt string
+	call := c.raw.HealthChecks.List(project)
+	for _, opt := range opts {
+		call = opt.listCallOptionApply(call).(*compute.HealthChecksListCall)
+	}
+	for hcl, err := call.PageToken(pt).Do(); ; hcl, err = call.PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			hcl, err = call.PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		hcs = append(hcs, hcl.Items...)
+
+		if hcl.NextPageToken == "" {
+			return hcs, nil
+		}
+		pt = hcl.NextPageToken
 	}
 }
 
