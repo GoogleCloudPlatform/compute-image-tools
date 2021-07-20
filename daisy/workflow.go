@@ -148,6 +148,7 @@ type Workflow struct {
 	disks           *diskRegistry
 	forwardingRules *forwardingRuleRegistry
 	firewallRules   *firewallRuleRegistry
+	healthChecks    *healthCheckRegistry
 	images          *imageRegistry
 	machineImages   *machineImageRegistry
 	instances       *instanceRegistry
@@ -169,6 +170,7 @@ type Workflow struct {
 	machineImageCache   oneDResourceCache
 	networkCache        oneDResourceCache
 	firewallRuleCache   oneDResourceCache
+	healthCheckCache    oneDResourceCache
 	zonesCache          oneDResourceCache
 	regionsCache        oneDResourceCache
 	licenseCache        oneDResourceCache
@@ -572,6 +574,7 @@ func (w *Workflow) includeWorkflow(iw *Workflow) {
 	iw.disks = w.disks
 	iw.forwardingRules = w.forwardingRules
 	iw.firewallRules = w.firewallRules
+	iw.healthChecks = w.healthChecks
 	iw.images = w.images
 	iw.machineImages = w.machineImages
 	iw.instances = w.instances
@@ -766,6 +769,7 @@ func New() *Workflow {
 	w.disks = newDiskRegistry(w)
 	w.forwardingRules = newForwardingRuleRegistry(w)
 	w.firewallRules = newFirewallRuleRegistry(w)
+	w.healthChecks = newHealthCheckRegistry(w)
 	w.images = newImageRegistry(w)
 	w.machineImages = newMachineImageRegistry(w)
 	w.instances = newInstanceRegistry(w)
@@ -780,6 +784,7 @@ func New() *Workflow {
 		w.machineImages.cleanup()
 		w.disks.cleanup()
 		w.forwardingRules.cleanup()
+		w.healthChecks.cleanup()
 		w.targetInstances.cleanup()
 		w.firewallRules.cleanup()
 		w.subnetworks.cleanup()
