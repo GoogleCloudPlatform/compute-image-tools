@@ -96,8 +96,9 @@ func (args *awsImportArguments) validateAndPopulate(populator param.Populator) e
 		return err
 	}
 
+	networkNotUsed, subnetNotUsed := "", ""
 	err = populator.PopulateMissingParameters(args.gcsProjectPtr, args.clientID, &args.gcsZone,
-		&args.gcsRegion, &args.gcsScratchBucket, "", &args.gcsStorageLocation)
+		&args.gcsRegion, &args.gcsScratchBucket, "", &args.gcsStorageLocation, &networkNotUsed, &subnetNotUsed)
 	if err != nil {
 		return err
 	}

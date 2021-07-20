@@ -198,8 +198,8 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 	resourceLocationRetriever := storage.NewResourceLocationRetriever(metadataGCE, computeClient)
 
 	region := new(string)
-	paramPopulator := param.NewPopulator(metadataGCE, storageClient, resourceLocationRetriever, scratchBucketCreator)
-	err = paramPopulator.PopulateMissingParameters(project, clientID, &zone, region, &scratchBucketGcsPath, destinationURI, nil)
+	paramPopulator := param.NewPopulator(param.NewNetworkResolver(computeClient), metadataGCE, storageClient, resourceLocationRetriever, scratchBucketCreator)
+	err = paramPopulator.PopulateMissingParameters(project, clientID, &zone, region, &scratchBucketGcsPath, destinationURI, nil, &network, &subnet)
 	if err != nil {
 		return nil, err
 	}

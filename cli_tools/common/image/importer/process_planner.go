@@ -124,7 +124,7 @@ func (p *defaultPlanner) inspectDisk(uri string) (*pb.InspectionResults, error) 
 	p.logger.User("Inspecting disk for OS and bootloader")
 	ir, err := p.diskInspector.Inspect(uri)
 	if err != nil {
-		p.logger.Debug(fmt.Sprintf("Disk inspection error=%v", err))
+		p.logger.User(fmt.Sprintf("Disk inspection error=%v", err))
 		return ir, daisy.Errf("Disk inspection error: %v", err)
 	}
 	p.logger.User(fmt.Sprintf("Inspection result=%v", ir))

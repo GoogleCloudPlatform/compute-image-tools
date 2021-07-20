@@ -79,7 +79,7 @@ func NewOVFExporter(params *ovfexportdomain.OVFExportArgs, logger logging.ToolLo
 	metadataGCE := &computeutils.MetadataGCE{}
 
 	paramValidator := NewOvfExportParamValidator(computeClient)
-	paramPopulator := NewPopulator(metadataGCE, storageClient,
+	paramPopulator := NewPopulator(computeClient, metadataGCE, storageClient,
 		storageutils.NewResourceLocationRetriever(metadataGCE, computeClient),
 		storageutils.NewScratchBucketCreator(ctx, storageClient),
 	)

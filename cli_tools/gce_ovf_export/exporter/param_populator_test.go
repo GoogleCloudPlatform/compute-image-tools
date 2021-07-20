@@ -20,10 +20,11 @@ import (
 	"testing"
 	"time"
 
-	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+
+	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 )
 
 func TestPopulate(t *testing.T) {
@@ -38,8 +39,6 @@ func TestPopulate(t *testing.T) {
 
 	err := runPopulateParams(params, mockCtrl)
 	assert.Nil(t, err)
-	assert.Equal(t, "global/networks/a-network", params.Network)
-	assert.Equal(t, fmt.Sprintf("regions/%v/subnetworks/%v", ovfexportdomain.TestRegion, "a-subnet"), params.Subnet)
 	assert.Equal(t, "gs://bucket/folder/gce-ovf-export-2020-10-28T23:24:00Z-abc", params.ScratchBucketGcsPath)
 	assert.Equal(t, "gs://ovfbucket/OVFpath/", params.DestinationDirectory)
 }
@@ -57,17 +56,6 @@ func TestPopulate_BuildIDPopulated(t *testing.T) {
 	assert.True(t, strings.HasPrefix(params.ScratchBucketGcsPath, "gs://bucket/folder/gce-ovf-export-2020-10-28T23:24:00Z-"))
 }
 
-func TestPopulate_DefaultNetworkPopulated(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	params := ovfexportdomain.GetAllInstanceExportArgs()
-	params.Network = ""
-	params.Subnet = ""
-	err := runPopulateParams(params, mockCtrl)
-	assert.Nil(t, err)
-	assert.Equal(t, "global/networks/default", params.Network)
-}
-
 func TestPopulate_ErrorOnSuperPopulatorError(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -75,7 +63,7 @@ func TestPopulate_ErrorOnSuperPopulatorError(t *testing.T) {
 	superPopulatorErr := fmt.Errorf("super populator error")
 	paramPopulator := mocks.NewMockPopulator(mockCtrl)
 	paramPopulator.EXPECT().PopulateMissingParameters(&params.Project, params.ClientID, &params.Zone,
-		&params.Region, &params.ScratchBucketGcsPath, params.DestinationURI, nil).Return(superPopulatorErr)
+		&params.Region, &params.ScratchBucketGcsPath, params.DestinationURI, nil, &params.Network, &params.Subnet).Return(superPopulatorErr)
 	ovfExporParamPopulator := ovfExportParamPopulatorImpl{Populator: paramPopulator}
 	err := ovfExporParamPopulator.Populate(params)
 	assert.Equal(t, superPopulatorErr, err)
@@ -149,7 +137,7 @@ func TestPopulate_DestinationWhenURIBucketOnlyEndingWithDotOvf_MachineImage(t *t
 func runPopulateParams(params *ovfexportdomain.OVFExportArgs, mockCtrl *gomock.Controller) error {
 	paramPopulator := mocks.NewMockPopulator(mockCtrl)
 	paramPopulator.EXPECT().PopulateMissingParameters(&params.Project, params.ClientID, &params.Zone,
-		&params.Region, &params.ScratchBucketGcsPath, params.DestinationURI, nil).Return(nil)
+		&params.Region, &params.ScratchBucketGcsPath, params.DestinationURI, nil, &params.Network, &params.Subnet).Return(nil)
 	ovfExportParamPopulator := ovfExportParamPopulatorImpl{Populator: paramPopulator}
 	return ovfExportParamPopulator.Populate(params)
 }

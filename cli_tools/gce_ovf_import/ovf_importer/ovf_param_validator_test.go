@@ -36,6 +36,7 @@ import (
 const (
 	defaultProject = "project-name"
 	defaultZone    = "us-west2-1"
+	defaultRegion  = "us-west2"
 	defaultBuildID = "build123"
 )
 
@@ -138,12 +139,17 @@ func Test_ValidateAndParseParams_GenerateBucketName_WhenNotProvided(t *testing.T
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 	mockBucketIteratorCreator.EXPECT().CreateBucketIterator(gomock.Any(), gomock.Any(), *params.Project).Return(mockBucketIterator)
 
+	mockNetworkResolver := mocks.NewMockNetworkResolver(mockCtrl)
+	mockNetworkResolver.EXPECT().ResolveAndValidateNetworkAndSubnet(
+		params.Network, params.Subnet, defaultRegion, projectName).Return(params.Network, params.Subnet, nil)
+
 	mockStorage := mocks.NewMockStorageClientInterface(mockCtrl)
 	err := (&ParamValidatorAndPopulator{
 		zoneValidator:         mockZoneValidator,
 		bucketIteratorCreator: mockBucketIteratorCreator,
 		logger:                logging.NewToolLogger("test"),
 		storageClient:         mockStorage,
+		NetworkResolver:       mockNetworkResolver,
 	}).ValidateAndPopulate(params)
 	assert.NoError(t, err)
 	assert.Equal(t, fmt.Sprintf("gs://%s/%s", expectedBucketName, params.BuildID), params.ScratchBucketGcsPath)
@@ -176,6 +182,10 @@ func Test_ValidateAndParseParams_CreateScratchBucket_WhenGeneratedDoesntExist(t 
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 	mockBucketIteratorCreator.EXPECT().CreateBucketIterator(gomock.Any(), gomock.Any(), *params.Project).Return(mockBucketIterator)
 
+	mockNetworkResolver := mocks.NewMockNetworkResolver(mockCtrl)
+	mockNetworkResolver.EXPECT().ResolveAndValidateNetworkAndSubnet(
+		params.Network, params.Subnet, defaultRegion, projectName).Return(params.Network, params.Subnet, nil)
+
 	mockStorage := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorage.EXPECT().CreateBucket(expectedBucketName, projectName, &storage.BucketAttrs{Name: expectedBucketName, Location: params.Region})
 	err := (&ParamValidatorAndPopulator{
@@ -183,9 +193,56 @@ func Test_ValidateAndParseParams_CreateScratchBucket_WhenGeneratedDoesntExist(t 
 		bucketIteratorCreator: mockBucketIteratorCreator,
 		logger:                logging.NewToolLogger("test"),
 		storageClient:         mockStorage,
+		NetworkResolver:       mockNetworkResolver,
 	}).ValidateAndPopulate(params)
 	assert.NoError(t, err)
 	assert.Equal(t, fmt.Sprintf("gs://%s/%s", expectedBucketName, params.BuildID), params.ScratchBucketGcsPath)
+}
+
+func Test_ValidateAndParseParams_UseNetworkResolverResults(t *testing.T) {
+	params := getAllInstanceImportParams()
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockZoneValidator := mocks.NewMockZoneValidatorInterface(mockCtrl)
+	mockZoneValidator.EXPECT().
+		ZoneValid(*params.Project, params.Zone).Return(nil)
+
+	mockNetworkResolver := mocks.NewMockNetworkResolver(mockCtrl)
+	mockNetworkResolver.EXPECT().ResolveAndValidateNetworkAndSubnet(
+		params.Network, params.Subnet, defaultRegion, *params.Project).Return("fixed-network", "fixed-subnet", nil)
+
+	err := (&ParamValidatorAndPopulator{
+		logger:          logging.NewToolLogger("test"),
+		zoneValidator:   mockZoneValidator,
+		NetworkResolver: mockNetworkResolver,
+	}).ValidateAndPopulate(params)
+	assert.NoError(t, err)
+	assert.Equal(t, "fixed-network", params.Network)
+	assert.Equal(t, "fixed-subnet", params.Subnet)
+}
+
+func Test_ValidateAndParseParams_FailIfNetworkResolutionFails(t *testing.T) {
+	params := getAllInstanceImportParams()
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockZoneValidator := mocks.NewMockZoneValidatorInterface(mockCtrl)
+	mockZoneValidator.EXPECT().
+		ZoneValid(*params.Project, params.Zone).Return(nil)
+
+	mockNetworkResolver := mocks.NewMockNetworkResolver(mockCtrl)
+	mockNetworkResolver.EXPECT().ResolveAndValidateNetworkAndSubnet(
+		params.Network, params.Subnet, defaultRegion, *params.Project).Return("", "", errors.New("failed network validation"))
+
+	err := (&ParamValidatorAndPopulator{
+		logger:          logging.NewToolLogger("test"),
+		zoneValidator:   mockZoneValidator,
+		NetworkResolver: mockNetworkResolver,
+	}).ValidateAndPopulate(params)
+	assert.EqualError(t, err, "failed network validation")
 }
 
 func Test_ValidateAndParseParams_ErrorMessages(t *testing.T) {
@@ -312,36 +369,6 @@ func Test_ValidateAndParseParams_SuccessfulCases(t *testing.T) {
 			},
 			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
 				assert.Equal(t, "", params.ClientID)
-			},
-		}, {
-			name: "replace empty network with default when subnet empty",
-			paramModifier: func(params *domain.OVFImportParams) {
-				params.Network = ""
-				params.Subnet = ""
-			},
-			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
-				assert.Equal(t, "global/networks/default", params.Network)
-				assert.Equal(t, "", params.Subnet)
-			},
-		}, {
-			name: "keep empty network when subnet specified",
-			paramModifier: func(params *domain.OVFImportParams) {
-				params.Network = ""
-				params.Subnet = "secure-sub"
-			},
-			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
-				assert.Equal(t, "", params.Network)
-				assert.Equal(t, "regions/us-west2/subnetworks/secure-sub", params.Subnet)
-			},
-		}, {
-			name: "make network and subnet into URI when specified",
-			paramModifier: func(params *domain.OVFImportParams) {
-				params.Network = "secure"
-				params.Subnet = "secure-sub"
-			},
-			checkResult: func(t *testing.T, params *domain.OVFImportParams, importType string) {
-				assert.Equal(t, "global/networks/secure", params.Network)
-				assert.Equal(t, "regions/us-west2/subnetworks/secure-sub", params.Subnet)
 			},
 		}, {
 			name: "populate zone when missing",
@@ -550,7 +577,15 @@ func runValidateAndParseParams(t *testing.T, params *domain.OVFImportParams) err
 			ZoneValid(defaultProject, defaultZone).Return(nil)
 	}
 
-	err := (&ParamValidatorAndPopulator{metadataClient: mockMetadataGce, zoneValidator: mockZoneValidator}).ValidateAndPopulate(params)
+	mockNetworkResolver := mocks.NewMockNetworkResolver(mockCtrl)
+	mockNetworkResolver.EXPECT().ResolveAndValidateNetworkAndSubnet(
+		params.Network, params.Subnet, defaultRegion, defaultProject).Return(params.Network, params.Subnet, nil)
+
+	err := (&ParamValidatorAndPopulator{
+		metadataClient:  mockMetadataGce,
+		zoneValidator:   mockZoneValidator,
+		NetworkResolver: mockNetworkResolver,
+	}).ValidateAndPopulate(params)
 	return err
 }
 

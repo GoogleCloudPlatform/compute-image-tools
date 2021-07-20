@@ -20,6 +20,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
@@ -33,37 +35,25 @@ type ovfExportParamPopulatorImpl struct {
 
 // NewPopulator returns an object that implements OvfExportParamPopulator.
 func NewPopulator(
+	computeClient compute.Client,
 	metadataClient domain.MetadataGCEInterface,
 	storageClient domain.StorageClientInterface,
 	resourceLocationRetriever domain.ResourceLocationRetrieverInterface,
 	scratchBucketCreator domain.ScratchBucketCreatorInterface) ovfexportdomain.OvfExportParamPopulator {
 	return &ovfExportParamPopulatorImpl{
-		Populator: param.NewPopulator(metadataClient, storageClient, resourceLocationRetriever, scratchBucketCreator),
+		Populator: param.NewPopulator(param.NewNetworkResolver(computeClient), metadataClient, storageClient, resourceLocationRetriever, scratchBucketCreator),
 	}
 }
 
-func (populator *ovfExportParamPopulatorImpl) Populate(params *ovfexportdomain.OVFExportArgs) error {
+func (populator *ovfExportParamPopulatorImpl) Populate(params *ovfexportdomain.OVFExportArgs) (err error) {
 	if err := populator.PopulateMissingParameters(&params.Project, params.ClientID, &params.Zone,
-		&params.Region, &params.ScratchBucketGcsPath, params.DestinationURI, nil); err != nil {
+		&params.Region, &params.ScratchBucketGcsPath, params.DestinationURI, nil, &params.Network, &params.Subnet); err != nil {
 		return err
 	}
-	populator.populateNetwork(params)
 	populator.populateBuildID(params)
 	populator.populateNamespacedScratchDirectory(params)
 	populator.populateDestinationURI(params)
 	return nil
-}
-
-func (populator *ovfExportParamPopulatorImpl) populateNetwork(params *ovfexportdomain.OVFExportArgs) {
-	if params.Network == "" && params.Subnet == "" {
-		params.Network = "default"
-	}
-	if params.Subnet != "" {
-		params.Subnet = param.GetRegionalResourcePath(params.Region, "subnetworks", params.Subnet)
-	}
-	if params.Network != "" {
-		params.Network = param.GetGlobalResourcePath("networks", params.Network)
-	}
 }
 
 func (populator *ovfExportParamPopulatorImpl) populateBuildID(params *ovfexportdomain.OVFExportArgs) {

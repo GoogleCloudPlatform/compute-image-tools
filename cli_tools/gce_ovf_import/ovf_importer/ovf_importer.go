@@ -32,6 +32,7 @@ import (
 	computeutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
@@ -120,6 +121,7 @@ func NewOVFImporter(params *ovfdomain.OVFImportParams) (*OVFImporter, error) {
 			&computeutils.ZoneValidator{ComputeClient: computeClient},
 			&storageutils.BucketIteratorCreator{},
 			storageClient,
+			param.NewNetworkResolver(computeClient),
 			logger,
 		},
 	}

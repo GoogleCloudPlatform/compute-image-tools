@@ -182,28 +182,3 @@ func GetRegionalResourcePath(region string, resourceType string, resourceName st
 func GetZonalResourcePath(zone string, resourceType string, resourceName string) string {
 	return getResourcePath(fmt.Sprintf("zones/%v", zone), resourceType, resourceName)
 }
-
-// ResolveNetworkAndSubnet returns the URI representation of network and subnet
-// within a given region.
-//
-// There are two goals:
-//
-// 	  a. Explicitly use the 'default' network only when
-//       network is omitted and subnet is empty.
-//    b. Convert bare identifiers to URIs.
-//
-// Rules: https://cloud.google.com/vpc/docs/vpc
-func ResolveNetworkAndSubnet(originalNetwork, originalSubnet string, region string) (network string, subnet string) {
-	network, subnet = strings.TrimSpace(originalNetwork), strings.TrimSpace(originalSubnet)
-	if network == "" && subnet == "" {
-		network = "default"
-	}
-	if subnet != "" {
-		subnet = GetRegionalResourcePath(region, "subnetworks", subnet)
-	}
-	if network != "" {
-		network = GetGlobalResourcePath("networks", network)
-	}
-
-	return network, subnet
-}
