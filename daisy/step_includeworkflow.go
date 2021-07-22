@@ -99,6 +99,14 @@ Loop:
 	}
 	substitute(reflect.ValueOf(i.Workflow).Elem(), strings.NewReplacer(replacements...))
 
+	for name, st := range i.Workflow.Steps {
+		st.name = name
+		st.w = i.Workflow
+		if err := st.w.populateStep(ctx, st); err != nil {
+			return err
+		}
+	}
+
 	// We do this here, and not in validate, as embedded startup scripts could
 	// have what we think are daisy variables.
 	if err := i.Workflow.validateVarsSubbed(); err != nil {
@@ -107,14 +115,6 @@ Loop:
 
 	if err := i.Workflow.substituteSourceVars(ctx, reflect.ValueOf(i.Workflow).Elem()); err != nil {
 		return err
-	}
-
-	for name, st := range i.Workflow.Steps {
-		st.name = name
-		st.w = i.Workflow
-		if err := st.w.populateStep(ctx, st); err != nil {
-			return err
-		}
 	}
 
 	// Copy Sources up to parent resolving relative paths as we go.
