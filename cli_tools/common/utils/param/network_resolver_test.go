@@ -44,11 +44,11 @@ func TestNetworkResolver_PassingCases(t *testing.T) {
 			expectedGetNetworkParams: &getNetworkComputeParams{"project-id", "network-id"},
 			expectedGetSubnetParams:  &getSubnetComputeParams{"project-id", "region-id", "subnet-id"},
 		}, {
-			name:                     "use default when both empty",
+			name:                     "use default for network when both empty",
 			originalNetwork:          "",
 			originalSubnet:           "",
 			expectedNetwork:          "projects/project-id/global/networks/default",
-			expectedSubnet:           "projects/project-id/regions/region-id/subnetworks/default",
+			expectedSubnet:           "",
 			expectedGetNetworkParams: &getNetworkComputeParams{"project-id", "default"},
 			expectedGetSubnetParams:  &getSubnetComputeParams{"project-id", "region-id", "default"},
 		}, {
