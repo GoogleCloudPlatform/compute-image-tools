@@ -55,36 +55,36 @@ func (r *computeNetworkResolver) Resolve(
 	// 1. Segment the user's input into component fields such as network name, subnet name, project, and region.
 	// If the URI in originalNetwork or originalSubnet didn't specify project or region, then backfill
 	// those fields using region and project.
-	networkFields, subnetFields, err := parseNetworkAndSubnet(originalNetwork, originalSubnet, region, project)
+	networkResource, subnetResource, err := parseNetworkAndSubnet(originalNetwork, originalSubnet, region, project)
 	if err != nil {
 		return "", "", err
 	}
 
-	if networkFields.String() == "" && subnetFields.String() == "" {
+	if networkResource.String() == "" && subnetResource.String() == "" {
 		return "", "", nil
 	}
 
 	// 2. Query the Compute API to check whether the network and subnet exist.
 	var subnetResponse *compute.Subnetwork
 	var networkResponse *compute.Network
-	if subnetFields.String() != "" {
-		subnetResponse, err = r.client.GetSubnetwork(subnetFields.Project, subnetFields.Region, subnetFields.Name)
+	if subnetResource.String() != "" {
+		subnetResponse, err = r.client.GetSubnetwork(subnetResource.Project, subnetResource.Region, subnetResource.Name)
 		if err != nil {
-			return "", "", daisy.Errf("Validation of subnetwork %q failed: %s", subnetFields, err)
+			return "", "", daisy.Errf("Validation of subnetwork %q failed: %s", subnetResource, err)
 		}
 	}
-	if networkFields.String() != "" {
-		networkResponse, err = r.client.GetNetwork(networkFields.Project, networkFields.Name)
+	if networkResource.String() != "" {
+		networkResponse, err = r.client.GetNetwork(networkResource.Project, networkResource.Name)
 		if err != nil {
-			return "", "", daisy.Errf("Validation of network %q failed: %s", networkFields, err)
+			return "", "", daisy.Errf("Validation of network %q failed: %s", networkResource, err)
 		}
 	}
 
 	// 3. Check whether the subnet's network matches the user's specified network.
 	if subnetResponse != nil && networkResponse != nil && subnetResponse.Network != networkResponse.SelfLink {
-		return "", "", daisy.Errf("Network %q does not contain subnet %q", networkFields, subnetFields)
+		return "", "", daisy.Errf("Network %q does not contain subnet %q", networkResource, subnetResource)
 	}
-	return networkFields.String(), subnetFields.String(), err
+	return networkResource.String(), subnetResource.String(), err
 }
 
 // parseNetworkAndSubnet parses the user's values into structs and backfills
