@@ -15,7 +15,6 @@
 package paramhelper
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -34,10 +33,11 @@ func (r *SubnetResource) String() string {
 	if r.Region == "" {
 		return r.Name
 	}
-	if r.Project == "" {
-		return fmt.Sprintf("regions/%s/subnetworks/%s", r.Region, r.Name)
+	var parts []string
+	if r.Project != "" {
+		parts = []string{"projects", r.Project}
 	}
-	return fmt.Sprintf("projects/%s/regions/%s/subnetworks/%s", r.Project, r.Region, r.Name)
+	return strings.Join(append(parts, "regions", r.Region, "subnetworks", r.Name), "/")
 }
 
 // SplitSubnetResource creates a SubnetResource instance from a user-provided identifier for a subnet.

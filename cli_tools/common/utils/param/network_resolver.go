@@ -92,36 +92,32 @@ func (r *computeNetworkResolver) Resolve(
 func parseNetworkAndSubnet(originalNetwork, originalSubnet, region, project string) (
 	*paramhelper.NetworkResource, *paramhelper.SubnetResource, error) {
 
-	networkFields, err := paramhelper.SplitNetworkResource(strings.TrimSpace(originalNetwork))
+	networkResource, err := paramhelper.SplitNetworkResource(strings.TrimSpace(originalNetwork))
 	if err != nil {
 		return nil, nil, err
 	}
-	subnetFields, err := paramhelper.SplitSubnetResource(strings.TrimSpace(originalSubnet))
+	subnetResource, err := paramhelper.SplitSubnetResource(strings.TrimSpace(originalSubnet))
 	if err != nil {
 		return nil, nil, err
 	}
-	if networkFields.String() == "" && subnetFields.String() == "" {
+	if networkResource.String() == "" && subnetResource.String() == "" {
 		return &paramhelper.NetworkResource{
-				Name:    "default",
-				Project: project,
-			}, &paramhelper.SubnetResource{
-				Name:    "default",
-				Project: project,
-				Region:  region,
-			}, nil
+			Name:    "default",
+			Project: project,
+		}, &paramhelper.SubnetResource{}, nil
 	}
-	if networkFields.String() != "" {
-		if networkFields.Project == "" {
-			networkFields.Project = project
+	if networkResource.String() != "" {
+		if networkResource.Project == "" {
+			networkResource.Project = project
 		}
 	}
-	if subnetFields.String() != "" {
-		if subnetFields.Project == "" {
-			subnetFields.Project = project
+	if subnetResource.String() != "" {
+		if subnetResource.Project == "" {
+			subnetResource.Project = project
 		}
-		if subnetFields.Region == "" {
-			subnetFields.Region = region
+		if subnetResource.Region == "" {
+			subnetResource.Region = region
 		}
 	}
-	return networkFields, subnetFields, nil
+	return networkResource, subnetResource, nil
 }

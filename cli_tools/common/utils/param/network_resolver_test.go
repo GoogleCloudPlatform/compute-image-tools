@@ -26,14 +26,14 @@ import (
 )
 
 func TestNetworkResolver_PassingCases(t *testing.T) {
-	type networkParams struct{ project, name string }
-	type subnetParams struct{ project, region, name string }
+	type getNetworkComputeParams struct{ project, name string }
+	type getSubnetComputeParams struct{ project, region, name string }
 	tests := []struct {
 		name                            string
 		originalNetwork, originalSubnet string
 		expectedNetwork, expectedSubnet string
-		expectedGetNetworkParams        *networkParams
-		expectedGetSubnetParams         *subnetParams
+		expectedGetNetworkParams        *getNetworkComputeParams
+		expectedGetSubnetParams         *getSubnetComputeParams
 	}{
 		{
 			name:                     "expand names to URIs",
@@ -41,38 +41,38 @@ func TestNetworkResolver_PassingCases(t *testing.T) {
 			originalSubnet:           "subnet-id",
 			expectedNetwork:          "projects/project-id/global/networks/network-id",
 			expectedSubnet:           "projects/project-id/regions/region-id/subnetworks/subnet-id",
-			expectedGetNetworkParams: &networkParams{"project-id", "network-id"},
-			expectedGetSubnetParams:  &subnetParams{"project-id", "region-id", "subnet-id"},
+			expectedGetNetworkParams: &getNetworkComputeParams{"project-id", "network-id"},
+			expectedGetSubnetParams:  &getSubnetComputeParams{"project-id", "region-id", "subnet-id"},
 		}, {
 			name:                     "use default when both empty",
 			originalNetwork:          "",
 			originalSubnet:           "",
 			expectedNetwork:          "projects/project-id/global/networks/default",
 			expectedSubnet:           "projects/project-id/regions/region-id/subnetworks/default",
-			expectedGetNetworkParams: &networkParams{"project-id", "default"},
-			expectedGetSubnetParams:  &subnetParams{"project-id", "region-id", "default"},
+			expectedGetNetworkParams: &getNetworkComputeParams{"project-id", "default"},
+			expectedGetSubnetParams:  &getSubnetComputeParams{"project-id", "region-id", "default"},
 		}, {
 			name:                    "leave network empty when subnet populated",
 			originalNetwork:         "",
 			originalSubnet:          "subnet-id",
 			expectedNetwork:         "",
 			expectedSubnet:          "projects/project-id/regions/region-id/subnetworks/subnet-id",
-			expectedGetSubnetParams: &subnetParams{"project-id", "region-id", "subnet-id"},
+			expectedGetSubnetParams: &getSubnetComputeParams{"project-id", "region-id", "subnet-id"},
 		}, {
 			name:                     "leave subnet empty when network populated",
 			originalNetwork:          "network-id",
 			originalSubnet:           "",
 			expectedNetwork:          "projects/project-id/global/networks/network-id",
 			expectedSubnet:           "",
-			expectedGetNetworkParams: &networkParams{"project-id", "network-id"},
+			expectedGetNetworkParams: &getNetworkComputeParams{"project-id", "network-id"},
 		}, {
 			name:                     "call API using project and region from original URIs",
 			originalNetwork:          "projects/uri-project-id/global/networks/network-id",
 			originalSubnet:           "projects/uri-project-id/regions/uri-region-id/subnetworks/subnet-id",
 			expectedNetwork:          "projects/uri-project-id/global/networks/network-id",
 			expectedSubnet:           "projects/uri-project-id/regions/uri-region-id/subnetworks/subnet-id",
-			expectedGetNetworkParams: &networkParams{"uri-project-id", "network-id"},
-			expectedGetSubnetParams:  &subnetParams{"uri-project-id", "uri-region-id", "subnet-id"},
+			expectedGetNetworkParams: &getNetworkComputeParams{"uri-project-id", "network-id"},
+			expectedGetSubnetParams:  &getSubnetComputeParams{"uri-project-id", "uri-region-id", "subnet-id"},
 		},
 	}
 	for _, tt := range tests {

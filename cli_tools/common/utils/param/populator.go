@@ -66,18 +66,18 @@ func (p *populator) PopulateMissingParameters(project *string, clientID string, 
 	}
 
 	if *zone == "" {
-		if aZone, err := p.locationClient.GetZone(scratchBucketRegion, *project); err == nil {
-			*zone = aZone
-		} else {
+		if aZone, err := p.locationClient.GetZone(scratchBucketRegion, *project); err != nil {
 			return err
+		} else {
+			*zone = aZone
 		}
 	}
 
-	if n, s, err := p.NetworkResolver.Resolve(*network, *subnet, *region, *project); err == nil {
+	if n, s, err := p.NetworkResolver.Resolve(*network, *subnet, *region, *project); err != nil {
+		return err
+	} else {
 		*network = n
 		*subnet = s
-	} else {
-		return err
 	}
 
 	if err := PopulateRegion(region, *zone); err != nil {

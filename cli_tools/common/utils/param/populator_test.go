@@ -49,7 +49,7 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(
 		daisy.Errf("zone not found")).Times(1)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: "us-west2"}, nil).Times(1)
-	mockNetworkResolver := newLenientNetworkResolver(mockCtrl)
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
 		mockNetworkResolver,
 		mockMetadataGce,
@@ -145,7 +145,7 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAn
 	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockNetworkResolver := newLenientNetworkResolver(mockCtrl)
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
 		mockNetworkResolver,
 		mockMetadataGce,
@@ -176,7 +176,7 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAn
 	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockNetworkResolver := newLenientNetworkResolver(mockCtrl)
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
 		mockNetworkResolver,
 		mockMetadataGce,
@@ -207,7 +207,7 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAn
 	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockNetworkResolver := newLenientNetworkResolver(mockCtrl)
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
 		mockNetworkResolver,
 		mockMetadataGce,
@@ -238,7 +238,7 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenScratchBucketCreatio
 	mockScratchBucketCreator.EXPECT().CreateScratchBucket(file, project, zone).Return("", "", daisy.Errf("err"))
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockNetworkResolver := newLenientNetworkResolver(mockCtrl)
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
 		mockNetworkResolver,
 		mockMetadataGce,
@@ -267,7 +267,7 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenScratchBucketInvalid
 	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockNetworkResolver := newLenientNetworkResolver(mockCtrl)
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
 		mockNetworkResolver,
 		mockMetadataGce,
@@ -298,7 +298,7 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenPopulateRegionFails(
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: region}, nil)
-	mockNetworkResolver := newLenientNetworkResolver(mockCtrl)
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
 		mockNetworkResolver,
 		mockMetadataGce,
@@ -334,7 +334,7 @@ func TestPopulator_PopulateMissingParametersDoesNotChangeProvidedScratchBucketAn
 	mockResourceLocationRetriever.EXPECT().GetZone(expectedRegion, project).Return(expectedZone, nil).Times(1)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs(expectedBucketName).Return(&storage.BucketAttrs{Location: expectedRegion}, nil)
-	mockNetworkResolver := newLenientNetworkResolver(mockCtrl)
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
 		mockNetworkResolver,
 		mockMetadataGce,
@@ -431,7 +431,7 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 			if tt.deleteExpected {
 				mockStorageClient.EXPECT().DeleteObject(file).Return(tt.deleteResult)
 			}
-			mockNetworkResolver := newLenientNetworkResolver(mockCtrl)
+			mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 			err := NewPopulator(
 				mockNetworkResolver,
 				mockMetadataGce,
@@ -475,7 +475,7 @@ func TestPopulator_PopulateMissingParametersCreatesScratchBucketIfNotProvided(t 
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockResourceLocationRetriever.EXPECT().GetZone(expectedRegion, project).Return(expectedZone, nil).Times(1)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockNetworkResolver := newLenientNetworkResolver(mockCtrl)
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
 		mockNetworkResolver,
 		mockMetadataGce,
@@ -520,7 +520,7 @@ func TestPopulator_PopulateMissingParametersCreatesScratchBucketIfNotProvidedOnG
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockResourceLocationRetriever.EXPECT().GetZone(expectedRegion, project).Return(expectedZone, nil).Times(1)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockNetworkResolver := newLenientNetworkResolver(mockCtrl)
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
 		mockNetworkResolver,
 		mockMetadataGce,
@@ -556,7 +556,7 @@ func TestPopulator_PopulateMissingParametersPopulatesStorageLocationWithScratchB
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: region}, nil)
 	mockResourceLocationRetriever.EXPECT().GetLargestStorageLocation(region).Return("US")
-	mockNetworkResolver := newLenientNetworkResolver(mockCtrl)
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
 		mockNetworkResolver,
 		mockMetadataGce,
@@ -569,7 +569,7 @@ func TestPopulator_PopulateMissingParametersPopulatesStorageLocationWithScratchB
 	assert.Equal(t, "US", storageLocation)
 }
 
-func newLenientNetworkResolver(ctrl *gomock.Controller) NetworkResolver {
+func newNoOpNetworkResolver(ctrl *gomock.Controller) NetworkResolver {
 	m := mocks.NewMockNetworkResolver(ctrl)
 	m.EXPECT().ResolveAndValidateNetworkAndSubnet(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	return m

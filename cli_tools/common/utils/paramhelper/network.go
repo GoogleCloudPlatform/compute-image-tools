@@ -15,8 +15,8 @@
 package paramhelper
 
 import (
-	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
@@ -37,11 +37,11 @@ func (r *NetworkResource) String() string {
 	if r.Name == "" {
 		return ""
 	}
-	if r.Project == "" {
-		return fmt.Sprintf("global/networks/%s", r.Name)
+	var parts []string
+	if r.Project != "" {
+		parts = []string{"projects", r.Project}
 	}
-	return fmt.Sprintf("projects/%s/global/networks/%s", r.Project, r.Name)
-
+	return strings.Join(append(parts, "global", "networks", r.Name), "/")
 }
 
 // SplitNetworkResource creates a NetworkResource instance from a user-provided identifier for a network.
