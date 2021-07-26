@@ -133,6 +133,19 @@
           "StorageLocations": ["eu", "us-west2"]
         }
       ]
+    },
+
+    "include-workflow": {
+      "IncludeWorkflow": {
+        "path": "./test_sub.wf.json",
+        "Vars": {"key": "value"}
+      }
+    },
+    "sub-workflow": {
+      "subWorkflow": {
+        "path": "./test_sub.wf.json",
+        "Vars": {"key": "value"}
+      }
     }
   },
   "dependencies": {
@@ -143,6 +156,8 @@
     "postinstall-stopped": ["postinstall"],
     "create-image-locality": ["postinstall-stopped"],
     "create-image": ["create-image-locality"],
-    "create-machine-image": ["create-image"]
+    "create-machine-image": ["create-image"],
+    "include-workflow": ["create-image"],
+    "sub-workflow": ["create-image"]
   }
 }
