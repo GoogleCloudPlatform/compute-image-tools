@@ -58,6 +58,22 @@ func TestSubWorkflowPopulate(t *testing.T) {
 	}
 }
 
+func TestSubWorkflowPopulate_SkipsReadingPathWhenWorkflowNil(t *testing.T) {
+	child := testWorkflow()
+	parent := testWorkflow()
+	parent.Steps = map[string]*Step{
+		"child": {
+			SubWorkflow: &SubWorkflow{
+				Path:     "test-will-fail-if-this-is-read",
+				Workflow: child,
+			},
+		},
+	}
+	if err := parent.populate(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestSubWorkflowRun(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
