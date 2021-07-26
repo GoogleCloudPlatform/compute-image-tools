@@ -27,9 +27,7 @@ type SubWorkflow struct {
 }
 
 func (s *SubWorkflow) populate(ctx context.Context, st *Step) DError {
-	// Typically s.Workflow is instantiated when the parent workflow is read in NewFromFile.
-	// Workflow could be nil when the parent workflow is constructed manually using Go structs.
-	if s.Path != "" && s.Workflow == nil {
+	if s.Path != "" {
 		var err error
 		if s.Workflow, err = st.w.NewSubWorkflowFromFile(s.Path); err != nil {
 			return ToDError(err)
