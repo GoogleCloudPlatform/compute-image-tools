@@ -29,6 +29,10 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
+var (
+	varPattern = regexp.MustCompile(`\$\{.*\}`)
+)
+
 func getUser() string {
 	if cu, err := user.Current(); err == nil {
 		return cu.Username
@@ -122,6 +126,11 @@ func substitute(v reflect.Value, replacer *strings.Replacer) {
 		}
 		return nil
 	})
+}
+
+// hasVariableDeclaration determines whether s contains a variable declaration of the style `${varname}`
+func hasVariableDeclaration(s string) bool {
+	return varPattern.MatchString(s)
 }
 
 func getRegionFromZone(z string) string {

@@ -794,7 +794,10 @@ func New() *Workflow {
 }
 
 // NewFromFile reads and unmarshals a workflow file.
-// Recursively reads sub and included steps as well.
+// Recursively reads sub and included steps as well,
+// when the filenames for those workflows do not contain
+// a variable. If they contain a variable, they will be
+// read during their populate step.
 func NewFromFile(file string) (w *Workflow, err error) {
 	w = New()
 	if err := readWorkflow(file, w); err != nil {
@@ -854,9 +857,13 @@ func readWorkflow(file string, w *Workflow) (derr DError) {
 		step.name = name
 		step.w = w
 
-		if step.SubWorkflow != nil && step.SubWorkflow.Path != "" {
+		if step.SubWorkflow != nil &&
+			step.SubWorkflow.Path != "" &&
+			!hasVariableDeclaration(step.SubWorkflow.Path) {
 			step.SubWorkflow.Workflow, derr = w.NewSubWorkflowFromFile(step.SubWorkflow.Path)
-		} else if step.IncludeWorkflow != nil && step.IncludeWorkflow.Path != "" {
+		} else if step.IncludeWorkflow != nil &&
+			step.IncludeWorkflow.Path != "" &&
+			!hasVariableDeclaration(step.IncludeWorkflow.Path) {
 			step.IncludeWorkflow.Workflow, derr = w.NewIncludedWorkflowFromFile(step.IncludeWorkflow.Path)
 		} else {
 			continue
