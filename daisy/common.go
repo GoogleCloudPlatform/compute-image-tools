@@ -29,6 +29,10 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
+var (
+	varPattern = regexp.MustCompile(`\$\{.*\}`)
+)
+
 func getUser() string {
 	if cu, err := user.Current(); err == nil {
 		return cu.Username
@@ -124,6 +128,11 @@ func substitute(v reflect.Value, replacer *strings.Replacer) {
 	})
 }
 
+// hasVariableDeclaration determines whether s contains a variable declaration of the style `${varname}`
+func hasVariableDeclaration(s string) bool {
+	return varPattern.MatchString(s)
+}
+
 func getRegionFromZone(z string) string {
 	if z != "" {
 		return z[:len(z)-2]
@@ -159,6 +168,17 @@ func (w *Workflow) substituteSourceVars(ctx context.Context, v reflect.Value) DE
 	})
 }
 
+// traverseAction allows callers of traverseData to customize the function's traversal.
+type traverseAction uint
+
+const (
+	// Continue the traversal; this is the default action of
+	// traverseData, which traverses to all nodes.
+	continueTraversal traverseAction = iota
+	// Do not process this node or any of its children.
+	prune
+)
+
 // traverseData traverses complex data structures and runs
 // a function, f, on its basic data types.
 // Traverses arrays, maps, slices, and public fields of structs.
@@ -166,10 +186,20 @@ func (w *Workflow) substituteSourceVars(ctx context.Context, v reflect.Value) DE
 // Slices, maps, and structs will not have f called on them, but will
 // traverse their subelements.
 // Errors returned from f will be returned by traverseDataStructure.
-func traverseData(v reflect.Value, f func(reflect.Value) DError) DError {
+// actions allows the caller to determine which action to take at a node.
+// The default action is 'continueTraverse'.
+func traverseData(v reflect.Value, f func(reflect.Value) DError, actions ...func(reflect.Value) traverseAction) DError {
+
 	if !v.CanSet() {
 		// Don't run on private fields.
 		return nil
+	}
+
+	for _, action := range actions {
+		switch action(v) {
+		case prune:
+			return nil
+		}
 	}
 
 	switch v.Kind() {
@@ -180,13 +210,13 @@ func traverseData(v reflect.Value, f func(reflect.Value) DError) DError {
 			return nil
 		}
 		// I'm a pointer, dereference me.
-		return traverseData(v.Elem(), f)
+		return traverseData(v.Elem(), f, actions...)
 	}
 
 	switch v.Kind() {
 	case reflect.Array, reflect.Slice:
 		for i := 0; i < v.Len(); i++ {
-			if err := traverseData(v.Index(i), f); err != nil {
+			if err := traverseData(v.Index(i), f, actions...); err != nil {
 				return err
 			}
 		}
@@ -201,10 +231,10 @@ func traverseData(v reflect.Value, f func(reflect.Value) DError) DError {
 			newKv.Set(kv)
 			newVv := reflect.New(vv.Type()).Elem()
 			newVv.Set(vv)
-			if err := traverseData(newKv, f); err != nil {
+			if err := traverseData(newKv, f, actions...); err != nil {
 				return err
 			}
-			if err := traverseData(newVv, f); err != nil {
+			if err := traverseData(newVv, f, actions...); err != nil {
 				return err
 			}
 
@@ -215,7 +245,7 @@ func traverseData(v reflect.Value, f func(reflect.Value) DError) DError {
 		}
 	case reflect.Struct:
 		for i := 0; i < v.NumField(); i++ {
-			if err := traverseData(v.Field(i), f); err != nil {
+			if err := traverseData(v.Field(i), f, actions...); err != nil {
 				return err
 			}
 		}
