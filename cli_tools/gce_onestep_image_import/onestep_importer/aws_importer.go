@@ -422,7 +422,7 @@ func (importer *awsImporter) copyFromS3ToGCS() (string, error) {
 		return "", err
 	}
 	workers := int64(runtime.NumCPU())
-	writer := storageutils.NewBufferedWriter(importer.ctx, int64(bs), workers, createGCSClient, importer.oauth, path, bkt, obj)
+	writer := storageutils.NewBufferedWriter(importer.ctx, int64(bs), workers, createGCSClient, importer.oauth, path, bkt, obj, logPrefix)
 
 	// 4. Transfer file from S3 to GCS
 	if err := importer.transferFile(writer); err != nil {

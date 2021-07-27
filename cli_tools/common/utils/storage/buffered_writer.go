@@ -33,7 +33,7 @@ import (
 	"google.golang.org/api/googleapi"
 )
 
-var gcsPermissionErrorRegExp = regexp.MustCompile(".*does not have storage.objects.create access to .*")
+var gcsPermissionErrorRegExp = regexp.MustCompile(".*does not have storage.objects.* access to .*")
 
 type gcsClient func(ctx context.Context, oauth string) (domain.StorageClientInterface, error)
 
@@ -48,6 +48,8 @@ type BufferedWriter struct {
 	id       string
 	bkt, obj string
 
+	errLogPrefix string
+
 	upload    chan string
 	tmpObjs   []string
 	tmpObjsMx sync.Mutex
@@ -60,7 +62,7 @@ type BufferedWriter struct {
 }
 
 // NewBufferedWriter creates a BufferedWriter
-func NewBufferedWriter(ctx context.Context, size, workers int64, client gcsClient, oauth, prefix, bkt, obj string) *BufferedWriter {
+func NewBufferedWriter(ctx context.Context, size, workers int64, client gcsClient, oauth, prefix, bkt, obj, errLogPrefix string) *BufferedWriter {
 	b := &BufferedWriter{
 		cSize:  size / workers,
 		prefix: prefix,
@@ -117,12 +119,13 @@ func (b *BufferedWriter) uploadWorker() {
 				// Don't retry if permission error as it's not recoverable.
 				gAPIErr, isGAPIErr := err.(*googleapi.Error)
 				if isGAPIErr && gAPIErr.Code == 403 && gcsPermissionErrorRegExp.MatchString(gAPIErr.Message) {
-					fmt.Printf("GCEExport: %v", err)
+					fmt.Printf("%v: %v", b.errLogPrefix, err)
 					os.Exit(2)
 				}
 
 				fmt.Printf("Failed %v time(s) to upload '%v', error: %v\n", i, in, err)
 				if i > 16 {
+					fmt.Printf("%v: %v", b.errLogPrefix, err)
 					log.Fatal(err)
 				}
 
