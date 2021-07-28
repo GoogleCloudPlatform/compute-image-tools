@@ -21,7 +21,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -359,6 +361,12 @@ func TestErrorWhenCopyFails(t *testing.T) {
 
 func TestErrorWhenComposeFails(t *testing.T) {
 	resetArgs()
+	err := mockComposeWithErrorReturned(t, "Fail to compose")
+	assert.NotNil(t, err)
+	assert.Equal(t, "Fail to compose", err.Error())
+}
+
+func mockComposeWithErrorReturned(t *testing.T, errorMsg string) error {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
@@ -387,11 +395,50 @@ func TestErrorWhenComposeFails(t *testing.T) {
 	time.Sleep(time.Second * 2)
 	assert.Len(t, buf.tmpObjs, 33)
 
-	mockStorageObject.EXPECT().Compose(gomock.Any()).Return(nil, fmt.Errorf("Fail to compose")).AnyTimes()
+	mockStorageObject.EXPECT().Compose(gomock.Any()).Return(nil, fmt.Errorf(errorMsg)).AnyTimes()
 
 	err = buf.Close()
-	assert.NotNil(t, err)
-	assert.Equal(t, "Fail to compose", err.Error())
+	return err
+}
+
+func TestBufferedWriterGetPermissionErrorOutput(t *testing.T) {
+	resetArgs()
+	runTestAssertOutputContainsKeyword(func() {
+		mockNewBufferedWriter(t, "some account does not have storage.objects.get access to some object")
+	}, t, "GCxport")
+}
+
+func TestBufferedWriterCreatePermissionErrorOutput(t *testing.T) {
+	resetArgs()
+	runTestAssertOutputContainsKeyword(func() {
+		mockNewBufferedWriter(t, "some account does not have storage.objects.create access to some object")
+	}, t, "GCEExport")
+}
+
+func runTestAssertOutputContainsKeyword(f func(), t *testing.T, keyword string) {
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	f()
+	log.SetOutput(os.Stderr)
+	output := buf.String()
+	assert.True(t, strings.Contains(output, keyword))
+}
+
+func mockNewBufferedWriter(t *testing.T, errorMsg string) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
+	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
+	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
+	mockStorageObject.EXPECT().ObjectName().Return("").AnyTimes()
+	mockStorageObject.EXPECT().CopyFrom(gomock.Any()).Return(nil, nil).AnyTimes()
+
+	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().Close().Return(nil).AnyTimes()
+	mockStorageClient.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return(mockStorageObject).AnyTimes()
+
+	ctx := context.Background()
+	NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj, "GCEExport")
 }
 
 func TestClientErrorWhenUploadFailed(t *testing.T) {
