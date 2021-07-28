@@ -125,6 +125,12 @@ func substitute(v reflect.Value, replacer *strings.Replacer) {
 			val.SetString(replacer.Replace(val.String()))
 		}
 		return nil
+	}, func(v reflect.Value) traverseAction {
+		_, ok := v.Interface().(*Workflow)
+		if ok {
+			return prune
+		}
+		return continueTraversal
 	})
 }
 

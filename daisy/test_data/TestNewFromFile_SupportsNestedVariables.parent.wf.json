@@ -1,4 +1,5 @@
 {
+  "Name": "parent",
   "vars": {
     "var_name_is_variable": {
       "Value": "k1"
