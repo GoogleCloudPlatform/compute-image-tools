@@ -1,4 +1,5 @@
 {
+  "Name": "child",
   "Vars": {
     "k1": {
       "Required": true,
@@ -9,7 +10,7 @@
     "create-disks": {
       "createDisks": [
         {
-          "SourceImage": "image-${k1}",
+          "SourceImage": "${NAME}-image-${k1}",
           "SizeGb": "50",
           "Type": "pd-ssd"
         }

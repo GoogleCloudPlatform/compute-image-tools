@@ -1,4 +1,5 @@
 {
+  "Name": "parent",
   "vars": {
     "filename_is_variable": {
       "Value": "TestNewFromFile_SupportsNestedVariables_VarInFilename.child.wf.json"

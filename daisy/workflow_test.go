@@ -614,7 +614,7 @@ func TestNewFromFile_SupportsNestedVariables(t *testing.T) {
 
 			child := wf.Steps["include-workflow"].IncludeWorkflow
 			assert.Equal(t, "v1", child.Vars["k1"])
-			assert.Equal(t, "image-v1", (*child.Workflow.Steps["create-disks"].CreateDisks)[0].SourceImage)
+			assert.Equal(t, "include-workflow-image-v1", (*child.Workflow.Steps["create-disks"].CreateDisks)[0].SourceImage)
 		})
 	}
 }
