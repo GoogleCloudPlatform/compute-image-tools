@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"os"
 	"path"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -49,6 +50,26 @@ func TestBootableDiskProcessor_Process_WritesSourceDiskVar(t *testing.T) {
 	assert.Equal(t, "uri", p.(*bootableDiskProcessor).workflow.Vars["source_disk"].Value)
 }
 
+func TestBootableDiskProcessor_CreatesExternalIPOnWorker_ByDefault(t *testing.T) {
+	args := defaultImportArgs()
+	realProcessor := createProcessor(t, args)
+	worker := getWorkerInstance(t, realProcessor.workflow)
+	for _, n := range worker.NetworkInterfaces {
+		assert.Nil(t, n.AccessConfigs)
+	}
+}
+
+func TestBootableDiskProcessor_SupportsNoExternalIPForWorker(t *testing.T) {
+	args := defaultImportArgs()
+	args.NoExternalIP = true
+	realProcessor := createProcessor(t, args)
+	worker := getWorkerInstance(t, realProcessor.workflow)
+	for _, n := range worker.NetworkInterfaces {
+		assert.NotNil(t, n.AccessConfigs)
+		assert.Empty(t, n.AccessConfigs)
+	}
+}
+
 // gcloud expects log lines to start with the substring "[import". Daisy
 // constructs the log prefix using the workflow's name.
 func TestBootableDiskProcessor_SetsWorkflowNameToGcloudPrefix(t *testing.T) {
@@ -71,7 +92,7 @@ func TestBootableDiskProcessor_PopulatesWorkflowVarsUsingArgs(t *testing.T) {
 	imageSpec.SysprepWindows = true
 	imageSpec.ComputeServiceAccount = "csa@email.com"
 
-	actual := asMap(createAndRunPrePostFunctions(t, imageSpec).workflow.Vars)
+	actual := asMap(createProcessor(t, imageSpec).workflow.Vars)
 	assert.Equal(t, map[string]string{
 		"source_disk":             "", // source_disk is written in process, since a previous processor may create a new disk
 		"description":             "Fedora 12 customized",
@@ -86,7 +107,7 @@ func TestBootableDiskProcessor_PopulatesWorkflowVarsUsingArgs(t *testing.T) {
 }
 
 func TestBootableDiskProcessor_SupportsWorkflowDefaultVars(t *testing.T) {
-	actual := asMap(createAndRunPrePostFunctions(t, defaultImportArgs()).workflow.Vars)
+	actual := asMap(createProcessor(t, defaultImportArgs()).workflow.Vars)
 	assert.Equal(t, map[string]string{
 		"source_disk":             "",
 		"description":             "",
@@ -107,7 +128,7 @@ func TestBootableDiskProcessor_SetsWorkerDiskTrackingValues(t *testing.T) {
 	os.Setenv("BUILD_ID", "build-id")
 	imageSpec := defaultImportArgs()
 	imageSpec.Labels = userLabels
-	actual := createAndRunPrePostFunctions(t, imageSpec)
+	actual := createProcessor(t, imageSpec)
 	disk := getFirstCreatedDisk(t, actual.workflow)
 
 	assert.Equal(t, map[string]string{
@@ -124,7 +145,7 @@ func TestBootableDiskProcessor_SetsWorkerTrackingValues(t *testing.T) {
 	os.Setenv("BUILD_ID", "build-id")
 	imageSpec := defaultImportArgs()
 	imageSpec.Labels = userLabels
-	actual := createAndRunPrePostFunctions(t, imageSpec)
+	actual := createProcessor(t, imageSpec)
 	worker := getWorkerInstance(t, actual.workflow)
 
 	assert.Equal(t, map[string]string{
@@ -141,7 +162,7 @@ func TestBootableDiskProcessor_SetsImageTrackingValues(t *testing.T) {
 	os.Setenv("BUILD_ID", "build-id")
 	imageSpec := defaultImportArgs()
 	imageSpec.Labels = userLabels
-	actual := createAndRunPrePostFunctions(t, imageSpec)
+	actual := createProcessor(t, imageSpec)
 	image := getImage(t, actual.workflow)
 
 	assert.Equal(t, map[string]string{
@@ -153,17 +174,36 @@ func TestBootableDiskProcessor_SetsImageTrackingValues(t *testing.T) {
 func TestBootableDiskProcessor_SupportsStorageLocation(t *testing.T) {
 	imageSpec := defaultImportArgs()
 	imageSpec.StorageLocation = "north-america"
-	actual := createAndRunPrePostFunctions(t, imageSpec)
+	actual := createProcessor(t, imageSpec)
 	image := getImage(t, actual.workflow)
 
 	assert.Equal(t, []string{"north-america"}, image.StorageLocations)
 }
 
 func TestBootableDiskProcessor_PermitsUnsetStorageLocation(t *testing.T) {
-	actual := createAndRunPrePostFunctions(t, defaultImportArgs())
+	actual := createProcessor(t, defaultImportArgs())
 	image := getImage(t, actual.workflow)
 
 	assert.Empty(t, image.StorageLocations)
+}
+
+func TestBootableDiskProcessor_AppliesPrivacyLogPostProcessor(t *testing.T) {
+	actual := createProcessor(t, defaultImportArgs())
+	mockLogger := &daisyLogger{}
+	actual.workflow.Logger = mockLogger
+	actual.workflow.LogWorkflowInfo("message [Privacy->content<-Privacy] message")
+	assert.Len(t, mockLogger.logEntries, 1)
+	expected := "message content message"
+	found := false
+	for _, entry := range mockLogger.logEntries {
+		if strings.Contains(entry.Message, expected) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("Expected to find %q in %v", expected, mockLogger.logEntries)
+	}
 }
 
 func TestBootableDiskProcessor_SupportsCancel(t *testing.T) {
@@ -178,16 +218,14 @@ func TestBootableDiskProcessor_SupportsCancel(t *testing.T) {
 	assert.False(t, channelOpen, "realProcessor.workflow.Cancel should be closed on timeout")
 }
 
-func createAndRunPrePostFunctions(t *testing.T, request ImageImportRequest) *bootableDiskProcessor {
+func createProcessor(t *testing.T, request ImageImportRequest) *bootableDiskProcessor {
 	translator, e := newBootableDiskProcessor(request, opensuse15workflow, logging.NewToolLogger(t.Name()),
 		distro.FromGcloudOSArgumentMustParse("windows-2008r2"))
 	assert.NoError(t, e)
 	realTranslator := translator.(*bootableDiskProcessor)
 	// A concrete logger is required since the import/export logging framework writes a log entry
 	// when the workflow starts. Without this there's a panic.
-	realTranslator.workflow.Logger = daisyLogger{}
-	realTranslator.preValidateFunc()(realTranslator.workflow)
-	realTranslator.postValidateFunc()(realTranslator.workflow)
+	realTranslator.workflow.Logger = &daisyLogger{}
 	return realTranslator
 }
 
@@ -237,21 +275,22 @@ func asMap(vars map[string]daisy.Var) map[string]string {
 }
 
 type daisyLogger struct {
-	serials []string
+	serials    []string
+	logEntries []*daisy.LogEntry
 }
 
-func (d daisyLogger) WriteLogEntry(e *daisy.LogEntry) {
-
+func (d *daisyLogger) WriteLogEntry(e *daisy.LogEntry) {
+	d.logEntries = append(d.logEntries, e)
 }
 
-func (d daisyLogger) WriteSerialPortLogs(w *daisy.Workflow, instance string, buf bytes.Buffer) {
+func (d *daisyLogger) WriteSerialPortLogs(w *daisy.Workflow, instance string, buf bytes.Buffer) {
 	panic("unexpected call")
 }
 
-func (d daisyLogger) ReadSerialPortLogs() []string {
+func (d *daisyLogger) ReadSerialPortLogs() []string {
 	return d.serials
 }
 
-func (d daisyLogger) Flush() {
+func (d *daisyLogger) Flush() {
 	panic("unexpected call")
 }
