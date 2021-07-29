@@ -19,43 +19,44 @@
 package mocks
 
 import (
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockPopulator is a mock of Populator interface
+// MockPopulator is a mock of Populator interface.
 type MockPopulator struct {
 	ctrl     *gomock.Controller
 	recorder *MockPopulatorMockRecorder
 }
 
-// MockPopulatorMockRecorder is the mock recorder for MockPopulator
+// MockPopulatorMockRecorder is the mock recorder for MockPopulator.
 type MockPopulatorMockRecorder struct {
 	mock *MockPopulator
 }
 
-// NewMockPopulator creates a new mock instance
+// NewMockPopulator creates a new mock instance.
 func NewMockPopulator(ctrl *gomock.Controller) *MockPopulator {
 	mock := &MockPopulator{ctrl: ctrl}
 	mock.recorder = &MockPopulatorMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockPopulator) EXPECT() *MockPopulatorMockRecorder {
 	return m.recorder
 }
 
-// PopulateMissingParameters mocks base method
-func (m *MockPopulator) PopulateMissingParameters(arg0 *string, arg1 string, arg2, arg3, arg4 *string, arg5 string, arg6 *string) error {
+// PopulateMissingParameters mocks base method.
+func (m *MockPopulator) PopulateMissingParameters(project *string, clientID string, zone, region, scratchBucketGcsPath *string, file string, storageLocation, network, subnet *string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PopulateMissingParameters", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	ret := m.ctrl.Call(m, "PopulateMissingParameters", project, clientID, zone, region, scratchBucketGcsPath, file, storageLocation, network, subnet)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// PopulateMissingParameters indicates an expected call of PopulateMissingParameters
-func (mr *MockPopulatorMockRecorder) PopulateMissingParameters(arg0, arg1, arg2, arg3, arg4, arg5, arg6 interface{}) *gomock.Call {
+// PopulateMissingParameters indicates an expected call of PopulateMissingParameters.
+func (mr *MockPopulatorMockRecorder) PopulateMissingParameters(project, clientID, zone, region, scratchBucketGcsPath, file, storageLocation, network, subnet interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PopulateMissingParameters", reflect.TypeOf((*MockPopulator)(nil).PopulateMissingParameters), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PopulateMissingParameters", reflect.TypeOf((*MockPopulator)(nil).PopulateMissingParameters), project, clientID, zone, region, scratchBucketGcsPath, file, storageLocation, network, subnet)
 }

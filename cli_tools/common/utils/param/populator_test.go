@@ -24,9 +24,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 func TestPopulator_PopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(t *testing.T) {
@@ -36,6 +35,8 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(
 	region := ""
 	file := "gs://a_bucket/a_file"
 	storageLocation := "US"
+	network := "original-network"
+	subnet := "original-subnet"
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -48,15 +49,82 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(
 		daisy.Errf("zone not found")).Times(1)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: "us-west2"}, nil).Times(1)
-
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
+		mockNetworkResolver,
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation, &network, &subnet)
 
 	assert.Contains(t, err.Error(), "zone not found")
+}
+
+func TestPopulator_PropagatesErrorFromNetworkResolver(t *testing.T) {
+	project := "a_project"
+	scratchBucketGcsPath := "gs://scratchbucket/scratchpath"
+	zone := "zone"
+	region := "region"
+	file := "gs://a_bucket/a_file"
+	storageLocation := "US"
+	network := "original-network"
+	subnet := "original-subnet"
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
+	mockScratchBucketCreator.EXPECT().IsBucketInProject(project, "scratchbucket").Return(true)
+	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: "us-west2"}, nil).Times(1)
+	mockNetworkResolver := mocks.NewMockNetworkResolver(mockCtrl)
+	mockNetworkResolver.EXPECT().ResolveAndValidateNetworkAndSubnet("original-network", "original-subnet", "region", "a_project").Return("", "", daisy.Errf("network cannot be found"))
+	err := NewPopulator(
+		mockNetworkResolver,
+		mockMetadataGce,
+		mockStorageClient,
+		mockResourceLocationRetriever,
+		mockScratchBucketCreator,
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation, &network, &subnet)
+
+	assert.Contains(t, err.Error(), "network cannot be found")
+}
+
+func TestPopulator_UsesReturnValuesFromNetworkResolver(t *testing.T) {
+	project := "a_project"
+	scratchBucketGcsPath := "gs://scratchbucket/scratchpath"
+	zone := "us-west2-a"
+	region := "region"
+	file := "gs://a_bucket/a_file"
+	storageLocation := "US"
+	network := "original-network"
+	subnet := "original-subnet"
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
+	mockScratchBucketCreator.EXPECT().IsBucketInProject(project, "scratchbucket").Return(true)
+	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: "us-west2"}, nil).Times(1)
+	mockNetworkResolver := mocks.NewMockNetworkResolver(mockCtrl)
+	mockNetworkResolver.EXPECT().ResolveAndValidateNetworkAndSubnet(
+		"original-network", "original-subnet", "region", "a_project").Return("fixed-network", "fixed-subnet", nil)
+	err := NewPopulator(
+		mockNetworkResolver,
+		mockMetadataGce,
+		mockStorageClient,
+		mockResourceLocationRetriever,
+		mockScratchBucketCreator,
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation, &network, &subnet)
+	assert.NoError(t, err)
+	assert.Equal(t, "fixed-network", network)
+	assert.Equal(t, "fixed-subnet", subnet)
 }
 
 func TestPopulator_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndNotRunningOnGCE(t *testing.T) {
@@ -66,6 +134,8 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAn
 	region := ""
 	file := "gs://a_bucket/a_file"
 	storageLocation := ""
+	network := "original-network"
+	subnet := "original-subnet"
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -75,13 +145,14 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAn
 	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
+		mockNetworkResolver,
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation, &network, &subnet)
 
 	assert.Contains(t, err.Error(), "project cannot be determined because build is not running on GCE")
 }
@@ -93,6 +164,8 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAn
 	region := ""
 	file := "gs://a_bucket/a_file"
 	storageLocation := ""
+	network := "original-network"
+	subnet := "original-subnet"
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -103,13 +176,14 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAn
 	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
+		mockNetworkResolver,
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation, &network, &subnet)
 
 	assert.Contains(t, err.Error(), "project cannot be determined")
 }
@@ -121,6 +195,8 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAn
 	region := ""
 	file := "gs://a_bucket/a_file"
 	storageLocation := ""
+	network := "original-network"
+	subnet := "original-subnet"
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -131,13 +207,14 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAn
 	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
+		mockNetworkResolver,
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation, &network, &subnet)
 
 	assert.Contains(t, err.Error(), "project cannot be determined")
 }
@@ -149,6 +226,8 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenScratchBucketCreatio
 	region := ""
 	file := "gs://a_bucket/a_file"
 	storageLocation := ""
+	network := "original-network"
+	subnet := "original-subnet"
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -159,13 +238,14 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenScratchBucketCreatio
 	mockScratchBucketCreator.EXPECT().CreateScratchBucket(file, project, zone).Return("", "", daisy.Errf("err"))
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
+		mockNetworkResolver,
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation, &network, &subnet)
 
 	assert.Contains(t, err.Error(), "failed to create scratch bucket")
 }
@@ -177,6 +257,8 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenScratchBucketInvalid
 	region := ""
 	file := "gs://a_bucket/a_file"
 	storageLocation := ""
+	network := "original-network"
+	subnet := "original-subnet"
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -185,13 +267,14 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenScratchBucketInvalid
 	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
+		mockNetworkResolver,
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation, &network, &subnet)
 
 	assert.Contains(t, err.Error(), "invalid scratch bucket")
 }
@@ -203,6 +286,8 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenPopulateRegionFails(
 	region := "NOT_REGION"
 	file := "gs://a_bucket/a_file"
 	storageLocation := "US"
+	network := "original-network"
+	subnet := "original-subnet"
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -213,13 +298,14 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenPopulateRegionFails(
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: region}, nil)
-
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
+		mockNetworkResolver,
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation, &network, &subnet)
 
 	assert.Contains(t, err.Error(), "NOT_ZONE is not a valid zone")
 }
@@ -230,6 +316,8 @@ func TestPopulator_PopulateMissingParametersDoesNotChangeProvidedScratchBucketAn
 	region := ""
 	scratchBucketGcsPath := "gs://scratchbucket/scratchpath"
 	storageLocation := "US"
+	network := "original-network"
+	subnet := "original-subnet"
 
 	file := "gs://sourcebucket/sourcefile"
 	expectedBucketName := "scratchbucket"
@@ -246,13 +334,14 @@ func TestPopulator_PopulateMissingParametersDoesNotChangeProvidedScratchBucketAn
 	mockResourceLocationRetriever.EXPECT().GetZone(expectedRegion, project).Return(expectedZone, nil).Times(1)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs(expectedBucketName).Return(&storage.BucketAttrs{Location: expectedRegion}, nil)
-
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
+		mockNetworkResolver,
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation, &network, &subnet)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "a_project", project)
@@ -328,6 +417,8 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 			scratchBucketGcsPath := tt.scratchBucketGCSPath
 			storageLocation := "US"
 			file := tt.fileGCSPath
+			network := "original-network"
+			subnet := "original-subnet"
 
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
@@ -340,13 +431,14 @@ func TestPopulator_DeleteResources_WhenScratchBucketInAnotherProject(t *testing.
 			if tt.deleteExpected {
 				mockStorageClient.EXPECT().DeleteObject(file).Return(tt.deleteResult)
 			}
-
+			mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 			err := NewPopulator(
+				mockNetworkResolver,
 				mockMetadataGce,
 				mockStorageClient,
 				mockResourceLocationRetriever,
 				mockScratchBucketCreator,
-			).PopulateMissingParameters(&project, tt.client, &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
+			).PopulateMissingParameters(&project, tt.client, &zone, &region, &scratchBucketGcsPath, file, &storageLocation, &network, &subnet)
 
 			realError := err.(daisy.DError)
 			assert.EqualError(t, realError, tt.expectedError)
@@ -361,6 +453,8 @@ func TestPopulator_PopulateMissingParametersCreatesScratchBucketIfNotProvided(t 
 	region := ""
 	scratchBucketGcsPath := ""
 	storageLocation := "US"
+	network := "original-network"
+	subnet := "original-subnet"
 
 	file := "gs://sourcebucket/sourcefile"
 	expectedBucketName := "new_scratch_bucket"
@@ -381,13 +475,14 @@ func TestPopulator_PopulateMissingParametersCreatesScratchBucketIfNotProvided(t 
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockResourceLocationRetriever.EXPECT().GetZone(expectedRegion, project).Return(expectedZone, nil).Times(1)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
+		mockNetworkResolver,
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation, &network, &subnet)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "a_project", project)
@@ -402,6 +497,8 @@ func TestPopulator_PopulateMissingParametersCreatesScratchBucketIfNotProvidedOnG
 	region := ""
 	scratchBucketGcsPath := ""
 	storageLocation := "US"
+	network := "original-network"
+	subnet := "original-subnet"
 
 	file := "gs://sourcebucket/sourcefile"
 	expectedBucketName := "new_scratch_bucket"
@@ -423,13 +520,14 @@ func TestPopulator_PopulateMissingParametersCreatesScratchBucketIfNotProvidedOnG
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockResourceLocationRetriever.EXPECT().GetZone(expectedRegion, project).Return(expectedZone, nil).Times(1)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
+		mockNetworkResolver,
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation, &network, &subnet)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "a_project", project)
@@ -445,6 +543,8 @@ func TestPopulator_PopulateMissingParametersPopulatesStorageLocationWithScratchB
 	region := "us-central1"
 	file := "gs://a_bucket/a_file"
 	storageLocation := ""
+	network := "original-network"
+	subnet := "original-subnet"
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -456,14 +556,21 @@ func TestPopulator_PopulateMissingParametersPopulatesStorageLocationWithScratchB
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: region}, nil)
 	mockResourceLocationRetriever.EXPECT().GetLargestStorageLocation(region).Return("US")
-
+	mockNetworkResolver := newNoOpNetworkResolver(mockCtrl)
 	err := NewPopulator(
+		mockNetworkResolver,
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
 		mockScratchBucketCreator,
-	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation)
+	).PopulateMissingParameters(&project, "gcloud", &zone, &region, &scratchBucketGcsPath, file, &storageLocation, &network, &subnet)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "US", storageLocation)
+}
+
+func newNoOpNetworkResolver(ctrl *gomock.Controller) NetworkResolver {
+	m := mocks.NewMockNetworkResolver(ctrl)
+	m.EXPECT().ResolveAndValidateNetworkAndSubnet(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	return m
 }

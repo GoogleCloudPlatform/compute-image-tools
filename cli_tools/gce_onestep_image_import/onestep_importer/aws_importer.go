@@ -26,13 +26,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
-	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -43,6 +36,14 @@ import (
 	"github.com/dustin/go-humanize"
 	"google.golang.org/api/option"
 	htransport "google.golang.org/api/transport/http"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
+	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 const (
@@ -93,6 +94,7 @@ func newAWSImporter(oauth string, timeoutChan chan struct{}, args *awsImportArgu
 
 	metadataGCE := &compute.MetadataGCE{}
 	paramPopulator := param.NewPopulator(
+		param.NewNetworkResolver(computeClient),
 		metadataGCE,
 		client,
 		storageutils.NewResourceLocationRetriever(metadataGCE, computeClient),

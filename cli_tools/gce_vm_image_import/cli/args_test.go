@@ -85,11 +85,11 @@ func Test_populateAndValidate_TrimsProject(t *testing.T) {
 }
 
 func Test_populateAndValidate_TrimsNetwork(t *testing.T) {
-	assert.Equal(t, "global/networks/id", parseAndPopulate(t, "-network", "  id  ").Network)
+	assert.Equal(t, "id", parseAndPopulate(t, "-network", "  id  ").Network)
 }
 
 func Test_populateAndValidate_TrimsSubnet(t *testing.T) {
-	assert.Equal(t, "regions/us-west2/subnetworks/sub-id", parseAndPopulate(t, "-subnet", "  sub-id  ").Subnet)
+	assert.Equal(t, "sub-id", parseAndPopulate(t, "-subnet", "  sub-id  ").Subnet)
 }
 
 func Test_populateAndValidate_TrimsAndLowerZone(t *testing.T) {
@@ -286,49 +286,18 @@ func Test_populateAndValidate_BackfillsRegionIfMissing(t *testing.T) {
 	assert.Equal(t, "us-west2", actual.Region)
 }
 
-func Test_populateAndValidate_HandlesNetworkAndSubnet(t *testing.T) {
-	tests := []struct {
-		name            string
-		args            []string
-		expectedNetwork string
-		expectedSubnet  string
-	}{
-		{
-			name:            "populate network as default when network and subnet empty",
-			expectedNetwork: "global/networks/default",
-		},
-		{
-			name:            "qualify network when specified",
-			args:            []string{"-network", "custom-network"},
-			expectedNetwork: "global/networks/custom-network",
-		},
-		{
-			name:           "don't populate empty network when subnet is specified",
-			args:           []string{"-subnet", "custom-subnet"},
-			expectedSubnet: "regions/us-west2/subnetworks/custom-subnet",
-		},
-		{
-			name:            "qualify network and subnet when both specified",
-			args:            []string{"-subnet", "custom-subnet", "-network", "custom-network"},
-			expectedNetwork: "global/networks/custom-network",
-			expectedSubnet:  "regions/us-west2/subnetworks/custom-subnet",
-		},
-		{
-			name: "keep pre-qualified URIs",
-			args: []string{
-				"-subnet", "regions/us-west2/subnetworks/pre-qual-subnet",
-				"-network", "global/networks/pre-qual-network"},
-			expectedNetwork: "global/networks/pre-qual-network",
-			expectedSubnet:  "regions/us-west2/subnetworks/pre-qual-subnet",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			actual := parseAndPopulate(t, tt.args...)
-			assert.Equal(t, tt.expectedNetwork, actual.Network)
-			assert.Equal(t, tt.expectedSubnet, actual.Subnet)
-		})
-	}
+func Test_populateAndValidate_UpdatesNetworkAndSubnet(t *testing.T) {
+	actual := addRequiredArgsAndParse(t, "-network=", "-subnet=")
+	err := actual.populateAndValidate(mockPopulator{
+		zone:    "us-west2-a",
+		region:  "us-west2",
+		network: "fixed-network",
+		subnet:  "fixed-subnet",
+	}, mockSourceFactory{})
+
+	assert.NoError(t, err)
+	assert.Equal(t, "fixed-network", actual.Network)
+	assert.Equal(t, "fixed-subnet", actual.Subnet)
 }
 
 func Test_populateAndValidate_CreatesSourceObjectFromSourceImage(t *testing.T) {
@@ -415,16 +384,20 @@ func Test_populateAndValidate_StandardizesScratchBucketPath(t *testing.T) {
 	}
 }
 
+// fields here will override what's passed to PopulateMissingParameters
 type mockPopulator struct {
 	project         string
 	zone            string
 	region          string
 	scratchBucket   string
 	storageLocation string
+	network         string
+	subnet          string
 	err             error
 }
 
-func (m mockPopulator) PopulateMissingParameters(project *string, client string, zone *string, region *string, scratchBucketGcsPath *string, file string, storageLocation *string) error {
+func (m mockPopulator) PopulateMissingParameters(project *string, client string, zone *string, region *string,
+	scratchBucketGcsPath *string, file string, storageLocation, network, subnet *string) error {
 	if m.err != nil {
 		return m.err
 	}
@@ -442,6 +415,12 @@ func (m mockPopulator) PopulateMissingParameters(project *string, client string,
 	}
 	if *storageLocation == "" {
 		*storageLocation = m.storageLocation
+	}
+	if *network == "" {
+		*network = m.network
+	}
+	if *subnet == "" {
+		*subnet = m.subnet
 	}
 	return nil
 }
