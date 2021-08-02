@@ -71,12 +71,13 @@ func (p *populator) PopulateMissingParameters(project *string, clientID string, 
 		}
 	}
 
+	if err := PopulateRegion(region, *zone); err != nil {
+		return err
+	}
+
 	if *network, *subnet, err = p.NetworkResolver.Resolve(*network, *subnet, *region, *project); err != nil {
 		return err
 	}
 
-	if err := PopulateRegion(region, *zone); err != nil {
-		return err
-	}
 	return nil
 }

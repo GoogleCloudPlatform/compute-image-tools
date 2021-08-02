@@ -64,8 +64,8 @@ func TestPopulator_PopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(
 func TestPopulator_PropagatesErrorFromNetworkResolver(t *testing.T) {
 	project := "a_project"
 	scratchBucketGcsPath := "gs://scratchbucket/scratchpath"
-	zone := "zone"
-	region := "region"
+	zone := "us-west2-a"
+	region := ""
 	file := "gs://a_bucket/a_file"
 	storageLocation := "US"
 	network := "original-network"
@@ -81,7 +81,7 @@ func TestPopulator_PropagatesErrorFromNetworkResolver(t *testing.T) {
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: "us-west2"}, nil).Times(1)
 	mockNetworkResolver := mocks.NewMockNetworkResolver(mockCtrl)
-	mockNetworkResolver.EXPECT().ResolveAndValidateNetworkAndSubnet("original-network", "original-subnet", "region", "a_project").Return("", "", daisy.Errf("network cannot be found"))
+	mockNetworkResolver.EXPECT().ResolveAndValidateNetworkAndSubnet("original-network", "original-subnet", "us-west2", "a_project").Return("", "", daisy.Errf("network cannot be found"))
 	err := NewPopulator(
 		mockNetworkResolver,
 		mockMetadataGce,
@@ -97,7 +97,7 @@ func TestPopulator_UsesReturnValuesFromNetworkResolver(t *testing.T) {
 	project := "a_project"
 	scratchBucketGcsPath := "gs://scratchbucket/scratchpath"
 	zone := "us-west2-a"
-	region := "region"
+	region := ""
 	file := "gs://a_bucket/a_file"
 	storageLocation := "US"
 	network := "original-network"
@@ -114,7 +114,7 @@ func TestPopulator_UsesReturnValuesFromNetworkResolver(t *testing.T) {
 	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: "us-west2"}, nil).Times(1)
 	mockNetworkResolver := mocks.NewMockNetworkResolver(mockCtrl)
 	mockNetworkResolver.EXPECT().ResolveAndValidateNetworkAndSubnet(
-		"original-network", "original-subnet", "region", "a_project").Return("fixed-network", "fixed-subnet", nil)
+		"original-network", "original-subnet", "us-west2", "a_project").Return("fixed-network", "fixed-subnet", nil)
 	err := NewPopulator(
 		mockNetworkResolver,
 		mockMetadataGce,
