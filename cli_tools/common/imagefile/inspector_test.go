@@ -20,7 +20,6 @@ import (
 	"io/ioutil"
 	"path"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -72,8 +71,7 @@ func TestGCSInspector_RoundBytesUp(t *testing.T) {
 				ActualSizeBytes:  tt.actualSizeBytes,
 				VirtualSizeBytes: tt.virtualSizeBytes,
 			})
-			ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(120*time.Millisecond))
-			defer cancel()
+			ctx := context.Background()
 			result, err := client.Inspect(ctx, gcsURI)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectedActualGB, result.PhysicalSizeGB)
@@ -82,30 +80,28 @@ func TestGCSInspector_RoundBytesUp(t *testing.T) {
 	}
 }
 
-func TestGCSInspector_StopMounting_IfContextCancelled(t *testing.T) {
-	gcsURI, client := setupClient(t, 1000, 0, ImageInfo{
+func TestGCSInspector_DontRetryMount_IfContextCancelled(t *testing.T) {
+	mountFailures := 1
+	gcsURI, client := setupClient(t, mountFailures, 0, ImageInfo{
 		Format:           "vmdk",
 		ActualSizeBytes:  1024,
 		VirtualSizeBytes: 1024,
 	})
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(120*time.Millisecond))
-	defer cancel()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
 	_, err := client.Inspect(ctx, gcsURI)
 	assert.EqualError(t, err, mountError)
 }
 
-func TestGCSInspector_StopInspecting_IfContextCancelled(t *testing.T) {
-	// We setup the mock client to fail 1000 times, but provide a short deadline of 120 milliseconds.
-	// The implementation uses 50ms delay between failures, so only a couple of failures
-	// will occur prior to the error being propagated.
-	inspectFailures := 1000
+func TestGCSInspector_DontRetryInspect_IfContextCancelled(t *testing.T) {
+	inspectFailures := 1
 	gcsURI, client := setupClient(t, 0, inspectFailures, ImageInfo{
 		Format:           "vmdk",
 		ActualSizeBytes:  1024,
 		VirtualSizeBytes: 1024,
 	})
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(120*time.Millisecond))
-	defer cancel()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
 	_, err := client.Inspect(ctx, gcsURI)
 	assert.EqualError(t, err, inspectionError)
 }
