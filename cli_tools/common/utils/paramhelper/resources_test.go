@@ -35,6 +35,12 @@ func TestTrimResourcePrefix(t *testing.T) {
 			input:    "https://compute.googleapis.com/compute/v1/rest",
 			expected: "rest",
 		}, {
+			input:    "https://www.googleapis.com/compute/v1/",
+			expected: "",
+		}, {
+			input:    "https://www.googleapis.com/compute/v1/rest",
+			expected: "rest",
+		}, {
 			input:    "//compute.googleapis.com/compute/",
 			expected: "",
 		}, {
