@@ -20,10 +20,13 @@ import (
 
 var (
 	// Resource names are allowed to start with URL-style prefixes:
-	//   https://cloud.google.com/apis/design/resource_names
+
 	resourcePrefixes = []string{
+		// Modern prefixes:  https://cloud.google.com/apis/design/resource_names
 		"https://compute.googleapis.com/compute/v1/",
 		"//compute.googleapis.com/compute/",
+		// Legacy apiary prefix
+		"https://www.googleapis.com/compute/v1/",
 	}
 )
 
