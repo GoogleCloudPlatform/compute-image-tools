@@ -19,6 +19,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 )
 
 func Test_DefaultProcessorProvider_SkipsPlanningForDataDisk(t *testing.T) {
@@ -45,6 +47,7 @@ func Test_DefaultProcessorProvider_IncludesMetadataStepWhenMetadataChangesRequir
 				translationWorkflowPath: opensuse15workflow,
 			},
 		},
+		logger: logging.NewToolLogger("test"),
 	}
 	processors, err := processorProvider.provide(persistentDisk{})
 	assert.NoError(t, err)
@@ -63,6 +66,7 @@ func Test_DefaultProcessorProvider_SkipsMetadataStepWhenNoChangesRequired(t *tes
 				translationWorkflowPath: opensuse15workflow,
 			},
 		},
+		logger: logging.NewToolLogger("test"),
 	}
 	processors, err := processorProvider.provide(persistentDisk{})
 	assert.NoError(t, err)
