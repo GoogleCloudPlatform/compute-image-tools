@@ -219,7 +219,7 @@ func stream(ctx context.Context, src *os.File, size int64, prefix, bkt, obj stri
 			return err
 		}
 
-		buf := storageutils.NewBufferedWriter(ctx, int64(bs), int64(*workers), gcsClient, *oauth, prefix, bkt, obj)
+		buf := storageutils.NewBufferedWriter(ctx, int64(bs), int64(*workers), gcsClient, *oauth, prefix, bkt, obj, "GCEExport")
 
 		fmt.Printf("GCEExport: Using %q as the buffer prefix, %s as the buffer size, and %d as the number of workers.\n", prefix, humanize.IBytes(bs), *workers)
 		return gzipDisk(src, size, buf)
