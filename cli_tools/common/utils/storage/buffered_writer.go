@@ -37,6 +37,10 @@ var gcsPermissionErrorRegExp = regexp.MustCompile(".*does not have storage.objec
 
 type gcsClient func(ctx context.Context, oauth string) (domain.StorageClientInterface, error)
 
+var exit = func(code int) {
+	os.Exit(code)
+}
+
 // BufferedWriter is responsible for multipart component upload while using a local buffer.
 type BufferedWriter struct {
 	// These fields are read only.
@@ -67,6 +71,8 @@ func NewBufferedWriter(ctx context.Context, size, workers int64, client gcsClien
 		cSize:  size / workers,
 		prefix: prefix,
 		id:     pathutils.RandString(5),
+
+		errLogPrefix: errLogPrefix,
 
 		upload: make(chan string),
 		bkt:    bkt,
@@ -117,15 +123,16 @@ func (b *BufferedWriter) uploadWorker() {
 			}()
 			if err != nil {
 				// Don't retry if permission error as it's not recoverable.
-				gAPIErr, isGAPIErr := err.(*googleapi.Error)
+ 				gAPIErr, isGAPIErr := err.(*googleapi.Error)
 				if isGAPIErr && gAPIErr.Code == 403 && gcsPermissionErrorRegExp.MatchString(gAPIErr.Message) {
-					fmt.Printf("%v: %v", b.errLogPrefix, err)
-					os.Exit(2)
+					fmt.Printf("%v: %v\n", b.errLogPrefix, err)
+					exit(2)
+					break
 				}
 
 				fmt.Printf("Failed %v time(s) to upload '%v', error: %v\n", i, in, err)
 				if i > 16 {
-					fmt.Printf("%v: %v", b.errLogPrefix, err)
+					fmt.Printf("%v: %v\n", b.errLogPrefix, err)
 					log.Fatal(err)
 				}
 

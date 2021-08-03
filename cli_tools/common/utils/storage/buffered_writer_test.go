@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 	"testing"
@@ -31,6 +30,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/api/googleapi"
 )
 
 var (
@@ -280,7 +280,7 @@ func TestCopyObjectWhenOneChunk(t *testing.T) {
 	defer mockCtrl.Finish()
 	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
 	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
-	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
+	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard, nil}).AnyTimes()
 
 	mockStorageObject.EXPECT().ObjectName().Return("").AnyTimes()
 	mockStorageObject.EXPECT().CopyFrom(gomock.Any()).Return(nil, nil).AnyTimes()
@@ -305,7 +305,7 @@ func TestCopyObjectWithMultipleIterations(t *testing.T) {
 	defer mockCtrl.Finish()
 	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
 	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
-	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
+	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard, nil}).AnyTimes()
 
 	mockStorageObject.EXPECT().ObjectName().Return("").Times(2)
 	mockStorageObject.EXPECT().Compose(gomock.Any()).Return(nil, nil).Times(2)
@@ -339,7 +339,7 @@ func TestErrorWhenCopyFails(t *testing.T) {
 	defer mockCtrl.Finish()
 	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
 	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
-	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
+	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard, nil}).AnyTimes()
 	mockStorageObject.EXPECT().ObjectName().Return("").AnyTimes()
 
 	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
@@ -371,7 +371,7 @@ func mockComposeWithErrorReturned(t *testing.T, errorMsg string) error {
 	defer mockCtrl.Finish()
 	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
 	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
-	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
+	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard, nil}).AnyTimes()
 
 	mockStorageObject.EXPECT().ObjectName().Return("").AnyTimes()
 	mockStorageObject.EXPECT().CopyFrom(gomock.Any()).Return(nil, nil).AnyTimes()
@@ -404,41 +404,66 @@ func mockComposeWithErrorReturned(t *testing.T, errorMsg string) error {
 func TestBufferedWriterGetPermissionErrorOutput(t *testing.T) {
 	resetArgs()
 	runTestAssertOutputContainsKeyword(func() {
-		mockNewBufferedWriter(t, "some account does not have storage.objects.get access to some object")
-	}, t, "GCxport")
+		mockNewBufferedWriterWithError(t, "some account does not have storage.objects.get access to some object")
+	}, t, "GCEExport")
 }
 
 func TestBufferedWriterCreatePermissionErrorOutput(t *testing.T) {
 	resetArgs()
 	runTestAssertOutputContainsKeyword(func() {
-		mockNewBufferedWriter(t, "some account does not have storage.objects.create access to some object")
+		mockNewBufferedWriterWithError(t, "some account does not have storage.objects.create access to some object")
 	}, t, "GCEExport")
 }
 
 func runTestAssertOutputContainsKeyword(f func(), t *testing.T, keyword string) {
-	var buf bytes.Buffer
-	log.SetOutput(&buf)
+	// Redirect output string to collect console output
+	rescueStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	// Run the function that we want to test
 	f()
-	log.SetOutput(os.Stderr)
-	output := buf.String()
-	assert.True(t, strings.Contains(output, keyword))
+
+	// Restore the original output
+	w.Close()
+	output, _ := ioutil.ReadAll(r)
+	os.Stdout = rescueStdout
+
+	assert.True(t, strings.Contains(string(output), keyword))
+
 }
 
-func mockNewBufferedWriter(t *testing.T, errorMsg string) {
+func mockNewBufferedWriterWithError(t *testing.T, errorMsg string) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
 	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
-	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
+	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard, &googleapi.Error{Code: 403, Message: errorMsg}}).AnyTimes()
 	mockStorageObject.EXPECT().ObjectName().Return("").AnyTimes()
 	mockStorageObject.EXPECT().CopyFrom(gomock.Any()).Return(nil, nil).AnyTimes()
+	mockStorageObject.EXPECT().Compose(gomock.Any()).Return(nil, nil).AnyTimes()
 
 	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().Close().Return(nil).AnyTimes()
 	mockStorageClient.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return(mockStorageObject).AnyTimes()
 
 	ctx := context.Background()
-	NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj, "GCEExport")
+	data := []byte("This is a sample data to write")
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj, "GCEExport")
+
+	var err error
+	for i := 0; i < 33; i++ {
+		_, err = buf.Write(data)
+		assert.Nil(t, err)
+		err = buf.flush()
+		assert.Nil(t, err)
+		err = buf.newChunk()
+		assert.Nil(t, err)
+	}
+	time.Sleep(time.Second * 2)
+	assert.Len(t, buf.tmpObjs, 33)
+
+	err = buf.Close()
 }
 
 func TestClientErrorWhenUploadFailed(t *testing.T) {
@@ -465,6 +490,9 @@ func resetArgs() {
 	obj = "obj"
 	oauth = ""
 	errClient = fmt.Errorf("Cannot create client")
+	exit = func(code int) {
+		fmt.Println("exit with code ", code)
+	}
 }
 
 func mockGcsClientError(ctx context.Context, oauth string) (domain.StorageClientInterface, error) {
@@ -477,8 +505,9 @@ func mockGcsClient(ctx context.Context, oauth string) (domain.StorageClientInter
 
 type testWriteCloser struct {
 	io.Writer
+	returnedError error
 }
 
-func (testWriteCloser) Close() error {
-	return nil
+func (w testWriteCloser) Close() error {
+	return w.returnedError
 }
