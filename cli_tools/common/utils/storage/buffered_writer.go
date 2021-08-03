@@ -123,7 +123,7 @@ func (b *BufferedWriter) uploadWorker() {
 			}()
 			if err != nil {
 				// Don't retry if permission error as it's not recoverable.
- 				gAPIErr, isGAPIErr := err.(*googleapi.Error)
+				gAPIErr, isGAPIErr := err.(*googleapi.Error)
 				if isGAPIErr && gAPIErr.Code == 403 && gcsPermissionErrorRegExp.MatchString(gAPIErr.Message) {
 					fmt.Printf("%v: %v\n", b.errLogPrefix, err)
 					exit(2)

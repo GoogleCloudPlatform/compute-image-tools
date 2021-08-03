@@ -361,12 +361,6 @@ func TestErrorWhenCopyFails(t *testing.T) {
 
 func TestErrorWhenComposeFails(t *testing.T) {
 	resetArgs()
-	err := mockComposeWithErrorReturned(t, "Fail to compose")
-	assert.NotNil(t, err)
-	assert.Equal(t, "Fail to compose", err.Error())
-}
-
-func mockComposeWithErrorReturned(t *testing.T, errorMsg string) error {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
@@ -395,10 +389,11 @@ func mockComposeWithErrorReturned(t *testing.T, errorMsg string) error {
 	time.Sleep(time.Second * 2)
 	assert.Len(t, buf.tmpObjs, 33)
 
-	mockStorageObject.EXPECT().Compose(gomock.Any()).Return(nil, fmt.Errorf(errorMsg)).AnyTimes()
+	mockStorageObject.EXPECT().Compose(gomock.Any()).Return(nil, fmt.Errorf("Fail to compose")).AnyTimes()
 
 	err = buf.Close()
-	return err
+	assert.NotNil(t, err)
+	assert.Equal(t, "Fail to compose", err.Error())
 }
 
 func TestBufferedWriterGetPermissionErrorOutput(t *testing.T) {
