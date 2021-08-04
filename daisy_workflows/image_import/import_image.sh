@@ -239,7 +239,8 @@ ensureCapacityOfDisk "${DISKNAME}" "${SIZE_GB}" "${ZONE}" /dev/sdc
 #  Args:
 #    -O raw, decode the image to raw bytes.
 #    -n, don't create a target volume (this is used for output formats other than RAW).
-#    --target-is-zero, don't re-zero the destination PD.
+#    --target-is-zero, don't re-zero the destination PD, since new PDs are blank:
+#        https://cloud.google.com/compute/docs/disks/add-persistent-disk
 #    -p, print progress.
 #    -S 512b, require 512 bytes before creating sparse images.
 if ! out=$(qemu-img convert -O raw -n --target-is-zero -S 512b "${IMAGE_PATH}" /dev/sdc 2>&1); then
