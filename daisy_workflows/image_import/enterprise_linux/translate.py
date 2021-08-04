@@ -127,6 +127,13 @@ def yum_is_on_path(spec: TranslateSpec) -> bool:
   return p.code == 0
 
 
+def package_is_installed(spec: TranslateSpec, package: str) -> bool:
+  """Check whether package is installed."""
+  p = run(spec.g, ['rpm', '-q', package], raiseOnError=False)
+  logging.debug('rpm -q: {}'.format(p))
+  return p.code == 0
+
+
 def check_yum_on_path(spec: TranslateSpec) -> str:
   """Check whether the `yum` command is available.
 
@@ -149,6 +156,20 @@ def check_rhel_license(spec: TranslateSpec) -> str:
   if p.code != 0:
     return 'subscription-manager did not find an active subscription. ' \
            'Omit `-byol` to register with on-demand licensing.'
+
+
+def reset_network_for_dhcp(spec: TranslateSpec):
+  logging.info('Resetting network to DHCP for eth0.')
+  spec.g.write('/etc/sysconfig/network-scripts/ifcfg-eth0', ifcfg_eth0)
+  # Remove NetworkManager-config-server if it's present. The package configures
+  # NetworkManager to *not* use DHCP.
+  #  https://access.redhat.com/solutions/894763
+  pkg = 'NetworkManager-config-server'
+  if package_is_installed(spec, pkg):
+    if yum_is_on_path(spec):
+      run(spec.g, ['yum', 'remove', '-y', pkg])
+    else:
+      run(spec.g, ['rpm', '--erase', pkg])
 
 
 # If translate fails, these functions are executed in order to generate
@@ -290,14 +311,7 @@ def DistroSpecific(spec: TranslateSpec):
     g.write('/etc/default/grub', grub2_cfg)
     run(g, ['grub2-mkconfig', '-o', '/boot/grub2/grub.cfg'])
 
-  # Reset network for DHCP.
-  logging.info('Resetting network to DHCP for eth0.')
-  # Remove NetworkManager-config-server if it's present. The package configures
-  # NetworkManager to *not* use DHCP.
-  #  https://access.redhat.com/solutions/894763
-  if yum_is_on_path(spec):
-    run(g, ['yum', 'remove', '-y', 'NetworkManager-config-server'])
-  g.write('/etc/sysconfig/network-scripts/ifcfg-eth0', ifcfg_eth0)
+  reset_network_for_dhcp(spec)
 
 
 def yum_install(g, *packages):
