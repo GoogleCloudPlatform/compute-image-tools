@@ -237,11 +237,11 @@ ensureCapacityOfDisk "${DISKNAME}" "${SIZE_GB}" "${ZONE}" /dev/sdc
 # /dev/sdc is used since it's the third disk that's attached in inflate_file.wf.json.
 #
 #  Args:
-#    -O raw, Decode the image to raw bytes.
-#    -n, Don't create a target volume (this is used for output formats other than RAW).
-#    --target-is-zero, Don't re-zero the destination PD.
-#    -p, Print progress.
-#    -S 512b,
+#    -O raw, decode the image to raw bytes.
+#    -n, don't create a target volume (this is used for output formats other than RAW).
+#    --target-is-zero, don't re-zero the destination PD.
+#    -p, print progress.
+#    -S 512b, require 512 bytes before creating sparse images.
 if ! out=$(qemu-img convert -O raw -n --target-is-zero -S 512b "${IMAGE_PATH}" /dev/sdc 2>&1); then
   if [[ "${IMAGE_PATH}" =~ \.vmdk$ ]]; then
     if file "${IMAGE_PATH}" | grep -qiP ascii; then
