@@ -235,7 +235,14 @@ ensureCapacityOfDisk "${DISKNAME}" "${SIZE_GB}" "${ZONE}" /dev/sdc
 
 # Convert the image and write it to the disk referenced by $DISKNAME.
 # /dev/sdc is used since it's the third disk that's attached in inflate_file.wf.json.
-if ! out=$(qemu-img convert -O raw -n --target-is-zero -p "${IMAGE_PATH}" /dev/sdc 2>&1); then
+#
+#  Args:
+#    -O raw, Decode the image to raw bytes.
+#    -n, Don't create a target volume (this is used for output formats other than RAW).
+#    --target-is-zero, Don't re-zero the destination PD.
+#    -p, Print progress.
+#    -S 512b,
+if ! out=$(qemu-img convert -O raw -n --target-is-zero -S 512b "${IMAGE_PATH}" /dev/sdc 2>&1); then
   if [[ "${IMAGE_PATH}" =~ \.vmdk$ ]]; then
     if file "${IMAGE_PATH}" | grep -qiP ascii; then
       hint="When importing a VMDK disk image, ensure that you specify the VMDK disk "
