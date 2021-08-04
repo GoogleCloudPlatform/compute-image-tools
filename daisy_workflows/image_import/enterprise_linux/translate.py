@@ -120,21 +120,26 @@ def check_repos(spec: TranslateSpec) -> str:
     return 'Ensure all configured repos are reachable.'
 
 
+def yum_is_on_path(spec: TranslateSpec) -> bool:
+  """Check whether the `yum` command is available."""
+  p = run(spec.g, 'yum --version', raiseOnError=False)
+  logging.debug('yum --version: {}'.format(p))
+  return p.code == 0
+
+
 def check_yum_on_path(spec: TranslateSpec) -> str:
   """Check whether the `yum` command is available.
 
-  If `yum` isn't found, errs is updated.
+  If not, an error message is returned.
   """
-  p = run(spec.g, 'yum --version', raiseOnError=False)
-  logging.debug('yum --version: {}'.format(p))
-  if p.code != 0:
+  if not yum_is_on_path(spec):
     return 'Verify the disk\'s OS: `yum` not found.'
 
 
 def check_rhel_license(spec: TranslateSpec) -> str:
   """Check for an active RHEL license.
 
-  If a license isn't found, errs is updated.
+  If a license isn't found, an error message is returned.
   """
   if spec.distro != Distro.RHEL or spec.use_rhel_gce_license:
     return ''
@@ -177,7 +182,8 @@ def DistroSpecific(spec: TranslateSpec):
       yum_install(g, 'google-rhui-client-rhel' + el_release)
 
   # Historically, translations have failed for corrupt dbcache and rpmdb.
-  run(g, 'yum clean -y all')
+  if yum_is_on_path(spec):
+    run(g, 'yum clean -y all')
 
   if spec.install_gce:
     logging.info('Installing GCE packages.')
@@ -289,7 +295,8 @@ def DistroSpecific(spec: TranslateSpec):
   # Remove NetworkManager-config-server if it's present. The package configures
   # NetworkManager to *not* use DHCP.
   #  https://access.redhat.com/solutions/894763
-  run(g, ['yum', 'remove', '-y', 'NetworkManager-config-server'])
+  if yum_is_on_path(spec):
+    run(g, ['yum', 'remove', '-y', 'NetworkManager-config-server'])
   g.write('/etc/sysconfig/network-scripts/ifcfg-eth0', ifcfg_eth0)
 
 
