@@ -235,7 +235,15 @@ ensureCapacityOfDisk "${DISKNAME}" "${SIZE_GB}" "${ZONE}" /dev/sdc
 
 # Convert the image and write it to the disk referenced by $DISKNAME.
 # /dev/sdc is used since it's the third disk that's attached in inflate_file.wf.json.
-if ! out=$(qemu-img convert "${IMAGE_PATH}" -p -O raw -S 512b /dev/sdc 2>&1); then
+#
+#  Args:
+#    -O raw, decode the image to raw bytes.
+#    -n, don't create a target volume (this is used for output formats other than RAW).
+#    --target-is-zero, don't re-zero the destination PD, since new PDs are blank:
+#        https://cloud.google.com/compute/docs/disks/add-persistent-disk
+#    -p, print progress.
+#    -S 512b, require 512 bytes before creating sparse images.
+if ! out=$(qemu-img convert -O raw -n --target-is-zero -S 512b "${IMAGE_PATH}" /dev/sdc 2>&1); then
   if [[ "${IMAGE_PATH}" =~ \.vmdk$ ]]; then
     if file "${IMAGE_PATH}" | grep -qiP ascii; then
       hint="When importing a VMDK disk image, ensure that you specify the VMDK disk "
