@@ -114,13 +114,13 @@ func Test_ValidateAndParseParams_Fail_WhenZoneFailsValidation(t *testing.T) {
 }
 
 func Test_ValidateAndParseParams_GenerateBucketName_WhenNotProvided(t *testing.T) {
-	projectName := "test-google"
+	projectName := "google.com:test-project"
 	params := getAllInstanceImportParams()
 	params.Region = "us-west2"
 	params.Zone = "us-west2-a"
 	params.ScratchBucketGcsPath = ""
 	params.Project = &projectName
-	expectedBucketName := "test-elgoog-ovf-import-bkt-us-west2"
+	expectedBucketName := "elgoog_com-test-project-ovf-import-bkt-us-west2"
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
