@@ -225,7 +225,7 @@ func (p *ParamValidatorAndPopulator) createScratchBucketIfMissing(originalBucket
 	if originalBucket != "" {
 		scratchBucket = originalBucket
 	} else {
-		safeProjectName := strings.Replace(project, "google", "elgoog", -1)
+		safeProjectName := strings.Replace(project, "google.com", "elgoog_com", -1)
 		safeProjectName = strings.Replace(safeProjectName, ":", "-", -1)
 		if strings.HasPrefix(safeProjectName, "goog") {
 			safeProjectName = strings.Replace(safeProjectName, "goog", "ggoo", 1)
