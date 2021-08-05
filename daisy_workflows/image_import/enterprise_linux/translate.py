@@ -120,21 +120,33 @@ def check_repos(spec: TranslateSpec) -> str:
     return 'Ensure all configured repos are reachable.'
 
 
+def yum_is_on_path(spec: TranslateSpec) -> bool:
+  """Check whether the `yum` command is available."""
+  p = run(spec.g, 'yum --version', raiseOnError=False)
+  logging.debug('yum --version: {}'.format(p))
+  return p.code == 0
+
+
+def package_is_installed(spec: TranslateSpec, package: str) -> bool:
+  """Check whether package is installed."""
+  p = run(spec.g, ['rpm', '-q', package], raiseOnError=False)
+  logging.debug('rpm -q: {}'.format(p))
+  return p.code == 0
+
+
 def check_yum_on_path(spec: TranslateSpec) -> str:
   """Check whether the `yum` command is available.
 
-  If `yum` isn't found, errs is updated.
+  If not, an error message is returned.
   """
-  p = run(spec.g, 'yum --version', raiseOnError=False)
-  logging.debug('yum --version: {}'.format(p))
-  if p.code != 0:
+  if not yum_is_on_path(spec):
     return 'Verify the disk\'s OS: `yum` not found.'
 
 
 def check_rhel_license(spec: TranslateSpec) -> str:
   """Check for an active RHEL license.
 
-  If a license isn't found, errs is updated.
+  If a license isn't found, an error message is returned.
   """
   if spec.distro != Distro.RHEL or spec.use_rhel_gce_license:
     return ''
@@ -144,6 +156,20 @@ def check_rhel_license(spec: TranslateSpec) -> str:
   if p.code != 0:
     return 'subscription-manager did not find an active subscription. ' \
            'Omit `-byol` to register with on-demand licensing.'
+
+
+def reset_network_for_dhcp(spec: TranslateSpec):
+  logging.info('Resetting network to DHCP for eth0.')
+  spec.g.write('/etc/sysconfig/network-scripts/ifcfg-eth0', ifcfg_eth0)
+  # Remove NetworkManager-config-server if it's present. The package configures
+  # NetworkManager to *not* use DHCP.
+  #  https://access.redhat.com/solutions/894763
+  pkg = 'NetworkManager-config-server'
+  if package_is_installed(spec, pkg):
+    if yum_is_on_path(spec):
+      run(spec.g, ['yum', 'remove', '-y', pkg])
+    else:
+      run(spec.g, ['rpm', '--erase', pkg])
 
 
 # If translate fails, these functions are executed in order to generate
@@ -177,7 +203,8 @@ def DistroSpecific(spec: TranslateSpec):
       yum_install(g, 'google-rhui-client-rhel' + el_release)
 
   # Historically, translations have failed for corrupt dbcache and rpmdb.
-  run(g, 'yum clean -y all')
+  if yum_is_on_path(spec):
+    run(g, 'yum clean -y all')
 
   if spec.install_gce:
     logging.info('Installing GCE packages.')
@@ -284,13 +311,7 @@ def DistroSpecific(spec: TranslateSpec):
     g.write('/etc/default/grub', grub2_cfg)
     run(g, ['grub2-mkconfig', '-o', '/boot/grub2/grub.cfg'])
 
-  # Reset network for DHCP.
-  logging.info('Resetting network to DHCP for eth0.')
-  # Remove NetworkManager-config-server if it's present. The package configures
-  # NetworkManager to *not* use DHCP.
-  #  https://access.redhat.com/solutions/894763
-  run(g, ['yum', 'remove', '-y', 'NetworkManager-config-server'])
-  g.write('/etc/sysconfig/network-scripts/ifcfg-eth0', ifcfg_eth0)
+  reset_network_for_dhcp(spec)
 
 
 def yum_install(g, *packages):
