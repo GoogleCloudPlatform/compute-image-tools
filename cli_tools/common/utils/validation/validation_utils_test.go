@@ -126,6 +126,7 @@ func TestValidateProjectID_ExpectValid(t *testing.T) {
 		"dashes-allowed-inside",
 		"ending-numbers-allowed-1",
 		"a1-inside-numbers-allowed",
+		"google.com:test-project",
 		"o-----equal-to-max-30--------o",
 	} {
 		t.Run(projectID, func(t *testing.T) {
@@ -141,6 +142,7 @@ func TestValidateProjectID_ExpectInvalid(t *testing.T) {
 		"no-ending-dash-",
 		"1-no-leading-numbers",
 		"DontAllowCaps",
+		"joonix.com:test-project",
 		"o-----longer-than-max-30------o",
 	} {
 		t.Run(projectID, func(t *testing.T) {
