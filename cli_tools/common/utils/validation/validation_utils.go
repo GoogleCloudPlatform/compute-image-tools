@@ -34,7 +34,7 @@ const (
 	// lowercase letters,  digits, or hyphens. It must start with a letter.
 	// Trailing hyphens are prohibited."
 	// -- https://cloud.google.com/resource-manager/reference/rest/v1/projects
-	projectIDStr = "^[a-z][-a-z0-9]{4,28}[a-z0-9]$" //
+	projectIDStr = "^(google\\.com\\:)?[a-z][-a-z0-9]{4,28}[a-z0-9]$" //
 )
 
 var (
