@@ -49,11 +49,11 @@ Exactly one of these must be specified:
 + `-disable_gcs_logging` Do not stream logs to GCS
 + `-disable_cloud_logging` Do not stream logs to Cloud Logging
 + `-disable_stdout_logging` Do not display individual workflow logs on stdout
-+ `-kms-key=KMS_KEY_ID` ID of the key or fully qualified identifier for the key. This flag
++ `-kms_key=KMS_KEY_ID` ID of the key or fully qualified identifier for the key. This flag
   must be specified if any of the other arguments below are specified.
-+ `-kms-keyring=KMS_KEYRING` The KMS keyring of the key.
-+ `-kms-location=KMS_LOCATION` The Cloud location for the key.
-+ `-kms-project=KMS_PROJECT` The Cloud project for the key
++ `-kms_keyring=KMS_KEYRING` The KMS keyring of the key.
++ `-kms_location=KMS_LOCATION` The Cloud location for the key.
++ `-kms_project=KMS_PROJECT` The Cloud project for the key
 + `-no_external_ip` Temporary VMs are created in your project during image import. 
   Set this flag so that these temporary VMs are not assigned external IP addresses. 
   For more information, see: https://cloud.google.com/compute/docs/import/importing-virtual-disks#no-external-ip
@@ -84,14 +84,14 @@ Exactly one of these must be specified:
 ### Usage
 
 ```
-gce_vm_image_import -image_name=IMAGE_NAME [-client_id=CLIENT_ID] [--data-disk | --byol --os=OS]
-        (-source-file=SOURCE_FILE | -source-image=SOURCE_IMAGE) [-no-guest-environment] 
+gce_vm_image_import -image_name=IMAGE_NAME [-client_id=CLIENT_ID] [-data_disk | -byol -os=OS]
+        (-source_file=SOURCE_FILE | -source_image=SOURCE_IMAGE) [-no_guest_environment] 
         [-family=FAMILY] [-description=DESCRIPTION] [-network=NETWORK] [-subnet=SUBNET]
         [-zone=ZONE] [-timeout=TIMEOUT] [-project=PROJECT] [-scratch_bucket_gcs_path=PATH]
         [-oauth=OAUTH_PATH] [-compute_endpoint_override=ENDPOINT] [-disable_gcs_logging]
         [-disable_cloud_logging] [-disable_stdout_logging]
-        [-kms-key=KMS_KEY -kms-keyring=KMS_KEYRING -kms-location=KMS_LOCATION
-        -kms-project=KMS_PROJECT] [-no_external_ip] [-labels=KEY=VALUE,...] 
+        [-kms_key=KMS_KEY -kms_keyring=KMS_KEYRING -kms_location=KMS_LOCATION
+        -kms_project=KMS_PROJECT] [-no_external_ip] [-labels=KEY=VALUE,...] 
         [-storage_location=STORAGE_LOCATION]
         [-compute_service_account=COMPUTE_SERVICE_ACCOUNT] 
         [-uefi_compatible] [-sysprep_windows]
