@@ -35,7 +35,11 @@ type DaisyWorker interface {
 // designed to be run once and discarded. In other words, don't run RunAndReadSerialValue
 // twice on the same instance.
 func NewDaisyWorker(wf *daisy.Workflow, env EnvironmentSettings, logger logging.Logger) DaisyWorker {
-	return &defaultDaisyWorker{wf, env, logger}
+	worker := &defaultDaisyWorker{wf, env, logger}
+	worker.env.ApplyToWorkflow(worker.wf)
+	worker.env.ApplyWorkerCustomizations(worker.wf)
+	daisy_utils.UpdateAllInstanceNoExternalIP(worker.wf, worker.env.NoExternalIP)
+	return worker
 }
 
 type defaultDaisyWorker struct {
@@ -44,15 +48,13 @@ type defaultDaisyWorker struct {
 	logger logging.Logger
 }
 
-// runAndReadSerialValue runs the daisy workflow with the supplied vars, and returns the serial
+// RunAndReadSerialValue runs the daisy workflow with the supplied vars, and returns the serial
 // output value associated with the supplied key.
 func (w *defaultDaisyWorker) RunAndReadSerialValue(key string, vars map[string]string) (string, error) {
-	w.env.ApplyToWorkflow(w.wf)
-	w.env.ApplyWorkerCustomizations(w.wf)
 	for k, v := range vars {
 		w.wf.AddVar(k, v)
 	}
-	err := w.wf.RunWithModifiers(context.Background(), w.preValidateFunction, w.postValidateFunction)
+	err := w.wf.Run(context.Background())
 	if w.wf.Logger != nil {
 		for _, trace := range w.wf.Logger.ReadSerialPortLogs() {
 			w.logger.Trace(trace)
@@ -72,12 +74,4 @@ func (w *defaultDaisyWorker) Cancel(reason string) bool {
 
 	//indicate cancel was not performed
 	return false
-}
-
-func (w *defaultDaisyWorker) preValidateFunction(wf *daisy.Workflow) {
-	// no-op
-}
-
-func (w *defaultDaisyWorker) postValidateFunction(wf *daisy.Workflow) {
-	daisy_utils.UpdateAllInstanceNoExternalIP(wf, w.env.NoExternalIP)
 }

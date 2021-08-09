@@ -21,6 +21,8 @@ import (
 	"strconv"
 	"strings"
 
+	"google.golang.org/api/compute/v1"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
@@ -29,7 +31,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"google.golang.org/api/compute/v1"
 )
 
 type instanceDisksExporterImpl struct {
@@ -59,10 +60,9 @@ func (ide *instanceDisksExporterImpl) Export(instance *compute.Instance, params 
 	if ide.wfPreRunCallback != nil {
 		ide.wfPreRunCallback(ide.wf)
 	}
-	// have to use post-validate modifiers due to the use of included workflows
-	err = ide.wf.RunWithModifiers(context.Background(), nil, func(w *daisy.Workflow) {
-		postValidateWorkflowModifier(w, params)
-	})
+	daisyutils.UpdateAllInstanceNoExternalIP(ide.wf, params.NoExternalIP)
+	labelResources(ide.wf, params)
+	err = ide.wf.Run(context.Background())
 	if ide.wf.Logger != nil {
 		for _, trace := range ide.wf.Logger.ReadSerialPortLogs() {
 			ide.logger.Trace(trace)
@@ -155,9 +155,15 @@ func (ide *instanceDisksExporterImpl) addExportDisksSteps(w *daisy.Workflow, ins
 		if params.ComputeServiceAccount != "" {
 			varMap["compute_service_account"] = params.ComputeServiceAccount
 		}
+		p := path.Join(params.WorkflowDir, "/export/disk_export_ext.wf.json")
 		exportDiskStep.IncludeWorkflow = &daisy.IncludeWorkflow{
-			Path: path.Join(params.WorkflowDir, "/export/disk_export_ext.wf.json"),
+			Path: p,
 			Vars: varMap,
+		}
+		var err daisy.DError
+		exportDiskStep.IncludeWorkflow.Workflow, err = w.NewIncludedWorkflowFromFile(p)
+		if err != nil {
+			return nil, err
 		}
 		w.Steps[exportDiskStepName] = exportDiskStep
 	}

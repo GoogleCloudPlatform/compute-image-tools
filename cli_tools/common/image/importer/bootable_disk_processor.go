@@ -38,7 +38,7 @@ func (b *bootableDiskProcessor) process(pd persistentDisk) (persistentDisk, erro
 	b.logger.User("Making disk bootable on Google Compute Engine")
 	b.workflow.AddVar("source_disk", pd.uri)
 	var err error
-	err = b.workflow.RunWithModifiers(context.Background(), nil, nil)
+	err = b.workflow.Run(context.Background())
 	if err != nil {
 		b.logger.User("Finished making disk bootable")
 		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.request.Network, b.workflow)
