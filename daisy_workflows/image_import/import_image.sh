@@ -254,8 +254,8 @@ if ! out=$(qemu-img convert "${IMAGE_PATH}" -p -O raw -S 512b /dev/sdc 2>&1); th
 fi
 echo "${out}"
 
-diskChecksum
-
 sync
+
+diskChecksum
 
 echo "ImportSuccess: Finished import." 2> /dev/null
