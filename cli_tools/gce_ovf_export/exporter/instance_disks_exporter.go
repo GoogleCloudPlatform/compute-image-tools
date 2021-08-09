@@ -155,19 +155,30 @@ func (ide *instanceDisksExporterImpl) addExportDisksSteps(w *daisy.Workflow, ins
 		if params.ComputeServiceAccount != "" {
 			varMap["compute_service_account"] = params.ComputeServiceAccount
 		}
-		p := path.Join(params.WorkflowDir, "/export/disk_export_ext.wf.json")
-		exportDiskStep.IncludeWorkflow = &daisy.IncludeWorkflow{
-			Path: p,
-			Vars: varMap,
-		}
 		var err daisy.DError
-		exportDiskStep.IncludeWorkflow.Workflow, err = w.NewIncludedWorkflowFromFile(p)
+		exportDiskStep.IncludeWorkflow, err = instantiateIncludedWorkflow(w, path.Join(params.WorkflowDir, "/export/disk_export_ext.wf.json"), varMap)
 		if err != nil {
 			return nil, err
 		}
 		w.Steps[exportDiskStepName] = exportDiskStep
 	}
 	return exportedDisks, nil
+}
+
+// instantiateIncludedWorkflow creates an included workflow from the JSON file includedWorkflowPath,
+// using the workflow w as its parent, and applying varMap as the variables.
+func instantiateIncludedWorkflow(w *daisy.Workflow, includedWorkflowPath string,
+	varMap map[string]string) (*daisy.IncludeWorkflow, daisy.DError) {
+	iw := &daisy.IncludeWorkflow{
+		Path: includedWorkflowPath,
+		Vars: varMap,
+	}
+	var err daisy.DError
+	iw.Workflow, err = w.NewIncludedWorkflowFromFile(includedWorkflowPath)
+	if err != nil {
+		return nil, err
+	}
+	return iw, nil
 }
 
 func (ide *instanceDisksExporterImpl) Cancel(reason string) bool {
