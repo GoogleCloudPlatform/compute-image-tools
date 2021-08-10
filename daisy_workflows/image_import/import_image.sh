@@ -258,4 +258,4 @@ sync
 
 diskChecksum
 
-echo "ImportSuccess: Finished import." 2> /dev/null
+echo "ImportSuccess: Finished import."
