@@ -63,13 +63,6 @@ type Disk struct {
 	compute.Disk
 	Resource
 
-	// If this is enabled, then WINDOWS will be added to the
-	// disk's guestOsFeatures. This is a string since daisy
-	// replaces variables after JSON has been parsed.
-	// (If it were boolean, the JSON marshaller throws
-	// an error when it sees something like `${is_windows}`)
-	IsWindows string `json:"isWindows,omitempty"`
-
 	// Size of this disk.
 	SizeGb string `json:"sizeGb,omitempty"`
 
@@ -93,16 +86,6 @@ func (d *Disk) populate(ctx context.Context, s *Step) DError {
 			errs = addErrs(errs, Errf("cannot parse SizeGb: %s, err: %v", d.SizeGb, err))
 		}
 		d.Disk.SizeGb = size
-	}
-
-	if d.IsWindows != "" {
-		isWindows, err := strconv.ParseBool(d.IsWindows)
-		if err != nil {
-			errs = addErrs(errs, Errf("cannot parse IsWindows as boolean: %s, err: %v", d.IsWindows, err))
-		}
-		if isWindows {
-			d.GuestOsFeatures = CombineGuestOSFeatures(d.GuestOsFeatures, "WINDOWS")
-		}
 	}
 
 	if imageURLRgx.MatchString(d.SourceImage) {
