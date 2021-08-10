@@ -79,6 +79,7 @@ func main() {
 			SourceImage:           *sourceImage,
 			Format:                *format,
 			ComputeServiceAccount: *computeServiceAccount,
+			SourceDiskSnapshot:    *sourceDiskSnapshot,
 		},
 	}
 
