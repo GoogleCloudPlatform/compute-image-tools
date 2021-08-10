@@ -35,10 +35,6 @@
       "Value": "",
       "Description": "SubNetwork to use for the import instance"
     },
-    "is_windows": {
-      "Value": "false",
-      "Description": "If enabled, WINDOWS will be added to GuestOsFeatures for the disk."
-    },
     "sysprep_windows": {
       "Value": "false",
       "Description": "If enabled, run sysprep. This is a no-op for Linux."
@@ -53,7 +49,6 @@
           "disk_name": "${translation-disk-name}",
           "import_network": "${import_network}",
           "import_subnet": "${import_subnet}",
-          "is_windows": "${is_windows}",
           "import_license": "projects/compute-image-tools/global/licenses/virtual-disk-import"
         }
       }

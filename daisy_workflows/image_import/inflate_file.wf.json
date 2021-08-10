@@ -31,10 +31,6 @@
       "Value": "",
       "Description": "SubNetwork to use for the import instance"
     },
-    "is_windows": {
-      "Value": "false",
-      "Description": "If enabled, WINDOWS will be added to GuestOsFeatures for the disk."
-    },
     "import_license": {
       "Value": "projects/compute-image-tools/global/licenses/virtual-disk-import",
       "Description": "Import License used for tracking migration workflow use."
@@ -64,7 +60,6 @@
           "Type": "pd-ssd",
           "ExactName": true,
           "NoCleanup": true,
-          "isWindows": "${is_windows}",
           "FallbackToPdStandard": true,
           "Licenses": ["${import_license}"]
         },
