@@ -150,16 +150,16 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 
 				return Errf("WaitForInstancesSignal: instance %q: error getting serial port: %v", name, err)
 			}
-
 			start = resp.Next
 			lines := strings.Split(resp.Contents, "\n")
 			for i, ln := range lines {
-				// First line combine with tail string
+				// If there is a unconsumed tail string from the previous block of content, concat it with the 1st line of the new block of content.
 				if i == 0 && tailString != "" {
 					ln = tailString + ln
 					tailString = ""
 				}
-				// Last line hold
+
+				// If the content is not ended with a "\n", we want to store the last line as tail string, so it can be concat with the next block of content.
 				if i == len(lines)-1 && ln != "" {
 					tailString = lines[len(lines)-1]
 					break
@@ -187,7 +187,6 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 					}
 				}
 			}
-
 			errs = 0
 		}
 	}
