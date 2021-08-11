@@ -265,27 +265,13 @@ func (w *Workflow) Validate(ctx context.Context) DError {
 type WorkflowModifier func(*Workflow)
 
 // Run runs a workflow.
-func (w *Workflow) Run(ctx context.Context) error {
-	return w.RunWithModifiers(ctx, nil, nil)
-}
-
-// RunWithModifiers runs a workflow with the ability to modify it before and/or after validation.
-func (w *Workflow) RunWithModifiers(
-	ctx context.Context,
-	preValidateWorkflowModifier WorkflowModifier,
-	postValidateWorkflowModifier WorkflowModifier) (err DError) {
+func (w *Workflow) Run(ctx context.Context) (err DError) {
 
 	w.externalLogging = true
-	if preValidateWorkflowModifier != nil {
-		preValidateWorkflowModifier(w)
-	}
 	if err = w.Validate(ctx); err != nil {
 		return err
 	}
 
-	if postValidateWorkflowModifier != nil {
-		postValidateWorkflowModifier(w)
-	}
 	defer w.cleanup()
 	defer func() {
 		if err != nil {
@@ -293,6 +279,9 @@ func (w *Workflow) RunWithModifiers(
 		}
 	}()
 
+	if os.Getenv("BUILD_ID") != "" {
+		w.LogWorkflowInfo("Cloud Build ID: %s", os.Getenv("BUILD_ID"))
+	}
 	w.LogWorkflowInfo("Workflow Project: %s", w.Project)
 	w.LogWorkflowInfo("Workflow Zone: %s", w.Zone)
 	w.LogWorkflowInfo("Workflow GCSPath: %s", w.GCSPath)

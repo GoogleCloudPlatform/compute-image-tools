@@ -144,27 +144,21 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 		return nil, err
 	}
 
-	preValidateWorkflowModifier := func(w *daisy.Workflow) {
-		w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
-	}
+	workflow.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
+	rl := &daisyutils.ResourceLabeler{
+		BuildID: os.Getenv("BUILD_ID"), UserLabels: userLabels, BuildIDLabelKey: "gce-image-export-build-id",
+		InstanceLabelKeyRetriever: func(instanceName string) string {
+			return "gce-image-export-tmp"
+		},
+		DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
+			return "gce-image-export-tmp"
+		},
+		ImageLabelKeyRetriever: func(imageName string) string {
+			return "gce-image-export"
+		}}
+	rl.LabelResources(workflow)
 
-	postValidateWorkflowModifier := func(w *daisy.Workflow) {
-		w.LogWorkflowInfo("Cloud Build ID: %s", os.Getenv(daisyutils.BuildIDOSEnvVarName))
-		rl := &daisyutils.ResourceLabeler{
-			BuildID: os.Getenv("BUILD_ID"), UserLabels: userLabels, BuildIDLabelKey: "gce-image-export-build-id",
-			InstanceLabelKeyRetriever: func(instanceName string) string {
-				return "gce-image-export-tmp"
-			},
-			DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
-				return "gce-image-export-tmp"
-			},
-			ImageLabelKeyRetriever: func(imageName string) string {
-				return "gce-image-export"
-			}}
-		rl.LabelResources(w)
-	}
-
-	err = workflow.RunWithModifiers(ctx, preValidateWorkflowModifier, postValidateWorkflowModifier)
+	err = workflow.Run(ctx)
 	return workflow, err
 }
 

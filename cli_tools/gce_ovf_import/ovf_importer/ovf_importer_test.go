@@ -594,12 +594,6 @@ func setupMocksAndRun(t *testing.T, params *domain.OVFImportParams, wfPath strin
 		Logger: logging.NewToolLogger("test"), params: params}
 	w, err := oi.setUpImportWorkflow()
 
-	if w != nil {
-		w.Logger = DummyLogger{}
-		oi.modifyWorkflowPreValidate(w)
-		oi.modifyWorkflowPostValidate(w)
-	}
-
 	return w, err
 }
 

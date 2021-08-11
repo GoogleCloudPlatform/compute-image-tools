@@ -279,59 +279,6 @@ func (oi *OVFImporter) getOvfGcsPath(tmpGcsPath string) (string, bool, error) {
 	return pathutils.ToDirectoryURL(ovfGcsPath), shouldCleanUp, err
 }
 
-func (oi *OVFImporter) modifyWorkflowPreValidate(w *daisy.Workflow) {
-	w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
-	// See workflows in `ovfWorkflowDir` for variable name declaration.
-	createInstanceStepName := "create-instance"
-	cleanupStepName := "cleanup"
-
-	var dataDiskPrefix string
-	if oi.params.IsInstanceImport() {
-		dataDiskPrefix = oi.params.InstanceNames
-	} else {
-		dataDiskPrefix = oi.params.MachineImageName
-	}
-
-	daisyovfutils.CreateDisksOnInstance(
-		w.Steps[createInstanceStepName].CreateInstances.Instances[0],
-		dataDiskPrefix, oi.imageURIs[1:])
-
-	// Delete the images after the instance is created.
-	w.Steps[cleanupStepName].DeleteResources.Images = append(
-		w.Steps[cleanupStepName].DeleteResources.Images, oi.imageURIs[1:]...)
-	oi.updateImportedInstance(w)
-	if oi.params.IsMachineImageImport() {
-		oi.updateMachineImage(w)
-	}
-}
-
-func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
-	w.LogWorkflowInfo("OVF import flags: %s", oi.params)
-	w.LogWorkflowInfo("Cloud Build ID: %s", oi.params.BuildID)
-	rl := &daisyutils.ResourceLabeler{
-		BuildID:         oi.params.BuildID,
-		UserLabels:      oi.params.UserLabels,
-		BuildIDLabelKey: "gce-ovf-import-build-id",
-		ImageLocation:   oi.imageLocation,
-		InstanceLabelKeyRetriever: func(instanceName string) string {
-			if strings.ToLower(oi.params.InstanceNames) == instanceName {
-				return "gce-ovf-import"
-			}
-			return "gce-ovf-import-tmp"
-		},
-		DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
-			return "gce-ovf-import-tmp"
-		},
-		ImageLabelKeyRetriever: func(imageName string) string {
-			return "gce-ovf-import-tmp"
-		}}
-	rl.LabelResources(w)
-	daisyutils.UpdateAllInstanceNoExternalIP(w, oi.params.NoExternalIP)
-	if oi.params.UefiCompatible {
-		daisyutils.UpdateToUEFICompatible(w)
-	}
-}
-
 func (oi *OVFImporter) getMachineType(
 	ovfDescriptor *ovf.Envelope, project string, zone string) (string, error) {
 	machineTypeProvider := ovfgceutils.MachineTypeProvider{
@@ -388,6 +335,54 @@ func (oi *OVFImporter) setUpImportWorkflow() (workflow *daisy.Workflow, err erro
 		return nil, fmt.Errorf("error parsing workflow %q: %v", oi.workflowPath, err)
 	}
 	workflow.ForceCleanupOnError = true
+
+	workflow.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
+	// See workflows in `ovfWorkflowDir` for variable name declaration.
+	createInstanceStepName := "create-instance"
+	cleanupStepName := "cleanup"
+
+	var dataDiskPrefix string
+	if oi.params.IsInstanceImport() {
+		dataDiskPrefix = oi.params.InstanceNames
+	} else {
+		dataDiskPrefix = oi.params.MachineImageName
+	}
+
+	daisyovfutils.CreateDisksOnInstance(
+		workflow.Steps[createInstanceStepName].CreateInstances.Instances[0],
+		dataDiskPrefix, oi.imageURIs[1:])
+
+	// Delete the images after the instance is created.
+	workflow.Steps[cleanupStepName].DeleteResources.Images = append(
+		workflow.Steps[cleanupStepName].DeleteResources.Images, oi.imageURIs[1:]...)
+	oi.updateImportedInstance(workflow)
+	if oi.params.IsMachineImageImport() {
+		oi.updateMachineImage(workflow)
+	}
+
+	rl := &daisyutils.ResourceLabeler{
+		BuildID:         oi.params.BuildID,
+		UserLabels:      oi.params.UserLabels,
+		BuildIDLabelKey: "gce-ovf-import-build-id",
+		ImageLocation:   oi.imageLocation,
+		InstanceLabelKeyRetriever: func(instanceName string) string {
+			if strings.ToLower(oi.params.InstanceNames) == instanceName {
+				return "gce-ovf-import"
+			}
+			return "gce-ovf-import-tmp"
+		},
+		DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
+			return "gce-ovf-import-tmp"
+		},
+		ImageLabelKeyRetriever: func(imageName string) string {
+			return "gce-ovf-import-tmp"
+		}}
+	rl.LabelResources(workflow)
+	daisyutils.UpdateAllInstanceNoExternalIP(workflow, oi.params.NoExternalIP)
+	if oi.params.UefiCompatible {
+		daisyutils.UpdateToUEFICompatible(workflow)
+	}
+
 	return workflow, nil
 }
 
@@ -407,7 +402,7 @@ func (oi *OVFImporter) Import() (*daisy.Workflow, error) {
 
 	go oi.handleTimeout(w)
 
-	if err := w.RunWithModifiers(oi.ctx, oi.modifyWorkflowPreValidate, oi.modifyWorkflowPostValidate); err != nil {
+	if err := w.Run(oi.ctx); err != nil {
 		oi.Logger.User(err.Error())
 		daisyutils.PostProcessDErrorForNetworkFlag("instance import", err, oi.params.Network, w)
 		return w, err
