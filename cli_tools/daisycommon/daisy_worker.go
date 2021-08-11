@@ -36,9 +36,9 @@ type DaisyWorker interface {
 // twice on the same instance.
 func NewDaisyWorker(wf *daisy.Workflow, env EnvironmentSettings, logger logging.Logger) DaisyWorker {
 	worker := &defaultDaisyWorker{wf, env, logger}
-	worker.env.ApplyToWorkflow(worker.wf)
-	worker.env.ApplyWorkerCustomizations(worker.wf)
-	daisy_utils.UpdateAllInstanceNoExternalIP(worker.wf, worker.env.NoExternalIP)
+	worker.env.ApplyToWorkflow(wf)
+	worker.env.ApplyWorkerCustomizations(wf)
+	daisy_utils.UpdateAllInstanceNoExternalIP(wf, env.NoExternalIP)
 	return worker
 }
 
