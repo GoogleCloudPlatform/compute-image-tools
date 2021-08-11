@@ -192,9 +192,6 @@ function diskChecksum() {
   CHECKSUM3=$(sudo dd if=/dev/$CHECK_DEVICE ibs=512 skip=$(( 20000000 - $CHECK_COUNT )) count=$CHECK_COUNT | md5sum)
   CHECKSUM4=$(sudo dd if=/dev/$CHECK_DEVICE ibs=512 skip=$(( $BLOCK_COUNT - $CHECK_COUNT )) count=$CHECK_COUNT | md5sum)
   serialOutputPrefixedKeyValue "Import" "disk-checksum" "$CHECKSUM1-$CHECKSUM2-$CHECKSUM3-$CHECKSUM4"
-  for i in {1..5000}; do
-    serialOutputPrefixedKeyValue "Import" "disk-checksum" "~~~$i~~~ $CHECKSUM1-$CHECKSUM2-$CHECKSUM3-$CHECKSUM4"
-  done
 }
 
 copyImageToScratchDisk
