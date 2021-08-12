@@ -160,8 +160,8 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 				}
 
 				// If the content is not ended with a "\n", we want to store the last line as tail string, so it can be concat with the next block of content.
-				if i == len(lines)-1 && ln != "" {
-					tailString = lines[len(lines)-1]
+				if i == len(lines)-1 && lines[len(lines)-1] != "" {
+					tailString = ln
 					break
 				}
 
