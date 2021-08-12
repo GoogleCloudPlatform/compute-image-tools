@@ -308,9 +308,9 @@ func TestWaitForSignalGetSplitOutput(t *testing.T) {
 		output := "status: <serial-output key:'my-key' value:'my-value'>"
 		var splitPoint1 int64 = 20
 		var splitPoint2 int64 = 30
-		var subStr1 = output[:splitPoint1] // "status: <serial-outp"
+		var subStr1 = output[:splitPoint1]            // "status: <serial-outp"
 		var subStr2 = output[splitPoint1:splitPoint2] // "ut key:'my"
-		var subStr3 = output[splitPoint2:] // "-key' value:'my-value'>"
+		var subStr3 = output[splitPoint2:]            // "-key' value:'my-value'>"
 		ret := &compute.SerialPortOutput{}
 		if start == 0 {
 			ret.Next = splitPoint1
