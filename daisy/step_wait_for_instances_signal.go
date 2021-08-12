@@ -22,6 +22,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"google.golang.org/api/googleapi"
 )
 
 const (
@@ -71,6 +73,16 @@ type SerialOutput struct {
 	StatusMatch  string         `json:",omitempty"`
 }
 
+// GuestAttribute describes text signal strings that will be written to guest
+// attributes.
+// This step will not complete until the key exists and matches the value in
+// SuccessValue (if specified and non empty). If SuccessValue is set, any other
+// value in the key will cause the step to fail.
+type GuestAttribute struct {
+	KeyName      string `json:",omitempty"`
+	SuccessValue string `json:",omitempty"`
+}
+
 // InstanceSignal waits for a signal from an instance.
 type InstanceSignal struct {
 	// Instance name to wait for.
@@ -83,6 +95,8 @@ type InstanceSignal struct {
 	Stopped bool `json:",omitempty"`
 	// Wait for a string match in the serial output.
 	SerialOutput *SerialOutput `json:",omitempty"`
+	// Wait for a key or value match in guest attributes.
+	GuestAttribute *GuestAttribute `json:",omitempty"`
 }
 
 func waitForInstanceStopped(s *Step, project, zone, name string, interval time.Duration) DError {
@@ -178,6 +192,61 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 	}
 }
 
+func waitForGuestAttribute(s *Step, project, zone, name string, ga *GuestAttribute, interval time.Duration) DError {
+	w := s.w
+	msg := fmt.Sprintf("Instance %q: watching for key %s", name, ga.KeyName)
+	if ga.SuccessValue != "" {
+		msg += fmt.Sprintf(", SuccessValue: %q", ga.SuccessValue)
+	}
+	w.LogStepInfo(s.name, "WaitForInstancesSignal", msg+".")
+	var errs int
+	tick := time.Tick(interval)
+	for {
+		select {
+		case <-s.w.Cancel:
+			return nil
+		case <-tick:
+			resp, err := w.ComputeClient.GetGuestAttributes(project, zone, name, "", ga.KeyName)
+			if err != nil {
+				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 404 {
+					// 404 is OK
+					continue
+				}
+				status, sErr := w.ComputeClient.InstanceStatus(project, zone, name)
+				if sErr != nil {
+					err = fmt.Errorf("%v, error getting InstanceStatus: %v", err, sErr)
+				} else {
+					err = fmt.Errorf("%v, InstanceStatus: %q", err, status)
+				}
+
+				// Wait until machine restarts to evaluate SerialOutput.
+				if status == "TERMINATED" || status == "STOPPED" || status == "STOPPING" {
+					continue
+				}
+
+				// Retry up to 3 times in a row on any error if we successfully got InstanceStatus.
+				if errs < 3 {
+					errs++
+					continue
+				}
+
+				return Errf("WaitForInstancesSignal: instance %q: error getting serial port: %v", name, err)
+			}
+			if ga.SuccessValue != "" {
+				if resp.VariableValue != ga.SuccessValue {
+					errMsg := strings.TrimSpace(resp.VariableValue)
+					format := "WaitForInstancesSignal bad guest attribute value found for %q: %q"
+					return newErr(errMsg, fmt.Errorf(format, name, errMsg))
+				}
+				w.LogStepInfo(s.name, "WaitForInstancesSignal", "Instance %q: SuccessValue found for key %q", name, ga.KeyName)
+				return nil
+			}
+			w.LogStepInfo(s.name, "WaitForInstancesSignal", "Instance %q found key %q", name, ga.KeyName)
+			return nil
+		}
+	}
+}
+
 func extractOutputValue(w *Workflow, s string) {
 	if matches := serialOutputValueRegex.FindStringSubmatch(s); matches != nil && len(matches) == 3 {
 		for w.parent != nil {
@@ -235,6 +304,7 @@ func runForWaitForInstancesSignal(w *[]*InstanceSignal, s *Step, waitAll bool) D
 			}
 			m := NamedSubexp(instanceURLRgx, i.link)
 			serialSig := make(chan struct{})
+			guestSig := make(chan struct{})
 			stoppedSig := make(chan struct{})
 			if is.Stopped {
 				go func() {
@@ -253,7 +323,18 @@ func runForWaitForInstancesSignal(w *[]*InstanceSignal, s *Step, waitAll bool) D
 					close(serialSig)
 				}()
 			}
+			if is.GuestAttribute != nil {
+				go func() {
+					if err := waitForGuestAttribute(s, m["project"], m["zone"], m["instance"], is.GuestAttribute, is.interval); err != nil || !waitAll {
+						// send a signal to end other waiting instances
+						e <- err
+					}
+					close(guestSig)
+				}()
+			}
 			select {
+			case <-guestSig:
+				return
 			case <-serialSig:
 				return
 			case <-stoppedSig:
@@ -292,7 +373,7 @@ func validateForWaitForInstancesSignal(w *[]*InstanceSignal, s *Step) DError {
 		if i.interval == 0*time.Second {
 			return Errf("%q: cannot wait for instance signal, no interval given", i.Name)
 		}
-		if i.SerialOutput == nil && i.Stopped == false {
+		if i.SerialOutput == nil && i.GuestAttribute == nil && i.Stopped == false {
 			return Errf("%q: cannot wait for instance signal, nothing to wait for", i.Name)
 		}
 		if i.SerialOutput != nil {
@@ -302,6 +383,9 @@ func validateForWaitForInstancesSignal(w *[]*InstanceSignal, s *Step) DError {
 			if i.SerialOutput.SuccessMatch == "" && len(i.SerialOutput.FailureMatch) == 0 {
 				return Errf("%q: cannot wait for instance signal via SerialOutput, no SuccessMatch or FailureMatch given", i.Name)
 			}
+		}
+		if i.GuestAttribute != nil && i.GuestAttribute.KeyName == "" {
+			return Errf("%q: cannot wait for instance signal via GuestAttribute, no KeyName given", i.Name)
 		}
 	}
 	return nil
