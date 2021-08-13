@@ -199,8 +199,13 @@ func waitForGuestAttribute(s *Step, project, zone, name string, ga *GuestAttribu
 		msg += fmt.Sprintf(", SuccessValue: %q", ga.SuccessValue)
 	}
 	w.LogStepInfo(s.name, "WaitForInstancesSignal", msg+".")
-	var errs int
+	// The limit for querying guest attributes is documented as 10 queries/minute.
+	minInterval, err := time.ParseDuration("6s")
+	if err == nil && interval < minInterval {
+		interval = minInterval
+	}
 	tick := time.Tick(interval)
+	var errs int
 	for {
 		select {
 		case <-s.w.Cancel:
@@ -215,28 +220,29 @@ func waitForGuestAttribute(s *Step, project, zone, name string, ga *GuestAttribu
 				status, sErr := w.ComputeClient.InstanceStatus(project, zone, name)
 				if sErr != nil {
 					err = fmt.Errorf("%v, error getting InstanceStatus: %v", err, sErr)
+					errs++
 				} else {
 					err = fmt.Errorf("%v, InstanceStatus: %q", err, status)
+					errs = 0
 				}
 
-				// Wait until machine restarts to evaluate SerialOutput.
+				// Wait until machine restarts to get Guest Attributes
 				if status == "TERMINATED" || status == "STOPPED" || status == "STOPPING" {
 					continue
 				}
 
 				// Retry up to 3 times in a row on any error if we successfully got InstanceStatus.
 				if errs < 3 {
-					errs++
 					continue
 				}
 
-				return Errf("WaitForInstancesSignal: instance %q: error getting serial port: %v", name, err)
+				return Errf("WaitForInstancesSignal: instance %q: error getting guest attribute: %v", name, err)
 			}
 			if ga.SuccessValue != "" {
 				if resp.VariableValue != ga.SuccessValue {
 					errMsg := strings.TrimSpace(resp.VariableValue)
 					format := "WaitForInstancesSignal bad guest attribute value found for %q: %q"
-					return newErr(errMsg, fmt.Errorf(format, name, errMsg))
+					return Errf(format, name, errMsg)
 				}
 				w.LogStepInfo(s.name, "WaitForInstancesSignal", "Instance %q: SuccessValue found for key %q", name, ga.KeyName)
 				return nil
