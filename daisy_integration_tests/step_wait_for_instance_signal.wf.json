@@ -3,7 +3,7 @@
   "Vars": {
     "about-this-test": {
       "Value": "",
-      "Description": "This test creates two instances, and then waits for two different kinds of signals from them: Stopped, and SerialOutput."
+      "Description": "This test creates three instances, and then waits for two different kinds of signals from them: Stopped, and SerialOutput."
     }
   },
   "Steps": {
