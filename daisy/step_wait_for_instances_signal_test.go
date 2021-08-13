@@ -127,6 +127,19 @@ func testWaitForSignalRun(t *testing.T, waitAny bool) {
 		}
 		return "STOPPED", nil
 	}
+	w.ComputeClient.(*daisyCompute.TestClient).GetGuestAttributesFn = func(_, _, n, _, _ string) (*compute.GuestAttributes, error) {
+		ret := &compute.GuestAttributes{}
+		switch n {
+		case w.genName("i1"):
+			ret.VariableValue = "success"
+		case w.genName("i2"):
+			ret.VariableValue = "failure"
+		default:
+			return nil, &googleapi.Error{Code: 404}
+		}
+
+		return ret, nil
+	}
 	w.ComputeClient.(*daisyCompute.TestClient).RetryFn = func(_ func(_ ...googleapi.CallOption) (*compute.Operation, error), _ ...googleapi.CallOption) (*compute.Operation, error) {
 		return nil, nil
 	}
@@ -141,9 +154,11 @@ func testWaitForSignalRun(t *testing.T, waitAny bool) {
 	}
 	// Normal run, no error.
 	ws := getStep(waitAny, []*InstanceSignal{
-		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{StatusMatch: "success", SuccessMatch: "success"}},
+		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success", StatusMatch: "success"}},
 		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success", FailureMatch: []string{"fail"}}},
 		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success", FailureMatch: []string{"fail", "fail2"}}},
+		{Name: "i1", interval: 1 * time.Microsecond, GuestAttribute: &GuestAttribute{KeyName: "mynamespace/mykey"}},
+		{Name: "i1", interval: 1 * time.Microsecond, GuestAttribute: &GuestAttribute{KeyName: "mynamespace/mykey", SuccessValue: "success"}},
 		{Name: "i3", interval: 1 * time.Microsecond, Stopped: true},
 	})
 	if err := ws.run(ctx, s); err != nil {
@@ -153,6 +168,7 @@ func testWaitForSignalRun(t *testing.T, waitAny bool) {
 	ws = getStep(waitAny, []*InstanceSignal{
 		{Name: "i2", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{FailureMatch: []string{"fail"}, SuccessMatch: "success"}},
 		{Name: "i3", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{FailureMatch: []string{"fail"}}},
+		{Name: "i2", interval: 1 * time.Microsecond, GuestAttribute: &GuestAttribute{KeyName: "mynamespace/mykey", SuccessValue: "success"}},
 	})
 	if err := ws.run(ctx, s); err == nil {
 		t.Error("expected error")

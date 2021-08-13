@@ -75,6 +75,7 @@ type TestClient struct {
 	ListMachineTypesFn          func(project, zone string, opts ...ListCallOption) ([]*compute.MachineType, error)
 	GetProjectFn                func(project string) (*compute.Project, error)
 	GetSerialPortOutputFn       func(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
+	GetGuestAttributesFn        func(project, zone, name, queryPath, variableKey string) (*compute.GuestAttributes, error)
 	GetZoneFn                   func(project, zone string) (*compute.Zone, error)
 	ListZonesFn                 func(project string, opts ...ListCallOption) ([]*compute.Zone, error)
 	GetInstanceFn               func(project, zone, name string) (*compute.Instance, error)
@@ -113,7 +114,6 @@ type TestClient struct {
 	CreateInstanceAlphaFn func(project, zone string, i *computeAlpha.Instance) error
 
 	// Beta API calls
-	GetGuestAttributesFn func(project, zone, name, queryPath, variableKey string) (*computeBeta.GuestAttributes, error)
 	ListMachineImagesFn  func(project string, opts ...ListCallOption) ([]*computeBeta.MachineImage, error)
 	DeleteMachineImageFn func(project, name string) error
 	CreateMachineImageFn func(project string, i *computeBeta.MachineImage) error
@@ -558,7 +558,7 @@ func (c *TestClient) GetSerialPortOutput(project, zone, name string, port, start
 }
 
 // GetGuestAttributes uses the override method GetGuestAttributesFn or the real implementation.
-func (c *TestClient) GetGuestAttributes(project, zone, name, queryPath, variableKey string) (*computeBeta.GuestAttributes, error) {
+func (c *TestClient) GetGuestAttributes(project, zone, name, queryPath, variableKey string) (*compute.GuestAttributes, error) {
 	if c.GetGuestAttributesFn != nil {
 		return c.GetGuestAttributesFn(project, zone, name, queryPath, variableKey)
 	}

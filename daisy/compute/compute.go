@@ -75,6 +75,7 @@ type Client interface {
 	GetDiskBeta(project, zone, name string) (*computeBeta.Disk, error)
 	GetForwardingRule(project, region, name string) (*compute.ForwardingRule, error)
 	GetFirewallRule(project, name string) (*compute.Firewall, error)
+	GetGuestAttributes(project, zone, name, queryPath, variableKey string) (*compute.GuestAttributes, error)
 	GetImage(project, name string) (*compute.Image, error)
 	GetImageAlpha(project, name string) (*computeAlpha.Image, error)
 	GetImageBeta(project, name string) (*computeBeta.Image, error)
@@ -110,7 +111,6 @@ type Client interface {
 	SetDiskAutoDelete(project, zone, instance string, autoDelete bool, deviceName string) error
 
 	// Beta API calls
-	GetGuestAttributes(project, zone, name, queryPath, variableKey string) (*computeBeta.GuestAttributes, error)
 	ListMachineImages(project string, opts ...ListCallOption) ([]*computeBeta.MachineImage, error)
 	DeleteMachineImage(project, name string) error
 	CreateMachineImage(project string, i *computeBeta.MachineImage) error
@@ -969,7 +969,7 @@ func (c *client) GetInstance(project, zone, name string) (*compute.Instance, err
 	return i, err
 }
 
-// GetInstance gets a GCE Instance using Alpha API.
+// GetInstanceAlpha gets a GCE Instance using Alpha API.
 func (c *client) GetInstanceAlpha(project, zone, name string) (*computeAlpha.Instance, error) {
 	i, err := c.rawAlpha.Instances.Get(project, zone, name).Do()
 	if shouldRetryWithWait(c.hc.Transport, err, 2) {
@@ -978,7 +978,7 @@ func (c *client) GetInstanceAlpha(project, zone, name string) (*computeAlpha.Ins
 	return i, err
 }
 
-// GetInstance gets a GCE Instance using Beta API.
+// GetInstanceBeta gets a GCE Instance using Beta API.
 func (c *client) GetInstanceBeta(project, zone, name string) (*computeBeta.Instance, error) {
 	i, err := c.rawBeta.Instances.Get(project, zone, name).Do()
 	if shouldRetryWithWait(c.hc.Transport, err, 2) {
@@ -1542,8 +1542,8 @@ func (c *client) SetCommonInstanceMetadata(project string, md *compute.Metadata)
 }
 
 // GetGuestAttributes gets a Guest Attributes.
-func (c *client) GetGuestAttributes(project, zone, name, queryPath, variableKey string) (*computeBeta.GuestAttributes, error) {
-	call := c.rawBeta.Instances.GetGuestAttributes(project, zone, name)
+func (c *client) GetGuestAttributes(project, zone, name, queryPath, variableKey string) (*compute.GuestAttributes, error) {
+	call := c.raw.Instances.GetGuestAttributes(project, zone, name)
 	if queryPath != "" {
 		call = call.QueryPath(queryPath)
 	}
