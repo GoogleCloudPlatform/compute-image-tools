@@ -121,6 +121,7 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 	w.LogStepInfo(s.name, "WaitForInstancesSignal", msg+".")
 	var start int64
 	var errs int
+	tailString := ""
 	tick := time.Tick(interval)
 	for {
 		select {
@@ -150,7 +151,20 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 				return Errf("WaitForInstancesSignal: instance %q: error getting serial port: %v", name, err)
 			}
 			start = resp.Next
-			for _, ln := range strings.Split(resp.Contents, "\n") {
+			lines := strings.Split(resp.Contents, "\n")
+			for i, ln := range lines {
+				// If there is a unconsumed tail string from the previous block of content, concat it with the 1st line of the new block of content.
+				if i == 0 && tailString != "" {
+					ln = tailString + ln
+					tailString = ""
+				}
+
+				// If the content is not ended with a "\n", we want to store the last line as tail string, so it can be concat with the next block of content.
+				if i == len(lines)-1 && lines[len(lines)-1] != "" {
+					tailString = ln
+					break
+				}
+
 				if so.StatusMatch != "" {
 					if i := strings.Index(ln, so.StatusMatch); i != -1 {
 						w.LogStepInfo(s.name, "WaitForInstancesSignal", "Instance %q: StatusMatch found: %q", name, strings.TrimSpace(ln[i:]))
