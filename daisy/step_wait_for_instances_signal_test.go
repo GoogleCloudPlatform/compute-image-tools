@@ -250,7 +250,10 @@ func TestWaitForAnyInstancesSignalGetOutputValue(t *testing.T) {
 func testWaitForSignalGetOutputValue(t *testing.T, waitAny bool) {
 	ctx := context.Background()
 	w := testWorkflow()
-	w.ComputeClient.(*daisyCompute.TestClient).GetSerialPortOutputFn = func(_, _, n string, _, _ int64) (*compute.SerialPortOutput, error) {
+	w.ComputeClient.(*daisyCompute.TestClient).GetSerialPortOutputFn = func(_, _, n string, _, start int64) (*compute.SerialPortOutput, error) {
+		if start > 0 {
+			return &compute.SerialPortOutput{Contents: ""}, nil
+		}
 		ret := &compute.SerialPortOutput{Next: 20}
 		switch n {
 		case w.genName("i1"):
