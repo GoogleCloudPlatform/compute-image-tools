@@ -25,14 +25,14 @@ GetMetadataAttribute() {
 DebianInstallGoogleApiPythonClient() {
     logger -p daemon.info "Status: Installing google-api-python-client"
 
-    apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -q -y install python3-pip
+    apt-get -y update && DEBIAN_FRONTEND=noninteractive apt-get -q -y install python3-pip
     pip3 install -U google-api-python-client google-cloud-storage
 }
 
 DebianInstallNetaddrPythonLibrary() {
     logger -p daemon.info "Status: Installing netaddr python module"
 
-    apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -q -y install python3-netaddr
+    apt-get -y update && DEBIAN_FRONTEND=noninteractive apt-get -q -y install python3-netaddr
 }
 
 GetAccessToken() {
