@@ -12,9 +12,11 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package daisy
+package daisyutils
 
-import "github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+import (
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+)
 
 // ResourceLabeler is responsible for labelling GCE resources (instances, disks and images) with
 // labels used to track resource creation by import processes.
@@ -28,6 +30,24 @@ type ResourceLabeler struct {
 	ImageLabelKeyRetriever    ImageLabelKeyRetrieverFunc
 }
 
+// NewResourceLabeler creates a ResourceLabeler that labels based on the tool's name.
+func NewResourceLabeler(tool string, buildID string, labels map[string]string, location string) *ResourceLabeler {
+	return &ResourceLabeler{
+		BuildID:         buildID,
+		UserLabels:      labels,
+		BuildIDLabelKey: tool + "-build-id",
+		ImageLocation:   location,
+		InstanceLabelKeyRetriever: func(instanceName string) string {
+			return tool + "-tmp"
+		},
+		DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
+			return tool + "-tmp"
+		},
+		ImageLabelKeyRetriever: func(imageName string) string {
+			return tool + "-tmp"
+		}}
+}
+
 // InstanceLabelKeyRetrieverFunc returns GCE label key to be added to given instance
 type InstanceLabelKeyRetrieverFunc func(instanceName string) string
 
@@ -36,6 +56,12 @@ type DiskLabelKeyRetrieverFunc func(disk *daisy.Disk) string
 
 // ImageLabelKeyRetrieverFunc returns GCE label key to be added to given image
 type ImageLabelKeyRetrieverFunc func(imageName string) string
+
+// Traverse is a facade over LabelResources to implement the WorkflowTraversal interface; no errors will be returned.
+func (rl *ResourceLabeler) Traverse(wf *daisy.Workflow) error {
+	rl.LabelResources(wf)
+	return nil
+}
 
 // LabelResources labels workflow resources temporary and permanent resources with appropriate
 // labels

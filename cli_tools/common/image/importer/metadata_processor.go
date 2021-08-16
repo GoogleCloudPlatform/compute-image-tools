@@ -20,7 +20,7 @@ import (
 
 	"google.golang.org/api/compute/v1"
 
-	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
@@ -76,7 +76,7 @@ func (p *metadataProcessor) process(pd persistentDisk) (persistentDisk, error) {
 // When false, `cloneRequired` signifies that the current disk satisfies all requested changes.
 func (p *metadataProcessor) stageRequestForNewDisk(pd persistentDisk) (newDisk *compute.Disk, cloneRequired bool, err error) {
 
-	diskName := daisyUtils.GetResourceID(pd.uri)
+	diskName := daisyutils.GetResourceID(pd.uri)
 	currentDisk, err := p.computeDiskClient.GetDisk(p.project, p.zone, diskName)
 	if err != nil {
 		return nil, false, daisy.Errf("Failed to get disk: %v", err)

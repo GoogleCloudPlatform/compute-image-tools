@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
@@ -181,7 +181,7 @@ func (args *imageImportArgs) registerFlags(flagSet *flag.FlagSet) {
 
 	flagSet.Var((*flags.LowerTrimmedString)(&args.OS), importer.OSFlag,
 		"Specifies the OS of the image being imported. OS must be one of: "+
-			strings.Join(daisy.GetSortedOSIDs(), ", ")+".")
+			strings.Join(daisyutils.GetSortedOSIDs(), ", ")+".")
 
 	flagSet.BoolVar(&args.NoGuestEnvironment, "no_guest_environment", false,
 		"When enabled, the Google Guest Environment will not be installed.")

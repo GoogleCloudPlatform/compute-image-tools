@@ -21,12 +21,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 )
 
 func TestFromGcloudOSArgument_HappyCases(t *testing.T) {
-	daisy_utils.GetSortedOSIDs()
-	for _, osID := range daisy_utils.GetSortedOSIDs() {
+	daisyutils.GetSortedOSIDs()
+	for _, osID := range daisyutils.GetSortedOSIDs() {
 		t.Run(osID, func(t *testing.T) {
 			d, e := FromGcloudOSArgument(osID)
 			assert.NoError(t, e)

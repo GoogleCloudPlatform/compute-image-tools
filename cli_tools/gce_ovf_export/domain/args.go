@@ -24,9 +24,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
 
 const (
@@ -152,8 +151,8 @@ func toWorkingDir(currentDir, workflowDir string) string {
 
 // EnvironmentSettings creates an EnvironmentSettings instance from the fields
 // in this struct.
-func (args *OVFExportArgs) EnvironmentSettings() daisycommon.EnvironmentSettings {
-	return daisycommon.EnvironmentSettings{
+func (args *OVFExportArgs) EnvironmentSettings() daisyutils.EnvironmentSettings {
+	return daisyutils.EnvironmentSettings{
 		Project:               args.Project,
 		Zone:                  args.Zone,
 		GCSPath:               args.ScratchBucketGcsPath,
@@ -168,6 +167,9 @@ func (args *OVFExportArgs) EnvironmentSettings() daisycommon.EnvironmentSettings
 		Network:               args.Network,
 		Subnet:                args.Subnet,
 		ComputeServiceAccount: args.ComputeServiceAccount,
+		Labels:                map[string]string{},
+		ExecutionID:           args.BuildID,
+		StorageLocation:       "",
 	}
 }
 
@@ -197,7 +199,7 @@ func (args *OVFExportArgs) registerFlags(cliArgs []string) error {
 	flagSet.BoolVar(&args.NoExternalIP, "no-external-ip", false,
 		"Specifies that VPC used for OVF export doesn't allow external IPs.")
 	flagSet.Var((*flags.TrimmedString)(&args.OsID), "os",
-		"Specifies the OS of the image being exported. OS must be one of: "+strings.Join(daisy.GetSortedOSIDs(), ", ")+".")
+		"Specifies the OS of the image being exported. OS must be one of: "+strings.Join(daisyutils.GetSortedOSIDs(), ", ")+".")
 	flagSet.Var((*flags.TrimmedString)(&args.Zone), "zone",
 		"zone of the image to export. The zone in which to do the work of exporting the image. Overrides the default compute/zone property value for this command invocation")
 	flagSet.DurationVar(&args.Timeout, "timeout", time.Hour*2,

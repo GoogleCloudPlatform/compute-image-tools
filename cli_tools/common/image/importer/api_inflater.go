@@ -23,7 +23,7 @@ import (
 	"google.golang.org/api/googleapi"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
-	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -199,7 +199,7 @@ func (inflater *apiInflater) Cancel(reason string) bool {
 // run a workflow to calculate checksum
 func (inflater *apiInflater) calculateChecksum(ctx context.Context, diskURI string) (string, error) {
 	w := inflater.getCalculateChecksumWorkflow(diskURI)
-	err := daisyUtils.RunWorkflowWithCancelSignal(ctx, w)
+	err := daisyutils.RunWorkflowWithCancelSignal(ctx, w)
 	if err != nil {
 		return "", err
 	}

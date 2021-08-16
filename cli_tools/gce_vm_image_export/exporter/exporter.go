@@ -24,13 +24,12 @@ import (
 	"google.golang.org/api/option"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
-	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
@@ -137,7 +136,7 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 	gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool,
 	userLabels map[string]string) (*daisy.Workflow, error) {
 
-	workflow, err := daisycommon.ParseWorkflow(exportWorkflowPath, varMap,
+	workflow, err := daisyutils.ParseWorkflow(exportWorkflowPath, varMap,
 		project, zone, scratchBucketGcsPath, oauth, timeout, ce, gcsLogsDisabled,
 		cloudLogsDisabled, stdoutLogsDisabled)
 	if err != nil {

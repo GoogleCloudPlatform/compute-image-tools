@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
-	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
@@ -32,7 +32,7 @@ import (
 var opensuse15workflow string
 
 func init() {
-	settings, err := daisy_utils.GetTranslationSettings("opensuse-15")
+	settings, err := daisyutils.GetTranslationSettings("opensuse-15")
 	if err != nil {
 		panic(err)
 	}

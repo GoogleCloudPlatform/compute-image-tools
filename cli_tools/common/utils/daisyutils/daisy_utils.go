@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package daisy
+package daisyutils
 
 import (
 	"context"
@@ -23,9 +23,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-
-	computeBeta "google.golang.org/api/compute/v0.beta"
-	"google.golang.org/api/compute/v1"
 
 	stringutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -281,35 +278,6 @@ func GetTranslationSettings(osID string) (spec TranslationSettings, err error) {
 	return spec, daisy.Errf("os `%v` is invalid. "+allowedValuesMsg, osID)
 }
 
-// UpdateAllInstanceNoExternalIP updates all Create Instance steps in the workflow to operate
-// when no external IP access is allowed by the VPC Daisy workflow is running in.
-func UpdateAllInstanceNoExternalIP(workflow *daisy.Workflow, noExternalIP bool) {
-	if !noExternalIP {
-		return
-	}
-	workflow.IterateWorkflowSteps(func(step *daisy.Step) {
-		if step.CreateInstances != nil {
-			for _, instance := range step.CreateInstances.Instances {
-				if instance.Instance.NetworkInterfaces == nil {
-					continue
-				}
-				for _, networkInterface := range instance.Instance.NetworkInterfaces {
-					networkInterface.AccessConfigs = []*compute.AccessConfig{}
-				}
-			}
-			for _, instance := range step.CreateInstances.InstancesBeta {
-				if instance.Instance.NetworkInterfaces == nil {
-					continue
-				}
-				for _, networkInterface := range instance.Instance.NetworkInterfaces {
-					networkInterface.AccessConfigs = []*computeBeta.AccessConfig{}
-				}
-			}
-
-		}
-	})
-}
-
 // UpdateToUEFICompatible marks workflow resources (disks and images) to be UEFI
 // compatible by adding "UEFI_COMPATIBLE" to GuestOSFeatures. Debian workers
 // are excluded until UEFI becomes the default boot method.
@@ -428,4 +396,97 @@ func GetDiskURI(project, zone, name string) string {
 // to a instance resource: https://cloud.google.com/compute/docs/reference/rest/v1/instances
 func GetInstanceURI(project, zone, name string) string {
 	return fmt.Sprintf("projects/%v/zones/%v/instances/%v", project, zone, name)
+}
+
+// ParseWorkflow parses Daisy workflow file and returns Daisy workflow object or error in case of failure
+func ParseWorkflow(path string, varMap map[string]string, project, zone, gcsPath, oauth, dTimeout, cEndpoint string, disableGCSLogs, disableCloudLogs, disableStdoutLogs bool) (*daisy.Workflow, error) {
+	w, err := daisy.NewFromFile(path)
+	if err != nil {
+		return nil, err
+	}
+Loop:
+	for k, v := range varMap {
+		for wv := range w.Vars {
+			if k == wv {
+				w.AddVar(k, v)
+				continue Loop
+			}
+		}
+		return nil, daisy.Errf("unknown workflow Var %q passed to Workflow %q", k, w.Name)
+	}
+
+	EnvironmentSettings{
+		Project:           project,
+		Zone:              zone,
+		GCSPath:           gcsPath,
+		OAuth:             oauth,
+		Timeout:           dTimeout,
+		ComputeEndpoint:   cEndpoint,
+		DisableGCSLogs:    disableGCSLogs,
+		DisableCloudLogs:  disableCloudLogs,
+		DisableStdoutLogs: disableStdoutLogs,
+	}.ApplyToWorkflow(w)
+
+	return w, nil
+}
+
+// EnvironmentSettings controls the resources that are used during tool execution.
+type EnvironmentSettings struct {
+	// Location of workflows
+	WorkflowDirectory string
+
+	// Fields from daisy.Workflow
+	Project, Zone, GCSPath, OAuth, Timeout, ComputeEndpoint string
+	DisableGCSLogs, DisableCloudLogs, DisableStdoutLogs     bool
+
+	// An optional prefix to include in the bracketed portion of daisy's stdout logs.
+	// Gcloud does a prefix match to determine whether to show a log line to a user.
+	//
+	// With a prefix of `disk-1`, for example, the workflow in `importer.NewDaisyInflater`
+	// emits log messages starting with `[disk-1-inflate]`.
+	DaisyLogLinePrefix string
+
+	// Worker instance customizations
+	Network, Subnet       string
+	ComputeServiceAccount string
+	NoExternalIP          bool
+	Labels                map[string]string
+	ExecutionID           string
+	StorageLocation       string
+}
+
+// ApplyToWorkflow sets fields on daisy.Workflow from the environment settings.
+func (env EnvironmentSettings) ApplyToWorkflow(w *daisy.Workflow) {
+	w.Project = env.Project
+	w.Zone = env.Zone
+	if env.GCSPath != "" {
+		w.GCSPath = env.GCSPath
+	}
+	if env.OAuth != "" {
+		w.OAuthPath = env.OAuth
+	}
+	if env.Timeout != "" {
+		w.DefaultTimeout = env.Timeout
+	}
+	if env.ComputeEndpoint != "" {
+		w.ComputeEndpoint = env.ComputeEndpoint
+	}
+	if env.DisableGCSLogs {
+		w.DisableGCSLogging()
+	}
+	if env.DisableCloudLogs {
+		w.DisableCloudLogging()
+	}
+	if env.DisableStdoutLogs {
+		w.DisableStdoutLogging()
+	}
+}
+
+// UpdateAllInstanceNoExternalIP updates all Create Instance steps in the workflow to operate
+// when no external IP access is allowed by the VPC Daisy workflow is running in.
+func UpdateAllInstanceNoExternalIP(workflow *daisy.Workflow, noExternalIP bool) {
+	if !noExternalIP {
+		return
+	}
+	(&RemoveExternalIPTraversal{}).Traverse(workflow)
 }

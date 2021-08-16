@@ -24,7 +24,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
-	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
@@ -99,7 +99,7 @@ func (p *defaultPlanner) plan(pd persistentDisk) (*processingPlan, error) {
 			"For more information, see https://cloud.google.com/compute/docs/import/importing-virtual-disks#bootable")
 	}
 
-	settings, err := daisy_utils.GetTranslationSettings(osID)
+	settings, err := daisyutils.GetTranslationSettings(osID)
 	if err != nil {
 		return nil, err
 	}

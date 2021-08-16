@@ -21,9 +21,8 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
-	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -41,7 +40,7 @@ func (b *bootableDiskProcessor) process(pd persistentDisk) (persistentDisk, erro
 	err = b.workflow.Run(context.Background())
 	if err != nil {
 		b.logger.User("Finished making disk bootable")
-		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.request.Network, b.workflow)
+		daisyutils.PostProcessDErrorForNetworkFlag("image import", err, b.request.Network, b.workflow)
 		err = customizeErrorToDetectionResults(b.logger, b.request.OS, b.detectedOs, err)
 	}
 	if b.workflow.Logger != nil {
@@ -72,12 +71,12 @@ func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger 
 		vars["compute_service_account"] = request.ComputeServiceAccount
 	}
 
-	workflow, err := daisycommon.ParseWorkflow(wfPath, vars,
+	workflow, err := daisyutils.ParseWorkflow(wfPath, vars,
 		request.Project, request.Zone, request.ScratchBucketGcsPath, request.Oauth, request.Timeout.String(),
 		request.ComputeEndpoint, request.GcsLogsDisabled, request.CloudLogsDisabled, request.StdoutLogsDisabled)
 
-	daisy_utils.UpdateAllInstanceNoExternalIP(workflow, request.NoExternalIP)
-	workflow.SetLogProcessHook(daisy_utils.RemovePrivacyLogTag)
+	daisyutils.UpdateAllInstanceNoExternalIP(workflow, request.NoExternalIP)
+	workflow.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
 	if err != nil {
 		return nil, err
 	}
@@ -100,9 +99,9 @@ func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger 
 }
 
 func (b *bootableDiskProcessor) labelResources() {
-	buildID := os.Getenv(daisy_utils.BuildIDOSEnvVarName)
+	buildID := os.Getenv(daisyutils.BuildIDOSEnvVarName)
 	b.logger.User("Cloud Build ID: " + buildID)
-	rl := &daisy_utils.ResourceLabeler{
+	rl := &daisyutils.ResourceLabeler{
 		BuildID:         buildID,
 		UserLabels:      b.request.Labels,
 		BuildIDLabelKey: "gce-image-import-build-id",
