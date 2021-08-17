@@ -622,10 +622,10 @@ func (mr *MockClientMockRecorder) GetForwardingRule(arg0, arg1, arg2 interface{}
 }
 
 // GetGuestAttributes mocks base method.
-func (m *MockClient) GetGuestAttributes(arg0, arg1, arg2, arg3, arg4 string) (*compute1.GuestAttributes, error) {
+func (m *MockClient) GetGuestAttributes(arg0, arg1, arg2, arg3, arg4 string) (*compute2.GuestAttributes, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGuestAttributes", arg0, arg1, arg2, arg3, arg4)
-	ret0, _ := ret[0].(*compute1.GuestAttributes)
+	ret0, _ := ret[0].(*compute2.GuestAttributes)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
