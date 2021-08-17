@@ -45,7 +45,8 @@
           ],
           "name": "guest-attr-outputter",
           "metadata": {
-            "startup-script": "curl -H Metadata-Flavor:Google -d 'SUCCESS ovqTO8AgH65shhPMLoot' -X PUT http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/integtest/successkey"
+            "startup-script": "curl -H Metadata-Flavor:Google -d 'SUCCESS ovqTO8AgH65shhPMLoot' -X PUT http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/integtest/successkey",
+            "enable-guest-attributes": "TRUE"
           }
         }
       ]
