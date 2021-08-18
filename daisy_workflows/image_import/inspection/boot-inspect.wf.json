@@ -4,7 +4,8 @@
   "Vars": {
     "pd_uri": {
       "Required": true,
-      "Description": "PD that will be inspected (URI)."
+      "Description": "PD that will be inspected (URI).",
+      "Value": "projects/edens-test/zones/us-west1-b/disks/b194189632"
     },
     "network": {
       "Value": "global/networks/default",
@@ -35,7 +36,7 @@
               "AutoDelete": true,
               "boot": true,
               "initializeParams": {
-                "sourceImage": "projects/compute-image-tools/global/images/family/debian-9-worker"
+                "sourceImage": "projects/compute-image-tools/global/images/family/debian-10-worker"
               }
             },
             {
