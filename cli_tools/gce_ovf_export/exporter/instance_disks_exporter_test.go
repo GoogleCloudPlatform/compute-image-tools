@@ -88,7 +88,7 @@ func TestDiskExporter_HappyPath(t *testing.T) {
 	for diskIndex, disk := range disks {
 		exporterInstanceNamePrefix := fmt.Sprintf("inst-export-disk-%v-%v", diskIndex, instance.Disks[diskIndex].DeviceName)
 		exporterInstanceDiskPrefix := fmt.Sprintf("disk-export-disk-%v-%v-", diskIndex, instance.Disks[diskIndex].DeviceName)
-		mockComputeClient.EXPECT().GetSerialPortOutput(project, params.Zone, StartsWith(exporterInstanceNamePrefix), int64(1), int64(0)).Return(&compute.SerialPortOutput{Contents: "export success", Next: 0}, nil).AnyTimes()
+		mockComputeClient.EXPECT().GetSerialPortOutput(project, params.Zone, StartsWith(exporterInstanceNamePrefix), int64(1), int64(0)).Return(&compute.SerialPortOutput{Contents: "export success\n", Next: 0}, nil).AnyTimes()
 		mockComputeClient.EXPECT().GetInstance(project, params.Zone, StartsWith(exporterInstanceNamePrefix)).Return(&compute.Instance{}, nil).AnyTimes()
 		mockComputeClient.EXPECT().DeleteInstance(project, params.Zone, StartsWith(exporterInstanceNamePrefix)).Return(nil)
 		mockComputeClient.EXPECT().DeleteDisk(project, params.Zone, StartsWith(exporterInstanceDiskPrefix)).Return(nil).AnyTimes()
