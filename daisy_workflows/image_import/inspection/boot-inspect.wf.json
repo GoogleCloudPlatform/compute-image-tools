@@ -4,8 +4,7 @@
   "Vars": {
     "pd_uri": {
       "Required": true,
-      "Description": "PD that will be inspected (URI).",
-      "Value": "projects/edens-test/zones/us-west1-b/disks/b194189632"
+      "Description": "PD that will be inspected (URI)."
     },
     "network": {
       "Value": "global/networks/default",
