@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	clientID, destinationURI, sourceImage, sourceDiskSnapshot, format, qemuOptions, network, subnet, labels string
+	clientID, destinationURI, sourceImage, sourceDiskSnapshot, format, network, subnet, labels string
 )
 
 func TestGetWorkflowPathWithoutFormatConversion(t *testing.T) {
@@ -83,7 +83,6 @@ func TestBuildDaisyVarsWithoutFormatConversion(t *testing.T) {
 		ws+sourceImage+ws,
 		ws+sourceDiskSnapshot+ws,
 		ws+format+ws,
-		ws+qemuOptions+ws,
 		ws+network+ws,
 		ws+subnet+ws,
 		ws+"aRegion"+ws,
@@ -104,7 +103,6 @@ func TestBuildDaisyVarsWithFormatConversion(t *testing.T) {
 		ws+sourceImage+ws,
 		ws+sourceDiskSnapshot+ws,
 		ws+"vmdk"+ws,
-		ws+qemuOptions+ws,
 		ws+network+ws,
 		ws+subnet+ws,
 		ws+"aRegion"+ws,
@@ -126,7 +124,6 @@ func TestBuildDaisyVarsWithSimpleImageName(t *testing.T) {
 		ws+"anImage"+ws,
 		ws+""+ws,
 		ws+format+ws,
-		ws+qemuOptions+ws,
 		ws+network+ws,
 		ws+subnet+ws,
 		ws+"aRegion"+ws,
@@ -143,7 +140,6 @@ func TestBuildDaisyVarsWithSimpleSnapshotName(t *testing.T) {
 		ws+""+ws,
 		ws+"aSnapshot"+ws,
 		ws+format+ws,
-		ws+qemuOptions+ws,
 		ws+network+ws,
 		ws+subnet+ws,
 		ws+"aRegion"+ws,
@@ -152,15 +148,14 @@ func TestBuildDaisyVarsWithSimpleSnapshotName(t *testing.T) {
 	assert.Equal(t, "global/snapshots/aSnapshot", got["source_disk_snapshot"])
 }
 
-func TestBuildDaisyVarsWithQemuOptions(t *testing.T) {
+func TestBuildDaisyVarsWithVpcFixedFormat(t *testing.T) {
 	resetArgs()
 	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000"
 	got := buildDaisyVars(
 		ws+destinationURI+ws,
 		ws+""+ws,
 		ws+"aSnapshot"+ws,
-		ws+format+ws,
-		ws+"force_size=on,subformat=fixed"+ws,
+		ws+"vpc-fixed"+ws,
 		ws+network+ws,
 		ws+subnet+ws,
 		ws+"aRegion"+ws,
@@ -173,7 +168,7 @@ func TestBuildDaisyVarsWithComputeServiceAccount(t *testing.T) {
 	resetArgs()
 	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000"
 	got := buildDaisyVars(
-		"", "", "", "", "", "", "", "",
+		"", "", "", "", "", "", "",
 		ws+"account1"+ws)
 
 	assert.Equal(t, "account1", got["compute_service_account"])
@@ -183,7 +178,7 @@ func TestBuildDaisyVarsWithoutComputeServiceAccount(t *testing.T) {
 	resetArgs()
 	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000"
 	got := buildDaisyVars(
-		"", "", "", "", "", "", "", "",
+		"", "", "", "", "", "", "",
 		ws)
 
 	_, hasVar := got["compute_service_account"]
@@ -196,7 +191,6 @@ func resetArgs() {
 	sourceImage = "global/images/anImage"
 	sourceDiskSnapshot = ""
 	format = ""
-	qemuOptions = ""
 	network = "aNetwork"
 	subnet = "aSubnet"
 	labels = "userkey1=uservalue1,userkey2=uservalue2"

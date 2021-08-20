@@ -29,8 +29,7 @@ Exactly one of these must be specified:
 
 
 #### Optional flags
-+ `-format=FORMAT` Specify the format to export to, such as vmdk, vhdx, vpc, or qcow2.
-+ `-qemu_options=QEMU_OPTIONS` Provide qemu CLI options.
++ `-format=FORMAT` Specify the format to export to, such as vmdk, vhdx, vpc, vpc-fixed, or qcow2.
 + `-project=PROJECT` Project to run in, overrides what is set in workflow.
 + `-network=NETWORK` Name of the network in your project to use for the image import. The network 
   must have access to Google Cloud Storage. If not specified, the  network named 'default' is used.
