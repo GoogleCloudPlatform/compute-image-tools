@@ -113,7 +113,7 @@ func buildDaisyVars(destinationURI string, sourceImage string, sourceDiskSnapsho
 	if format != "" {
 		if format == "vpc-fixed" {
 			varMap["format"] = "vpc"
-			varMap["qemu_options"] = "force_size=on,subformat=fixed"
+			varMap["qemu_options"] = "-o force_size=on,subformat=fixed"
 		} else {
 			varMap["format"] = format
 		}

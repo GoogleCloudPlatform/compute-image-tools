@@ -159,7 +159,7 @@ func TestBuildDaisyVarsWithVpcFixedFormat(t *testing.T) {
 		ws+"aRegion"+ws,
 		"")
 
-	assert.Equal(t, "force_size=on,subformat=fixed", got["qemu_options"])
+	assert.Equal(t, "-o force_size=on,subformat=fixed", got["qemu_options"])
 }
 
 func TestBuildDaisyVarsWithComputeServiceAccount(t *testing.T) {
