@@ -169,9 +169,9 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 
 // Run runs export workflow.
 func Run(clientID string, destinationURI string, sourceImage string, sourceDiskSnapshot string, format string,
-	project *string, network string, subnet string, zone string, timeout string, scratchBucketGcsPath string,
-	oauth string, ce string, computeServiceAccount string, gcsLogsDisabled bool, cloudLogsDisabled bool,
-	stdoutLogsDisabled bool, labels string, currentExecutablePath string) (*daisy.Workflow, error) {
+	project *string, network string, subnet string, zone string, timeout string,
+	scratchBucketGcsPath string, oauth string, ce string, computeServiceAccount string, gcsLogsDisabled bool,
+	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, currentExecutablePath string) (*daisy.Workflow, error) {
 
 	log.SetPrefix(logPrefix + " ")
 

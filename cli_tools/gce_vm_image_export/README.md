@@ -16,7 +16,6 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image
 ### Flags
 
 #### Required flags
-  `pantheon`.
 + `-destination_uri=DESTINATION_URI` The Google Cloud Storage URI destination for the exported
   virtual disk file. For example: gs://my-bucket/my-exported-image.vmdk.
 
@@ -29,6 +28,7 @@ Exactly one of these must be specified:
 
 #### Optional flags
 + `-client_id=CLIENT_ID` Identifies the client of the importer. For example: `gcloud` or
+  `pantheon`.
 + `-format=FORMAT` Specify the format to export to, such as vmdk, vhdx, vpc, vpc-fixed, or qcow2.
 + `-qemu_options=QEMU_OPTIONS` Provide qemu CLI options.
 + `-project=PROJECT` Project to run in, overrides what is set in workflow.
