@@ -1,0 +1,20 @@
+{
+  "Name": "child",
+  "Vars": {
+    "k1": {
+      "Required": true,
+      "Description": "The Ubuntu release to translate."
+    }
+  },
+  "steps": {
+    "create-disks": {
+      "createDisks": [
+        {
+          "SourceImage": "${NAME}-image-${k1}",
+          "SizeGb": "50",
+          "Type": "pd-ssd"
+        }
+      ]
+    }
+  }
+}

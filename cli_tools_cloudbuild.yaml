@@ -1,4 +1,4 @@
-timeout: 3600s
+timeout: 4500s
 
 options:
   env:
@@ -97,6 +97,10 @@ steps:
   - --destination=us-west1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --destination=us-west2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
   - --destination=us-west2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
+  - --destination=us-west3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
+  - --destination=us-west3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
+  - --destination=us-west4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
+  - --destination=us-west4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --destination=us-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
   - --destination=us-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --destination=us-east4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
@@ -129,10 +133,14 @@ steps:
   - --destination=asia-northeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --destination=asia-northeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
   - --destination=asia-northeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
+  - --destination=asia-northeast3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
+  - --destination=asia-northeast3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --destination=asia-south1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
   - --destination=asia-south1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --destination=asia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
   - --destination=asia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
+  - --destination=asia-southeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
+  - --destination=asia-southeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --destination=australia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$_RELEASE
   - --destination=australia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_import:$COMMIT_SHA
   - --context=/workspace
@@ -155,6 +163,10 @@ steps:
   - --destination=us-west1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$COMMIT_SHA
   - --destination=us-west2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$_RELEASE
   - --destination=us-west2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$COMMIT_SHA
+  - --destination=us-west3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$_RELEASE
+  - --destination=us-west3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$COMMIT_SHA
+  - --destination=us-west4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$_RELEASE
+  - --destination=us-west4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$COMMIT_SHA
   - --destination=us-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$_RELEASE
   - --destination=us-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$COMMIT_SHA
   - --destination=us-east4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$_RELEASE
@@ -187,10 +199,14 @@ steps:
   - --destination=asia-northeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$COMMIT_SHA
   - --destination=asia-northeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$_RELEASE
   - --destination=asia-northeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$COMMIT_SHA
+  - --destination=asia-northeast3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$_RELEASE
+  - --destination=asia-northeast3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$COMMIT_SHA
   - --destination=asia-south1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$_RELEASE
   - --destination=asia-south1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$COMMIT_SHA
   - --destination=asia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$_RELEASE
   - --destination=asia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$COMMIT_SHA
+  - --destination=asia-southeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$_RELEASE
+  - --destination=asia-southeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$COMMIT_SHA
   - --destination=australia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$_RELEASE
   - --destination=australia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_onestep_image_import:$COMMIT_SHA
   - --context=/workspace
@@ -213,6 +229,10 @@ steps:
   - --destination=us-west1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$COMMIT_SHA
   - --destination=us-west2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$_RELEASE
   - --destination=us-west2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$COMMIT_SHA
+  - --destination=us-west3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$_RELEASE
+  - --destination=us-west3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$COMMIT_SHA
+  - --destination=us-west4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$_RELEASE
+  - --destination=us-west4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$COMMIT_SHA
   - --destination=us-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$_RELEASE
   - --destination=us-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$COMMIT_SHA
   - --destination=us-east4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$_RELEASE
@@ -245,10 +265,14 @@ steps:
   - --destination=asia-northeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$COMMIT_SHA
   - --destination=asia-northeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$_RELEASE
   - --destination=asia-northeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$COMMIT_SHA
+  - --destination=asia-northeast3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$_RELEASE
+  - --destination=asia-northeast3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$COMMIT_SHA
   - --destination=asia-south1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$_RELEASE
   - --destination=asia-south1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$COMMIT_SHA
   - --destination=asia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$_RELEASE
   - --destination=asia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$COMMIT_SHA
+  - --destination=asia-southeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$_RELEASE
+  - --destination=asia-southeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$COMMIT_SHA
   - --destination=australia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$_RELEASE
   - --destination=australia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_vm_image_export:$COMMIT_SHA
   - --context=/workspace
@@ -271,6 +295,10 @@ steps:
   - --destination=us-west1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$COMMIT_SHA
   - --destination=us-west2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$_RELEASE
   - --destination=us-west2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$COMMIT_SHA
+  - --destination=us-west3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$_RELEASE
+  - --destination=us-west3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$COMMIT_SHA
+  - --destination=us-west4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$_RELEASE
+  - --destination=us-west4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$COMMIT_SHA
   - --destination=us-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$_RELEASE
   - --destination=us-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$COMMIT_SHA
   - --destination=us-east4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$_RELEASE
@@ -303,10 +331,14 @@ steps:
   - --destination=asia-northeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$COMMIT_SHA
   - --destination=asia-northeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$_RELEASE
   - --destination=asia-northeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$COMMIT_SHA
+  - --destination=asia-northeast3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$_RELEASE
+  - --destination=asia-northeast3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$COMMIT_SHA
   - --destination=asia-south1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$_RELEASE
   - --destination=asia-south1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$COMMIT_SHA
   - --destination=asia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$_RELEASE
   - --destination=asia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$COMMIT_SHA
+  - --destination=asia-southeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$_RELEASE
+  - --destination=asia-southeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$COMMIT_SHA
   - --destination=australia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$_RELEASE
   - --destination=australia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_import:$COMMIT_SHA
   - --context=/workspace
@@ -329,6 +361,10 @@ steps:
   - --destination=us-west1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$COMMIT_SHA
   - --destination=us-west2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$_RELEASE
   - --destination=us-west2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$COMMIT_SHA
+  - --destination=us-west3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$_RELEASE
+  - --destination=us-west3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$COMMIT_SHA
+  - --destination=us-west4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$_RELEASE
+  - --destination=us-west4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$COMMIT_SHA
   - --destination=us-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$_RELEASE
   - --destination=us-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$COMMIT_SHA
   - --destination=us-east4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$_RELEASE
@@ -361,10 +397,14 @@ steps:
   - --destination=asia-northeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$COMMIT_SHA
   - --destination=asia-northeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$_RELEASE
   - --destination=asia-northeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$COMMIT_SHA
+  - --destination=asia-northeast3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$_RELEASE
+  - --destination=asia-northeast3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$COMMIT_SHA
   - --destination=asia-south1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$_RELEASE
   - --destination=asia-south1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$COMMIT_SHA
   - --destination=asia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$_RELEASE
   - --destination=asia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$COMMIT_SHA
+  - --destination=asia-southeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$_RELEASE
+  - --destination=asia-southeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$COMMIT_SHA
   - --destination=australia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$_RELEASE
   - --destination=australia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_ovf_export:$COMMIT_SHA
   - --context=/workspace
@@ -387,6 +427,10 @@ steps:
   - --destination=us-west1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$COMMIT_SHA
   - --destination=us-west2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$_RELEASE
   - --destination=us-west2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$COMMIT_SHA
+  - --destination=us-west3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$_RELEASE
+  - --destination=us-west3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$COMMIT_SHA
+  - --destination=us-west4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$_RELEASE
+  - --destination=us-west4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$COMMIT_SHA
   - --destination=us-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$_RELEASE
   - --destination=us-east1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$COMMIT_SHA
   - --destination=us-east4-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$_RELEASE
@@ -419,10 +463,14 @@ steps:
   - --destination=asia-northeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$COMMIT_SHA
   - --destination=asia-northeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$_RELEASE
   - --destination=asia-northeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$COMMIT_SHA
+  - --destination=asia-northeast3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$_RELEASE
+  - --destination=asia-northeast3-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$COMMIT_SHA
   - --destination=asia-south1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$_RELEASE
   - --destination=asia-south1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$COMMIT_SHA
   - --destination=asia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$_RELEASE
   - --destination=asia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$COMMIT_SHA
+  - --destination=asia-southeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$_RELEASE
+  - --destination=asia-southeast2-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$COMMIT_SHA
   - --destination=australia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$_RELEASE
   - --destination=australia-southeast1-docker.pkg.dev/$PROJECT_ID/wrappers/gce_windows_upgrade:$COMMIT_SHA
   - --context=/workspace

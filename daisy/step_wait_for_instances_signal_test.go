@@ -82,7 +82,11 @@ func TestWaitForAnyInstancesSignalRun(t *testing.T) {
 func testWaitForSignalRun(t *testing.T, waitAny bool) {
 	ctx := context.Background()
 	w := testWorkflow()
-	w.ComputeClient.(*daisyCompute.TestClient).GetSerialPortOutputFn = func(_, _, n string, _, _ int64) (*compute.SerialPortOutput, error) {
+	w.ComputeClient.(*daisyCompute.TestClient).GetSerialPortOutputFn = func(_, _, n string, _, start int64) (*compute.SerialPortOutput, error) {
+		if start > 0 {
+			return &compute.SerialPortOutput{Contents: ""}, nil
+		}
+
 		ret := &compute.SerialPortOutput{Next: 20}
 		switch n {
 		case w.genName("i1"):
@@ -123,6 +127,19 @@ func testWaitForSignalRun(t *testing.T, waitAny bool) {
 		}
 		return "STOPPED", nil
 	}
+	w.ComputeClient.(*daisyCompute.TestClient).GetGuestAttributesFn = func(_, _, n, _, _ string) (*compute.GuestAttributes, error) {
+		ret := &compute.GuestAttributes{}
+		switch n {
+		case w.genName("i1"):
+			ret.VariableValue = "success"
+		case w.genName("i2"):
+			ret.VariableValue = "failure"
+		default:
+			return nil, &googleapi.Error{Code: 404}
+		}
+
+		return ret, nil
+	}
 	w.ComputeClient.(*daisyCompute.TestClient).RetryFn = func(_ func(_ ...googleapi.CallOption) (*compute.Operation, error), _ ...googleapi.CallOption) (*compute.Operation, error) {
 		return nil, nil
 	}
@@ -137,9 +154,11 @@ func testWaitForSignalRun(t *testing.T, waitAny bool) {
 	}
 	// Normal run, no error.
 	ws := getStep(waitAny, []*InstanceSignal{
-		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{StatusMatch: "success", SuccessMatch: "success"}},
+		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success", StatusMatch: "success"}},
 		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success", FailureMatch: []string{"fail"}}},
 		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success", FailureMatch: []string{"fail", "fail2"}}},
+		{Name: "i1", interval: 1 * time.Microsecond, GuestAttribute: &GuestAttribute{KeyName: "mynamespace/mykey"}},
+		{Name: "i1", interval: 1 * time.Microsecond, GuestAttribute: &GuestAttribute{KeyName: "mynamespace/mykey", SuccessValue: "success"}},
 		{Name: "i3", interval: 1 * time.Microsecond, Stopped: true},
 	})
 	if err := ws.run(ctx, s); err != nil {
@@ -149,6 +168,7 @@ func testWaitForSignalRun(t *testing.T, waitAny bool) {
 	ws = getStep(waitAny, []*InstanceSignal{
 		{Name: "i2", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{FailureMatch: []string{"fail"}, SuccessMatch: "success"}},
 		{Name: "i3", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{FailureMatch: []string{"fail"}}},
+		{Name: "i2", interval: 1 * time.Microsecond, GuestAttribute: &GuestAttribute{KeyName: "mynamespace/mykey", SuccessValue: "success"}},
 	})
 	if err := ws.run(ctx, s); err == nil {
 		t.Error("expected error")
@@ -246,7 +266,10 @@ func TestWaitForAnyInstancesSignalGetOutputValue(t *testing.T) {
 func testWaitForSignalGetOutputValue(t *testing.T, waitAny bool) {
 	ctx := context.Background()
 	w := testWorkflow()
-	w.ComputeClient.(*daisyCompute.TestClient).GetSerialPortOutputFn = func(_, _, n string, _, _ int64) (*compute.SerialPortOutput, error) {
+	w.ComputeClient.(*daisyCompute.TestClient).GetSerialPortOutputFn = func(_, _, n string, _, start int64) (*compute.SerialPortOutput, error) {
+		if start > 0 {
+			return &compute.SerialPortOutput{Contents: ""}, nil
+		}
 		ret := &compute.SerialPortOutput{Next: 20}
 		switch n {
 		case w.genName("i1"):
@@ -294,4 +317,46 @@ func getStep(waitAny bool, iss []*InstanceSignal) stepImpl {
 		si = append(si, is)
 	}
 	return &si
+}
+
+// The output is split to 3 sections. Test the loop can concat them together correctly.
+func TestWaitForSignalGetSplitOutput(t *testing.T) {
+	ctx := context.Background()
+	w := testWorkflow()
+	w.ComputeClient.(*daisyCompute.TestClient).GetSerialPortOutputFn = func(_, _, n string, _, start int64) (*compute.SerialPortOutput, error) {
+		output := "status: <serial-output key:'my-key' value:'my-value'>"
+		var splitPoint1 int64 = 20
+		var splitPoint2 int64 = 30
+		var subStr1 = output[:splitPoint1]            // "status: <serial-outp"
+		var subStr2 = output[splitPoint1:splitPoint2] // "ut key:'my"
+		var subStr3 = output[splitPoint2:]            // "-key' value:'my-value'>"
+		ret := &compute.SerialPortOutput{}
+		if start == 0 {
+			ret.Next = splitPoint1
+			ret.Contents = subStr1
+		} else if start == splitPoint1 {
+			ret.Next = splitPoint2
+			ret.Contents = subStr2
+		} else if start == splitPoint2 {
+			ret.Next = int64(len(output))
+			ret.Contents = subStr3
+		} else {
+			ret.Next = int64(len(output))
+			ret.Contents = ""
+		}
+		return ret, nil
+	}
+
+	s := &Step{w: w}
+	w.instances.m = map[string]*Resource{
+		"i1": {link: fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, w.genName("i1"))},
+	}
+
+	// There is an output value.
+	si := WaitForInstancesSignal{
+		&InstanceSignal{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{StatusMatch: "status", SuccessMatch: "status"}},
+	}
+	if si.run(ctx, s); w.serialControlOutputValues == nil || w.serialControlOutputValues["my-key"] != "my-value" {
+		t.Errorf("error running stepImpl.run(): didn't get expected output value")
+	}
 }

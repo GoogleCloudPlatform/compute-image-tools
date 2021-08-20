@@ -210,7 +210,7 @@ func TestTestClient(t *testing.T) {
 	c.zoneOperationsWaitFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	c.regionOperationsWaitFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	c.globalOperationsWaitFn = func(_, _ string) error { fakeCalled = true; return nil }
-	c.GetGuestAttributesFn = func(_, _, _, _, _ string) (*computeBeta.GuestAttributes, error) { fakeCalled = true; return nil, nil }
+	c.GetGuestAttributesFn = func(_, _, _, _, _ string) (*compute.GuestAttributes, error) { fakeCalled = true; return nil, nil }
 	c.CreateMachineImageFn = func(_ string, _ *computeBeta.MachineImage) error { fakeCalled = true; return nil }
 	c.GetMachineImageFn = func(_, _ string) (*computeBeta.MachineImage, error) { fakeCalled = true; return nil, nil }
 	c.ListMachineImagesFn = func(_ string, _ ...ListCallOption) ([]*computeBeta.MachineImage, error) {

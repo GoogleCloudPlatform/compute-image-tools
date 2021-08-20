@@ -19,14 +19,14 @@ import (
 	"regexp"
 	"strings"
 
+	"google.golang.org/api/compute/v1"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"google.golang.org/api/compute/v1"
 )
 
 const (
@@ -53,9 +53,6 @@ func (u *upgrader) validateAndDeriveParams() error {
 		u.derivedVars = &derivedVars{}
 	}
 
-	if err := validation.ValidateStringFlagNotEmpty(u.ClientID, ClientIDFlagKey); err != nil {
-		return err
-	}
 	if err := validateOSVersion(u.SourceOS, u.TargetOS); err != nil {
 		return err
 	}

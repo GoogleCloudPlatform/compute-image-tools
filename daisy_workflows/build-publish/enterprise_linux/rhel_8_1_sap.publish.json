@@ -20,12 +20,17 @@
   "WorkProject": {{$work_project}},
   "PublishProject": "rhel-sap-cloud",
   "ComputeEndpoint": {{$endpoint}},
-  {{- else if eq .environment "staging" -}}
-  "WorkProject": "bct-staging-images",
+  {{- else if eq .environment "oslogin-staging" -}}
+  "WorkProject": "oslogin-staging-project",
   "PublishProject": "oslogin-staging-project",
-  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_alpha/projects/",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
   "DeleteAfter": {{$delete_after}},
-  {{- else -}}
+  {{- else if eq .environment "staging" -}}
+  "WorkProject": "oslogin-staging-project",
+  "PublishProject": "gce-staging-images",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
+  "DeleteAfter": {{$delete_after}},
+  {{- else -}},
   "WorkProject": {{$work_project}},
   "PublishProject": {{$work_project}},
   "ComputeEndpoint": {{$endpoint}},
@@ -39,7 +44,7 @@
       "Family": "rhel-8-1-sap-ha",
       "Description": "Red Hat, Red Hat Enterprise Linux for SAP with HA and Update Services, 8.1, x86_64 built on {{$time}}, supports Shielded VM features",
       "Licenses": [
-        {{if eq .environment "staging" -}}
+        {{if (or (eq .environment "staging") (eq .environment "oslogin-staging")) -}}
         "projects/bct-staging-functional/global/licenses/rhel-8-server"
         {{- else -}}
         "projects/rhel-sap-cloud/global/licenses/rhel-8-sap"

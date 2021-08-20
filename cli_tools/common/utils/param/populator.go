@@ -21,16 +21,18 @@ import (
 // Populator standardizes user input, and determines omitted values.
 type Populator interface {
 	PopulateMissingParameters(project *string, clientID string, zone *string, region *string,
-		scratchBucketGcsPath *string, file string, storageLocation *string) error
+		scratchBucketGcsPath *string, file string, storageLocation, network, subnet *string) error
 }
 
 // NewPopulator returns an object that implements Populator.
 func NewPopulator(
+	NetworkResolver NetworkResolver,
 	metadataClient domain.MetadataGCEInterface,
 	storageClient domain.StorageClientInterface,
 	locationClient domain.ResourceLocationRetrieverInterface,
 	scratchBucketClient domain.ScratchBucketCreatorInterface) Populator {
-	return populator{
+	return &populator{
+		NetworkResolver:     NetworkResolver,
 		metadataClient:      metadataClient,
 		storageClient:       storageClient,
 		locationClient:      locationClient,
@@ -39,14 +41,15 @@ func NewPopulator(
 }
 
 type populator struct {
+	NetworkResolver     NetworkResolver
 	metadataClient      domain.MetadataGCEInterface
 	storageClient       domain.StorageClientInterface
 	locationClient      domain.ResourceLocationRetrieverInterface
 	scratchBucketClient domain.ScratchBucketCreatorInterface
 }
 
-func (p populator) PopulateMissingParameters(project *string, clientID string, zone *string,
-	region *string, scratchBucketGcsPath *string, file string, storageLocation *string) error {
+func (p *populator) PopulateMissingParameters(project *string, clientID string, zone *string,
+	region *string, scratchBucketGcsPath *string, file string, storageLocation, network, subnet *string) error {
 
 	if err := PopulateProjectIfMissing(p.metadataClient, project); err != nil {
 		return err
@@ -63,9 +66,7 @@ func (p populator) PopulateMissingParameters(project *string, clientID string, z
 	}
 
 	if *zone == "" {
-		if aZone, err := p.locationClient.GetZone(scratchBucketRegion, *project); err == nil {
-			*zone = aZone
-		} else {
+		if *zone, err = p.locationClient.GetZone(scratchBucketRegion, *project); err != nil {
 			return err
 		}
 	}
@@ -73,5 +74,10 @@ func (p populator) PopulateMissingParameters(project *string, clientID string, z
 	if err := PopulateRegion(region, *zone); err != nil {
 		return err
 	}
+
+	if *network, *subnet, err = p.NetworkResolver.Resolve(*network, *subnet, *region, *project); err != nil {
+		return err
+	}
+
 	return nil
 }

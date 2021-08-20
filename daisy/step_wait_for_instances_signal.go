@@ -22,6 +22,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"google.golang.org/api/googleapi"
 )
 
 const (
@@ -71,6 +73,16 @@ type SerialOutput struct {
 	StatusMatch  string         `json:",omitempty"`
 }
 
+// GuestAttribute describes text signal strings that will be written to guest
+// attributes.
+// This step will not complete until the key exists and matches the value in
+// SuccessValue (if specified and non empty). If SuccessValue is set, any other
+// value in the key will cause the step to fail.
+type GuestAttribute struct {
+	KeyName      string `json:",omitempty"`
+	SuccessValue string `json:",omitempty"`
+}
+
 // InstanceSignal waits for a signal from an instance.
 type InstanceSignal struct {
 	// Instance name to wait for.
@@ -83,6 +95,8 @@ type InstanceSignal struct {
 	Stopped bool `json:",omitempty"`
 	// Wait for a string match in the serial output.
 	SerialOutput *SerialOutput `json:",omitempty"`
+	// Wait for a key or value match in guest attributes.
+	GuestAttribute *GuestAttribute `json:",omitempty"`
 }
 
 func waitForInstanceStopped(s *Step, project, zone, name string, interval time.Duration) DError {
@@ -121,6 +135,7 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 	w.LogStepInfo(s.name, "WaitForInstancesSignal", msg+".")
 	var start int64
 	var errs int
+	tailString := ""
 	tick := time.Tick(interval)
 	for {
 		select {
@@ -150,7 +165,20 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 				return Errf("WaitForInstancesSignal: instance %q: error getting serial port: %v", name, err)
 			}
 			start = resp.Next
-			for _, ln := range strings.Split(resp.Contents, "\n") {
+			lines := strings.Split(resp.Contents, "\n")
+			for i, ln := range lines {
+				// If there is a unconsumed tail string from the previous block of content, concat it with the 1st line of the new block of content.
+				if i == 0 && tailString != "" {
+					ln = tailString + ln
+					tailString = ""
+				}
+
+				// If the content is not ended with a "\n", we want to store the last line as tail string, so it can be concat with the next block of content.
+				if i == len(lines)-1 && lines[len(lines)-1] != "" {
+					tailString = ln
+					break
+				}
+
 				if so.StatusMatch != "" {
 					if i := strings.Index(ln, so.StatusMatch); i != -1 {
 						w.LogStepInfo(s.name, "WaitForInstancesSignal", "Instance %q: StatusMatch found: %q", name, strings.TrimSpace(ln[i:]))
@@ -174,6 +202,67 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 				}
 			}
 			errs = 0
+		}
+	}
+}
+
+func waitForGuestAttribute(s *Step, project, zone, name string, ga *GuestAttribute, interval time.Duration) DError {
+	w := s.w
+	msg := fmt.Sprintf("Instance %q: watching for key %s", name, ga.KeyName)
+	if ga.SuccessValue != "" {
+		msg += fmt.Sprintf(", SuccessValue: %q", ga.SuccessValue)
+	}
+	w.LogStepInfo(s.name, "WaitForInstancesSignal", msg+".")
+	// The limit for querying guest attributes is documented as 10 queries/minute.
+	minInterval, err := time.ParseDuration("6s")
+	if err == nil && interval < minInterval {
+		interval = minInterval
+	}
+	tick := time.Tick(interval)
+	var errs int
+	for {
+		select {
+		case <-s.w.Cancel:
+			return nil
+		case <-tick:
+			resp, err := w.ComputeClient.GetGuestAttributes(project, zone, name, "", ga.KeyName)
+			if err != nil {
+				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 404 {
+					// 404 is OK
+					continue
+				}
+				status, sErr := w.ComputeClient.InstanceStatus(project, zone, name)
+				if sErr != nil {
+					err = fmt.Errorf("%v, error getting InstanceStatus: %v", err, sErr)
+					errs++
+				} else {
+					err = fmt.Errorf("%v, InstanceStatus: %q", err, status)
+					errs = 0
+				}
+
+				// Wait until machine restarts to get Guest Attributes
+				if status == "TERMINATED" || status == "STOPPED" || status == "STOPPING" {
+					continue
+				}
+
+				// Retry up to 3 times in a row on any error if we successfully got InstanceStatus.
+				if errs < 3 {
+					continue
+				}
+
+				return Errf("WaitForInstancesSignal: instance %q: error getting guest attribute: %v", name, err)
+			}
+			if ga.SuccessValue != "" {
+				if resp.VariableValue != ga.SuccessValue {
+					errMsg := strings.TrimSpace(resp.VariableValue)
+					format := "WaitForInstancesSignal bad guest attribute value found for %q: %q"
+					return Errf(format, name, errMsg)
+				}
+				w.LogStepInfo(s.name, "WaitForInstancesSignal", "Instance %q: SuccessValue found for key %q", name, ga.KeyName)
+				return nil
+			}
+			w.LogStepInfo(s.name, "WaitForInstancesSignal", "Instance %q found key %q", name, ga.KeyName)
+			return nil
 		}
 	}
 }
@@ -235,6 +324,7 @@ func runForWaitForInstancesSignal(w *[]*InstanceSignal, s *Step, waitAll bool) D
 			}
 			m := NamedSubexp(instanceURLRgx, i.link)
 			serialSig := make(chan struct{})
+			guestSig := make(chan struct{})
 			stoppedSig := make(chan struct{})
 			if is.Stopped {
 				go func() {
@@ -253,7 +343,18 @@ func runForWaitForInstancesSignal(w *[]*InstanceSignal, s *Step, waitAll bool) D
 					close(serialSig)
 				}()
 			}
+			if is.GuestAttribute != nil {
+				go func() {
+					if err := waitForGuestAttribute(s, m["project"], m["zone"], m["instance"], is.GuestAttribute, is.interval); err != nil || !waitAll {
+						// send a signal to end other waiting instances
+						e <- err
+					}
+					close(guestSig)
+				}()
+			}
 			select {
+			case <-guestSig:
+				return
 			case <-serialSig:
 				return
 			case <-stoppedSig:
@@ -292,7 +393,7 @@ func validateForWaitForInstancesSignal(w *[]*InstanceSignal, s *Step) DError {
 		if i.interval == 0*time.Second {
 			return Errf("%q: cannot wait for instance signal, no interval given", i.Name)
 		}
-		if i.SerialOutput == nil && i.Stopped == false {
+		if i.SerialOutput == nil && i.GuestAttribute == nil && i.Stopped == false {
 			return Errf("%q: cannot wait for instance signal, nothing to wait for", i.Name)
 		}
 		if i.SerialOutput != nil {
@@ -302,6 +403,9 @@ func validateForWaitForInstancesSignal(w *[]*InstanceSignal, s *Step) DError {
 			if i.SerialOutput.SuccessMatch == "" && len(i.SerialOutput.FailureMatch) == 0 {
 				return Errf("%q: cannot wait for instance signal via SerialOutput, no SuccessMatch or FailureMatch given", i.Name)
 			}
+		}
+		if i.GuestAttribute != nil && i.GuestAttribute.KeyName == "" {
+			return Errf("%q: cannot wait for instance signal via GuestAttribute, no KeyName given", i.Name)
 		}
 	}
 	return nil

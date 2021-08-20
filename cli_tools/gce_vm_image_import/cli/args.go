@@ -66,21 +66,15 @@ func (args *imageImportArgs) populateAndValidate(populator param.Populator,
 		args.ExecutionID = path.RandString(5)
 	}
 
-	if args.ClientID == "" {
-		return fmt.Errorf("%s has to be specified", importer.ClientFlag)
-	}
-
 	importer.FixBYOLAndOSArguments(&args.OS, &args.BYOL)
 	args.Source, err = sourceFactory.Init(args.SourceFile, args.SourceImage)
 	if err != nil {
 		return err
 	}
 	if err := populator.PopulateMissingParameters(&args.Project, args.ClientID, &args.Zone, &args.Region,
-		&args.ScratchBucketGcsPath, args.SourceFile, &args.StorageLocation); err != nil {
+		&args.ScratchBucketGcsPath, args.SourceFile, &args.StorageLocation, &args.Network, &args.Subnet); err != nil {
 		return err
 	}
-
-	args.Network, args.Subnet = param.ResolveNetworkAndSubnet(args.Network, args.Subnet, args.Region)
 
 	// Ensure that all workflow logs are put in the same GCS directory.
 	// path.join doesn't work since it converts `gs://` to `gs:/`.

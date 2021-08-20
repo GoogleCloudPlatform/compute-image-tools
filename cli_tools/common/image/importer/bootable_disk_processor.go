@@ -38,7 +38,7 @@ func (b *bootableDiskProcessor) process(pd persistentDisk) (persistentDisk, erro
 	b.logger.User("Making disk bootable on Google Compute Engine")
 	b.workflow.AddVar("source_disk", pd.uri)
 	var err error
-	err = b.workflow.RunWithModifiers(context.Background(), b.preValidateFunc(), b.postValidateFunc())
+	err = b.workflow.Run(context.Background())
 	if err != nil {
 		b.logger.User("Finished making disk bootable")
 		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.request.Network, b.workflow)
@@ -76,6 +76,8 @@ func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger 
 		request.Project, request.Zone, request.ScratchBucketGcsPath, request.Oauth, request.Timeout.String(),
 		request.ComputeEndpoint, request.GcsLogsDisabled, request.CloudLogsDisabled, request.StdoutLogsDisabled)
 
+	daisy_utils.UpdateAllInstanceNoExternalIP(workflow, request.NoExternalIP)
+	workflow.SetLogProcessHook(daisy_utils.RemovePrivacyLogTag)
 	if err != nil {
 		return nil, err
 	}
@@ -87,43 +89,36 @@ func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger 
 	}
 	workflow.Name = logPrefix + "translate"
 
-	return &bootableDiskProcessor{
+	diskProcessor := &bootableDiskProcessor{
 		request:    request,
 		workflow:   workflow,
 		logger:     logger,
 		detectedOs: detectedOs,
-	}, err
+	}
+	diskProcessor.labelResources()
+	return diskProcessor, err
 }
 
-func (b *bootableDiskProcessor) postValidateFunc() daisy.WorkflowModifier {
-	return func(w *daisy.Workflow) {
-		buildID := os.Getenv(daisy_utils.BuildIDOSEnvVarName)
-		w.LogWorkflowInfo("Cloud Build ID: %s", buildID)
-		rl := &daisy_utils.ResourceLabeler{
-			BuildID:         buildID,
-			UserLabels:      b.request.Labels,
-			BuildIDLabelKey: "gce-image-import-build-id",
-			ImageLocation:   b.request.StorageLocation,
-			InstanceLabelKeyRetriever: func(instanceName string) string {
-				return "gce-image-import-tmp"
-			},
-			DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
-				return "gce-image-import-tmp"
-			},
-			ImageLabelKeyRetriever: func(imageName string) string {
-				imageTypeLabel := "gce-image-import"
-				if strings.Contains(imageName, "untranslated") {
-					imageTypeLabel = "gce-image-import-tmp"
-				}
-				return imageTypeLabel
-			}}
-		rl.LabelResources(w)
-		daisy_utils.UpdateAllInstanceNoExternalIP(w, b.request.NoExternalIP)
-	}
-}
-
-func (b *bootableDiskProcessor) preValidateFunc() daisy.WorkflowModifier {
-	return func(w *daisy.Workflow) {
-		w.SetLogProcessHook(daisy_utils.RemovePrivacyLogTag)
-	}
+func (b *bootableDiskProcessor) labelResources() {
+	buildID := os.Getenv(daisy_utils.BuildIDOSEnvVarName)
+	b.logger.User("Cloud Build ID: " + buildID)
+	rl := &daisy_utils.ResourceLabeler{
+		BuildID:         buildID,
+		UserLabels:      b.request.Labels,
+		BuildIDLabelKey: "gce-image-import-build-id",
+		ImageLocation:   b.request.StorageLocation,
+		InstanceLabelKeyRetriever: func(instanceName string) string {
+			return "gce-image-import-tmp"
+		},
+		DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
+			return "gce-image-import-tmp"
+		},
+		ImageLabelKeyRetriever: func(imageName string) string {
+			imageTypeLabel := "gce-image-import"
+			if strings.Contains(imageName, "untranslated") {
+				imageTypeLabel = "gce-image-import-tmp"
+			}
+			return imageTypeLabel
+		}}
+	rl.LabelResources(b.workflow)
 }

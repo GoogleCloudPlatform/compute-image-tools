@@ -21,6 +21,8 @@ import (
 	"strconv"
 	"strings"
 
+	"google.golang.org/api/compute/v1"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
@@ -29,7 +31,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"google.golang.org/api/compute/v1"
 )
 
 type instanceDisksExporterImpl struct {
@@ -59,10 +60,9 @@ func (ide *instanceDisksExporterImpl) Export(instance *compute.Instance, params 
 	if ide.wfPreRunCallback != nil {
 		ide.wfPreRunCallback(ide.wf)
 	}
-	// have to use post-validate modifiers due to the use of included workflows
-	err = ide.wf.RunWithModifiers(context.Background(), nil, func(w *daisy.Workflow) {
-		postValidateWorkflowModifier(w, params)
-	})
+	daisyutils.UpdateAllInstanceNoExternalIP(ide.wf, params.NoExternalIP)
+	labelResources(ide.wf, params)
+	err = ide.wf.Run(context.Background())
 	if ide.wf.Logger != nil {
 		for _, trace := range ide.wf.Logger.ReadSerialPortLogs() {
 			ide.logger.Trace(trace)
@@ -155,13 +155,30 @@ func (ide *instanceDisksExporterImpl) addExportDisksSteps(w *daisy.Workflow, ins
 		if params.ComputeServiceAccount != "" {
 			varMap["compute_service_account"] = params.ComputeServiceAccount
 		}
-		exportDiskStep.IncludeWorkflow = &daisy.IncludeWorkflow{
-			Path: path.Join(params.WorkflowDir, "/export/disk_export_ext.wf.json"),
-			Vars: varMap,
+		var err daisy.DError
+		exportDiskStep.IncludeWorkflow, err = instantiateIncludedWorkflow(w, path.Join(params.WorkflowDir, "/export/disk_export_ext.wf.json"), varMap)
+		if err != nil {
+			return nil, err
 		}
 		w.Steps[exportDiskStepName] = exportDiskStep
 	}
 	return exportedDisks, nil
+}
+
+// instantiateIncludedWorkflow creates an included workflow from the JSON file includedWorkflowPath,
+// using the workflow w as its parent, and applying varMap as the variables.
+func instantiateIncludedWorkflow(w *daisy.Workflow, includedWorkflowPath string,
+	varMap map[string]string) (*daisy.IncludeWorkflow, daisy.DError) {
+	iw := &daisy.IncludeWorkflow{
+		Path: includedWorkflowPath,
+		Vars: varMap,
+	}
+	var err daisy.DError
+	iw.Workflow, err = w.NewIncludedWorkflowFromFile(includedWorkflowPath)
+	if err != nil {
+		return nil, err
+	}
+	return iw, nil
 }
 
 func (ide *instanceDisksExporterImpl) Cancel(reason string) bool {

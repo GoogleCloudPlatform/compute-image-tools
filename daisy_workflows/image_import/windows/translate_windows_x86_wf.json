@@ -57,6 +57,7 @@
     "translate_bootstrap.ps1": "./translate_bootstrap.ps1",
     "drivers": "${drivers}",
     "components/run_startup_scripts.cmd": "./run_startup_scripts_x86.cmd",
+    "components/network.ps1": "./network.ps1",
     "components/GCEStartup.reg": "${task_reg}",
     "components/GCEStartup": "${task_xml}",
     "components/googet.exe": "gs://win-32bit-files/googet/googet.exe",

@@ -3,7 +3,11 @@
   {{if eq .environment "oslogin-staging" -}}
   "WorkProject": "oslogin-staging-project",
   "PublishProject": "oslogin-staging-project",
-  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_alpha/projects/",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
+  {{- else if eq .environment "staging" -}}
+  "WorkProject": "oslogin-staging-project",
+  "PublishProject": "gce-staging-images",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
   {{- end}}
   "DeleteAfter": "24h*30*6",
   "Images": [
@@ -11,7 +15,7 @@
       "Prefix": "ubuntu-pro-2004",
       "Family": "ubuntu-pro-2004-lts",
       "Description": "Ubuntu Pro 20.04 LTS",
-      "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE"]
+      "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE", "SEV_CAPABLE"]
     }
   ]
 }

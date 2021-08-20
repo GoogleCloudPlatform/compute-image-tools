@@ -35,10 +35,6 @@
       "Value": "",
       "Description": "SubNetwork to use for the import instance"
     },
-    "is_windows": {
-      "Value": "false",
-      "Description": "If enabled, WINDOWS will be added to GuestOsFeatures for the disk."
-    },
     "sysprep_windows": {
       "Value": "false",
       "Description": "If enabled, run sysprep. This is a no-op for Linux."
@@ -51,7 +47,6 @@
         "Type": "pd-ssd",
         "ExactName": true,
         "SourceImage": "${source_image}",
-        "isWindows": "${is_windows}",
         "FallbackToPdStandard": true,
         "Licenses": ["projects/compute-image-tools/global/licenses/virtual-disk-import"]
       }]

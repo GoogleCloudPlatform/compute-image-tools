@@ -169,11 +169,11 @@ func runOVFMachineImageImportCentos74StorageLocation(ctx context.Context, testCa
 	suffix := path.RandString(5)
 	props := &ovfMachineImageImportTestProperties{
 		machineImageName: fmt.Sprintf("test-gmi-storage-location-%v", suffix),
-		storageLocation:  "asia-east1",
+		storageLocation:  "asia-northeast1",
 		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{
 			VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 				"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-			Zone:                  "asia-east1-c",
+			Zone:                  "asia-northeast1-a",
 			ExpectedStartupOutput: "All tests passed!",
 			FailureMatches:        []string{"FAILED:", "TestFailed:"},
 			SourceURI:             fmt.Sprintf("gs://%v-asia/ova/centos-7.4/", ovaBucket),

@@ -185,7 +185,7 @@ func runOVFInstanceImportWindows2016(ctx context.Context, testCase *junitxml.Tes
 		instanceName: fmt.Sprintf("test-instance-w2k16-%v", suffix),
 		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.ps1", logger),
-			Zone:                  "asia-east1-c",
+			Zone:                  "asia-northeast1-a",
 			ExpectedStartupOutput: "All Tests Passed",
 			FailureMatches:        []string{"Test Failed:"},
 			SourceURI:             fmt.Sprintf("gs://%v-asia/ova/w2k16/w2k16.ovf", ovaBucket),
@@ -466,7 +466,7 @@ func verifyImportedInstance(
 	logger.Printf("Verifying imported instance...")
 	instance, err := gcp.CreateInstanceBetaObject(ctx, project, props.Zone, props.instanceName, props.IsWindows)
 	if err != nil {
-		e2e.Failure(testCase, logger, fmt.Sprintf("Image '%v' doesn't exist after import: %v", props.instanceName, err))
+		e2e.Failure(testCase, logger, fmt.Sprintf("Instance '%v' doesn't exist after import: %v", props.instanceName, err))
 		return
 	}
 

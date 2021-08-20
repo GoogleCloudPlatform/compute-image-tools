@@ -21,6 +21,8 @@ import (
 	"os"
 	"strings"
 
+	"google.golang.org/api/option"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
@@ -30,7 +32,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	"google.golang.org/api/option"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 // Make file paths mutable
@@ -52,12 +54,8 @@ const (
 	logPrefix = "[image-export]"
 )
 
-func validateAndParseFlags(clientID string, destinationURI string, sourceImage string, sourceDiskSnapshot string, labels string) (
-	map[string]string, error) {
+func validateAndParseFlags(destinationURI string, sourceImage string, sourceDiskSnapshot string, labels string) (map[string]string, error) {
 
-	if err := validation.ValidateStringFlagNotEmpty(clientID, ClientIDFlagKey); err != nil {
-		return nil, err
-	}
 	if err := validation.ValidateStringFlagNotEmpty(destinationURI, DestinationURIFlagKey); err != nil {
 		return nil, err
 	}
@@ -151,27 +149,21 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 		return nil, err
 	}
 
-	preValidateWorkflowModifier := func(w *daisy.Workflow) {
-		w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
-	}
+	workflow.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
+	rl := &daisyutils.ResourceLabeler{
+		BuildID: os.Getenv("BUILD_ID"), UserLabels: userLabels, BuildIDLabelKey: "gce-image-export-build-id",
+		InstanceLabelKeyRetriever: func(instanceName string) string {
+			return "gce-image-export-tmp"
+		},
+		DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
+			return "gce-image-export-tmp"
+		},
+		ImageLabelKeyRetriever: func(imageName string) string {
+			return "gce-image-export"
+		}}
+	rl.LabelResources(workflow)
 
-	postValidateWorkflowModifier := func(w *daisy.Workflow) {
-		w.LogWorkflowInfo("Cloud Build ID: %s", os.Getenv(daisyutils.BuildIDOSEnvVarName))
-		rl := &daisyutils.ResourceLabeler{
-			BuildID: os.Getenv("BUILD_ID"), UserLabels: userLabels, BuildIDLabelKey: "gce-image-export-build-id",
-			InstanceLabelKeyRetriever: func(instanceName string) string {
-				return "gce-image-export-tmp"
-			},
-			DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
-				return "gce-image-export-tmp"
-			},
-			ImageLabelKeyRetriever: func(imageName string) string {
-				return "gce-image-export"
-			}}
-		rl.LabelResources(w)
-	}
-
-	err = workflow.RunWithModifiers(ctx, preValidateWorkflowModifier, postValidateWorkflowModifier)
+	err = workflow.Run(ctx)
 	return workflow, err
 }
 
@@ -183,7 +175,7 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 
 	log.SetPrefix(logPrefix + " ")
 
-	userLabels, err := validateAndParseFlags(clientID, destinationURI, sourceImage, sourceDiskSnapshot, labels)
+	userLabels, err := validateAndParseFlags(destinationURI, sourceImage, sourceDiskSnapshot, labels)
 	if err != nil {
 		return nil, err
 	}
@@ -205,12 +197,15 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 	resourceLocationRetriever := storage.NewResourceLocationRetriever(metadataGCE, computeClient)
 
 	region := new(string)
-	paramPopulator := param.NewPopulator(metadataGCE, storageClient, resourceLocationRetriever, scratchBucketCreator)
-	err = paramPopulator.PopulateMissingParameters(project, clientID, &zone, region, &scratchBucketGcsPath, destinationURI, nil)
+	paramPopulator := param.NewPopulator(param.NewNetworkResolver(computeClient), metadataGCE, storageClient, resourceLocationRetriever, scratchBucketCreator)
+	err = paramPopulator.PopulateMissingParameters(project, clientID, &zone, region, &scratchBucketGcsPath, destinationURI, nil, &network, &subnet)
 	if err != nil {
 		return nil, err
 	}
 
+	if err = validateImageExists(computeClient, *project, sourceImage); err != nil {
+		return nil, err
+	}
 	varMap := buildDaisyVars(destinationURI, sourceImage, sourceDiskSnapshot, format, network, subnet, *region, computeServiceAccount)
 
 	var w *daisy.Workflow
@@ -223,4 +218,24 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 		return w, err
 	}
 	return w, nil
+}
+
+// validateImageExists checks whether imageName exists in the specified project.
+//
+// This validates when imageName is a valid image name, and skips validation if
+// the imageName is a URI, or something that's not recognized as an image.
+// The simplistic validation avoids false negatives; Daisy has robust logic for
+// interpreting the various permutations of specifying an image and project,
+// and we don't want to copy that here, since this is a convenience method to create
+// user-friendly messages.
+func validateImageExists(computeClient daisyCompute.Client, project string, imageName string) (err error) {
+	if err := validation.ValidateImageName(imageName); err != nil {
+		return nil
+	}
+	_, err = computeClient.GetImage(project, imageName)
+	if err != nil {
+		log.Printf("Error when fetching image %q: %q.", imageName, err)
+		return daisy.Errf("Image %q not found", imageName)
+	}
+	return nil
 }

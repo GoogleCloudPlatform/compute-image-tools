@@ -1,0 +1,48 @@
+{{/*
+  Template to publish Windows server UEFI images.
+  By default this template is setup to publish to the 'gce-image-builder'
+  project, the 'environment' variable can be used to publish to 'test', 'prod',
+  or 'staging'.
+  DeleteAfter is set to 180 days for all environments other than prod where no
+  time period is set.
+*/}}
+{
+  "Name": "windows-server-2016-dc-core-uefi",
+  {{$work_project := printf "%q" "gce-image-builder" -}}
+  {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
+  {{$delete_after := `"24h*30*6"` -}}
+  {{if eq .environment "prod" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "windows-cloud",
+  "ComputeEndpoint": {{$endpoint}},
+  {{- else if eq .environment "staging" -}}
+  "WorkProject": "gce-staging-images",
+  "PublishProject": "gce-staging-images",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
+  "DeleteAfter": {{$delete_after}},
+  {{- else -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "bct-prod-images",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- end}}
+  {{$guest_features := `["MULTI_IP_SUBNET","UEFI_COMPATIBLE","VIRTIO_SCSI_MULTIQUEUE","WINDOWS"]` -}}
+  {{$time := trimPrefix .publish_version "v"}}
+  "Images": [
+    {
+      "Prefix": "windows-server-2016-dc-core",
+      "Family": "windows-2016-core",
+      "Description": "Microsoft, Windows Server, 2016 Datacenter Core, Server Core, x64 built on {{$time}}, supports Shielded VM features",
+      "Licenses": [
+        {{if eq .environment "staging" -}}
+        "projects/bct-staging-functional/global/licenses/windows-server-2016-dc",
+        "projects/bct-staging-functional/global/licenses/windows-server-core"
+        {{- else -}}
+        "projects/windows-cloud/global/licenses/windows-server-2016-dc",
+        "projects/windows-cloud/global/licenses/windows-server-core"
+        {{- end}}
+      ],
+      "GuestOsFeatures": {{$guest_features}}
+    }
+  ]
+}

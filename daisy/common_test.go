@@ -74,6 +74,27 @@ func TestMinInt(t *testing.T) {
 	}
 }
 
+func TestHasVariableDeclaration(t *testing.T) {
+	tests := []struct {
+		desc string
+		s    string
+		want bool
+	}{
+		{"no declaration", "content", false},
+		{"no declaration: empty string", "", false},
+		{"no declaration: only dollar", "$var", false},
+		{"no declaration: no closing bracket", "{", false},
+		{"contains declaration", "content ${k}", true},
+		{"contains declaration: source", "${SOURCE: fname}", true},
+	}
+
+	for _, tt := range tests {
+		if got := hasVariableDeclaration(tt.s); got != tt.want {
+			t.Errorf("%s: %v != %v", tt.desc, got, tt.want)
+		}
+	}
+}
+
 func TestRandString(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		l := len(randString(i))

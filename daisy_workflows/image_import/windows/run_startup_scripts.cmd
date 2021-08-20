@@ -23,6 +23,9 @@ REM This is to address initial boot issues, mostly on 2008R2, where the network 
 echo "Scheduling restart in 5 minutes. Translate.ps1 will cancel this restart." > COM1:
 shutdown /r /t 300
 
+echo "Running network.ps1 to reconfigure network to DHCP if needed and log DNS and connectivity tests." > COM1:
+PowerShell.exe -NoProfile -NoLogo -ExecutionPolicy Unrestricted -File "%ProgramFiles%\Google\Compute Engine\metadata_scripts\network.ps1" > COM1:
+
 echo "Translate: Opening firewall ports for GCE metadata server." > COM1:
 REM Enable inbound communication from the metadata server.
 netsh advfirewall firewall add rule name="Allow incoming from GCE metadata server" protocol=ANY remoteip=169.254.169.254 dir=in action=allow

@@ -20,10 +20,15 @@
   "WorkProject": {{$work_project}},
   "PublishProject": "almalinux-cloud",
   "ComputeEndpoint": {{$endpoint}},
-  {{- else if eq .environment "staging" -}}
-  "WorkProject": "bct-staging-images",
+  {{- else if eq .environment "oslogin-staging" -}}
+  "WorkProject": "oslogin-staging-project",
   "PublishProject": "oslogin-staging-project",
-  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_alpha/projects/",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
+  "DeleteAfter": {{$delete_after}},
+  {{- else if eq .environment "staging" -}}
+  "WorkProject": "oslogin-staging-project",
+  "PublishProject": "gce-staging-images",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
   "DeleteAfter": {{$delete_after}},
   {{- else -}}
   "WorkProject": {{$work_project}},
@@ -39,7 +44,7 @@
       "Prefix": "almalinux-8",
       "Description": "AlmaLinux, AlmaLinux, 8, x86_64 built on {{$time}}",
       "Licenses": [
-        {{if eq .environment "staging" -}}
+        {{if (or (eq .environment "staging") (eq .environment "oslogin-staging")) -}}
         "projects/bct-staging-functional/global/licenses/almalinux-8"
         {{- else -}}
         "projects/almalinux-cloud/global/licenses/almalinux-8"

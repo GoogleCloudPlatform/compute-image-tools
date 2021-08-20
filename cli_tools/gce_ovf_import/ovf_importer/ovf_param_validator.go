@@ -65,6 +65,7 @@ type ParamValidatorAndPopulator struct {
 	zoneValidator         domain.ZoneValidatorInterface
 	bucketIteratorCreator domain.BucketIteratorCreatorInterface
 	storageClient         domain.StorageClientInterface
+	NetworkResolver       param.NetworkResolver
 	logger                logging.Logger
 }
 
@@ -85,6 +86,11 @@ func (p *ParamValidatorAndPopulator) ValidateAndPopulate(params *ovfdomain.OVFIm
 		return err
 	}
 
+	if params.Network, params.Subnet, err = p.NetworkResolver.Resolve(
+		params.Network, params.Subnet, params.Region, *params.Project); err != nil {
+		return err
+	}
+
 	if params.ReleaseTrack, err = p.resolveReleaseTrack(params.ReleaseTrack); err != nil {
 		return err
 	}
@@ -100,7 +106,6 @@ func (p *ParamValidatorAndPopulator) ValidateAndPopulate(params *ovfdomain.OVFIm
 
 	params.InstanceNames = strings.ToLower(strings.TrimSpace(params.InstanceNames))
 	params.MachineImageName = strings.ToLower(strings.TrimSpace(params.MachineImageName))
-	params.Network, params.Subnet = param.ResolveNetworkAndSubnet(params.Network, params.Subnet, params.Region)
 	params.Description = strings.TrimSpace(params.Description)
 	params.PrivateNetworkIP = strings.TrimSpace(params.PrivateNetworkIP)
 	params.NetworkTier = strings.TrimSpace(params.NetworkTier)
@@ -139,10 +144,6 @@ func (p *ParamValidatorAndPopulator) ValidateAndPopulate(params *ovfdomain.OVFIm
 	}
 
 	if err := validation.ValidateStringFlagNotEmpty(params.OvfOvaGcsPath, OvfGcsPathFlagKey); err != nil {
-		return err
-	}
-
-	if err := validation.ValidateStringFlagNotEmpty(params.ClientID, ClientIDFlagKey); err != nil {
 		return err
 	}
 
@@ -224,7 +225,7 @@ func (p *ParamValidatorAndPopulator) createScratchBucketIfMissing(originalBucket
 	if originalBucket != "" {
 		scratchBucket = originalBucket
 	} else {
-		safeProjectName := strings.Replace(project, "google", "elgoog", -1)
+		safeProjectName := strings.Replace(project, "google.com", "elgoog_com", -1)
 		safeProjectName = strings.Replace(safeProjectName, ":", "-", -1)
 		if strings.HasPrefix(safeProjectName, "goog") {
 			safeProjectName = strings.Replace(safeProjectName, "goog", "ggoo", 1)

@@ -14,8 +14,8 @@
 # limitations under the License.
 set -x
 
-function serialOutputKeyValuePair() {
-  echo "<serial-output key:'$1' value:'$2'>"
+function serialOutputPrefixedKeyValue() {
+  stdbuf -oL echo "$1: <serial-output key:'$2' value:'$3'>"
 }
 
 # Verify VM has access to Google APIs
@@ -53,7 +53,7 @@ SIZE_OUTPUT_GB=$(awk "BEGIN {print int(((${SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
 MAX_BUFFER_DISK_SIZE_GB=$(awk "BEGIN {print int(${SIZE_OUTPUT_GB} + 5)}")
 
 set +x
-echo "GCEExport: $(serialOutputKeyValuePair "source-size-gb" "${SIZE_OUTPUT_GB}")"
+serialOutputPrefixedKeyValue "GCEExport" "source-size-gb" "${SIZE_OUTPUT_GB}"
 set -x
 
 # Prepare buffer disk.
@@ -89,7 +89,7 @@ echo ${out}
 TARGET_SIZE_BYTES=$(du -b /gs/${IMAGE_OUTPUT_PATH} | awk '{print $1}')
 TARGET_SIZE_GB=$(awk "BEGIN {print int(((${TARGET_SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
 set +x
-echo "GCEExport: $(serialOutputKeyValuePair "target-size-gb" "${TARGET_SIZE_GB}")"
+serialOutputPrefixedKeyValue "GCEExport" "target-size-gb" "${TARGET_SIZE_GB}"
 set -x
 
 echo "GCEExport: Copying output image to target GCS path..."

@@ -116,15 +116,11 @@ func generateWorkflowWithSteps(workflowName, timeout string, populateStepsFunc p
 		return w, err
 	}
 
-	//This only works for workflows with no included workflows. If included
-	// workflows are used, this func has to be called as wf.postValidateModifier.
-	//postValidateWorkflowModifier(w, params)
-
 	params.EnvironmentSettings().ApplyToWorkflow(w)
 	return w, nil
 }
 
-func postValidateWorkflowModifier(w *daisy.Workflow, params *ovfexportdomain.OVFExportArgs) {
+func labelResources(w *daisy.Workflow, params *ovfexportdomain.OVFExportArgs) {
 	rl := &daisyutils.ResourceLabeler{
 		BuildID:         params.BuildID,
 		BuildIDLabelKey: "gce-ovf-export-build-id",
@@ -138,7 +134,6 @@ func postValidateWorkflowModifier(w *daisy.Workflow, params *ovfexportdomain.OVF
 			return "gce-ovf-export-tmp"
 		}}
 	rl.LabelResources(w)
-	daisyutils.UpdateAllInstanceNoExternalIP(w, params.NoExternalIP)
 }
 
 //TODO: consolidate with gce_vm_image_import.runStep()

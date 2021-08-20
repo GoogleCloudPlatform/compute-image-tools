@@ -91,12 +91,12 @@ YumInstall.first_run = True
 
 @RetryOnFailure()
 def AptGetInstall(package_list, suite=None):
-  # When `apt-get update` fails to update a repo, it returns 0.
+  # When `apt update` fails to update a repo, it returns 0.
   # This check ensures that we retry running update until we've
   # had one successful install.
   # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=778357
   if not AptGetInstall.prior_success:
-    Execute(['apt-get', 'update'])
+    Execute(['apt', '-y', 'update'])
 
   env = os.environ.copy()
   env['DEBIAN_FRONTEND'] = 'noninteractive'
@@ -819,4 +819,4 @@ def install_apt_packages(g, *pkgs):
 
 @RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
 def update_apt(g):
-  run(g, 'apt-get update')
+  run(g, 'apt -y update')

@@ -35,7 +35,7 @@
               "AutoDelete": true,
               "boot": true,
               "initializeParams": {
-                "sourceImage": "projects/compute-image-tools/global/images/family/debian-9-worker"
+                "sourceImage": "projects/compute-image-tools/global/images/family/debian-10-worker"
               }
             },
             {

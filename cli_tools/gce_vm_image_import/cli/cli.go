@@ -64,6 +64,7 @@ func Main(args []string, toolLogger logging.ToolLogger, workflowDir string) erro
 	}
 	metadataGCE := &compute.MetadataGCE{}
 	paramPopulator := param.NewPopulator(
+		param.NewNetworkResolver(computeClient),
 		metadataGCE,
 		storageClient,
 		storage.NewResourceLocationRetriever(metadataGCE, computeClient),
@@ -71,7 +72,8 @@ func Main(args []string, toolLogger logging.ToolLogger, workflowDir string) erro
 	)
 
 	// 3. Populate missing arguments.
-	err = importArgs.populateAndValidate(paramPopulator, importer.NewSourceFactory(storageClient))
+	err = importArgs.populateAndValidate(paramPopulator,
+		importer.NewSourceFactory(storageClient))
 	if err != nil {
 		logFailure(importArgs, err)
 		return err
