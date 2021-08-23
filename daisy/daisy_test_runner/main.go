@@ -174,7 +174,7 @@ func createTestCase(ctx context.Context, testLogger *logger, path, project, zone
 		w.ComputeEndpoint = ce
 	}
 
-	if err := w.PopulateClients(ctx, []option.ClientOption); err != nil {
+	if err := w.PopulateClients(ctx, []option.ClientOption{}); err != nil {
 		return nil, err
 	}
 
