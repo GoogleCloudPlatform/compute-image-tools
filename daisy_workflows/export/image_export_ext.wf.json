@@ -16,6 +16,9 @@
       "Required": true,
       "Description": "Format to export image as"
     },
+    "qemu_options": {
+      "Description": "Provides additional qemu options"
+    },
     "export_instance_disk_image": {
       "Value": "projects/compute-image-tools/global/images/family/debian-10-worker",
       "Description": "image to use for the exporter instance"
@@ -60,6 +63,7 @@
           "source_disk": "disk-${NAME}",
           "destination": "${destination}",
           "format": "${format}",
+          "qemu_options": "${qemu_options}",
           "export_instance_disk_image": "${export_instance_disk_image}",
           "export_instance_disk_size": "${export_instance_disk_size}",
           "export_instance_disk_type": "${export_instance_disk_type}",

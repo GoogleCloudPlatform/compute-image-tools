@@ -29,6 +29,7 @@ BYTES_1GB=1073741824
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
 FORMAT=$(curl -f -H Metadata-Flavor:Google ${URL}/format)
+QEMU_OPTIONS=$(curl -f -H Metadata-Flavor:Google ${URL}/qemu_options)
 DISK_RESIZING_MON=$(curl -f -H Metadata-Flavor:Google ${URL}/resizing-script-name)
 
 # Strip gs://
@@ -73,7 +74,7 @@ chmod +x ${DISK_RESIZING_MON_LOCAL_PATH}
 ${DISK_RESIZING_MON_LOCAL_PATH} ${MAX_BUFFER_DISK_SIZE_GB} &
 
 echo "GCEExport: Exporting disk of size ${SIZE_OUTPUT_GB}GB and format ${FORMAT}."
-if ! out=$(qemu-img convert /dev/sdb "/gs/${IMAGE_OUTPUT_PATH}" -p -O $FORMAT 2>&1); then
+if ! out=$(qemu-img convert /dev/sdb "/gs/${IMAGE_OUTPUT_PATH}" -p -O $FORMAT $QEMU_OPTIONS 2>&1); then
   echo "ExportFailed: Failed to export disk source to GCS [Privacy-> ${GS_PATH} <-Privacy] due to qemu-img error: [Privacy-> ${out} <-Privacy]"
   exit
 fi
