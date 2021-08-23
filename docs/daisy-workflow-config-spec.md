@@ -807,7 +807,7 @@ for more details.
 
 
 #### Type: UpdateInstancesMetadata
-Update instances metadata. This step can update the value of and existing key
+Update instances metadata. This step can update the value of an existing key
  or add new keys. However this step will not remove metadata keys.
 
 | Field Name | Type | Description |
@@ -933,7 +933,7 @@ or configuration into instance metadata.
   "Sources": {
     "my_source.sh": "./path/to/my/source.sh"
   },
-  "Steps":
+  "Steps": {
     "step1": {
       "CreateInstances": [
         {
