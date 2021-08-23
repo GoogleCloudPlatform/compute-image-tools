@@ -236,7 +236,7 @@ func (w *Workflow) SetLogProcessHook(hook func(string) string) {
 
 // Validate runs validation on the workflow.
 func (w *Workflow) Validate(ctx context.Context) DError {
-	if err := w.PopulateClients(ctx); err != nil {
+	if err := w.PopulateClients(ctx, []option.ClientOption{}); err != nil {
 		w.CancelWorkflow()
 		return Errf("error populating workflow: %v", err)
 	}
@@ -377,11 +377,25 @@ func (w *Workflow) getSourceGCSAPIPath(s string) string {
 }
 
 // PopulateClients populates the compute and storage clients for the workflow.
-func (w *Workflow) PopulateClients(ctx context.Context) error {
+func (w *Workflow) PopulateClients(ctx context.Context, options []option.ClientOption) error {
 	// API clients instantiation.
-	var err error
+	var (
+		err            error
+		computeOptions []option.ClientOption
+		storageOptions []option.ClientOption
+		loggingOptions []option.ClientOption
+	)
 
-	computeOptions := []option.ClientOption{option.WithCredentialsFile(w.OAuthPath)}
+	if len(options) > 0 {
+		computeOptions = options
+		storageOptions = options
+		loggingOptions = options
+	} else {
+		computeOptions = []option.ClientOption{option.WithCredentialsFile(w.OAuthPath)}
+		storageOptions = []option.ClientOption{option.WithCredentialsFile(w.OAuthPath)}
+		loggingOptions = []option.ClientOption{option.WithCredentialsFile(w.OAuthPath)}
+	}
+
 	if w.ComputeEndpoint != "" {
 		computeOptions = append(computeOptions, option.WithEndpoint(w.ComputeEndpoint))
 	}
@@ -393,7 +407,6 @@ func (w *Workflow) PopulateClients(ctx context.Context) error {
 		}
 	}
 
-	storageOptions := []option.ClientOption{option.WithCredentialsFile(w.OAuthPath)}
 	if w.StorageClient == nil {
 		w.StorageClient, err = storage.NewClient(ctx, storageOptions...)
 		if err != nil {
@@ -401,7 +414,6 @@ func (w *Workflow) PopulateClients(ctx context.Context) error {
 		}
 	}
 
-	loggingOptions := []option.ClientOption{option.WithCredentialsFile(w.OAuthPath)}
 	if w.externalLogging && w.cloudLoggingClient == nil {
 		w.cloudLoggingClient, err = logging.NewClient(ctx, w.Project, loggingOptions...)
 		if err != nil {
@@ -627,7 +639,7 @@ func (w *Workflow) NewSubWorkflowFromFile(file string) (*Workflow, DError) {
 // Print populates then pretty prints the workflow.
 func (w *Workflow) Print(ctx context.Context) {
 	w.externalLogging = false
-	if err := w.PopulateClients(ctx); err != nil {
+	if err := w.PopulateClients(ctx, []option.ClientOption{}); err != nil {
 		fmt.Println("Error running PopulateClients:", err)
 	}
 	if err := w.populate(ctx); err != nil {

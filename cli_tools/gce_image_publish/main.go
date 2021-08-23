@@ -30,6 +30,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_image_publish/publish"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	computeAlpha "google.golang.org/api/compute/v0.alpha"
+	"google.golang.org/api/option"
 )
 
 var (
@@ -150,7 +151,7 @@ func main() {
 			errs = append(errs, loadErr)
 			continue
 		}
-		w, err := p.CreateWorkflows(ctx, varMap, regex, *rollback, *skipDup, *replace, *noRoot, *oauth, time.Now(), *rolloutRate)
+		w, err := p.CreateWorkflows(ctx, varMap, regex, *rollback, *skipDup, *replace, *noRoot, *oauth, time.Now(), *rolloutRate, []option.ClientOption{})
 		if err != nil {
 			createWorkflowErr := fmt.Errorf("Workflow creation error: %s", err)
 			fmt.Println(createWorkflowErr)
