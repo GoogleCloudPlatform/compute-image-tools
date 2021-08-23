@@ -748,6 +748,7 @@ VM has the following fields:
 | Interval | string ([Golang's time.Duration format](https://golang.org/pkg/time/#Duration.String)) | The signal polling interval. |
 | Stopped | bool | Use the VM stopping as the signal. |
 | SerialOutput | SerialOutput (see below) | Parse the serial port output for a signal. |
+| GuestAttribute | GuestAttribute (see below) | Parse guest attributes for a signal. |
 
 SerialOutput:
 
@@ -786,9 +787,27 @@ To output to the serial port from a startup script (launched using the
 write output to "standard out": On Unix systems this might be using `echo` or
 `print`, on Windows `Write-Host` or `Write-Console`.
 
+GuestAttribute:
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| KeyName | string | The key name to watch for. |
+| SuccessValue | string | *Optional* An expected value to be matched. If set,
+any other value will be considered a failure. If not set, any value will be
+considered a success. |
+
+If the key specified by KeyName is found, the value will be compared to
+SuccessValue for determining success or failure of the step. If SuccessValue is
+not set, any value will be considered a success.
+
+Setting Guest Attributes can be done using system utilities such as `curl` or
+from any scripting or programming language. See 
+[the public docs](https://cloud.google.com/compute/docs/metadata/manage-guest-attributes#set_guest_attributes)
+for more details.
+
 
 #### Type: UpdateInstancesMetadata
-Update instances metadata. This step can update the value of and existing key
+Update instances metadata. This step can update the value of an existing key
  or add new keys. However this step will not remove metadata keys.
 
 | Field Name | Type | Description |
@@ -914,7 +933,7 @@ or configuration into instance metadata.
   "Sources": {
     "my_source.sh": "./path/to/my/source.sh"
   },
-  "Steps":
+  "Steps": {
     "step1": {
       "CreateInstances": [
         {
