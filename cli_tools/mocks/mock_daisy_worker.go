@@ -5,34 +5,63 @@
 package mocks
 
 import (
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockDaisyWorker is a mock of DaisyWorker interface
+// MockDaisyWorker is a mock of DaisyWorker interface.
 type MockDaisyWorker struct {
 	ctrl     *gomock.Controller
 	recorder *MockDaisyWorkerMockRecorder
 }
 
-// MockDaisyWorkerMockRecorder is the mock recorder for MockDaisyWorker
+// MockDaisyWorkerMockRecorder is the mock recorder for MockDaisyWorker.
 type MockDaisyWorkerMockRecorder struct {
 	mock *MockDaisyWorker
 }
 
-// NewMockDaisyWorker creates a new mock instance
+// NewMockDaisyWorker creates a new mock instance.
 func NewMockDaisyWorker(ctrl *gomock.Controller) *MockDaisyWorker {
 	mock := &MockDaisyWorker{ctrl: ctrl}
 	mock.recorder = &MockDaisyWorkerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockDaisyWorker) EXPECT() *MockDaisyWorkerMockRecorder {
 	return m.recorder
 }
 
-// RunAndReadSerialValue mocks base method
+// Cancel mocks base method.
+func (m *MockDaisyWorker) Cancel(reason string) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Cancel", reason)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// Cancel indicates an expected call of Cancel.
+func (mr *MockDaisyWorkerMockRecorder) Cancel(reason interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Cancel", reflect.TypeOf((*MockDaisyWorker)(nil).Cancel), reason)
+}
+
+// Run mocks base method.
+func (m *MockDaisyWorker) Run(vars map[string]string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Run", vars)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Run indicates an expected call of Run.
+func (mr *MockDaisyWorkerMockRecorder) Run(vars interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockDaisyWorker)(nil).Run), vars)
+}
+
+// RunAndReadSerialValue mocks base method.
 func (m *MockDaisyWorker) RunAndReadSerialValue(key string, vars map[string]string) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RunAndReadSerialValue", key, vars)
@@ -41,36 +70,8 @@ func (m *MockDaisyWorker) RunAndReadSerialValue(key string, vars map[string]stri
 	return ret0, ret1
 }
 
-// RunAndReadSerialValue indicates an expected call of RunAndReadSerialValue
+// RunAndReadSerialValue indicates an expected call of RunAndReadSerialValue.
 func (mr *MockDaisyWorkerMockRecorder) RunAndReadSerialValue(key, vars interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunAndReadSerialValue", reflect.TypeOf((*MockDaisyWorker)(nil).RunAndReadSerialValue), key, vars)
-}
-
-// Cancel mocks base method
-func (m *MockDaisyWorker) Cancel(reason string) bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Cancel", reason)
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// Cancel indicates an expected call of Cancel
-func (mr *MockDaisyWorkerMockRecorder) Cancel(reason interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Cancel", reflect.TypeOf((*MockDaisyWorker)(nil).Cancel), reason)
-}
-
-// TraceLogs mocks base method
-func (m *MockDaisyWorker) TraceLogs() []string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TraceLogs")
-	ret0, _ := ret[0].([]string)
-	return ret0
-}
-
-// TraceLogs indicates an expected call of TraceLogs
-func (mr *MockDaisyWorkerMockRecorder) TraceLogs() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TraceLogs", reflect.TypeOf((*MockDaisyWorker)(nil).TraceLogs))
 }

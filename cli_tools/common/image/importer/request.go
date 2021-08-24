@@ -19,9 +19,8 @@ import (
 	"strings"
 	"time"
 
-	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
 
 // Flags that are validated.
@@ -123,8 +122,8 @@ func FixBYOLAndOSArguments(osIDArgument *string, byolArgument *bool) {
 
 // EnvironmentSettings returns the subset of EnvironmentSettings that are required to instantiate
 // a daisy workflow.
-func (args ImageImportRequest) EnvironmentSettings() daisycommon.EnvironmentSettings {
-	return daisycommon.EnvironmentSettings{
+func (args ImageImportRequest) EnvironmentSettings() daisyutils.EnvironmentSettings {
+	return daisyutils.EnvironmentSettings{
 		Project:               args.Project,
 		Zone:                  args.Zone,
 		GCSPath:               args.ScratchBucketGcsPath,
@@ -140,5 +139,8 @@ func (args ImageImportRequest) EnvironmentSettings() daisycommon.EnvironmentSett
 		ComputeServiceAccount: args.ComputeServiceAccount,
 		NoExternalIP:          args.NoExternalIP,
 		WorkflowDirectory:     args.WorkflowDir,
+		Labels:                args.Labels,
+		ExecutionID:           args.ExecutionID,
+		StorageLocation:       args.StorageLocation,
 	}
 }

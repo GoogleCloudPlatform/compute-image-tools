@@ -21,8 +21,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
 
 func Test_FixBYOLAndOSFlags(t *testing.T) {
@@ -267,7 +267,7 @@ func Test_EnvironmentSettings(t *testing.T) {
 		NoExternalIP:          true,
 		WorkflowDir:           "workflow-dir",
 	}
-	expected := daisycommon.EnvironmentSettings{
+	expected := daisyutils.EnvironmentSettings{
 		Project:               "panda",
 		Zone:                  "us-west",
 		GCSPath:               "gs://bucket/path",

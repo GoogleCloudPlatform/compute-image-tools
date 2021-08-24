@@ -19,7 +19,7 @@ import (
 	"github.com/GoogleCloudPlatform/osconfig/osinfo"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
-	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 )
 
 const (
@@ -49,7 +49,7 @@ func (c *osVersionCheck) run() (*report, error) {
 	// Some systems are only available as BYOL, so check for both osID variants.
 	var supported bool
 	for _, suffix := range []string{"", "-byol"} {
-		if daisy_utils.ValidateOS(osID+suffix) == nil {
+		if daisyutils.ValidateOS(osID+suffix) == nil {
 			supported = true
 			break
 		}

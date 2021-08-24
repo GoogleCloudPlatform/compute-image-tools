@@ -23,7 +23,7 @@ import (
 	"google.golang.org/api/compute/v1"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 )
 
@@ -59,7 +59,7 @@ func TestValidateParams(t *testing.T) {
 		"Please provide the instance flag either with the name of the instance or in the form of 'projects/<project>/zones/<zone>/instances/<instance>', not bad/url", DefaultTimeout})
 
 	u = newTestUpgrader().upgrader
-	u.Instance = daisy.GetInstanceURI(testProject, testZone, testInstanceNoLicense)
+	u.Instance = daisyutils.GetInstanceURI(testProject, testZone, testInstanceNoLicense)
 	tcs = append(tcs, testCase{"validateAndDeriveInstance failure", u,
 		"Can only upgrade GCE instance with projects/windows-cloud/global/licenses/windows-server-2008-r2-dc license attached", DefaultTimeout})
 
@@ -147,7 +147,7 @@ func TestValidateInstance(t *testing.T) {
 	tcs := []testCase{
 		{
 			"Normal case without original startup script",
-			daisy.GetInstanceURI(testProject, testZone, testInstance),
+			daisyutils.GetInstanceURI(testProject, testZone, testInstance),
 			"",
 			"",
 			"",
@@ -157,7 +157,7 @@ func TestValidateInstance(t *testing.T) {
 		},
 		{
 			"Normal case with original startup script",
-			daisy.GetInstanceURI(testProject, testZone, testInstanceWithStartupScript),
+			daisyutils.GetInstanceURI(testProject, testZone, testInstanceWithStartupScript),
 			"",
 			"",
 			"",
@@ -167,7 +167,7 @@ func TestValidateInstance(t *testing.T) {
 		},
 		{
 			"Normal case with existing startup script backup",
-			daisy.GetInstanceURI(testProject, testZone, testInstanceWithExistingStartupScriptBackup),
+			daisyutils.GetInstanceURI(testProject, testZone, testInstanceWithExistingStartupScriptBackup),
 			"",
 			"",
 			"",
@@ -177,7 +177,7 @@ func TestValidateInstance(t *testing.T) {
 		},
 		{
 			"No disk error",
-			daisy.GetInstanceURI(testProject, testZone, testInstanceNoDisk),
+			daisyutils.GetInstanceURI(testProject, testZone, testInstanceNoDisk),
 			"",
 			"No disks attached to the instance.",
 			"",
@@ -187,7 +187,7 @@ func TestValidateInstance(t *testing.T) {
 		},
 		{
 			"License error",
-			daisy.GetInstanceURI(testProject, testZone, testInstanceNoLicense),
+			daisyutils.GetInstanceURI(testProject, testZone, testInstanceNoLicense),
 			"",
 			"Can only upgrade GCE instance with projects/windows-cloud/global/licenses/windows-server-2008-r2-dc license attached",
 			"",
@@ -197,7 +197,7 @@ func TestValidateInstance(t *testing.T) {
 		},
 		{
 			"OS disk error",
-			daisy.GetInstanceURI(testProject, testZone, testInstanceNoBootDisk),
+			daisyutils.GetInstanceURI(testProject, testZone, testInstanceNoBootDisk),
 			"",
 			"The instance has no boot disk.",
 			"",
@@ -207,7 +207,7 @@ func TestValidateInstance(t *testing.T) {
 		},
 		{
 			"Instance doesn't exist",
-			daisy.GetInstanceURI(testProject, testZone, DNE),
+			daisyutils.GetInstanceURI(testProject, testZone, DNE),
 			"",
 			"Failed to get instance: googleapi: got HTTP response code 404 with body: ",
 			"",
@@ -277,7 +277,7 @@ func TestValidateInstance(t *testing.T) {
 		},
 		{
 			"Override input project and zone",
-			daisy.GetInstanceURI(testProject, testZone, testInstance),
+			daisyutils.GetInstanceURI(testProject, testZone, testInstance),
 			"",
 			"",
 			testProject2,
@@ -316,7 +316,7 @@ func TestValidateInstance(t *testing.T) {
 				tc.testName, derivedVars.instanceProject, derivedVars.instanceZone, derivedVars.instanceName,
 				tc.expectedProject, tc.expectedZone, tc.expectedInstanceName)
 		}
-		expectedURI := daisy.GetInstanceURI(tc.expectedProject, tc.expectedZone, tc.expectedInstanceName)
+		expectedURI := daisyutils.GetInstanceURI(tc.expectedProject, tc.expectedZone, tc.expectedInstanceName)
 		if expectedURI != derivedVars.instanceURI {
 			t.Errorf("[%v]: Unexpected instance URI. Actual: %v, while expect: %v.",
 				tc.testName, derivedVars.instanceURI, expectedURI)
@@ -358,7 +358,7 @@ func TestValidateOSDisk(t *testing.T) {
 		},
 		{
 			"Disk not exist",
-			&compute.AttachedDisk{Source: daisy.GetDiskURI(testProject, testZone, DNE),
+			&compute.AttachedDisk{Source: daisyutils.GetDiskURI(testProject, testZone, DNE),
 				DeviceName: testDiskDeviceName, AutoDelete: testDiskAutoDelete, Boot: true},
 			"Failed to get boot disk info: googleapi: got HTTP response code 404 with body: ",
 		},

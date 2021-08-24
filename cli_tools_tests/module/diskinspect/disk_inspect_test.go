@@ -27,9 +27,9 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/common/runtime"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
@@ -40,7 +40,7 @@ const (
 )
 
 var (
-	defaultEnvironment = daisycommon.EnvironmentSettings{
+	defaultEnvironment = daisyutils.EnvironmentSettings{
 		Zone:              runtime.GetConfig("GOOGLE_CLOUD_ZONE", "compute/zone"),
 		Project:           runtime.GetConfig("GOOGLE_CLOUD_PROJECT", "project"),
 		WorkflowDirectory: workflowDir,
@@ -368,7 +368,7 @@ func TestInspectDisk_SupportsNoExternalIP(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	env := daisycommon.EnvironmentSettings{
+	env := daisyutils.EnvironmentSettings{
 		Project:           "gce-guest-no-external-ip-3afc2",
 		Zone:              "us-west1-a",
 		WorkflowDirectory: workflowDir,
@@ -433,7 +433,7 @@ func TestInspectionDisk_SupportsNonDefaultNetwork(t *testing.T) {
 		t.Run(currentTest.caseName, func(t *testing.T) {
 			t.Parallel()
 			t.Logf("Network=%s, Subnet=%s, project=%s", network, subnet, project)
-			env := daisycommon.EnvironmentSettings{
+			env := daisyutils.EnvironmentSettings{
 				Project:           "compute-image-test-custom-vpc",
 				Zone:              zone,
 				WorkflowDirectory: workflowDir,
@@ -458,7 +458,7 @@ func TestInspectionDisk_SupportsNonDefaultNetwork(t *testing.T) {
 	}
 }
 
-func createDisk(t *testing.T, client daisycompute.Client, env daisycommon.EnvironmentSettings, srcImage string) string {
+func createDisk(t *testing.T, client daisycompute.Client, env daisyutils.EnvironmentSettings, srcImage string) string {
 	name := "d" + uuid.New().String()
 	err := client.CreateDisk(env.Project, env.Zone, &compute.Disk{
 		Name:        name,
@@ -472,7 +472,7 @@ func createDisk(t *testing.T, client daisycompute.Client, env daisycommon.Enviro
 	return diskURI
 }
 
-func deleteDisk(t *testing.T, client daisycompute.Client, env daisycommon.EnvironmentSettings, diskURI string) {
+func deleteDisk(t *testing.T, client daisycompute.Client, env daisyutils.EnvironmentSettings, diskURI string) {
 	name := diskURI[strings.LastIndex(diskURI, "/")+1:]
 	err := client.DeleteDisk(env.Project, env.Zone, name)
 	if err != nil {
@@ -482,7 +482,7 @@ func deleteDisk(t *testing.T, client daisycompute.Client, env daisycommon.Enviro
 	}
 }
 
-func assertInspectionSucceeds(t *testing.T, image string, env daisycommon.EnvironmentSettings, expected *pb.InspectionResults) {
+func assertInspectionSucceeds(t *testing.T, image string, env daisyutils.EnvironmentSettings, expected *pb.InspectionResults) {
 	client, inspector := makeClientAndInspector(t, env)
 
 	diskURI := createDisk(t, client, env, image)
@@ -495,7 +495,7 @@ func assertInspectionSucceeds(t *testing.T, image string, env daisycommon.Enviro
 	}
 }
 
-func makeClientAndInspector(t *testing.T, env daisycommon.EnvironmentSettings) (daisycompute.Client, disk.Inspector) {
+func makeClientAndInspector(t *testing.T, env daisyutils.EnvironmentSettings) (daisycompute.Client, disk.Inspector) {
 	client, err := daisycompute.NewClient(context.Background())
 	if err != nil {
 		t.Fatal(err)

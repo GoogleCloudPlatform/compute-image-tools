@@ -21,9 +21,9 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -124,7 +124,7 @@ func (s fileSource) validate(storageClient domain.StorageObjectCreatorInterface)
 	}
 	defer rc.Close()
 
-	byteCountingReader := daisycommon.NewByteCountingReader(rc)
+	byteCountingReader := daisyutils.NewByteCountingReader(rc)
 	// Detect whether it's a compressed file by extracting compressed file header
 	if _, err = gzip.NewReader(byteCountingReader); err == nil {
 		return daisy.Errf("the input file is a gzip file, which is not supported by " +

@@ -22,10 +22,9 @@ import (
 	"google.golang.org/api/compute/v1"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
-	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	string_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -103,7 +102,7 @@ func newDaisyInflater(request ImageImportRequest, fileInspector imagefile.Inspec
 		inflationDiskIndex = 1 // First disk is for the worker
 	}
 
-	wf, err := daisycommon.ParseWorkflow(path.Join(request.WorkflowDir, wfPath), vars,
+	wf, err := daisyutils.ParseWorkflow(path.Join(request.WorkflowDir, wfPath), vars,
 		request.Project, request.Zone, request.ScratchBucketGcsPath, request.Oauth, request.Timeout.String(), request.ComputeEndpoint,
 		request.GcsLogsDisabled, request.CloudLogsDisabled, request.StdoutLogsDisabled)
 	if err != nil {
@@ -113,7 +112,7 @@ func newDaisyInflater(request ImageImportRequest, fileInspector imagefile.Inspec
 	for k, v := range vars {
 		wf.AddVar(k, v)
 	}
-	daisyUtils.UpdateAllInstanceNoExternalIP(wf, request.NoExternalIP)
+	daisyutils.UpdateAllInstanceNoExternalIP(wf, request.NoExternalIP)
 	if request.UefiCompatible {
 		addFeatureToDisk(wf, "UEFI_COMPATIBLE", inflationDiskIndex)
 	}

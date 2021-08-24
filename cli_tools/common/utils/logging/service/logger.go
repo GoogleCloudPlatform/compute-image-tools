@@ -32,7 +32,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/minio/highwayhash"
 
-	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )

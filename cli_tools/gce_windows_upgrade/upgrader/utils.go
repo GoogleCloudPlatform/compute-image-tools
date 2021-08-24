@@ -20,8 +20,7 @@ import (
 	"text/template"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/collections"
-	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -161,7 +160,7 @@ func needReboot(err error) bool {
 }
 
 func setWorkflowAttributes(w *daisy.Workflow, u *upgrader) {
-	daisycommon.EnvironmentSettings{
+	daisyutils.EnvironmentSettings{
 		Project:           u.instanceProject,
 		Zone:              u.instanceZone,
 		GCSPath:           u.ScratchBucketGcsPath,

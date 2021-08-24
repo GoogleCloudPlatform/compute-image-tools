@@ -60,6 +60,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0-20200114193945-760dc9647411/go.mod h1:928Ttg3SXjfF1mOI37hjnFUahdU4R234SpDcgcBO0I8=
 github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0-20200406182414-bf9021434372/go.mod h1:zkxkF+fdCQyagLcSSWbQeDcvShTFro3HbulNmXzbBJg=
+github.com/GoogleCloudPlatform/compute-image-tools/common v0.0.0-20210813223703-440240b1c667 h1:dTaWvE2gwXSH7E3u/Jcpd7kGbzpRyEnFLQAPgeC4xHk=
+github.com/GoogleCloudPlatform/compute-image-tools/common v0.0.0-20210813223703-440240b1c667/go.mod h1:2J9YSAo4KG/xQUc6vqjt4tm5VTdvHECxPeyVr2wwvBw=
 github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils v0.0.0-20200114232830-6d2d59acb179/go.mod h1:2hxlZPfWalIdOXnzbPATwW+Rs7FMMNWD5QnHDE49QZA=
 github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils v0.0.0-20200128181915-c0775e429077/go.mod h1:2hxlZPfWalIdOXnzbPATwW+Rs7FMMNWD5QnHDE49QZA=
 github.com/GoogleCloudPlatform/compute-image-tools/mocks v0.0.0-20200206014411-426b6301f679/go.mod h1:zDumkSJOQQ31fB0OWcg5h5zlVhU92LvYNXkpGQh2jz8=

@@ -12,19 +12,21 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package daisy
+package daisyutils
 
 import (
 	"os"
 	"path"
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/stretchr/testify/assert"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 func Test_GetTranslationSettings_ResolveSameWorkflowPathAsOldMap(t *testing.T) {
@@ -173,44 +175,6 @@ func TestGetSortedOSIDs(t *testing.T) {
 	}
 }
 
-func TestUpdateWorkflowInstancesConfiguredForNoExternalIP(t *testing.T) {
-	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
-	UpdateAllInstanceNoExternalIP(w, true)
-
-	if len((*w.Steps["ci"].CreateInstances).Instances[0].Instance.NetworkInterfaces[0].AccessConfigs) != 0 {
-		t.Errorf("Instance AccessConfigs not empty")
-	}
-	if len((*w.Steps["ci"].CreateInstances).InstancesBeta[0].Instance.NetworkInterfaces[0].AccessConfigs) != 0 {
-		t.Errorf("Instance AccessConfigs not empty")
-	}
-}
-
-func TestUpdateWorkflowInstancesNotModifiedIfExternalIPAllowed(t *testing.T) {
-	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
-	UpdateAllInstanceNoExternalIP(w, false)
-
-	if len((*w.Steps["ci"].CreateInstances).Instances[0].Instance.NetworkInterfaces[0].AccessConfigs) != 1 {
-		t.Errorf("Instance AccessConfigs doesn't have exactly one instance")
-	}
-	if len((*w.Steps["ci"].CreateInstances).InstancesBeta[0].Instance.NetworkInterfaces[0].AccessConfigs) != 1 {
-		t.Errorf("Instance AccessConfigs doesn't have exactly one instance")
-	}
-}
-
-func TestUpdateWorkflowInstancesNotModifiedIfNoNetworkInterfaceElement(t *testing.T) {
-	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
-	(*w.Steps["ci"].CreateInstances).Instances[0].Instance.NetworkInterfaces = nil
-	(*w.Steps["ci"].CreateInstances).InstancesBeta[0].Instance.NetworkInterfaces = nil
-	UpdateAllInstanceNoExternalIP(w, true)
-
-	if (*w.Steps["ci"].CreateInstances).Instances[0].Instance.NetworkInterfaces != nil {
-		t.Errorf("Instance NetworkInterfaces should stay nil if nil before update")
-	}
-	if (*w.Steps["ci"].CreateInstances).InstancesBeta[0].Instance.NetworkInterfaces != nil {
-		t.Errorf("Instance NetworkInterfaces should stay nil if nil before update")
-	}
-}
-
 func TestRemovePrivacyLogInfoNoPrivacyInfo(t *testing.T) {
 	testRemovePrivacyLogInfo(t,
 		"No privacy info",
@@ -302,47 +266,6 @@ func TestUpdateToUEFICompatible(t *testing.T) {
 	assert.Equal(t, 1, len((*w.Steps["cimg"].CreateImages).ImagesBeta[0].GuestOsFeatures))
 	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["cimg"].CreateImages).ImagesBeta[0].GuestOsFeatures[0])
 	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["cimg"].CreateImages).ImagesBeta[0].Image.GuestOsFeatures[0].Type)
-}
-
-func createWorkflowWithCreateInstanceNetworkAccessConfig() *daisy.Workflow {
-	w := daisy.New()
-	w.Steps = map[string]*daisy.Step{
-		"ci": {
-			CreateInstances: &daisy.CreateInstances{
-				Instances: []*daisy.Instance{
-					{
-						Instance: compute.Instance{
-							Disks: []*compute.AttachedDisk{{Source: "key1"}},
-							NetworkInterfaces: []*compute.NetworkInterface{
-								{
-									Network: "n",
-									AccessConfigs: []*compute.AccessConfig{
-										{Type: "ONE_TO_ONE_NAT"},
-									},
-								},
-							},
-						},
-					},
-				},
-				InstancesBeta: []*daisy.InstanceBeta{
-					{
-						Instance: computeBeta.Instance{
-							Disks: []*computeBeta.AttachedDisk{{Source: "key1"}},
-							NetworkInterfaces: []*computeBeta.NetworkInterface{
-								{
-									Network: "n",
-									AccessConfigs: []*computeBeta.AccessConfig{
-										{Type: "ONE_TO_ONE_NAT"},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	return w
 }
 
 func createWorkflowWithCreateDiskImageAndIncludeWorkflow() *daisy.Workflow {
@@ -459,4 +382,150 @@ func TestGetInstanceURI(t *testing.T) {
 	if uri != expectedURI {
 		t.Errorf("URI '%v' doesn't match expected '%v'", uri, expectedURI)
 	}
+}
+
+func Test_ApplyToWorkflow(t *testing.T) {
+	for _, tt := range []struct {
+		name               string
+		env                EnvironmentSettings
+		original, expected *daisy.Workflow
+	}{
+		{
+			name: "always overwrite when source fields are non-empty",
+			env: EnvironmentSettings{
+				Project:         "lucky-lemur",
+				Zone:            "us-west1-c",
+				GCSPath:         "new-path",
+				OAuth:           "new-oauth",
+				Timeout:         "new-timeout",
+				ComputeEndpoint: "new-endpoint",
+			},
+			original: &daisy.Workflow{
+				Project:         "original-project",
+				Zone:            "original-zone",
+				GCSPath:         "original-path",
+				OAuthPath:       "original-oauth",
+				DefaultTimeout:  "original-timeout",
+				ComputeEndpoint: "original-endpoint",
+			},
+			expected: &daisy.Workflow{
+				Project:         "lucky-lemur",
+				Zone:            "us-west1-c",
+				GCSPath:         "new-path",
+				OAuthPath:       "new-oauth",
+				DefaultTimeout:  "new-timeout",
+				ComputeEndpoint: "new-endpoint",
+			},
+		},
+		{
+			name: "project and zone overwrite when empty",
+			env:  EnvironmentSettings{},
+			original: &daisy.Workflow{
+				Project:         "original-project",
+				Zone:            "original-zone",
+				GCSPath:         "original-path",
+				OAuthPath:       "original-oauth",
+				DefaultTimeout:  "original-timeout",
+				ComputeEndpoint: "original-endpoint",
+			},
+			expected: &daisy.Workflow{
+				GCSPath:         "original-path",
+				OAuthPath:       "original-oauth",
+				DefaultTimeout:  "original-timeout",
+				ComputeEndpoint: "original-endpoint",
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.env.ApplyToWorkflow(tt.original)
+			assert.Equal(t, tt.original, tt.expected)
+		})
+	}
+}
+
+func Test_ApplyToWorkflow_PropagatesLogging(t *testing.T) {
+	original := &daisy.Workflow{}
+
+	// ApplyToWorkflow calls methods to disable logging, which in turn updates private
+	// fields on daisy.Workflow. This test inspects private fields directly
+	// to validate that logging is disabled.
+	privateLoggingFields := []string{"gcsLoggingDisabled", "stdoutLoggingDisabled", "cloudLoggingDisabled"}
+	for _, fieldName := range privateLoggingFields {
+		realValue := reflect.ValueOf(original).Elem().FieldByName(fieldName)
+		assert.False(t, realValue.Bool(), "field: %s", fieldName)
+	}
+
+	EnvironmentSettings{
+		DisableGCSLogs:    true,
+		DisableCloudLogs:  true,
+		DisableStdoutLogs: true,
+	}.ApplyToWorkflow(original)
+
+	for _, fieldName := range privateLoggingFields {
+		realValue := reflect.ValueOf(original).Elem().FieldByName(fieldName)
+		assert.True(t, realValue.Bool(), "field: %s", fieldName)
+	}
+}
+
+func Test_ParseWorkflow_HappyCase(t *testing.T) {
+	path := "test_data/test.wf.json"
+	varMap := map[string]string{"bootstrap_instance_name": "bootstrap-${NAME}", "key1": "var1", "key2": "var2", "machine_type": "n1-standard-1", "network": "", "subnet": ""}
+	project := "project"
+	zone := "zone"
+	gcsPath := "gcspath"
+	oauth := "oauthpath"
+	dTimeout := "10m"
+	endpoint := "endpoint"
+	w, err := ParseWorkflow(path, varMap, project, zone, gcsPath, oauth, dTimeout, endpoint, true,
+		true, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertWorkflow(t, w, project, zone, gcsPath, oauth, dTimeout, endpoint, varMap)
+}
+
+func Test_ParseWorkflow_RaisesErrorWhenInvalidPath(t *testing.T) {
+	varMap := map[string]string{"key1": "var1", "key2": "var2", "network": "", "subnet": ""}
+	project := "project"
+	zone := "zone"
+	gcsPath := "gcspath"
+	oauth := "oauthpath"
+	dTimeout := "10m"
+	endpoint := "endpoint"
+	w, err := ParseWorkflow("/file/not/found", varMap, project, zone, gcsPath, oauth, dTimeout, endpoint,
+		true, true, true)
+	assert.Nil(t, w)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "/file/not/found: no such file or directory")
+}
+
+func assertWorkflow(t *testing.T, w *daisy.Workflow, project string, zone string, gcsPath string,
+	oauth string, dTimeout string, endpoint string, varMap map[string]string) {
+	t.Helper()
+	tests := []struct {
+		want, got interface{}
+	}{
+		{w.Project, project},
+		{w.Zone, zone},
+		{w.GCSPath, gcsPath},
+		{w.OAuthPath, oauth},
+		{w.DefaultTimeout, dTimeout},
+		{w.ComputeEndpoint, endpoint},
+	}
+	for _, tt := range tests {
+		if tt.want != tt.got {
+			t.Errorf("%v != %v", tt.want, tt.got)
+		}
+	}
+	assertEqualWorkflowVars(t, w, varMap)
+}
+
+func assertEqualWorkflowVars(t *testing.T, wf *daisy.Workflow, expectedVars map[string]string) {
+	t.Helper()
+	actualVars := map[string]string{}
+	for k, v := range wf.Vars {
+		actualVars[k] = v.Value
+	}
+	assert.Equal(t, expectedVars, actualVars)
 }

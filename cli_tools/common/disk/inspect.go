@@ -25,8 +25,8 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
@@ -48,7 +48,7 @@ type Inspector interface {
 // NewInspector creates an Inspector that can inspect GCP disks.
 // A GCE instance runs the inspection; network and subnet are used
 // for its network interface.
-func NewInspector(env daisycommon.EnvironmentSettings, logger logging.Logger) (Inspector, error) {
+func NewInspector(env daisyutils.EnvironmentSettings, logger logging.Logger) (Inspector, error) {
 	wf, err := daisy.NewFromFile(path.Join(env.WorkflowDirectory, workflowFile))
 	if err != nil {
 		return nil, err
@@ -60,14 +60,13 @@ func NewInspector(env daisycommon.EnvironmentSettings, logger logging.Logger) (I
 		logPrefix += "-"
 	}
 	wf.Name = logPrefix + "inspect"
-
-	return &bootInspector{daisycommon.NewDaisyWorker(wf, env, logger), logger}, nil
+	return &bootInspector{daisyutils.NewDaisyWorker(wf, env, logger), logger}, nil
 }
 
 // bootInspector implements disk.Inspector using the Python boot-inspect package,
 // executed on a worker VM using Daisy.
 type bootInspector struct {
-	worker daisycommon.DaisyWorker
+	worker daisyutils.DaisyWorker
 	logger logging.Logger
 }
 

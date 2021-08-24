@@ -17,9 +17,9 @@ package ovfexportdomain
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIsInstanceExport(t *testing.T) {
@@ -35,7 +35,7 @@ func TestIsMachineImageExport(t *testing.T) {
 func TestDaisyAttrs(t *testing.T) {
 	params := GetAllInstanceExportArgs()
 	assert.Equal(t,
-		daisycommon.EnvironmentSettings{
+		daisyutils.EnvironmentSettings{
 			Project:               params.Project,
 			Zone:                  params.Zone,
 			GCSPath:               params.ScratchBucketGcsPath,
@@ -50,6 +50,7 @@ func TestDaisyAttrs(t *testing.T) {
 			Network:               params.Network,
 			Subnet:                params.Subnet,
 			ComputeServiceAccount: params.ComputeServiceAccount,
+			Labels:                map[string]string{},
 		},
 		params.EnvironmentSettings())
 }

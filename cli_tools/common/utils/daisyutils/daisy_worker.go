@@ -12,21 +12,21 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package daisycommon
+package daisyutils
 
 import (
 	"context"
 
-	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // To rebuild the mock for DaisyWorker, run `go generate ./...`
-//go:generate go run github.com/golang/mock/mockgen -package mocks -source $GOFILE -destination ../mocks/mock_daisy_worker.go
+//go:generate go run github.com/golang/mock/mockgen -package mocks -source $GOFILE -destination ../../../mocks/mock_daisy_worker.go
 
 // DaisyWorker is a facade over daisy.Workflow to facilitate mocking.
 type DaisyWorker interface {
+	Run(vars map[string]string) error
 	RunAndReadSerialValue(key string, vars map[string]string) (string, error)
 	Cancel(reason string) bool
 }
@@ -34,25 +34,30 @@ type DaisyWorker interface {
 // NewDaisyWorker returns an implementation of DaisyWorker. The returned value is
 // designed to be run once and discarded. In other words, don't run RunAndReadSerialValue
 // twice on the same instance.
-func NewDaisyWorker(wf *daisy.Workflow, env EnvironmentSettings, logger logging.Logger) DaisyWorker {
-	worker := &defaultDaisyWorker{wf, env, logger}
-	worker.env.ApplyToWorkflow(wf)
-	worker.env.ApplyWorkerCustomizations(wf)
-	daisy_utils.UpdateAllInstanceNoExternalIP(wf, env.NoExternalIP)
-	return worker
+func NewDaisyWorker(wf *daisy.Workflow, env EnvironmentSettings, logger logging.Logger, modifiers ...WorkflowModifier) DaisyWorker {
+	modifiers = append(modifiers, &ApplyEnvToWorkflow{env}, &ConfigureDaisyLogging{env})
+	if env.NoExternalIP {
+		modifiers = append(modifiers, &RemoveExternalIPModifier{})
+	}
+	return &defaultDaisyWorker{wf: wf, env: env, logger: logger, modifiers: modifiers}
 }
 
 type defaultDaisyWorker struct {
-	wf     *daisy.Workflow
-	env    EnvironmentSettings
-	logger logging.Logger
+	wf        *daisy.Workflow
+	logger    logging.Logger
+	env       EnvironmentSettings
+	modifiers []WorkflowModifier
 }
 
-// RunAndReadSerialValue runs the daisy workflow with the supplied vars, and returns the serial
-// output value associated with the supplied key.
-func (w *defaultDaisyWorker) RunAndReadSerialValue(key string, vars map[string]string) (string, error) {
-	for k, v := range vars {
-		w.wf.AddVar(k, v)
+// Run runs the daisy workflow with the supplied vars.
+func (w *defaultDaisyWorker) Run(vars map[string]string) error {
+	if err := (&ApplyAndValidateVars{w.env, vars}).Modify(w.wf); err != nil {
+		return err
+	}
+	for _, t := range w.modifiers {
+		if err := t.Modify(w.wf); err != nil {
+			return err
+		}
 	}
 	err := w.wf.Run(context.Background())
 	if w.wf.Logger != nil {
@@ -60,6 +65,13 @@ func (w *defaultDaisyWorker) RunAndReadSerialValue(key string, vars map[string]s
 			w.logger.Trace(trace)
 		}
 	}
+	return err
+}
+
+// RunAndReadSerialValue runs the daisy workflow with the supplied vars, and returns the serial
+// output value associated with the supplied key.
+func (w *defaultDaisyWorker) RunAndReadSerialValue(key string, vars map[string]string) (string, error) {
+	err := w.Run(vars)
 	if err != nil {
 		return "", err
 	}

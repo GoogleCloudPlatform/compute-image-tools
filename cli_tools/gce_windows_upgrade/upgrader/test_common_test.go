@@ -20,10 +20,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 const (
@@ -50,7 +51,7 @@ const (
 
 var (
 	testDiskTypeURI = fmt.Sprintf("projects/%v/zones/%v/diskTypes/%v", testProject, testZone, testDiskType)
-	testDiskURI     = daisy.GetDiskURI(testProject, testZone, testDisk)
+	testDiskURI     = daisyutils.GetDiskURI(testProject, testZone, testDisk)
 )
 
 func initTest() {
@@ -61,7 +62,7 @@ func newTestUpgrader() *TestUpgrader {
 	u := &upgrader{
 		InputParams: &InputParams{
 			ClientID:             "test",
-			Instance:             daisy.GetInstanceURI(testProject, testZone, testInstance),
+			Instance:             daisyutils.GetInstanceURI(testProject, testZone, testInstance),
 			CreateMachineBackup:  true,
 			AutoRollback:         false,
 			SourceOS:             "windows-2008r2",
