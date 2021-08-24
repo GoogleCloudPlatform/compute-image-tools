@@ -39,7 +39,7 @@ func Test_ApplyEnvToWorkflow(t *testing.T) {
 		DefaultTimeout:  "original-timeout",
 		ComputeEndpoint: "original-endpoint",
 	}
-	assert.NoError(t, (&ApplyEnvToWorkflow{env}).Traverse(original))
+	assert.NoError(t, (&ApplyEnvToWorkflow{env}).Modify(original))
 	expected := &daisy.Workflow{
 		Project:         "lucky-lemur",
 		Zone:            "us-west1-c",

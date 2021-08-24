@@ -19,9 +19,9 @@ import (
 )
 
 // To rebuild the mock, run `go generate ./...`
-//go:generate go run github.com/golang/mock/mockgen -package mocks -source $GOFILE -destination ../../../mocks/mock_workflow_traversal.go
+//go:generate go run github.com/golang/mock/mockgen -package mocks -source $GOFILE -destination ../../../mocks/mock_workflow_modifier.go
 
-// WorkflowTraversal allows for modifying and validating a daisy workflow.
-type WorkflowTraversal interface {
-	Traverse(wf *daisy.Workflow) error
+// WorkflowModifier allows for modifying and validating a daisy workflow.
+type WorkflowModifier interface {
+	Modify(wf *daisy.Workflow) error
 }

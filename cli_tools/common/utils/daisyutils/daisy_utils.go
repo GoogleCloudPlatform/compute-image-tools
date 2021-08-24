@@ -488,5 +488,5 @@ func UpdateAllInstanceNoExternalIP(workflow *daisy.Workflow, noExternalIP bool) 
 	if !noExternalIP {
 		return
 	}
-	(&RemoveExternalIPTraversal{}).Traverse(workflow)
+	(&RemoveExternalIPModifier{}).Modify(workflow)
 }

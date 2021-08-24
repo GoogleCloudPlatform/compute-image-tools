@@ -24,19 +24,19 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
-func Test_RemoveExternalIPTraversal(t *testing.T) {
+func Test_RemoveExternalIPModifier(t *testing.T) {
 	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
 	(*w.Steps["ci"].CreateInstances).Instances[0].Instance.NetworkInterfaces = nil
 	(*w.Steps["ci"].CreateInstances).InstancesBeta[0].Instance.NetworkInterfaces = nil
-	assert.NoError(t, (&RemoveExternalIPTraversal{}).Traverse(w))
+	assert.NoError(t, (&RemoveExternalIPModifier{}).Modify(w))
 
 	assert.Nil(t, (*w.Steps["ci"].CreateInstances).Instances[0].Instance.NetworkInterfaces)
 	assert.Nil(t, (*w.Steps["ci"].CreateInstances).InstancesBeta[0].Instance.NetworkInterfaces)
 }
 
-func Test_RemoveExternalIPTraversal_DoesntClobberExistingConfigs(t *testing.T) {
+func Test_RemoveExternalIPModifier_DoesntClobberExistingConfigs(t *testing.T) {
 	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
-	assert.NoError(t, (&RemoveExternalIPTraversal{}).Traverse(w))
+	assert.NoError(t, (&RemoveExternalIPModifier{}).Modify(w))
 
 	assert.Len(t, (*w.Steps["ci"].CreateInstances).Instances[0].Instance.NetworkInterfaces, 1)
 	assert.Len(t, (*w.Steps["ci"].CreateInstances).InstancesBeta[0].Instance.NetworkInterfaces, 1)

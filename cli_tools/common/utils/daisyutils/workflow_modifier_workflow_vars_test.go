@@ -43,7 +43,7 @@ func Test_ApplyEnvToWorkers_SetsNetworkAndAccounts(t *testing.T) {
 			},
 		},
 		{
-			name:              "don't overwrite existing variables passed to traversal",
+			name:              "don't overwrite existing variables passed to modifier",
 			declaredDaisyVars: []string{"network", "subnet", "compute_service_account"},
 			env: EnvironmentSettings{
 				Network:               "a",
@@ -137,7 +137,7 @@ func Test_ApplyEnvToWorkers_SetsNetworkAndAccounts(t *testing.T) {
 			for _, varname := range tt.declaredDaisyVars {
 				wf.AddVar(varname, "")
 			}
-			(&ApplyAndValidateVars{tt.env, tt.originalVars}).Traverse(wf)
+			(&ApplyAndValidateVars{tt.env, tt.originalVars}).Modify(wf)
 			assertEqualWorkflowVars(t, wf, tt.expectedVars)
 		})
 	}

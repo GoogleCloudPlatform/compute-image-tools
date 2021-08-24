@@ -20,16 +20,16 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
-// ApplyAndValidateVars is a WorkflowTraversal that applies vars to a daisy workflow.
+// ApplyAndValidateVars is a WorkflowModifier that applies vars to a daisy workflow.
 // To ensure consistency across worker instances, if vars omits network, subnet, or the
-// compute service account, the traversal will automatically apply these values.
+// compute service account, the modifier will automatically apply these values.
 type ApplyAndValidateVars struct {
 	env  EnvironmentSettings
 	vars map[string]string
 }
 
-// Traverse applies vars to a daisy workflow.
-func (t *ApplyAndValidateVars) Traverse(wf *daisy.Workflow) error {
+// Modify applies vars to a daisy workflow.
+func (t *ApplyAndValidateVars) Modify(wf *daisy.Workflow) error {
 
 	// All CLI tools use these variables; if they're declared in the daisy workflow, but not passed by the caller in `vars`,
 	// then apply them using the EnvironmentSettings.

@@ -34,28 +34,28 @@ type DaisyWorker interface {
 // NewDaisyWorker returns an implementation of DaisyWorker. The returned value is
 // designed to be run once and discarded. In other words, don't run RunAndReadSerialValue
 // twice on the same instance.
-func NewDaisyWorker(wf *daisy.Workflow, env EnvironmentSettings, logger logging.Logger, traversals ...WorkflowTraversal) DaisyWorker {
-	traversals = append(traversals, &ApplyEnvToWorkflow{env}, &ConfigureDaisyLogging{env})
+func NewDaisyWorker(wf *daisy.Workflow, env EnvironmentSettings, logger logging.Logger, modifiers ...WorkflowModifier) DaisyWorker {
+	modifiers = append(modifiers, &ApplyEnvToWorkflow{env}, &ConfigureDaisyLogging{env})
 	if env.NoExternalIP {
-		traversals = append(traversals, &RemoveExternalIPTraversal{})
+		modifiers = append(modifiers, &RemoveExternalIPModifier{})
 	}
-	return &defaultDaisyWorker{wf: wf, env: env, logger: logger, traversals: traversals}
+	return &defaultDaisyWorker{wf: wf, env: env, logger: logger, modifiers: modifiers}
 }
 
 type defaultDaisyWorker struct {
-	wf         *daisy.Workflow
-	logger     logging.Logger
-	env        EnvironmentSettings
-	traversals []WorkflowTraversal
+	wf        *daisy.Workflow
+	logger    logging.Logger
+	env       EnvironmentSettings
+	modifiers []WorkflowModifier
 }
 
 // Run runs the daisy workflow with the supplied vars.
 func (w *defaultDaisyWorker) Run(vars map[string]string) error {
-	if err := (&ApplyAndValidateVars{w.env, vars}).Traverse(w.wf); err != nil {
+	if err := (&ApplyAndValidateVars{w.env, vars}).Modify(w.wf); err != nil {
 		return err
 	}
-	for _, t := range w.traversals {
-		if err := t.Traverse(w.wf); err != nil {
+	for _, t := range w.modifiers {
+		if err := t.Modify(w.wf); err != nil {
 			return err
 		}
 	}

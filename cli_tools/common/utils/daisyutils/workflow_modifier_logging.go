@@ -18,14 +18,14 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
-// ConfigureDaisyLogging is a WorkflowTraversal that configures Daisy's
+// ConfigureDaisyLogging is a WorkflowModifier that configures Daisy's
 // logging settings using the user's logging preferences, specified in EnvironmentSettings.
 type ConfigureDaisyLogging struct {
 	env EnvironmentSettings
 }
 
-// Traverse applies the user's logging preferences to a daisy workflow.
-func (t *ConfigureDaisyLogging) Traverse(wf *daisy.Workflow) error {
+// Modify applies the user's logging preferences to a daisy workflow.
+func (t *ConfigureDaisyLogging) Modify(wf *daisy.Workflow) error {
 	if t.env.DaisyLogLinePrefix != "" {
 		wf.Name = t.env.DaisyLogLinePrefix
 	}

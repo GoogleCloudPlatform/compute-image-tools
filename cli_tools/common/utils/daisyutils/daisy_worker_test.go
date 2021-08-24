@@ -28,37 +28,37 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
-func Test_NewDaisyWorker_IncludesStandardTraversals(t *testing.T) {
+func Test_NewDaisyWorker_IncludesStandardModifiers(t *testing.T) {
 	wf := daisy.New()
 	env := EnvironmentSettings{}
 	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"))
-	assert.Equal(t, appliedTraversals{
-		applyEnvToWorkflow:        true,
-		configureDaisyLogging:     true,
-		removeExternalIPTraversal: false,
-	}, findWhichTraversalsApplied(worker))
+	assert.Equal(t, appliedModifiers{
+		applyEnvToWorkflow:       true,
+		configureDaisyLogging:    true,
+		removeExternalIPModifier: false,
+	}, findWhichModifiersApplied(worker))
 }
 
-func Test_NewDaisyWorker_IncludesNoExternalIPTraversal_WhenRequestedByUser(t *testing.T) {
+func Test_NewDaisyWorker_IncludesNoExternalIPModifier_WhenRequestedByUser(t *testing.T) {
 	wf := daisy.New()
 	env := EnvironmentSettings{NoExternalIP: true}
 	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"))
-	assert.Equal(t, appliedTraversals{
-		applyEnvToWorkflow:        true,
-		configureDaisyLogging:     true,
-		removeExternalIPTraversal: true,
-	}, findWhichTraversalsApplied(worker))
+	assert.Equal(t, appliedModifiers{
+		applyEnvToWorkflow:       true,
+		configureDaisyLogging:    true,
+		removeExternalIPModifier: true,
+	}, findWhichModifiersApplied(worker))
 }
 
-func Test_DaisyWorkerRun_RunsCustomTraversals(t *testing.T) {
+func Test_DaisyWorkerRun_RunsCustomModifiers(t *testing.T) {
 	wf := daisy.New()
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	traversal1 := mocks.NewMockWorkflowTraversal(mockCtrl)
-	traversal1.EXPECT().Traverse(wf).Return(nil)
-	traversal2 := mocks.NewMockWorkflowTraversal(mockCtrl)
-	traversal2.EXPECT().Traverse(wf).Return(nil)
+	modifier1 := mocks.NewMockWorkflowModifier(mockCtrl)
+	modifier1.EXPECT().Modify(wf).Return(nil)
+	modifier2 := mocks.NewMockWorkflowModifier(mockCtrl)
+	modifier2.EXPECT().Modify(wf).Return(nil)
 
 	env := EnvironmentSettings{
 		Project:            "lucky-lemur",
@@ -69,7 +69,7 @@ func Test_DaisyWorkerRun_RunsCustomTraversals(t *testing.T) {
 	}
 	configWorkflowForUnitTesting(t, wf, mockCtrl, env)
 
-	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"), traversal1, traversal2)
+	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"), modifier1, modifier2)
 	assert.NoError(t, worker.Run(map[string]string{}))
 }
 
@@ -99,16 +99,16 @@ func Test_DaisyWorkerRun_CapturesDaisyLogs(t *testing.T) {
 	assert.Equal(t, serialLogs, toolLogger.ReadOutputInfo().SerialOutputs)
 }
 
-func Test_DaisyWorkerRun_FailsIfTraversalFails(t *testing.T) {
+func Test_DaisyWorkerRun_FailsIfModifierFails(t *testing.T) {
 	wf := daisy.New()
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	traversal := mocks.NewMockWorkflowTraversal(mockCtrl)
-	traversal.EXPECT().Traverse(wf).Return(errors.New("traversal failed"))
+	modifier := mocks.NewMockWorkflowModifier(mockCtrl)
+	modifier.EXPECT().Modify(wf).Return(errors.New("modifier failed"))
 
-	worker := NewDaisyWorker(wf, EnvironmentSettings{}, logging.NewToolLogger("test"), traversal)
-	assert.EqualError(t, worker.Run(map[string]string{}), "traversal failed")
+	worker := NewDaisyWorker(wf, EnvironmentSettings{}, logging.NewToolLogger("test"), modifier)
+	assert.EqualError(t, worker.Run(map[string]string{}), "modifier failed")
 }
 
 func Test_DaisyWorkerRun_FailsIfWorkflowFails(t *testing.T) {
@@ -196,21 +196,21 @@ func Test_DaisyWorkerRunAndReadSerialValue_HappyCase(t *testing.T) {
 	assert.Equal(t, "serial-output-value", actualValue)
 }
 
-type appliedTraversals struct {
-	applyEnvToWorkflow, configureDaisyLogging, removeExternalIPTraversal bool
+type appliedModifiers struct {
+	applyEnvToWorkflow, configureDaisyLogging, removeExternalIPModifier bool
 }
 
-func findWhichTraversalsApplied(worker DaisyWorker) (t appliedTraversals) {
+func findWhichModifiersApplied(worker DaisyWorker) (t appliedModifiers) {
 	realWorker := worker.(*defaultDaisyWorker)
-	for _, traversal := range realWorker.traversals {
-		if _, ok := traversal.(*ApplyEnvToWorkflow); ok {
+	for _, modifier := range realWorker.modifiers {
+		if _, ok := modifier.(*ApplyEnvToWorkflow); ok {
 			t.applyEnvToWorkflow = true
 		}
-		if _, ok := traversal.(*ConfigureDaisyLogging); ok {
+		if _, ok := modifier.(*ConfigureDaisyLogging); ok {
 			t.configureDaisyLogging = true
 		}
-		if _, ok := traversal.(*RemoveExternalIPTraversal); ok {
-			t.removeExternalIPTraversal = true
+		if _, ok := modifier.(*RemoveExternalIPModifier); ok {
+			t.removeExternalIPModifier = true
 		}
 	}
 	return t

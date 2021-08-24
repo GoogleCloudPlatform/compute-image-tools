@@ -29,7 +29,7 @@ import (
 func Test_ConfigureDaisyLogging_LeavesLoggingEnabled_ByDefault(t *testing.T) {
 	wf := &daisy.Workflow{}
 	assertLoggingEnabled(t, wf)
-	assert.NoError(t, (&ConfigureDaisyLogging{EnvironmentSettings{}}).Traverse(wf))
+	assert.NoError(t, (&ConfigureDaisyLogging{EnvironmentSettings{}}).Modify(wf))
 	assertLoggingEnabled(t, wf)
 }
 
@@ -40,7 +40,7 @@ func Test_ConfigureDaisyLogging_DisablesLoggingOnWorkflow_IfSpecifiedInEnvironme
 		DisableGCSLogs:    true,
 		DisableCloudLogs:  true,
 		DisableStdoutLogs: true,
-	}}).Traverse(wf))
+	}}).Modify(wf))
 	assertLoggingDisabled(t, wf)
 }
 
@@ -48,7 +48,7 @@ func Test_ConfigureDaisyLogging_AppliesPrivacyLogTag(t *testing.T) {
 	var buffer bytes.Buffer
 	wf := &daisy.Workflow{}
 	wf.Logger = logging.AsDaisyLogger(log.New(&buffer, "", 0))
-	assert.NoError(t, (&ConfigureDaisyLogging{EnvironmentSettings{}}).Traverse(wf))
+	assert.NoError(t, (&ConfigureDaisyLogging{EnvironmentSettings{}}).Modify(wf))
 	wf.LogWorkflowInfo("message [Privacy->content<-Privacy] message")
 	assert.Contains(t, buffer.String(), "message content message")
 }

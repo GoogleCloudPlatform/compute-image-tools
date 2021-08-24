@@ -21,15 +21,15 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
-// RemoveExternalIPTraversal is a WorkflowTraversal that updates CreateInstances in a
+// RemoveExternalIPModifier is a WorkflowModifier that updates CreateInstances in a
 // daisy workflow such that they won't be created with an external IP address.
 //
 // For more info on external IPs, see the `--no-address` flag:
 //   https://cloud.google.com/sdk/gcloud/reference/compute/instances/create
-type RemoveExternalIPTraversal struct{}
+type RemoveExternalIPModifier struct{}
 
-// Traverse updates the CreateInstances steps so that they won't have an external IP.
-func (t *RemoveExternalIPTraversal) Traverse(wf *daisy.Workflow) error {
+// Modify updates the CreateInstances steps so that they won't have an external IP.
+func (t *RemoveExternalIPModifier) Modify(wf *daisy.Workflow) error {
 	wf.IterateWorkflowSteps(func(step *daisy.Step) {
 		if step.CreateInstances != nil {
 			for _, instance := range step.CreateInstances.Instances {
