@@ -29,7 +29,7 @@ var (
 	destinationURI        = flag.String(exporter.DestinationURIFlagKey, "", "The Google Cloud Storage URI destination for the exported virtual disk file. For example: gs://my-bucket/my-exported-image.vmdk.")
 	sourceImage           = flag.String(exporter.SourceImageFlagKey, "", "Compute Engine image from which to export")
 	sourceDiskSnapshot    = flag.String(exporter.SourceDiskSnapshotFlagKey, "", "Compute Engine disk snapshot from which to export")
-	format                = flag.String("format", "", "Specify the format to export to, such as vmdk, vhdx, vpc, vpc-fixed, or qcow2.")
+	format                = flag.String("format", "", "Specify the format to export to, such as vmdk, vhdx, vpc, or qcow2.")
 	project               = flag.String("project", "", "Project to run in, overrides what is set in workflow.")
 	network               = flag.String("network", "", "Name of the network in your project to use for the image export. The network must have access to Google Cloud Storage. If not specified, the network named default is used.")
 	subnet                = flag.String("subnet", "", "Name of the subnetwork in your project to use for the image export. If	the network resource is in legacy mode, do not provide this property. If the network is in auto subnet mode, providing the subnetwork is optional. If the network is in custom subnet mode, then this field should be specified. Zone should be specified if this field is specified.")
