@@ -21,10 +21,10 @@ GCSFUSE_REPO="gcsfuse-$(lsb_release -c -s)"
 echo "deb http://packages.cloud.google.com/apt ${GCSFUSE_REPO} main" | tee /etc/apt/sources.list.d/gcsfuse.list
 
 echo "BuildStatus: Updating package cache."
-apt -y update --allow-releaseinfo-change
+apt -y update
 if [[ $? -ne 0 ]]; then
   echo "Trying cache update again."
-  apt -y update --allow-releaseinfo-change
+  apt -y update
   if [[ $? -ne 0 ]]; then
     echo "BuildFailed: Apt cache is failing to update."
     exit 1
