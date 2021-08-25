@@ -1137,6 +1137,13 @@ func TestPopulateClients(t *testing.T) {
 	if w.cloudLoggingClient == nil {
 		t.Errorf("Did not populate Cloud Logging client.")
 	}
+
+	w.ComputeClient = nil
+	customOptions := []option.ClientOption{option.WithEndpoint("test.com")}
+	tryPopulateClients(t, w, customOptions)
+	if w.ComputeClient.BasePath() != "test.com" {
+		t.Errorf("Did not accept custom options.")
+	}
 }
 
 func tryPopulateClients(t *testing.T, w *Workflow, options []option.ClientOption) {
