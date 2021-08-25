@@ -90,8 +90,8 @@ def DistroSpecific(g):
       r'/GRUB_CMDLINE_LINUX/s#"$# console=ttyS0,38400n8"#',
       '/etc/default/grub'])
 
-  # Disable predictive network interface naming in Stretch and Buster.
-  if deb_release in ['stretch', 'buster']:
+  # Disable predictive network interface naming in 9+.
+  if deb_release != 'jessie':
     run(g,
         ['sed', '-i',
         r's#^\(GRUB_CMDLINE_LINUX=".*\)"$#\1 net.ifnames=0 biosdevname=0"#',

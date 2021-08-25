@@ -221,6 +221,7 @@ var ovfOSTypeToOSID = map[string]OsInfo{
 	"debian8_64Guest":       OsInfo{importerOSIDs: []string{"debian-8"}},
 	"debian9_64Guest":       OsInfo{importerOSIDs: []string{"debian-9"}},
 	"debian10_64Guest":      OsInfo{importerOSIDs: []string{"debian-10"}},
+	"debian11_64Guest":      OsInfo{importerOSIDs: []string{"debian-11"}},
 	"centos7_64Guest":       OsInfo{importerOSIDs: []string{"centos-7"}},
 	"centos8_64Guest":       OsInfo{importerOSIDs: []string{"centos-8"}},
 	"rhel6_64Guest":         OsInfo{importerOSIDs: []string{"rhel-6"}},
