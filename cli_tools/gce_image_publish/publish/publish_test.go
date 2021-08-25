@@ -569,11 +569,11 @@ func TestPopulateWorkflow(t *testing.T) {
 	}
 	got.Cancel = nil
 
-	wantrp := computeAlpha.RolloutPolicy{DefaultRolloutTime: now.Add(time.Minute*2).Format(time.RFC3339)}
+	wantrp := computeAlpha.RolloutPolicy{DefaultRolloutTime: now.Add(time.Minute * 2).Format(time.RFC3339)}
 	wantrp.LocationRolloutPolicies = make(map[string]string)
 	wantrp.LocationRolloutPolicies["zones/us-central1-a"] = now.Format(time.RFC3339)
 	wantrp.LocationRolloutPolicies["zones/us-central1-b"] = now.Add(time.Minute).Format(time.RFC3339)
-	wantrp.LocationRolloutPolicies["zones/us-central1-c"] = now.Add(time.Minute*2).Format(time.RFC3339)
+	wantrp.LocationRolloutPolicies["zones/us-central1-c"] = now.Add(time.Minute * 2).Format(time.RFC3339)
 
 	want := &daisy.Workflow{
 		Steps: map[string]*daisy.Step{
