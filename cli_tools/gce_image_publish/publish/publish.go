@@ -662,7 +662,7 @@ func createRollOut(zones []*compute.Zone, rolloutStartTime time.Time, rolloutRat
 	}
 
 	// Set the default time to be the same as the last zone.
-	rp.DefaultRolloutTime = rolloutStartTime.Add(time.Duration(rolloutRate*(len(zoneList)-1)) * time.Minute).Format(time.RFC3339)
+	rp.DefaultRolloutTime = rolloutStartTime.Add(time.Duration(rolloutRate * (len(zoneList)-1)) * time.Minute).Format(time.RFC3339)
 	rp.LocationRolloutPolicies = rolloutPolicy
 	return &rp
 }
