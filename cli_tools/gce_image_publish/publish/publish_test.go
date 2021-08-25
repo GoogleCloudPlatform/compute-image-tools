@@ -547,6 +547,7 @@ func TestPopulateWorkflow(t *testing.T) {
 				RolloutPolicy: createRollOut([]*compute.Zone{
 					{Name: "us-central1-a", Region: "https://www.googleapis.com/compute/v1/projects/projectname/regions/us-central1"},
 					{Name: "us-central1-b", Region: "https://www.googleapis.com/compute/v1/projects/projectname/regions/us-central1"},
+					{Name: "us-central1-c", Region: "https://www.googleapis.com/compute/v1/projects/projectname/regions/us-central1"},
 				}, now, 1),
 			},
 		},
@@ -568,10 +569,11 @@ func TestPopulateWorkflow(t *testing.T) {
 	}
 	got.Cancel = nil
 
-	wantrp := computeAlpha.RolloutPolicy{DefaultRolloutTime: now.Format(time.RFC3339)}
+	wantrp := computeAlpha.RolloutPolicy{DefaultRolloutTime: now.Add(time.Minute*2).Format(time.RFC3339)}
 	wantrp.LocationRolloutPolicies = make(map[string]string)
 	wantrp.LocationRolloutPolicies["zones/us-central1-a"] = now.Format(time.RFC3339)
 	wantrp.LocationRolloutPolicies["zones/us-central1-b"] = now.Add(time.Minute).Format(time.RFC3339)
+	wantrp.LocationRolloutPolicies["zones/us-central1-c"] = now.Add(time.Minute*2).Format(time.RFC3339)
 
 	want := &daisy.Workflow{
 		Steps: map[string]*daisy.Step{
