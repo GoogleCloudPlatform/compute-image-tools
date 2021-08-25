@@ -236,7 +236,7 @@ func (w *Workflow) SetLogProcessHook(hook func(string) string) {
 
 // Validate runs validation on the workflow.
 func (w *Workflow) Validate(ctx context.Context) DError {
-	if err := w.PopulateClients(ctx, []option.ClientOption{}); err != nil {
+	if err := w.PopulateClients(ctx); err != nil {
 		w.CancelWorkflow()
 		return Errf("error populating workflow: %v", err)
 	}
@@ -377,7 +377,7 @@ func (w *Workflow) getSourceGCSAPIPath(s string) string {
 }
 
 // PopulateClients populates the compute and storage clients for the workflow.
-func (w *Workflow) PopulateClients(ctx context.Context, options []option.ClientOption) error {
+func (w *Workflow) PopulateClients(ctx context.Context, options ...option.ClientOption) error {
 	// API clients instantiation.
 	var (
 		err            error
@@ -639,7 +639,7 @@ func (w *Workflow) NewSubWorkflowFromFile(file string) (*Workflow, DError) {
 // Print populates then pretty prints the workflow.
 func (w *Workflow) Print(ctx context.Context) {
 	w.externalLogging = false
-	if err := w.PopulateClients(ctx, []option.ClientOption{}); err != nil {
+	if err := w.PopulateClients(ctx); err != nil {
 		fmt.Println("Error running PopulateClients:", err)
 	}
 	if err := w.populate(ctx); err != nil {

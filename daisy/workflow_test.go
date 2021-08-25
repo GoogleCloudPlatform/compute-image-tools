@@ -1092,62 +1092,60 @@ func TestRunStepTimeout(t *testing.T) {
 
 func TestPopulateClients(t *testing.T) {
 	w := testWorkflow()
-	options := []option.ClientOption{}
 
 	initialComputeClient := w.ComputeClient
-	tryPopulateClients(t, w, options)
+	tryPopulateClients(t, w)
 	if w.ComputeClient != initialComputeClient {
 		t.Errorf("Should not repopulate compute client.")
 	}
 
 	w.ComputeClient = nil
-	tryPopulateClients(t, w, options)
+	tryPopulateClients(t, w)
 	if w.ComputeClient == nil {
 		t.Errorf("Did not populate compute client.")
 	}
 
 	initialStorageClient := w.StorageClient
-	tryPopulateClients(t, w, options)
+	tryPopulateClients(t, w)
 	if w.StorageClient != initialStorageClient {
 		t.Errorf("Should not repopulate storage client.")
 	}
 
 	w.StorageClient = nil
-	tryPopulateClients(t, w, options)
+	tryPopulateClients(t, w)
 	if w.StorageClient == nil {
 		t.Errorf("Did not populate storage client.")
 	}
 
 	initialCloudLoggingClient := w.cloudLoggingClient
-	tryPopulateClients(t, w, options)
+	tryPopulateClients(t, w)
 	if w.cloudLoggingClient != initialCloudLoggingClient {
 		t.Errorf("Should not repopulate logging client.")
 	}
 
 	w.cloudLoggingClient = nil
 	w.externalLogging = false
-	tryPopulateClients(t, w, options)
+	tryPopulateClients(t, w)
 	if w.cloudLoggingClient != nil {
 		t.Errorf("Should not populate Cloud Logging client.")
 	}
 
 	w.cloudLoggingClient = nil
 	w.externalLogging = true
-	tryPopulateClients(t, w, options)
+	tryPopulateClients(t, w)
 	if w.cloudLoggingClient == nil {
 		t.Errorf("Did not populate Cloud Logging client.")
 	}
 
 	w.ComputeClient = nil
-	customOptions := []option.ClientOption{option.WithEndpoint("test.com")}
-	tryPopulateClients(t, w, customOptions)
+	tryPopulateClients(t, w, option.WithEndpoint("test.com"))
 	if w.ComputeClient.BasePath() != "test.com" {
 		t.Errorf("Did not accept custom options.")
 	}
 }
 
-func tryPopulateClients(t *testing.T, w *Workflow, options []option.ClientOption) {
-	if err := w.PopulateClients(context.Background(), options); err != nil {
+func tryPopulateClients(t *testing.T, w *Workflow, options ...option.ClientOption) {
+	if err := w.PopulateClients(context.Background(), options...); err != nil {
 		t.Errorf("Failed to populate clients for workflow: %v", err)
 	}
 }
