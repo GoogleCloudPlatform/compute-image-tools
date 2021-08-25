@@ -96,7 +96,7 @@ def AptGetInstall(package_list, suite=None):
   # had one successful install.
   # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=778357
   if not AptGetInstall.prior_success:
-    Execute(['apt', '-y', 'update', '--allow-releaseinfo-change'])
+    Execute(['apt', '-y', 'update'])
 
   env = os.environ.copy()
   env['DEBIAN_FRONTEND'] = 'noninteractive'
@@ -819,4 +819,4 @@ def install_apt_packages(g, *pkgs):
 
 @RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
 def update_apt(g):
-  run(g, 'apt -y update --allow-releaseinfo-change')
+  run(g, 'apt -y update')
