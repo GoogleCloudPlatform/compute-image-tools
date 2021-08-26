@@ -36,6 +36,7 @@ import (
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/option"
 )
 
 // Publish holds info to create a daisy workflow for gce_image_publish
@@ -195,7 +196,7 @@ func (p *Publish) SetExpire() error {
 }
 
 // CreateWorkflows creates a list of daisy workflows from the publish object
-func (p *Publish) CreateWorkflows(ctx context.Context, varMap map[string]string, regex *regexp.Regexp, rollback, skipDup, replace, noRoot bool, oauth string, rolloutStartTime time.Time, rolloutRate int) ([]*daisy.Workflow, error) {
+func (p *Publish) CreateWorkflows(ctx context.Context, varMap map[string]string, regex *regexp.Regexp, rollback, skipDup, replace, noRoot bool, oauth string, rolloutStartTime time.Time, rolloutRate int, clientOptions ...option.ClientOption) ([]*daisy.Workflow, error) {
 	fmt.Printf("[%q] Preparing workflows from template\n", p.Name)
 
 	var ws []*daisy.Workflow
@@ -203,7 +204,7 @@ func (p *Publish) CreateWorkflows(ctx context.Context, varMap map[string]string,
 		if regex != nil && !regex.MatchString(img.Prefix) {
 			continue
 		}
-		w, err := p.createWorkflow(ctx, img, varMap, rollback, skipDup, replace, noRoot, oauth, rolloutStartTime, rolloutRate)
+		w, err := p.createWorkflow(ctx, img, varMap, rollback, skipDup, replace, noRoot, oauth, rolloutStartTime, rolloutRate, clientOptions...)
 		if err != nil {
 			return nil, err
 		}
@@ -537,7 +538,7 @@ func (p *Publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubIm
 	return nil
 }
 
-func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[string]string, rb, sd, rep, noRoot bool, oauth string, rolloutStartTime time.Time, rolloutRate int) (*daisy.Workflow, error) {
+func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[string]string, rb, sd, rep, noRoot bool, oauth string, rolloutStartTime time.Time, rolloutRate int, clientOptions ...option.ClientOption) (*daisy.Workflow, error) {
 	fmt.Printf("  - Creating publish workflow for %q\n", img.Prefix)
 	w := daisy.New()
 	for k, v := range varMap {
@@ -552,7 +553,7 @@ func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[str
 		w.ComputeEndpoint = p.ComputeEndpoint
 	}
 
-	if err := w.PopulateClients(ctx); err != nil {
+	if err := w.PopulateClients(ctx, clientOptions...); err != nil {
 		return nil, fmt.Errorf("PopulateClients failed: %s", err)
 	}
 
