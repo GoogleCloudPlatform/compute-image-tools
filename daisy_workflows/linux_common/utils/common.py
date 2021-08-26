@@ -819,4 +819,18 @@ def install_apt_packages(g, *pkgs):
 
 @RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
 def update_apt(g):
-  run(g, 'apt -y update')
+  """Runs apt update in a guest.
+
+  Starting at apt 1.5, release info changes must be confirmed
+  explicitly with `--allow-releaseinfo-change`. That flag,
+  however, is not supported prior to 1.5.
+
+  Args:
+    g: guestfs.GuestFS, mounted guest.
+
+  https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=931566
+  """
+  try:
+    run(g, 'apt update -y')
+  except RuntimeError:
+    run(g, 'apt update -y --allow-releaseinfo-change')
