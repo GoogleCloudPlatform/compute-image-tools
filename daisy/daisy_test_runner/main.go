@@ -39,7 +39,6 @@ import (
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/google/uuid"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/option"
 )
 
 const (
@@ -174,7 +173,7 @@ func createTestCase(ctx context.Context, testLogger *logger, path, project, zone
 		w.ComputeEndpoint = ce
 	}
 
-	if err := w.PopulateClients(ctx, []option.ClientOption{}); err != nil {
+	if err := w.PopulateClients(ctx); err != nil {
 		return nil, err
 	}
 
@@ -515,7 +514,7 @@ func projectUnlock(client daisyCompute.Client, project, lock string) error {
 var allowedChars = regexp.MustCompile("[^-_a-zA-Z0-9]+")
 
 func runTestCase(ctx context.Context, test *test, tc *junitTestCase, errors chan error, retries int) {
-	if err := test.testCase.w.PopulateClients(ctx, []option.ClientOption{}); err != nil {
+	if err := test.testCase.w.PopulateClients(ctx); err != nil {
 		errors <- fmt.Errorf("%s: %v", tc.Name, err)
 		tc.Failure = &junitFailure{FailMessage: err.Error(), FailType: "Error"}
 		return
