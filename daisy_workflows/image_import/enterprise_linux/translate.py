@@ -303,8 +303,8 @@ def DistroSpecific(spec: TranslateSpec):
         logging.debug('`{cmd}` error: {err}'.format(cmd=cmd_string, err=e))
         msg = ('Failed to write initramfs for {kver}. If the image '
                'fails to boot: Boot the original machine, remove unused '
-               'kernel versions, verify that `{cmd}` runs, and '
-               're-export the disks.').format(kver=kver, cmd=cmd_string)
+               'kernel versions, verify that `{cmd}` runs, re-export '
+               'the disks, and re-import.').format(kver=kver, cmd=cmd_string)
         logging.info(msg)
         break
 
