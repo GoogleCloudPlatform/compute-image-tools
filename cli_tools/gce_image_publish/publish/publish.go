@@ -622,7 +622,6 @@ func calculateExpiryDate(deleteAfter string) (*time.Time, error) {
 
 func createRollOut(zones []*compute.Zone, rolloutStartTime time.Time, rolloutRate int) *computeAlpha.RolloutPolicy {
 	rp := computeAlpha.RolloutPolicy{}
-	rp.DefaultRolloutTime = rolloutStartTime.Format(time.RFC3339)
 
 	var regions map[string][]string
 	regions = make(map[string][]string)
@@ -661,6 +660,9 @@ func createRollOut(zones []*compute.Zone, rolloutStartTime time.Time, rolloutRat
 	for i, zone := range zoneList {
 		rolloutPolicy[fmt.Sprintf("zones/%s", zone)] = rolloutStartTime.Add(time.Duration(rolloutRate*i) * time.Minute).Format(time.RFC3339)
 	}
+
+	// Set the default time to be the same as the last zone.
+	rp.DefaultRolloutTime = rolloutStartTime.Add(time.Duration(rolloutRate*(len(zoneList)-1)) * time.Minute).Format(time.RFC3339)
 	rp.LocationRolloutPolicies = rolloutPolicy
 	return &rp
 }
