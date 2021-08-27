@@ -266,6 +266,7 @@ def DistroSpecific(spec: TranslateSpec):
 
   logging.info('Updating initramfs')
   for kver in g.ls('/lib/modules'):
+    logging.debug('Updating initramfs for ' + kver)
     # Although each directory in /lib/modules typically corresponds to a
     # kernel version  [1], that may not always be true.
     # kernel-abi-whitelists, for example, creates extra directories in
@@ -281,20 +282,31 @@ def DistroSpecific(spec: TranslateSpec):
       logging.debug('/lib/modules/{} doesn\'t look like a kernel directory. '
                     'Skipping creation of initramfs for it'.format(kver))
       continue
+
+    # We perform a best-effort attempt to rebuild initramfs; if there's a
+    # failure, continue while giving the user some debug tips. This is
+    # sensible since the existing initramfs may work for booting. Or the
+    # failure may be associated with an older kernel that will never be used.
+    cmds = []
     if not g.exists(os.path.join('/lib/modules', kver, 'modules.dep')):
-      try:
-        run(g, ['depmod', kver])
-      except RuntimeError as e:
-        logging.info('Failed to write initramfs for {kver}. If image fails to '
-                     'boot, verify that depmod /lib/modules/{kver} runs on '
-                     'the original machine'.format(kver=kver))
-        logging.debug('depmod error: {}'.format(e))
-        continue
+      cmds.append(['depmod', kver])
     if el_release == '6':
       # Version 6 doesn't have option --kver
-      run(g, ['dracut', '-v', '-f', kver])
+      cmds.append(['dracut', '-v', '-f', kver])
     else:
-      run(g, ['dracut', '--stdlog=1', '-f', '--kver', kver])
+      cmds.append(['dracut', '--stdlog=1', '-f', '--kver', kver])
+    for cmd in cmds:
+      try:
+        run(g, cmd)
+      except RuntimeError as e:
+        cmd_string = ' '.join(cmd)
+        logging.debug('`{cmd}` error: {err}'.format(cmd=cmd_string, err=e))
+        msg = ('Failed to write initramfs for {kver}. If the image '
+               'fails to boot: Boot the original machine, remove unused '
+               'kernel versions, verify that `{cmd}` runs, re-export '
+               'the disks, and re-import.').format(kver=kver, cmd=cmd_string)
+        logging.info(msg)
+        break
 
   logging.info('Update grub configuration')
   if el_release == '6':
