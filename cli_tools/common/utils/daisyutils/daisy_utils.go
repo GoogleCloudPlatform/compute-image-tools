@@ -139,6 +139,10 @@ var (
 			GcloudOsFlag: "debian-10",
 			WorkflowPath: "debian/translate_debian_10.wf.json",
 			LicenseURI:   "projects/debian-cloud/global/licenses/debian-10-buster",
+		}, {
+			GcloudOsFlag: "debian-11",
+			WorkflowPath: "debian/translate_debian_11.wf.json",
+			LicenseURI:   "projects/debian-cloud/global/licenses/debian-11-bullseye",
 		},
 
 		// Ubuntu
