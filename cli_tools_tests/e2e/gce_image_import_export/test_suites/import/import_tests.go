@@ -277,6 +277,9 @@ var basicCases = []*testCase{
 		caseName: "el-rhel-8-2",
 		source:   "projects/compute-image-tools-test/global/images/rhel-8-2",
 		os:       "rhel-8",
+	}, {
+		caseName: "el-rocky-8-4",
+		source:   "projects/compute-image-tools-test/global/images/rocky-8-4",
 	},
 
 	// EL - Error cases
