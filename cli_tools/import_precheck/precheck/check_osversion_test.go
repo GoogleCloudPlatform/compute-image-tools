@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package main
+package precheck
 
 import (
 	"testing"
@@ -78,7 +78,7 @@ func Test_osVersionCheck(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r, e := (&osVersionCheck{osInfo: tt.osInfo}).run()
+			r, e := (&OSVersionCheck{OSInfo: tt.osInfo}).Run()
 			assert.Nil(t, e, "nil is always returned")
 			assert.Regexp(t, tt.expectedLog, r)
 			assert.Equal(t, tt.expectFail, r.Failed())
@@ -117,7 +117,7 @@ func Test_osVersionCheck_skipWhenOSDetectionFails(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r, e := (&osVersionCheck{osInfo: tt.osInfo}).run()
+			r, e := (&OSVersionCheck{OSInfo: tt.osInfo}).Run()
 			assert.Nil(t, e, "nil is always returned")
 			assert.Contains(t, r.String(), tt.expectedLog)
 			assert.Contains(t, r.String(), "Unable to determine whether your system is supported for import. "+
