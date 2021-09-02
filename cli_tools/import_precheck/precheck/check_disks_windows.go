@@ -23,7 +23,13 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+// DisksCheck performs disk configuration checking.
 type DisksCheck struct{}
+
+// NewDisksCheck instantiates a DisksCheck instance.
+func NewDisksCheck() Check {
+	return &DisksCheck{}
+}
 
 // GetName returns the name of the precheck step; this is shown to the user.
 func (c *DisksCheck) GetName() string {

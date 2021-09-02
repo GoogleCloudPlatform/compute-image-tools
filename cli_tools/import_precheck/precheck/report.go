@@ -15,25 +15,59 @@
 package precheck
 
 import (
+	"fmt"
 	"strings"
 )
 
+// Result indicates the result of the check.
+type Result int
+
+const (
+	// Passed means the check passed.
+	Passed Result = iota
+
+	// Failed means the check ran and found an error such that
+	// the machine is not importable.
+	Failed
+
+	// Skipped means the check didn't run.
+	Skipped
+
+	// Unknown means the test couldn't run, and that the user
+	// should run a manual verification.
+	Unknown
+)
+
+func (r Result) String() string {
+	switch r {
+	case Passed:
+		return "PASSED"
+	case Failed:
+		return "FAILED"
+	case Skipped:
+		return "SKIPPED"
+	case Unknown:
+		return "UNKNOWN"
+	default:
+		panic(fmt.Sprintf("Unmapped status: %d", r))
+	}
+}
+
 // Report contains the results of running one or more precheck steps.
 type Report struct {
-	name    string
-	skipped bool
-	failed  bool
-	logs    []string
+	name   string
+	result Result
+	logs   []string
 }
 
 // Failed returns whether one or more precheck steps failed.
 func (r *Report) Failed() bool {
-	return r.failed
+	return r.result == Failed
 }
 
 // Fatal messages indicate that the system is not importable.
 func (r *Report) Fatal(s string) {
-	r.failed = true
+	r.result = Failed
 	r.logs = append(r.logs, "FATAL: "+s)
 }
 
@@ -42,21 +76,13 @@ func (r *Report) Info(s string) {
 	r.logs = append(r.logs, "INFO: "+s)
 }
 
-// Warn messages indicate that a precheck step couldn't run,
-// and that the user should manually verify the check on their own.
+// Warn messages indicate that the user should perform a manual check.
 func (r *Report) Warn(s string) {
 	r.logs = append(r.logs, "WARN: "+s)
 }
 
 func (r *Report) String() string {
-	status := "PASSED"
-	if r.skipped {
-		status = "SKIPPED"
-	} else if r.failed {
-		status = "FAILED"
-	}
-
-	title := strings.Join([]string{r.name, status}, " -- ")
+	title := strings.Join([]string{r.name, r.result.String()}, " -- ")
 	border := strings.Repeat("#", len(title)+4)
 
 	lines := []string{border, "# " + title + " #", border}
