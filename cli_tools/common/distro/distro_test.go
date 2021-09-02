@@ -134,6 +134,7 @@ func TestDistroFromComponents_HappyCasesLinux(t *testing.T) {
 		{"SLES_SAP", "12", "", "sles-sap-12"},
 		{"rhel", "6", "", "rhel-6"},
 		{"rhel", "8", "2", "rhel-8"},
+		{"rocky", "8", "4", "rocky-8"},
 		{"ubuntu", "14", "04", "ubuntu-1404"},
 		{"ubuntu", "14", "10", "ubuntu-1410"},
 	}

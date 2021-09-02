@@ -45,6 +45,7 @@ _LINUX = [
         fs_predicate=linux.FileExistenceMatcher(
             require={'/etc/centos-release'},
             disallow={'/etc/fedora-release',
+                      '/etc/rocky-release',
                       '/etc/oracle-release'}),
         version_reader=linux.VersionReader(
             metadata_file='/etc/centos-release',
@@ -64,12 +65,14 @@ _LINUX = [
         fs_predicate=linux.FileExistenceMatcher(
             require={'/etc/redhat-release'},
             disallow={'/etc/fedora-release',
+                      '/etc/rocky-release',
                       '/etc/oracle-release',
                       '/etc/centos-release'}),
         version_reader=linux.VersionReader(
             metadata_file='/etc/redhat-release',
             version_pattern=re.compile(r'\d+\.\d+')),
     ),
+    linux.Fingerprint(inspect_pb2.Distro.ROCKY),
     # Depending on the version, SLES for SAP has a variety of identifiers in
     # /etc/os-release.  To match, one of those identifiers must be seen
     # *and* the file /etc/products.d/SLES_SAP.prod must exist.

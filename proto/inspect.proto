@@ -47,6 +47,7 @@ enum Distro {
   CENTOS = 4002;
   AMAZON = 4003;
   ORACLE = 4004;
+  ROCKY = 4005;
 }
 
 enum Architecture {

@@ -29,6 +29,7 @@ const (
 	debian   = "debian"
 	opensuse = "opensuse"
 	rhel     = "rhel"
+	rocky    = "rocky"
 	sles     = "sles"
 	slesSAP  = "sles-sap"
 	ubuntu   = "ubuntu"
@@ -139,7 +140,7 @@ func standardizeDistro(distro string) (string, error) {
 		return "", errors.New("distro name required")
 	}
 	d := strings.ReplaceAll(strings.ToLower(distro), "_", "-")
-	for _, known := range []string{centos, debian, opensuse, rhel, slesSAP, sles, ubuntu, windows} {
+	for _, known := range []string{centos, debian, opensuse, rhel, rocky, slesSAP, sles, ubuntu, windows} {
 		if strings.Contains(d, known) {
 			return known, nil
 		}
@@ -173,6 +174,8 @@ func newLinuxRelease(distro string, major string, minor string) (Release, error)
 	case opensuse:
 		fallthrough
 	case rhel:
+		fallthrough
+	case rocky:
 		return newCommonLinuxRelease(distro, majorInt, minorInt)
 	case sles:
 		fallthrough
@@ -253,7 +256,7 @@ func (r commonLinuxRelease) ImportCompatible(other Release) bool {
 }
 
 func commonLinuxDistros() []string {
-	return []string{centos, debian, opensuse, rhel}
+	return []string{centos, debian, opensuse, rhel, rocky}
 }
 
 // The caller is responsible for verifying the syntax of the arguments.
