@@ -1,16 +1,18 @@
-/*
-Copyright 2017 Google Inc. All Rights Reserved.
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-package main
+//  Copyright 2017 Google Inc. All Rights Reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+
+package precheck
 
 import (
 	"bytes"
@@ -23,7 +25,7 @@ import (
 	"sort"
 )
 
-// disksCheck performs disk configuration checking:
+// DisksCheck performs disk configuration checking:
 // - finding the root filesystem partition
 // - checking if the device is MBR
 // - checking whether the root mount is physically located on a single disk.
@@ -31,12 +33,12 @@ import (
 //   logical volume that spans multiple disks.
 // - check for GRUB
 // - warning for any mount points from partitions from other devices
-type disksCheck struct {
+type DisksCheck struct {
 	getMBROverride func(devName string) ([]byte, error)
 	lsblkOverride  func() ([]byte, error)
 }
 
-func (c *disksCheck) getMBR(devName string) ([]byte, error) {
+func (c *DisksCheck) getMBR(devName string) ([]byte, error) {
 	devPath := filepath.Join("/dev", devName)
 	f, err := os.Open(devPath)
 	if err != nil {
@@ -50,7 +52,7 @@ func (c *disksCheck) getMBR(devName string) ([]byte, error) {
 	return data, nil
 }
 
-func (c *disksCheck) readMounts() (*mountPoints, error) {
+func (c *DisksCheck) readMounts() (*mountPoints, error) {
 	var lsblkOut []byte
 	var err error
 	if c.lsblkOverride != nil {
@@ -81,7 +83,8 @@ func (c *disksCheck) readMounts() (*mountPoints, error) {
 	return mounts, nil
 }
 
-func (c *disksCheck) getName() string {
+// GetName returns the name of the precheck step; this is shown to the user.
+func (c *DisksCheck) GetName() string {
 	return "Disks Check"
 }
 
@@ -166,8 +169,9 @@ func (m *mountPoints) addAll(elements []DiskElement, basePath []string) {
 	}
 }
 
-func (c *disksCheck) run() (r *report, err error) {
-	r = &report{name: c.getName()}
+// Run executes the precheck step.
+func (c *DisksCheck) Run() (r *Report, err error) {
+	r = &Report{name: c.GetName()}
 
 	allMounts, err := c.readMounts()
 	if err != nil {
