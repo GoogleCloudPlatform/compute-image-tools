@@ -58,7 +58,7 @@
           "drivers_bucket": "gs://gce-windows-drivers-public/release/win6.3-signed/",
           "dotnet48": "${dotnet48}",
           "pwsh": "${pwsh}",
-          "edition": "Windows Server 2022 SERVERDATACENTERCORE",
+          "edition": "Windows Server 2022 Datacenter Evaluation",
           "media": "${media}",
           "cloud_sdk": "${cloudsdk}",
           "product_key": "WX4NM-KYWYW-QJJR4-XV3QB-6VM33",
