@@ -220,7 +220,7 @@ def DistroSpecific(g):
   elif ubuntu_release == 'xenial':
     g.write('/etc/network/interfaces', network_xenial)
   elif g.is_dir('/etc/netplan'):
-    run(g, 'rm -f /etc/netplan/*')
+    run(g, 'rm -f /etc/netplan/*.yaml')
     g.write('/etc/netplan/config.yaml', network_netplan)
     run(g, 'netplan apply')
 
