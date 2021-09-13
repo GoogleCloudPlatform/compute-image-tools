@@ -207,62 +207,16 @@ def DistroSpecific(spec: TranslateSpec):
     run(g, 'yum clean -y all')
 
   if spec.install_gce:
-    logging.info('Installing GCE packages.')
-    g.write('/etc/yum.repos.d/google-cloud.repo', repo_compute % el_release)
     if el_release == '6':
-      # yum operations fail when the epel repo is used with stale
-      # ca-certificates, causing translation to fail. To avoid that,
-      # update ca-certificates when the epel repo is found.
-      #
-      # The `--disablerepo` flag does the following:
-      #  1. Skip the epel repo for *this* operation only.
-      #  2. Block update if the epel repo isn't found.
-      p = run(g, 'yum update -y ca-certificates --disablerepo=epel',
-              raiseOnError=False)
-      logging.debug('Attempted conditional update of '
-                    'ca-certificates. Success expected only '
-                    'if epel repo is installed. Result={}'.format(p))
-
-      # Install Google Cloud SDK from the upstream tar and create links for the
-      # python27 SCL environment.
-      logging.info('Installing python27 from SCL.')
-      yum_install(g, 'python27')
-      logging.info('Installing Google Cloud SDK from tar.')
-      sdk_base_url = 'https://dl.google.com/dl/cloudsdk/channels/rapid'
-      sdk_base_tar = '%s/google-cloud-sdk.tar.gz' % sdk_base_url
-      tar = utils.HttpGet(sdk_base_tar)
-      g.write('/tmp/google-cloud-sdk.tar.gz', tar)
-      run(g, ['tar', 'xzf', '/tmp/google-cloud-sdk.tar.gz', '-C', '/tmp'])
-      sdk_version = g.cat('/tmp/google-cloud-sdk/VERSION').strip()
-
-      logging.info('Getting Cloud SDK Version %s', sdk_version)
-      sdk_version_tar = 'google-cloud-sdk-%s-linux-x86_64.tar.gz' % sdk_version
-      sdk_version_tar_url = '%s/downloads/%s' % (sdk_base_url, sdk_version_tar)
-      logging.info('Getting versioned Cloud SDK tar file from %s',
-                   sdk_version_tar_url)
-      tar = utils.HttpGet(sdk_version_tar_url)
-      sdk_version_tar_file = os.path.join('/tmp', sdk_version_tar)
-      g.write(sdk_version_tar_file, tar)
-      g.mkdir_p('/usr/local/share/google')
-      run(g, ['tar', 'xzf', sdk_version_tar_file, '-C',
-              '/usr/local/share/google', '--no-same-owner'])
-
-      logging.info('Creating CloudSDK SCL symlinks.')
-      sdk_bin_path = '/usr/local/share/google/google-cloud-sdk/bin'
-      g.ln_s(os.path.join(sdk_bin_path, 'git-credential-gcloud.sh'),
-             os.path.join('/usr/bin', 'git-credential-gcloud.sh'))
-      for binary in ['bq', 'gcloud', 'gsutil']:
-        binary_path = os.path.join(sdk_bin_path, binary)
-        new_bin_path = os.path.join('/usr/bin', binary)
-        bin_str = '#!/bin/bash\nsource /opt/rh/python27/enable\n%s $@' % \
-            binary_path
-        g.write(new_bin_path, bin_str)
-        g.chmod(0o755, new_bin_path)
+      logging.info(
+        'GCE packages are not supported for EL6. Skipping installation.')
     else:
+      logging.info('Installing GCE packages.')
+      g.write('/etc/yum.repos.d/google-cloud.repo', repo_compute % el_release)
       g.write_append(
-          '/etc/yum.repos.d/google-cloud.repo', repo_sdk % el_release)
-      yum_install(g, 'google-cloud-sdk')
-    yum_install(g, 'google-compute-engine', 'google-osconfig-agent')
+        '/etc/yum.repos.d/google-cloud.repo', repo_sdk % el_release)
+      yum_install(g, 'google-compute-engine', 'google-osconfig-agent',
+                  'google-cloud-sdk')
 
   logging.info('Updating initramfs')
   for kver in g.ls('/lib/modules'):
