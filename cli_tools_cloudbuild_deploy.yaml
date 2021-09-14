@@ -1,0 +1,46 @@
+timeout: 5400s
+
+options:
+
+steps:
+# Deploy given tools to given locations. Expect 2 vars substitutions, examples:
+# 1. $_REGIONS="us;us-east1;us-east2"
+# 2. $_TOOLS="gve_vm_image_import;gce_vm_image_export"
+# The script will pull the built docker images from gcr.io (container registry),
+# and then push to artifacts registry (e.g. us-east1-docker.pkg.dev/compute-image-tools/wrappers/gce_vm_image_import)
+# with 3 tags: the workflow execution ID, the commit SHA, and the "release".
+# 1. The workflow execution ID is used to track which workflow produced the image.
+# It's specifically useful when the original workflow was failed and we resumed it.
+# 2. The commit SHA is used to track which version of source code produced the image.
+# 3. The "release" tag marks it as the current effective image.
+- name: 'google/cloud-sdk:alpine'
+  args:
+  - 'bash'
+  - '-c'
+  - |
+    REGIONS_ARR=$(echo "$_REGIONS" | tr ";" "\n")
+    TOOLS_ARR=$(echo "$_TOOLS" | tr ";" "\n")
+
+    for _TOOL in $$TOOLS_ARR
+    do
+      echo "----> Preparing docker images for $$_TOOL..."
+      docker pull gcr.io/$PROJECT_ID/$$_TOOL:$_WORKFLOW_EXECUTION_ID || exit 1
+    done
+
+
+    for _REGION in $$REGIONS_ARR
+    do
+      for _TOOL in $$TOOLS_ARR
+      do
+        echo "--> Deploying... $$_TOOL -> $$_REGION"
+
+        docker tag gcr.io/$PROJECT_ID/$$_TOOL:$_WORKFLOW_EXECUTION_ID $$_REGION-docker.pkg.dev/$PROJECT_ID/wrappers/$$_TOOL:$_WORKFLOW_EXECUTION_ID || exit 1
+        docker tag gcr.io/$PROJECT_ID/$$_TOOL:$_WORKFLOW_EXECUTION_ID $$_REGION-docker.pkg.dev/$PROJECT_ID/wrappers/$$_TOOL:$COMMIT_SHA || exit 1
+        docker tag gcr.io/$PROJECT_ID/$$_TOOL:$_WORKFLOW_EXECUTION_ID $$_REGION-docker.pkg.dev/$PROJECT_ID/wrappers/$$_TOOL:release || exit 1
+
+        docker push $$_REGION-docker.pkg.dev/$PROJECT_ID/wrappers/$$_TOOL:$_WORKFLOW_EXECUTION_ID || exit 1
+        docker push $$_REGION-docker.pkg.dev/$PROJECT_ID/wrappers/$$_TOOL:$COMMIT_SHA || exit 1
+        docker push $$_REGION-docker.pkg.dev/$PROJECT_ID/wrappers/$$_TOOL:release || exit 1
+      done
+      echo "----> Deployed all tools for $$_REGION"
+    done
