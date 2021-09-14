@@ -53,7 +53,7 @@
         "Path": "./windows-build-uefi.wf.json",
         "Vars": {
           "install_disk": "${install_disk}",
-          "install_disk_size": "32",
+          "install_disk_size": "40",
           "updates": "${updates}",
           "drivers_bucket": "gs://gce-windows-drivers-public/release/win6.3-signed/",
           "dotnet48": "${dotnet48}",
