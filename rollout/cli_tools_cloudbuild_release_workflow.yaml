@@ -11,13 +11,9 @@ steps:
     - '-c'
     - 'gcloud workflows execute workflow-gradually-rollout$_TEST_SUFFIX
         --data="{
-          \"rolloutPhase\":{
-            \"1\":\"asia;asia-east1;asia-northeast3;australia-southeast1;europe-west1;us-east1\",
-            \"2\":\"europe;asia-east2;asia-northeast1;asia-south1;asia-southeast1;australia-southeast2;europe-north1;europe-west4;northamerica-northeast1;southamerica-east1;us-west1;us-east4\",
-            \"3\":\"us;asia-southeast2;europe-central2;europe-west2;europe-west3;northamerica-northeast2;us-central1;us-west2;us-west4;europe-west6;asia-northeast2\"
-          },
+          \"rolloutPhase\":{$_ROLLOUT_PHASES},
           \"tools\":\"gce_vm_image_import;gce_vm_image_export;gce_onestep_image_import;gce_ovf_import;gce_ovf_export;gce_windows_upgrade\",
           \"tagName\":\"$TAG_NAME\",
-          \"waitPeriod\":\"172800\"
+          \"waitPeriod\":\"$_WAIT_PERIOD\"
         }"'
   env: ['CGO_ENABLED=0']
