@@ -258,6 +258,8 @@ def DistroSpecific(spec: TranslateSpec):
             binary_path
         g.write(new_bin_path, bin_str)
         g.chmod(0o755, new_bin_path)
+        logging.info('Enabling rsyslog')
+        run(g, 'chkconfig rsyslog on')
     else:
       g.write_append(
           '/etc/yum.repos.d/google-cloud.repo', repo_sdk % el_release)
