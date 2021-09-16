@@ -9,7 +9,7 @@ steps:
   args:
     - 'bash'
     - '-c'
-    - 'gcloud workflows execute workflow-gradually-rollout
+    - 'gcloud workflows execute workflow-gradually-rollout$_TEST_SUFFIX
         --data="{
           \"rolloutPhase\":{
             \"1\":\"asia;asia-east1;asia-northeast3;australia-southeast1;europe-west1;us-east1\",
