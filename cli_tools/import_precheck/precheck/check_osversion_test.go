@@ -122,7 +122,7 @@ func Test_osVersionCheck_skipWhenOSDetectionFails(t *testing.T) {
 			assert.Contains(t, r.String(), tt.expectedLog)
 			assert.Contains(t, r.String(), "Unable to determine whether your system is supported for import. "+
 				"For supported versions, see https://cloud.google.com/sdk/gcloud/reference/compute/images/import")
-			assert.True(t, r.skipped)
+			assert.Equal(t, Skipped, r.result)
 			t.Logf("\n%s", r)
 		})
 	}

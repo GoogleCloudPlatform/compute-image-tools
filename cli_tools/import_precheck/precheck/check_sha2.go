@@ -41,7 +41,7 @@ func (s *SHA2DriverSigningCheck) GetName() string {
 func (s *SHA2DriverSigningCheck) Run() (*Report, error) {
 	r := &Report{name: s.GetName()}
 	if runtime.GOOS != "windows" || !strings.Contains(s.OSInfo.Version, "6.1") {
-		r.skipped = true
+		r.result = Skipped
 		r.Info("Only applicable on Windows 2008 systems.")
 		return r, nil
 	}

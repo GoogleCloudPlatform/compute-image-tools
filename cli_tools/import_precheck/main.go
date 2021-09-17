@@ -35,7 +35,7 @@ var (
 func getChecks(osInfo *osinfo.OSInfo) []precheck.Check {
 	return []precheck.Check{
 		&precheck.OSVersionCheck{OSInfo: osInfo},
-		&precheck.DisksCheck{},
+		precheck.NewDisksCheck(),
 		&precheck.SSHCheck{},
 		&precheck.PowershellCheck{},
 		&precheck.SHA2DriverSigningCheck{OSInfo: osInfo},

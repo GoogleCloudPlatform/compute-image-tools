@@ -39,7 +39,7 @@ func (c *SSHCheck) GetName() string {
 func (c *SSHCheck) Run() (*Report, error) {
 	r := &Report{name: c.GetName()}
 	if runtime.GOOS == "windows" {
-		r.skipped = true
+		r.result = Skipped
 		r.Info("Not applicable on Windows systems.")
 		return r, nil
 	}

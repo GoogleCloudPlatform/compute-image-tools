@@ -47,7 +47,7 @@ func (c *OSVersionCheck) Run() (*Report, error) {
 	if osID == "" {
 		r.Info("Unable to determine whether your system is supported for import. " +
 			"For supported versions, see " + docsURL)
-		r.skipped = true
+		r.result = Skipped
 		return r, nil
 	}
 	// Check whether the osID is supported for import.

@@ -36,7 +36,7 @@ func (c *PowershellCheck) GetName() string {
 func (c *PowershellCheck) Run() (*Report, error) {
 	r := &Report{name: c.GetName()}
 	if runtime.GOOS != "windows" {
-		r.skipped = true
+		r.result = Skipped
 		r.Info("Not applicable on non-Windows systems.")
 		return r, nil
 	}
