@@ -438,6 +438,15 @@ Loop:
 	return w, nil
 }
 
+// Tool is used to communicate the tool's name ot the user.
+type Tool struct {
+
+	// HumanReadableName is used for error messages, for example: "image import".
+	HumanReadableName string
+	// URISafeName is used programmatically, eg: "image-import"
+	URISafeName string
+}
+
 // EnvironmentSettings controls the resources that are used during tool execution.
 type EnvironmentSettings struct {
 	// Location of workflows
@@ -461,6 +470,7 @@ type EnvironmentSettings struct {
 	Labels                map[string]string
 	ExecutionID           string
 	StorageLocation       string
+	Tool                  Tool
 }
 
 // ApplyToWorkflow sets fields on daisy.Workflow from the environment settings.

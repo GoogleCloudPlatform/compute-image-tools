@@ -54,12 +54,10 @@ func NewInspector(env daisyutils.EnvironmentSettings, logger logging.Logger) (In
 		return nil, err
 	}
 
-	// Daisy uses the workflow name as the prefix for log lines.
-	logPrefix := env.DaisyLogLinePrefix
-	if logPrefix != "" {
-		logPrefix += "-"
+	if env.DaisyLogLinePrefix != "" {
+		env.DaisyLogLinePrefix += "-"
 	}
-	wf.Name = logPrefix + "inspect"
+	env.DaisyLogLinePrefix += "inspect"
 	return &bootInspector{daisyutils.NewDaisyWorker(wf, env, logger), logger}, nil
 }
 

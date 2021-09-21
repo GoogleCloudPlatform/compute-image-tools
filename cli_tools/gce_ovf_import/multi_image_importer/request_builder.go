@@ -56,6 +56,7 @@ func (r *requestBuilder) buildRequests(params *ovfdomain.OVFImportParams, fileUR
 			StdoutLogsDisabled:    params.StdoutLogsDisabled,
 			Subnet:                params.Subnet,
 			Timeout:               params.Deadline.Sub(time.Now()),
+			Tool:                  params.GetTool(),
 			UefiCompatible:        params.UefiCompatible,
 			Zone:                  params.Zone,
 		}

@@ -119,7 +119,7 @@ func (inflater *apiInflater) inflateForShadowTest() (persistentDisk, shadowTestF
 
 	// Calculate checksum by daisy workflow
 	inflater.logger.Debug("Started checksum calculation.")
-	ii.checksum, err = inflater.calculateChecksum(ctx, pd.uri)
+	ii.checksum, err = inflater.calculateChecksum(pd.uri)
 	if err != nil {
 		err = daisy.Errf("Failed to calculate checksum: %v", err)
 	}
@@ -197,13 +197,15 @@ func (inflater *apiInflater) Cancel(reason string) bool {
 }
 
 // run a workflow to calculate checksum
-func (inflater *apiInflater) calculateChecksum(ctx context.Context, diskURI string) (string, error) {
-	w := inflater.getCalculateChecksumWorkflow(diskURI)
-	err := daisyutils.RunWorkflowWithCancelSignal(ctx, w)
-	if err != nil {
-		return "", err
+func (inflater *apiInflater) calculateChecksum(diskURI string) (string, error) {
+	env := inflater.request.EnvironmentSettings()
+	if env.DaisyLogLinePrefix != "" {
+		env.DaisyLogLinePrefix += "-"
 	}
-	return w.GetSerialConsoleOutputValue("disk-checksum"), nil
+	env.DaisyLogLinePrefix += "shadow-disk-checksum"
+	worker := daisyutils.NewDaisyWorker(inflater.getCalculateChecksumWorkflow(diskURI),
+		env, inflater.logger)
+	return worker.RunAndReadSerialValue("disk-checksum", map[string]string{})
 }
 
 func (inflater *apiInflater) getCalculateChecksumWorkflow(diskURI string) *daisy.Workflow {

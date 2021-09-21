@@ -16,16 +16,17 @@ package importer
 
 import (
 	"bytes"
-	"os"
+	"errors"
 	"path"
-	"strings"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -40,34 +41,50 @@ func init() {
 }
 
 func TestBootableDiskProcessor_Process_WritesSourceDiskVar(t *testing.T) {
-	request := ImageImportRequest{
-		OS: "opensuse-15",
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	daisyWorker := mocks.NewMockDaisyWorker(ctrl)
+	daisyWorker.EXPECT().Run(map[string]string{"source_disk": "uri"})
+	processor := &bootableDiskProcessor{
+		worker: daisyWorker,
+		vars:   map[string]string{},
+		logger: logging.NewToolLogger("test"),
 	}
-	p, err := newBootableDiskProcessor(request, opensuse15workflow, logging.NewToolLogger(t.Name()),
-		distro.FromGcloudOSArgumentMustParse("windows-2008r2"))
+	_, err := processor.process(persistentDisk{uri: "uri"})
 	assert.NoError(t, err)
-	_, err = p.process(persistentDisk{uri: "uri"})
-	assert.Equal(t, "uri", p.(*bootableDiskProcessor).workflow.Vars["source_disk"].Value)
+}
+
+func TestBootableDiskProcessor_Process_PropagatesErrorFromDaisyFailure(t *testing.T) {
+	expectedError := errors.New("failed to process disk")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	daisyWorker := mocks.NewMockDaisyWorker(ctrl)
+	daisyWorker.EXPECT().Run(map[string]string{"source_disk": "uri"}).Return(expectedError)
+	processor := &bootableDiskProcessor{
+		worker: daisyWorker,
+		vars:   map[string]string{},
+		logger: logging.NewToolLogger("test"),
+	}
+	_, err := processor.process(persistentDisk{uri: "uri"})
+	assert.Equal(t, expectedError, err)
 }
 
 func TestBootableDiskProcessor_CreatesExternalIPOnWorker_ByDefault(t *testing.T) {
 	args := defaultImportArgs()
+	args.NoExternalIP = false
 	realProcessor := createProcessor(t, args)
-	worker := getWorkerInstance(t, realProcessor.workflow)
-	for _, n := range worker.NetworkInterfaces {
-		assert.Nil(t, n.AccessConfigs)
-	}
+	daisyutils.CheckEnvironment(realProcessor.worker, func(env daisyutils.EnvironmentSettings) {
+		assert.False(t, env.NoExternalIP)
+	})
 }
 
 func TestBootableDiskProcessor_SupportsNoExternalIPForWorker(t *testing.T) {
 	args := defaultImportArgs()
 	args.NoExternalIP = true
 	realProcessor := createProcessor(t, args)
-	worker := getWorkerInstance(t, realProcessor.workflow)
-	for _, n := range worker.NetworkInterfaces {
-		assert.NotNil(t, n.AccessConfigs)
-		assert.Empty(t, n.AccessConfigs)
-	}
+	daisyutils.CheckEnvironment(realProcessor.worker, func(env daisyutils.EnvironmentSettings) {
+		assert.True(t, env.NoExternalIP)
+	})
 }
 
 // gcloud expects log lines to start with the substring "[import". Daisy
@@ -78,7 +95,10 @@ func TestBootableDiskProcessor_SetsWorkflowNameToGcloudPrefix(t *testing.T) {
 	processor, e := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()),
 		distro.FromGcloudOSArgumentMustParse("windows-2008r2"))
 	assert.NoError(t, e)
-	assert.Equal(t, "disk-1-translate", (processor.(*bootableDiskProcessor)).workflow.Name)
+
+	daisyutils.CheckEnvironment((processor.(*bootableDiskProcessor)).worker, func(env daisyutils.EnvironmentSettings) {
+		assert.Equal(t, "disk-1-translate", env.DaisyLogLinePrefix)
+	})
 }
 
 func TestBootableDiskProcessor_PopulatesWorkflowVarsUsingArgs(t *testing.T) {
@@ -91,119 +111,127 @@ func TestBootableDiskProcessor_PopulatesWorkflowVarsUsingArgs(t *testing.T) {
 	imageSpec.NoGuestEnvironment = true
 	imageSpec.SysprepWindows = true
 	imageSpec.ComputeServiceAccount = "csa@email.com"
-
-	actual := asMap(createProcessor(t, imageSpec).workflow.Vars)
-	assert.Equal(t, map[string]string{
-		"source_disk":             "", // source_disk is written in process, since a previous processor may create a new disk
-		"description":             "Fedora 12 customized",
-		"family":                  "fedora",
-		"image_name":              "fedora-12-imported",
-		"import_network":          "network-copied-verbatum",
-		"import_subnet":           "subnet-copied-verbatum",
-		"install_gce_packages":    "false",
-		"sysprep":                 "true",
-		"compute_service_account": "csa@email.com"},
-		actual)
+	diskProcessor := createProcessor(t, imageSpec)
+	daisyutils.CheckWorkflow(diskProcessor.worker, func(wf *daisy.Workflow) {
+		actual := asMap(wf.Vars)
+		assert.Equal(t, map[string]string{
+			"source_disk":             "", // source_disk is written in process, since a previous processor may create a new disk
+			"description":             "Fedora 12 customized",
+			"family":                  "fedora",
+			"image_name":              "fedora-12-imported",
+			"import_network":          "network-copied-verbatum",
+			"import_subnet":           "subnet-copied-verbatum",
+			"install_gce_packages":    "false",
+			"sysprep":                 "true",
+			"compute_service_account": "csa@email.com"},
+			actual)
+	})
 }
 
 func TestBootableDiskProcessor_SupportsWorkflowDefaultVars(t *testing.T) {
-	actual := asMap(createProcessor(t, defaultImportArgs()).workflow.Vars)
-	assert.Equal(t, map[string]string{
-		"source_disk":             "",
-		"description":             "",
-		"family":                  "",
-		"image_name":              "",
-		"import_network":          "",
-		"import_subnet":           "",
-		"install_gce_packages":    "true",
-		"sysprep":                 "false",
-		"compute_service_account": "default"}, actual)
+	diskProcessor := createProcessor(t, defaultImportArgs())
+	daisyutils.CheckWorkflow(diskProcessor.worker, func(wf *daisy.Workflow) {
+		actual := asMap(wf.Vars)
+		assert.Equal(t, map[string]string{
+			"source_disk":             "",
+			"description":             "",
+			"family":                  "",
+			"image_name":              "",
+			"import_network":          "",
+			"import_subnet":           "",
+			"install_gce_packages":    "true",
+			"sysprep":                 "false",
+			"compute_service_account": "default"}, actual)
+	})
 }
 
 func TestBootableDiskProcessor_SetsWorkerDiskTrackingValues(t *testing.T) {
 	userLabels := map[string]string{
 		"user-key": "user-val",
 	}
-	// https://cloud.google.com/cloud-build/docs/configuring-builds/substitute-variable-values
-	os.Setenv("BUILD_ID", "build-id")
 	imageSpec := defaultImportArgs()
+	imageSpec.ExecutionID = "build-id"
 	imageSpec.Labels = userLabels
 	actual := createProcessor(t, imageSpec)
-	disk := getFirstCreatedDisk(t, actual.workflow)
 
-	assert.Equal(t, map[string]string{
-		"gce-image-import-build-id": "build-id",
-		"gce-image-import-tmp":      "true",
-		"user-key":                  "user-val"}, disk.Labels)
+	var wf *daisy.Workflow
+	daisyutils.CheckWorkflow(actual.worker, func(w *daisy.Workflow) {
+		wf = w
+	})
+	daisyutils.CheckResourceLabeler(actual.worker, func(rl *daisyutils.ResourceLabeler) {
+		assert.NoError(t, rl.Modify(wf))
+		disk := getFirstCreatedDisk(t, wf)
+
+		assert.Equal(t, map[string]string{
+			"gce-image-import-build-id": "build-id",
+			"gce-image-import-tmp":      "true",
+			"user-key":                  "user-val"}, disk.Labels)
+	})
 }
 
 func TestBootableDiskProcessor_SetsWorkerTrackingValues(t *testing.T) {
 	userLabels := map[string]string{
 		"user-key": "user-val",
 	}
-	// https://cloud.google.com/cloud-build/docs/configuring-builds/substitute-variable-values
-	os.Setenv("BUILD_ID", "build-id")
 	imageSpec := defaultImportArgs()
+	imageSpec.ExecutionID = "build-id"
 	imageSpec.Labels = userLabels
 	actual := createProcessor(t, imageSpec)
-	worker := getWorkerInstance(t, actual.workflow)
 
-	assert.Equal(t, map[string]string{
-		"gce-image-import-build-id": "build-id",
-		"gce-image-import-tmp":      "true",
-		"user-key":                  "user-val"}, worker.Labels)
+	var wf *daisy.Workflow
+	daisyutils.CheckWorkflow(actual.worker, func(w *daisy.Workflow) {
+		wf = w
+	})
+	daisyutils.CheckResourceLabeler(actual.worker, func(rl *daisyutils.ResourceLabeler) {
+		assert.NoError(t, rl.Modify(wf))
+		worker := getWorkerInstance(t, wf)
+
+		assert.Equal(t, map[string]string{
+			"gce-image-import-build-id": "build-id",
+			"gce-image-import-tmp":      "true",
+			"user-key":                  "user-val"}, worker.Labels)
+	})
 }
 
 func TestBootableDiskProcessor_SetsImageTrackingValues(t *testing.T) {
 	userLabels := map[string]string{
 		"user-key": "user-val",
 	}
-	// https://cloud.google.com/cloud-build/docs/configuring-builds/substitute-variable-values
-	os.Setenv("BUILD_ID", "build-id")
 	imageSpec := defaultImportArgs()
+	imageSpec.ExecutionID = "build-id"
 	imageSpec.Labels = userLabels
 	actual := createProcessor(t, imageSpec)
-	image := getImage(t, actual.workflow)
 
-	assert.Equal(t, map[string]string{
-		"gce-image-import":          "true",
-		"gce-image-import-build-id": "build-id",
-		"user-key":                  "user-val"}, image.Labels)
+	var wf *daisy.Workflow
+	daisyutils.CheckWorkflow(actual.worker, func(w *daisy.Workflow) {
+		wf = w
+	})
+	daisyutils.CheckResourceLabeler(actual.worker, func(rl *daisyutils.ResourceLabeler) {
+		assert.NoError(t, rl.Modify(wf))
+		image := getImage(t, wf)
+
+		assert.Equal(t, map[string]string{
+			"gce-image-import":          "true",
+			"gce-image-import-build-id": "build-id",
+			"user-key":                  "user-val"}, image.Labels)
+	})
 }
 
 func TestBootableDiskProcessor_SupportsStorageLocation(t *testing.T) {
 	imageSpec := defaultImportArgs()
 	imageSpec.StorageLocation = "north-america"
 	actual := createProcessor(t, imageSpec)
-	image := getImage(t, actual.workflow)
-
-	assert.Equal(t, []string{"north-america"}, image.StorageLocations)
+	daisyutils.CheckResourceLabeler(actual.worker, func(rl *daisyutils.ResourceLabeler) {
+		assert.Equal(t, "north-america", rl.ImageLocation)
+	})
 }
 
 func TestBootableDiskProcessor_PermitsUnsetStorageLocation(t *testing.T) {
 	actual := createProcessor(t, defaultImportArgs())
-	image := getImage(t, actual.workflow)
-
-	assert.Empty(t, image.StorageLocations)
-}
-
-func TestBootableDiskProcessor_AppliesPrivacyLogPostProcessor(t *testing.T) {
-	actual := createProcessor(t, defaultImportArgs())
-	mockLogger := &daisyLogger{}
-	actual.workflow.Logger = mockLogger
-	actual.workflow.LogWorkflowInfo("message [Privacy->content<-Privacy] message")
-	assert.Len(t, mockLogger.logEntries, 1)
-	expected := "message content message"
-	found := false
-	for _, entry := range mockLogger.logEntries {
-		if strings.Contains(entry.Message, expected) {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Errorf("Expected to find %q in %v", expected, mockLogger.logEntries)
-	}
+	daisyutils.CheckWorkflow(actual.worker, func(wf *daisy.Workflow) {
+		image := getImage(t, wf)
+		assert.Empty(t, image.StorageLocations)
+	})
 }
 
 func TestBootableDiskProcessor_SupportsCancel(t *testing.T) {
@@ -214,8 +242,10 @@ func TestBootableDiskProcessor_SupportsCancel(t *testing.T) {
 
 	realProcessor := processor.(*bootableDiskProcessor)
 	realProcessor.cancel("timed-out")
-	_, channelOpen := <-realProcessor.workflow.Cancel
-	assert.False(t, channelOpen, "realProcessor.workflow.Cancel should be closed on timeout")
+	daisyutils.CheckWorkflow(realProcessor.worker, func(wf *daisy.Workflow) {
+		_, channelOpen := <-wf.Cancel
+		assert.False(t, channelOpen, "realProcessor.workflow.Cancel should be closed on timeout")
+	})
 }
 
 func createProcessor(t *testing.T, request ImageImportRequest) *bootableDiskProcessor {
@@ -225,7 +255,6 @@ func createProcessor(t *testing.T, request ImageImportRequest) *bootableDiskProc
 	realTranslator := translator.(*bootableDiskProcessor)
 	// A concrete logger is required since the import/export logging framework writes a log entry
 	// when the workflow starts. Without this there's a panic.
-	realTranslator.workflow.Logger = &daisyLogger{}
 	return realTranslator
 }
 

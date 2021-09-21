@@ -17,10 +17,9 @@ package domain
 import (
 	"fmt"
 	"time"
-
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
-
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 )
 
@@ -119,4 +118,18 @@ func (oip *OVFImportParams) IsInstanceImport() bool {
 // a machine image import. False otherwise.
 func (oip *OVFImportParams) IsMachineImageImport() bool {
 	return !oip.IsInstanceImport()
+}
+
+// GetTool returns a description of the tool being run that can be used for logging and messaging.
+func (oip *OVFImportParams) GetTool() daisyutils.Tool {
+	if oip.IsInstanceImport() {
+		return daisyutils.Tool{
+			HumanReadableName: "instance import",
+			URISafeName:       "instance-import",
+		}
+	}
+	return daisyutils.Tool{
+		HumanReadableName: "machine image import",
+		URISafeName:       "machine-image-import",
+	}
 }

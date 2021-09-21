@@ -39,12 +39,19 @@ const (
 
 	// 10GB is the default disk size used in inflate_file.wf.json.
 	defaultInflationDiskSizeGB = 10
+
+	// See `daisy_workflows/image_import/import_image.sh` for generation of these values.
+	targetSizeGBKey     = "target-size-gb"
+	sourceSizeGBKey     = "source-size-gb"
+	importFileFormatKey = "import-file-format"
+	diskChecksumKey     = "disk-checksum"
 )
 
 // daisyInflater implements an inflater using daisy workflows, and is capable
 // of inflating GCP disk images and qemu-img compatible disk files.
 type daisyInflater struct {
-	wf              *daisy.Workflow
+	worker          daisyutils.DaisyWorker
+	vars            map[string]string
 	source          Source
 	inflatedDiskURI string
 	logger          logging.Logger
@@ -54,27 +61,19 @@ func (inflater *daisyInflater) Inflate() (persistentDisk, shadowTestFields, erro
 	if inflater.source != nil {
 		inflater.logger.User("Creating Google Compute Engine disk from " + inflater.source.Path())
 	}
-	startTime := time.Now()
-	err := inflater.wf.Run(context.Background())
-	if inflater.wf.Logger != nil {
-		for _, trace := range inflater.wf.Logger.ReadSerialPortLogs() {
-			inflater.logger.Trace(trace)
-		}
+	serialValues, err := inflater.worker.RunAndReadSerialValues(inflater.vars,
+		targetSizeGBKey, sourceSizeGBKey, importFileFormatKey, diskChecksumKey)
+	if err == nil {
+		inflater.logger.User("Finished creating Google Compute Engine disk")
 	}
-	inflater.logger.User("Finished creating Google Compute Engine disk")
-	// See `daisy_workflows/image_import/import_image.sh` for generation of these values.
-	targetSizeGB := inflater.wf.GetSerialConsoleOutputValue("target-size-gb")
-	sourceSizeGB := inflater.wf.GetSerialConsoleOutputValue("source-size-gb")
-	importFileFormat := inflater.wf.GetSerialConsoleOutputValue("import-file-format")
-	checksum := inflater.wf.GetSerialConsoleOutputValue("disk-checksum")
 	return persistentDisk{
 			uri:        inflater.inflatedDiskURI,
-			sizeGb:     enforceMinimumDiskSize(string_utils.SafeStringToInt(targetSizeGB)),
-			sourceGb:   string_utils.SafeStringToInt(sourceSizeGB),
-			sourceType: importFileFormat,
+			sizeGb:     enforceMinimumDiskSize(string_utils.SafeStringToInt(serialValues[targetSizeGBKey])),
+			sourceGb:   string_utils.SafeStringToInt(serialValues[sourceSizeGBKey]),
+			sourceType: serialValues[importFileFormatKey],
 		}, shadowTestFields{
-			checksum:      checksum,
-			inflationTime: time.Since(startTime),
+			checksum:      serialValues[diskChecksumKey],
+			inflationTime: time.Since(time.Now()),
 			inflationType: "qemu",
 		}, err
 }
@@ -109,10 +108,6 @@ func newDaisyInflater(request ImageImportRequest, fileInspector imagefile.Inspec
 		return nil, err
 	}
 
-	for k, v := range vars {
-		wf.AddVar(k, v)
-	}
-	daisyutils.UpdateAllInstanceNoExternalIP(wf, request.NoExternalIP)
 	if request.UefiCompatible {
 		addFeatureToDisk(wf, "UEFI_COMPATIBLE", inflationDiskIndex)
 	}
@@ -120,16 +115,17 @@ func newDaisyInflater(request ImageImportRequest, fileInspector imagefile.Inspec
 		addFeatureToDisk(wf, "WINDOWS", inflationDiskIndex)
 	}
 
-	logPrefix := request.DaisyLogLinePrefix
-	if logPrefix != "" {
-		logPrefix += "-"
+	env := request.EnvironmentSettings()
+	if env.DaisyLogLinePrefix != "" {
+		env.DaisyLogLinePrefix += "-"
 	}
-	wf.Name = logPrefix + "inflate"
+	env.DaisyLogLinePrefix += "inflate"
 	return &daisyInflater{
-		wf:              wf,
+		worker:          daisyutils.NewDaisyWorker(wf, env, logger),
 		inflatedDiskURI: fmt.Sprintf("zones/%s/disks/%s", request.Zone, diskName),
 		logger:          logger,
 		source:          request.Source,
+		vars:            vars,
 	}, nil
 }
 
@@ -157,8 +153,7 @@ func getDisk(workflow *daisy.Workflow, diskIndex int) *daisy.Disk {
 }
 
 func (inflater *daisyInflater) Cancel(reason string) bool {
-	inflater.wf.CancelWithReason(reason)
-	return true
+	return inflater.worker.Cancel(reason)
 }
 
 func createDaisyVarsForFile(request ImageImportRequest,
