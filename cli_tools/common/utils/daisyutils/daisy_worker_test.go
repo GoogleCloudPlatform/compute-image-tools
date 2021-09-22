@@ -35,7 +35,7 @@ func Test_NewDaisyWorker_IncludesStandardModifiers(t *testing.T) {
 		StorageLocation:    "us-east",
 		DaisyLogLinePrefix: "import-image",
 		ExecutionID:        "b1234",
-		Tool:               Tool{URISafeName: "unit-test"},
+		Tool:               Tool{ResourceLabelName: "unit-test"},
 	}
 	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"))
 	assert.Equal(t, appliedModifiers{
@@ -47,7 +47,7 @@ func Test_NewDaisyWorker_IncludesStandardModifiers(t *testing.T) {
 	rl := getResourceLabeler(t, worker)
 	assert.Equal(t, env.Labels, rl.UserLabels)
 	assert.Equal(t, env.StorageLocation, rl.ImageLocation)
-	assert.Contains(t, rl.BuildIDLabelKey, env.Tool.URISafeName)
+	assert.Contains(t, rl.BuildIDLabelKey, env.Tool.ResourceLabelName)
 	assert.Equal(t, env.ExecutionID, rl.BuildID)
 }
 
@@ -55,7 +55,7 @@ func Test_NewDaisyWorker_IncludesNoExternalIPModifier_WhenRequestedByUser(t *tes
 	wf := daisy.New()
 	env := EnvironmentSettings{NoExternalIP: true,
 		ExecutionID: "b1234",
-		Tool:        Tool{URISafeName: "unit-test"},
+		Tool:        Tool{ResourceLabelName: "unit-test"},
 	}
 	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"))
 	assert.Equal(t, appliedModifiers{
@@ -69,7 +69,7 @@ func Test_NewDaisyWorker_IncludesNoExternalIPModifier_WhenRequestedByUser(t *tes
 func Test_NewDaisyWorker_KeepsResourceLabelerIfSpecified(t *testing.T) {
 	wf := daisy.New()
 	env := EnvironmentSettings{NoExternalIP: true, ExecutionID: "b1234",
-		Tool: Tool{URISafeName: "unit-test"}}
+		Tool: Tool{ResourceLabelName: "unit-test"}}
 	rl := NewResourceLabeler("tool", "buildid", map[string]string{}, "location")
 	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"), rl)
 	actualResourceLabeler := getResourceLabeler(t, worker)
@@ -93,7 +93,7 @@ func Test_DaisyWorkerRun_RunsCustomModifiers(t *testing.T) {
 		Timeout:            "60s",
 		DaisyLogLinePrefix: "import-image",
 		ExecutionID:        "b1234",
-		Tool:               Tool{URISafeName: "unit-test"},
+		Tool:               Tool{ResourceLabelName: "unit-test"},
 	}
 	configWorkflowForUnitTesting(t, wf, mockCtrl, env)
 
@@ -119,7 +119,7 @@ func Test_DaisyWorkerRun_CapturesDaisyLogs(t *testing.T) {
 		Timeout:            "60s",
 		DaisyLogLinePrefix: "import-image",
 		ExecutionID:        "b1234",
-		Tool:               Tool{URISafeName: "unit-test"},
+		Tool:               Tool{ResourceLabelName: "unit-test"},
 	}
 	configWorkflowForUnitTesting(t, wf, mockCtrl, env)
 
@@ -139,7 +139,7 @@ func Test_DaisyWorkerRun_FailsIfModifierFails(t *testing.T) {
 
 	worker := NewDaisyWorker(wf, EnvironmentSettings{
 		ExecutionID: "b1234",
-		Tool:        Tool{URISafeName: "unit-test"},
+		Tool:        Tool{ResourceLabelName: "unit-test"},
 	}, logging.NewToolLogger("test"), modifier)
 	assert.EqualError(t, worker.Run(map[string]string{}), "modifier failed")
 }
@@ -148,7 +148,7 @@ func Test_DaisyWorkerRun_FailsIfWorkflowFails(t *testing.T) {
 	wf := daisy.New()
 	worker := NewDaisyWorker(wf, EnvironmentSettings{
 		ExecutionID: "b1234",
-		Tool:        Tool{URISafeName: "unit-test"},
+		Tool:        Tool{ResourceLabelName: "unit-test"},
 	}, logging.NewToolLogger("test"))
 	assert.EqualError(t, worker.Run(map[string]string{}),
 		"error validating workflow: must provide workflow field 'Name'")
@@ -173,7 +173,7 @@ func Test_DaisyWorkerRun_AppliesEnvToWorkflow(t *testing.T) {
 		ComputeEndpoint:    "new-endpoint",
 		DaisyLogLinePrefix: "import-image",
 		ExecutionID:        "b1234",
-		Tool:               Tool{URISafeName: "unit-test"},
+		Tool:               Tool{ResourceLabelName: "unit-test"},
 	}
 	configWorkflowForUnitTesting(t, wf, mockCtrl, env)
 
@@ -206,7 +206,7 @@ func Test_DaisyWorkerRun_AppliesVariables(t *testing.T) {
 		ComputeEndpoint:    "new-endpoint",
 		DaisyLogLinePrefix: "import-image",
 		ExecutionID:        "b1234",
-		Tool:               Tool{URISafeName: "unit-test"},
+		Tool:               Tool{ResourceLabelName: "unit-test"},
 	}
 	configWorkflowForUnitTesting(t, wf, mockCtrl, env)
 
@@ -228,7 +228,7 @@ func Test_DaisyWorkerRunAndReadSerialValue_HappyCase(t *testing.T) {
 		ComputeEndpoint:    "new-endpoint",
 		DaisyLogLinePrefix: "import-image",
 		ExecutionID:        "b1234",
-		Tool:               Tool{URISafeName: "unit-test"},
+		Tool:               Tool{ResourceLabelName: "unit-test"},
 	}
 	configWorkflowForUnitTesting(t, wf, mockCtrl, env)
 

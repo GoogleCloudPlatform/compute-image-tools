@@ -55,10 +55,10 @@ func createResourceLabelerIfMissing(env EnvironmentSettings, modifiers []Workflo
 			return modifiers
 		}
 	}
-	assert.NotEmpty(env.Tool.URISafeName)
+	assert.NotEmpty(env.Tool.ResourceLabelName)
 	assert.NotEmpty(env.ExecutionID)
 	return append(modifiers, NewResourceLabeler(
-		env.Tool.URISafeName, env.ExecutionID, env.Labels, env.StorageLocation))
+		env.Tool.ResourceLabelName, env.ExecutionID, env.Labels, env.StorageLocation))
 }
 
 type defaultDaisyWorker struct {

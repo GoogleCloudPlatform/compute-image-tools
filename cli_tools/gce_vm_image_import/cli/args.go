@@ -69,7 +69,7 @@ func (args *imageImportArgs) populateAndValidate(populator param.Populator,
 	importer.FixBYOLAndOSArguments(&args.OS, &args.BYOL)
 	args.Tool = daisyutils.Tool{
 		HumanReadableName: "image import",
-		URISafeName:       "image-import",
+		ResourceLabelName: "image-import",
 	}
 	args.Source, err = sourceFactory.Init(args.SourceFile, args.SourceImage)
 	if err != nil {

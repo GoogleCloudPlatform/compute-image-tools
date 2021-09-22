@@ -365,8 +365,8 @@ func createDaisyInflaterSafe(t *testing.T, request ImageImportRequest,
 		request.ExecutionID = "build-id"
 	}
 
-	if request.Tool.URISafeName == "" {
-		request.Tool.URISafeName = "image-import"
+	if request.Tool.ResourceLabelName == "" {
+		request.Tool.ResourceLabelName = "image-import"
 	}
 
 	request.WorkflowDir = "../../../../daisy_workflows"

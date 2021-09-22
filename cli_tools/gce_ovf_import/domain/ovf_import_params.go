@@ -17,9 +17,11 @@ package domain
 import (
 	"fmt"
 	"time"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
+
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 )
 
@@ -125,11 +127,11 @@ func (oip *OVFImportParams) GetTool() daisyutils.Tool {
 	if oip.IsInstanceImport() {
 		return daisyutils.Tool{
 			HumanReadableName: "instance import",
-			URISafeName:       "instance-import",
+			ResourceLabelName: "instance-import",
 		}
 	}
 	return daisyutils.Tool{
 		HumanReadableName: "machine image import",
-		URISafeName:       "machine-image-import",
+		ResourceLabelName: "machine-image-import",
 	}
 }

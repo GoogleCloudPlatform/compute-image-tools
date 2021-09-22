@@ -83,7 +83,7 @@ func TestCreateShadowTestInflater_File(t *testing.T) {
 		Zone:        "us-west1-c",
 		ExecutionID: "1234",
 		Tool: daisyutils.Tool{
-			URISafeName: "image-import",
+			ResourceLabelName: "image-import",
 		},
 		NoExternalIP: false,
 		WorkflowDir:  daisyWorkflows,
@@ -122,7 +122,7 @@ func TestCreateInflater_Image(t *testing.T) {
 		ExecutionID: "1234",
 		WorkflowDir: daisyWorkflows,
 		Tool: daisyutils.Tool{
-			URISafeName: "image-import",
+			ResourceLabelName: "image-import",
 		},
 	}, nil, &storage.Client{}, nil, nil)
 	assert.NoError(t, err)

@@ -443,8 +443,8 @@ type Tool struct {
 
 	// HumanReadableName is used for error messages, for example: "image import".
 	HumanReadableName string
-	// URISafeName is used programmatically, eg: "image-import"
-	URISafeName string
+	// ResourceLabelName is used when labeling temporary resources, for example: "image-import"
+	ResourceLabelName string
 }
 
 // EnvironmentSettings controls the resources that are used during tool execution.
