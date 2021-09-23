@@ -10,6 +10,7 @@ steps:
     - 'bash'
     - '-c'
     - 'gcloud workflows execute workflow-gradually-rollout$_TEST_SUFFIX
+        --project=$PROJECT_ID
         --data="{
           \"rolloutPhase\":{$_ROLLOUT_PHASES},
           \"tools\":\"gce_vm_image_import;gce_vm_image_export;gce_onestep_image_import;gce_ovf_import;gce_ovf_export;gce_windows_upgrade\",
