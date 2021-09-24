@@ -75,3 +75,23 @@ func (mr *MockDaisyWorkerMockRecorder) RunAndReadSerialValue(key, vars interface
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunAndReadSerialValue", reflect.TypeOf((*MockDaisyWorker)(nil).RunAndReadSerialValue), key, vars)
 }
+
+// RunAndReadSerialValues mocks base method.
+func (m *MockDaisyWorker) RunAndReadSerialValues(vars map[string]string, keys ...string) (map[string]string, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{vars}
+	for _, a := range keys {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "RunAndReadSerialValues", varargs...)
+	ret0, _ := ret[0].(map[string]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RunAndReadSerialValues indicates an expected call of RunAndReadSerialValues.
+func (mr *MockDaisyWorkerMockRecorder) RunAndReadSerialValues(vars interface{}, keys ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{vars}, keys...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunAndReadSerialValues", reflect.TypeOf((*MockDaisyWorker)(nil).RunAndReadSerialValues), varargs...)
+}

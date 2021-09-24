@@ -99,7 +99,8 @@ type ImageImportRequest struct {
 	StorageLocation       string
 	Subnet                string
 	SysprepWindows        bool
-	Timeout               time.Duration `name:"timeout" validate:"required"`
+	Tool                  daisyutils.Tool `name:"tool" validate:"required"`
+	Timeout               time.Duration   `name:"timeout" validate:"required"`
 	UefiCompatible        bool
 	Zone                  string `name:"zone" validate:"required"`
 }
@@ -142,5 +143,6 @@ func (args ImageImportRequest) EnvironmentSettings() daisyutils.EnvironmentSetti
 		Labels:                args.Labels,
 		ExecutionID:           args.ExecutionID,
 		StorageLocation:       args.StorageLocation,
+		Tool:                  args.Tool,
 	}
 }

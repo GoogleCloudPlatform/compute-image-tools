@@ -30,24 +30,50 @@ import (
 
 func Test_NewDaisyWorker_IncludesStandardModifiers(t *testing.T) {
 	wf := daisy.New()
-	env := EnvironmentSettings{}
+	env := EnvironmentSettings{
+		Labels:             map[string]string{"env": "prod"},
+		StorageLocation:    "us-east",
+		DaisyLogLinePrefix: "import-image",
+		ExecutionID:        "b1234",
+		Tool:               Tool{ResourceLabelName: "unit-test"},
+	}
 	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"))
 	assert.Equal(t, appliedModifiers{
 		applyEnvToWorkflow:       true,
 		configureDaisyLogging:    true,
 		removeExternalIPModifier: false,
+		resourceLabeler:          true,
 	}, findWhichModifiersApplied(worker))
+	rl := getResourceLabeler(t, worker)
+	assert.Equal(t, env.Labels, rl.UserLabels)
+	assert.Equal(t, env.StorageLocation, rl.ImageLocation)
+	assert.Contains(t, rl.BuildIDLabelKey, env.Tool.ResourceLabelName)
+	assert.Equal(t, env.ExecutionID, rl.BuildID)
 }
 
 func Test_NewDaisyWorker_IncludesNoExternalIPModifier_WhenRequestedByUser(t *testing.T) {
 	wf := daisy.New()
-	env := EnvironmentSettings{NoExternalIP: true}
+	env := EnvironmentSettings{NoExternalIP: true,
+		ExecutionID: "b1234",
+		Tool:        Tool{ResourceLabelName: "unit-test"},
+	}
 	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"))
 	assert.Equal(t, appliedModifiers{
 		applyEnvToWorkflow:       true,
 		configureDaisyLogging:    true,
 		removeExternalIPModifier: true,
+		resourceLabeler:          true,
 	}, findWhichModifiersApplied(worker))
+}
+
+func Test_NewDaisyWorker_KeepsResourceLabelerIfSpecified(t *testing.T) {
+	wf := daisy.New()
+	env := EnvironmentSettings{NoExternalIP: true, ExecutionID: "b1234",
+		Tool: Tool{ResourceLabelName: "unit-test"}}
+	rl := NewResourceLabeler("tool", "buildid", map[string]string{}, "location")
+	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"), rl)
+	actualResourceLabeler := getResourceLabeler(t, worker)
+	assert.Equal(t, rl, actualResourceLabeler)
 }
 
 func Test_DaisyWorkerRun_RunsCustomModifiers(t *testing.T) {
@@ -66,6 +92,8 @@ func Test_DaisyWorkerRun_RunsCustomModifiers(t *testing.T) {
 		GCSPath:            "gs://test",
 		Timeout:            "60s",
 		DaisyLogLinePrefix: "import-image",
+		ExecutionID:        "b1234",
+		Tool:               Tool{ResourceLabelName: "unit-test"},
 	}
 	configWorkflowForUnitTesting(t, wf, mockCtrl, env)
 
@@ -90,6 +118,8 @@ func Test_DaisyWorkerRun_CapturesDaisyLogs(t *testing.T) {
 		GCSPath:            "gs://test",
 		Timeout:            "60s",
 		DaisyLogLinePrefix: "import-image",
+		ExecutionID:        "b1234",
+		Tool:               Tool{ResourceLabelName: "unit-test"},
 	}
 	configWorkflowForUnitTesting(t, wf, mockCtrl, env)
 
@@ -107,13 +137,19 @@ func Test_DaisyWorkerRun_FailsIfModifierFails(t *testing.T) {
 	modifier := mocks.NewMockWorkflowModifier(mockCtrl)
 	modifier.EXPECT().Modify(wf).Return(errors.New("modifier failed"))
 
-	worker := NewDaisyWorker(wf, EnvironmentSettings{}, logging.NewToolLogger("test"), modifier)
+	worker := NewDaisyWorker(wf, EnvironmentSettings{
+		ExecutionID: "b1234",
+		Tool:        Tool{ResourceLabelName: "unit-test"},
+	}, logging.NewToolLogger("test"), modifier)
 	assert.EqualError(t, worker.Run(map[string]string{}), "modifier failed")
 }
 
 func Test_DaisyWorkerRun_FailsIfWorkflowFails(t *testing.T) {
 	wf := daisy.New()
-	worker := NewDaisyWorker(wf, EnvironmentSettings{}, logging.NewToolLogger("test"))
+	worker := NewDaisyWorker(wf, EnvironmentSettings{
+		ExecutionID: "b1234",
+		Tool:        Tool{ResourceLabelName: "unit-test"},
+	}, logging.NewToolLogger("test"))
 	assert.EqualError(t, worker.Run(map[string]string{}),
 		"error validating workflow: must provide workflow field 'Name'")
 }
@@ -136,6 +172,8 @@ func Test_DaisyWorkerRun_AppliesEnvToWorkflow(t *testing.T) {
 		Timeout:            "60s",
 		ComputeEndpoint:    "new-endpoint",
 		DaisyLogLinePrefix: "import-image",
+		ExecutionID:        "b1234",
+		Tool:               Tool{ResourceLabelName: "unit-test"},
 	}
 	configWorkflowForUnitTesting(t, wf, mockCtrl, env)
 
@@ -167,6 +205,8 @@ func Test_DaisyWorkerRun_AppliesVariables(t *testing.T) {
 		Timeout:            "60s",
 		ComputeEndpoint:    "new-endpoint",
 		DaisyLogLinePrefix: "import-image",
+		ExecutionID:        "b1234",
+		Tool:               Tool{ResourceLabelName: "unit-test"},
 	}
 	configWorkflowForUnitTesting(t, wf, mockCtrl, env)
 
@@ -187,6 +227,8 @@ func Test_DaisyWorkerRunAndReadSerialValue_HappyCase(t *testing.T) {
 		Timeout:            "60s",
 		ComputeEndpoint:    "new-endpoint",
 		DaisyLogLinePrefix: "import-image",
+		ExecutionID:        "b1234",
+		Tool:               Tool{ResourceLabelName: "unit-test"},
 	}
 	configWorkflowForUnitTesting(t, wf, mockCtrl, env)
 
@@ -197,7 +239,7 @@ func Test_DaisyWorkerRunAndReadSerialValue_HappyCase(t *testing.T) {
 }
 
 type appliedModifiers struct {
-	applyEnvToWorkflow, configureDaisyLogging, removeExternalIPModifier bool
+	applyEnvToWorkflow, configureDaisyLogging, removeExternalIPModifier, resourceLabeler bool
 }
 
 func findWhichModifiersApplied(worker DaisyWorker) (t appliedModifiers) {
@@ -212,8 +254,26 @@ func findWhichModifiersApplied(worker DaisyWorker) (t appliedModifiers) {
 		if _, ok := modifier.(*RemoveExternalIPModifier); ok {
 			t.removeExternalIPModifier = true
 		}
+		if _, ok := modifier.(*ResourceLabeler); ok {
+			t.resourceLabeler = true
+		}
 	}
 	return t
+}
+
+func getResourceLabeler(t *testing.T, worker DaisyWorker) *ResourceLabeler {
+	var actualResourceLabeler *ResourceLabeler
+	realWorker := worker.(*defaultDaisyWorker)
+	for _, modifier := range realWorker.modifiers {
+		switch modifier.(type) {
+		case *ResourceLabeler:
+			if actualResourceLabeler != nil {
+				assert.Fail(t, "Found more than one resource labeler in modifiers")
+			}
+			actualResourceLabeler = modifier.(*ResourceLabeler)
+		}
+	}
+	return actualResourceLabeler
 }
 
 // configWorkflowForUnitTesting adds a minimal number of steps and mocks so that the workflow can run without errors.

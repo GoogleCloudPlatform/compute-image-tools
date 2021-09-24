@@ -15,8 +15,6 @@
 package importer
 
 import (
-	"context"
-	"os"
 	"strconv"
 	"strings"
 
@@ -28,31 +26,27 @@ import (
 
 type bootableDiskProcessor struct {
 	request    ImageImportRequest
-	workflow   *daisy.Workflow
+	worker     daisyutils.DaisyWorker
+	vars       map[string]string
 	logger     logging.Logger
 	detectedOs distro.Release
 }
 
 func (b *bootableDiskProcessor) process(pd persistentDisk) (persistentDisk, error) {
 	b.logger.User("Making disk bootable on Google Compute Engine")
-	b.workflow.AddVar("source_disk", pd.uri)
+	b.vars["source_disk"] = pd.uri
 	var err error
-	err = b.workflow.Run(context.Background())
+	err = b.worker.Run(b.vars)
 	if err != nil {
-		b.logger.User("Finished making disk bootable")
-		daisyutils.PostProcessDErrorForNetworkFlag("image import", err, b.request.Network, b.workflow)
 		err = customizeErrorToDetectionResults(b.logger, b.request.OS, b.detectedOs, err)
-	}
-	if b.workflow.Logger != nil {
-		for _, trace := range b.workflow.Logger.ReadSerialPortLogs() {
-			b.logger.Trace(trace)
-		}
+	} else {
+		b.logger.User("Finished making disk bootable")
 	}
 	return pd, err
 }
 
 func (b *bootableDiskProcessor) cancel(reason string) bool {
-	b.workflow.CancelWithReason(reason)
+	b.worker.Cancel(reason)
 	return true
 }
 
@@ -75,37 +69,31 @@ func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger 
 		request.Project, request.Zone, request.ScratchBucketGcsPath, request.Oauth, request.Timeout.String(),
 		request.ComputeEndpoint, request.GcsLogsDisabled, request.CloudLogsDisabled, request.StdoutLogsDisabled)
 
-	daisyutils.UpdateAllInstanceNoExternalIP(workflow, request.NoExternalIP)
-	workflow.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
 	if err != nil {
 		return nil, err
 	}
 
-	// Daisy uses the workflow name as the prefix for log lines.
-	logPrefix := request.DaisyLogLinePrefix
-	if logPrefix != "" {
-		logPrefix += "-"
+	env := request.EnvironmentSettings()
+	if env.DaisyLogLinePrefix != "" {
+		env.DaisyLogLinePrefix += "-"
 	}
-	workflow.Name = logPrefix + "translate"
-
+	env.DaisyLogLinePrefix += "translate"
 	diskProcessor := &bootableDiskProcessor{
 		request:    request,
-		workflow:   workflow,
+		worker:     daisyutils.NewDaisyWorker(workflow, env, logger, createResourceLabeler(request)),
 		logger:     logger,
 		detectedOs: detectedOs,
+		vars:       vars,
 	}
-	diskProcessor.labelResources()
 	return diskProcessor, err
 }
 
-func (b *bootableDiskProcessor) labelResources() {
-	buildID := os.Getenv(daisyutils.BuildIDOSEnvVarName)
-	b.logger.User("Cloud Build ID: " + buildID)
-	rl := &daisyutils.ResourceLabeler{
-		BuildID:         buildID,
-		UserLabels:      b.request.Labels,
+func createResourceLabeler(request ImageImportRequest) *daisyutils.ResourceLabeler {
+	return &daisyutils.ResourceLabeler{
+		BuildID:         request.ExecutionID,
+		UserLabels:      request.Labels,
 		BuildIDLabelKey: "gce-image-import-build-id",
-		ImageLocation:   b.request.StorageLocation,
+		ImageLocation:   request.StorageLocation,
 		InstanceLabelKeyRetriever: func(instanceName string) string {
 			return "gce-image-import-tmp"
 		},
@@ -119,5 +107,4 @@ func (b *bootableDiskProcessor) labelResources() {
 			}
 			return imageTypeLabel
 		}}
-	rl.LabelResources(b.workflow)
 }

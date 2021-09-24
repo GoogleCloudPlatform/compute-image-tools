@@ -16,9 +16,30 @@ package assert
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/files"
 )
+
+// NotEmpty asserts that obj is non-null and does not have a zero value.
+func NotEmpty(obj interface{}) {
+	if isEmpty(obj) {
+		panic("Expected non-empty value")
+	}
+}
+
+func isEmpty(obj interface{}) bool {
+	if obj == nil {
+		return true
+	}
+
+	v := reflect.ValueOf(obj)
+	switch v.Kind() {
+	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
+		return v.Len() == 0
+	}
+	return v.IsZero()
+}
 
 // GreaterThanOrEqualTo asserts that value is greater than or equal to limit.
 func GreaterThanOrEqualTo(value int, limit int) {

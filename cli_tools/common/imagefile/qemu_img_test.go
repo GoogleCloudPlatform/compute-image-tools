@@ -118,7 +118,7 @@ func TestGetInfo_PropagateQemuImgError(t *testing.T) {
 	client := NewInfoClient()
 	_, err := client.GetInfo(context.Background(), "/tmp")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "qemu-img: Could not open '/tmp': A regular file")
+	assert.Contains(t, err.Error(), "qemu-img: Could not open '/tmp'")
 }
 
 func TestGetInfo_PropagateContextCancellation(t *testing.T) {

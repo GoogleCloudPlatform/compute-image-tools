@@ -17,6 +17,7 @@ package daisyutils
 import (
 	"context"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/assert"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
@@ -28,18 +29,36 @@ import (
 type DaisyWorker interface {
 	Run(vars map[string]string) error
 	RunAndReadSerialValue(key string, vars map[string]string) (string, error)
+	RunAndReadSerialValues(vars map[string]string, keys ...string) (map[string]string, error)
 	Cancel(reason string) bool
 }
 
 // NewDaisyWorker returns an implementation of DaisyWorker. The returned value is
-// designed to be run once and discarded. In other words, don't run RunAndReadSerialValue
-// twice on the same instance.
-func NewDaisyWorker(wf *daisy.Workflow, env EnvironmentSettings, logger logging.Logger, modifiers ...WorkflowModifier) DaisyWorker {
+// designed to be run once and discarded. In other words, don't run the same instance twice.
+//
+// If modifiers doesn't include a resource labeler, one will be created.
+func NewDaisyWorker(wf *daisy.Workflow, env EnvironmentSettings,
+	logger logging.Logger, modifiers ...WorkflowModifier) DaisyWorker {
 	modifiers = append(modifiers, &ApplyEnvToWorkflow{env}, &ConfigureDaisyLogging{env})
 	if env.NoExternalIP {
 		modifiers = append(modifiers, &RemoveExternalIPModifier{})
 	}
-	return &defaultDaisyWorker{wf: wf, env: env, logger: logger, modifiers: modifiers}
+	return &defaultDaisyWorker{wf: wf, env: env, logger: logger, modifiers: createResourceLabelerIfMissing(env, modifiers)}
+}
+
+// createResourceLabelerIfMissing checks whether there is a resource labeler in modifiers.
+// If not, then it creates a new one.
+func createResourceLabelerIfMissing(env EnvironmentSettings, modifiers []WorkflowModifier) []WorkflowModifier {
+	for _, modifier := range modifiers {
+		switch modifier.(type) {
+		case *ResourceLabeler:
+			return modifiers
+		}
+	}
+	assert.NotEmpty(env.Tool.ResourceLabelName)
+	assert.NotEmpty(env.ExecutionID)
+	return append(modifiers, NewResourceLabeler(
+		env.Tool.ResourceLabelName, env.ExecutionID, env.Labels, env.StorageLocation))
 }
 
 type defaultDaisyWorker struct {
@@ -59,11 +78,14 @@ func (w *defaultDaisyWorker) Run(vars map[string]string) error {
 			return err
 		}
 	}
-	err := w.wf.Run(context.Background())
+	err := RunWorkflowWithCancelSignal(context.Background(), w.wf)
 	if w.wf.Logger != nil {
 		for _, trace := range w.wf.Logger.ReadSerialPortLogs() {
 			w.logger.Trace(trace)
 		}
+	}
+	if err != nil {
+		PostProcessDErrorForNetworkFlag(w.env.Tool.HumanReadableName, err, w.env.Network, w.wf)
 	}
 	return err
 }
@@ -71,11 +93,19 @@ func (w *defaultDaisyWorker) Run(vars map[string]string) error {
 // RunAndReadSerialValue runs the daisy workflow with the supplied vars, and returns the serial
 // output value associated with the supplied key.
 func (w *defaultDaisyWorker) RunAndReadSerialValue(key string, vars map[string]string) (string, error) {
+	m, err := w.RunAndReadSerialValues(vars, key)
+	return m[key], err
+}
+
+// RunAndReadSerialValues runs the daisy workflow with the supplied vars, and returns the serial
+// output values associated with the supplied keys.
+func (w *defaultDaisyWorker) RunAndReadSerialValues(vars map[string]string, keys ...string) (map[string]string, error) {
 	err := w.Run(vars)
-	if err != nil {
-		return "", err
+	m := map[string]string{}
+	for _, key := range keys {
+		m[key] = w.wf.GetSerialConsoleOutputValue(key)
 	}
-	return w.wf.GetSerialConsoleOutputValue(key), nil
+	return m, err
 }
 
 func (w *defaultDaisyWorker) Cancel(reason string) bool {

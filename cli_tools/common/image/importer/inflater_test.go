@@ -18,11 +18,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 func TestCreateFallbackInflater_File(t *testing.T) {
@@ -52,12 +55,14 @@ func TestCreateFallbackInflater_File(t *testing.T) {
 	daisyInflater, ok := facade.daisyInflater.(*daisyInflater)
 	assert.True(t, ok)
 	assert.Equal(t, "zones/us-west1-c/disks/disk-1234", daisyInflater.inflatedDiskURI)
-	assert.Equal(t, "gs://bucket/vmdk", daisyInflater.wf.Vars["source_disk_file"].Value)
-	assert.Equal(t, "projects/subnet/subnet", daisyInflater.wf.Vars["import_subnet"].Value)
-	assert.Equal(t, "projects/network/network", daisyInflater.wf.Vars["import_network"].Value)
+	daisyutils.CheckWorkflow(daisyInflater.worker, func(wf *daisy.Workflow) {
+		assert.Equal(t, "gs://bucket/vmdk", wf.Vars["source_disk_file"].Value)
+		assert.Equal(t, "projects/subnet/subnet", wf.Vars["import_subnet"].Value)
+		assert.Equal(t, "projects/network/network", wf.Vars["import_network"].Value)
 
-	network := getWorkerNetwork(t, daisyInflater.wf)
-	assert.Nil(t, network.AccessConfigs, "AccessConfigs must be nil to allow ExternalIP to be allocated.")
+		network := getWorkerNetwork(t, wf)
+		assert.Nil(t, network.AccessConfigs, "AccessConfigs must be nil to allow ExternalIP to be allocated.")
+	})
 
 	apiInflater, ok := facade.apiInflater.(*apiInflater)
 	assert.True(t, ok)
@@ -72,11 +77,14 @@ func TestCreateShadowTestInflater_File(t *testing.T) {
 	//TODO: remove/disable this test once API inflater is the default (fallback mode)
 
 	inflater, err := newInflater(ImageImportRequest{
-		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
-		Subnet:       "projects/subnet/subnet",
-		Network:      "projects/network/network",
-		Zone:         "us-west1-c",
-		ExecutionID:  "1234",
+		Source:      fileSource{gcsPath: "gs://bucket/vmdk"},
+		Subnet:      "projects/subnet/subnet",
+		Network:     "projects/network/network",
+		Zone:        "us-west1-c",
+		ExecutionID: "1234",
+		Tool: daisyutils.Tool{
+			ResourceLabelName: "image-import",
+		},
 		NoExternalIP: false,
 		WorkflowDir:  daisyWorkflows,
 	}, nil, &storage.Client{}, mockInspector{
@@ -91,13 +99,15 @@ func TestCreateShadowTestInflater_File(t *testing.T) {
 
 	daisyInflater, ok := facade.mainInflater.(*daisyInflater)
 	assert.True(t, ok)
-	assert.Equal(t, "zones/us-west1-c/disks/disk-1234", daisyInflater.inflatedDiskURI)
-	assert.Equal(t, "gs://bucket/vmdk", daisyInflater.wf.Vars["source_disk_file"].Value)
-	assert.Equal(t, "projects/subnet/subnet", daisyInflater.wf.Vars["import_subnet"].Value)
-	assert.Equal(t, "projects/network/network", daisyInflater.wf.Vars["import_network"].Value)
+	daisyutils.CheckWorkflow(daisyInflater.worker, func(wf *daisy.Workflow) {
+		assert.Equal(t, "zones/us-west1-c/disks/disk-1234", daisyInflater.inflatedDiskURI)
+		assert.Equal(t, "gs://bucket/vmdk", wf.Vars["source_disk_file"].Value)
+		assert.Equal(t, "projects/subnet/subnet", wf.Vars["import_subnet"].Value)
+		assert.Equal(t, "projects/network/network", wf.Vars["import_network"].Value)
 
-	network := getWorkerNetwork(t, daisyInflater.wf)
-	assert.Nil(t, network.AccessConfigs, "AccessConfigs must be nil to allow ExternalIP to be allocated.")
+		network := getWorkerNetwork(t, wf)
+		assert.Nil(t, network.AccessConfigs, "AccessConfigs must be nil to allow ExternalIP to be allocated.")
+	})
 
 	apiInflater, ok := facade.shadowInflater.(*apiInflater)
 	assert.True(t, ok)
@@ -111,15 +121,21 @@ func TestCreateInflater_Image(t *testing.T) {
 		Zone:        "us-west1-b",
 		ExecutionID: "1234",
 		WorkflowDir: daisyWorkflows,
+		Tool: daisyutils.Tool{
+			ResourceLabelName: "image-import",
+		},
 	}, nil, &storage.Client{}, nil, nil)
 	assert.NoError(t, err)
 	realInflater, ok := inflater.(*daisyInflater)
 	assert.True(t, ok)
-	assert.Equal(t, "zones/us-west1-b/disks/disk-1234", realInflater.inflatedDiskURI)
-	assert.Equal(t, "projects/test/uri/image", realInflater.wf.Vars["source_image"].Value)
-	inflatedDisk := getDisk(realInflater.wf, 0)
-	assert.Contains(t, inflatedDisk.Licenses,
-		"projects/compute-image-tools/global/licenses/virtual-disk-import")
+	daisyutils.CheckWorkflow(realInflater.worker, func(wf *daisy.Workflow) {
+		assert.Equal(t, "zones/us-west1-b/disks/disk-1234", realInflater.inflatedDiskURI)
+		assert.Equal(t, "projects/test/uri/image", wf.Vars["source_image"].Value)
+		inflatedDisk := getDisk(wf, 0)
+		assert.Contains(t, inflatedDisk.Licenses,
+			"projects/compute-image-tools/global/licenses/virtual-disk-import")
+	})
+
 }
 
 func TestInflaterFacade_SuccessOnApiInflater(t *testing.T) {

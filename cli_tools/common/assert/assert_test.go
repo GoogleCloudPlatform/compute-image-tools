@@ -140,3 +140,81 @@ func TestDirectoryExists(t *testing.T) {
 		})
 	}
 }
+
+func TestNotEmpty(t *testing.T) {
+	tests := []struct {
+		name        string
+		obj         interface{}
+		expectPanic bool
+	}{
+		{
+			obj:  "s",
+			name: "pass when non-empty string",
+		},
+		{
+			obj:  struct{ s string }{s: "hi"},
+			name: "pass when non-default struct",
+		},
+		{
+			obj:  map[string]string{"hi": "there"},
+			name: "pass when non-empty map",
+		},
+		{
+			obj:  [1]string{"hi"},
+			name: "pass when non-empty array",
+		}, {
+			obj:  []string{"hi"},
+			name: "pass when non-empty slice",
+		},
+		{
+			obj:         nil,
+			name:        "panic when object is untypped nil",
+			expectPanic: true,
+		},
+		{
+			obj:         "",
+			name:        "pass when empty string",
+			expectPanic: true,
+		},
+		{
+			obj:         map[string]string{},
+			name:        "panic when object is empty map",
+			expectPanic: true,
+		},
+		{
+			obj:         map[string]map[string]string{},
+			name:        "panic when object is empty nested map",
+			expectPanic: true,
+		},
+		{
+			obj:         [0]string{},
+			name:        "panic when object is empty array",
+			expectPanic: true,
+		}, {
+			obj:         []string{},
+			name:        "panic when object is empty slice",
+			expectPanic: true,
+		},
+		{
+			obj:         [][]string{},
+			name:        "panic when object is empty nested slice",
+			expectPanic: true,
+		},
+		{
+			obj:         struct{ s string }{},
+			name:        "panic when default struct",
+			expectPanic: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.expectPanic {
+				assert.PanicsWithValue(t, "Expected non-empty value", func() {
+					NotEmpty(tt.obj)
+				})
+			} else {
+				NotEmpty(tt.obj)
+			}
+		})
+	}
+}
