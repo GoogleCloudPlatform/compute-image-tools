@@ -170,6 +170,11 @@ func (args *OVFExportArgs) EnvironmentSettings() daisyutils.EnvironmentSettings 
 		Labels:                map[string]string{},
 		ExecutionID:           args.BuildID,
 		StorageLocation:       "",
+		Tool: daisyutils.Tool{
+			HumanReadableName: "ovf export",
+			ResourceLabelName: "ovf-export",
+		},
+		DaisyLogLinePrefix: "ovf-export",
 	}
 }
 
