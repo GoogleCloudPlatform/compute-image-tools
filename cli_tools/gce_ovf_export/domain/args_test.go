@@ -51,6 +51,8 @@ func TestDaisyAttrs(t *testing.T) {
 			Subnet:                params.Subnet,
 			ComputeServiceAccount: params.ComputeServiceAccount,
 			Labels:                map[string]string{},
+			Tool:                  daisyutils.Tool{HumanReadableName: "ovf export", ResourceLabelName: "ovf-export"},
+			DaisyLogLinePrefix:    "ovf-export",
 		},
 		params.EnvironmentSettings())
 }
