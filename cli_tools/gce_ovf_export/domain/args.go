@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/assert"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 )
@@ -151,7 +152,8 @@ func toWorkingDir(currentDir, workflowDir string) string {
 
 // EnvironmentSettings creates an EnvironmentSettings instance from the fields
 // in this struct.
-func (args *OVFExportArgs) EnvironmentSettings() daisyutils.EnvironmentSettings {
+func (args *OVFExportArgs) EnvironmentSettings(daisyLogLinePrefix string) daisyutils.EnvironmentSettings {
+	assert.NotEmpty(daisyLogLinePrefix)
 	return daisyutils.EnvironmentSettings{
 		Project:               args.Project,
 		Zone:                  args.Zone,
@@ -172,9 +174,9 @@ func (args *OVFExportArgs) EnvironmentSettings() daisyutils.EnvironmentSettings 
 		StorageLocation:       "",
 		Tool: daisyutils.Tool{
 			HumanReadableName: "ovf export",
-			ResourceLabelName: "ovf-export",
+			ResourceLabelName: "gce-ovf-export",
 		},
-		DaisyLogLinePrefix: "ovf-export",
+		DaisyLogLinePrefix: daisyLogLinePrefix,
 	}
 }
 

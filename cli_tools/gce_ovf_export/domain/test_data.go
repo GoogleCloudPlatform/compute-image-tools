@@ -40,6 +40,7 @@ func GetAllInstanceExportArgs() *OVFExportArgs {
 	return &OVFExportArgs{
 		InstanceName:         "instance1",
 		ClientID:             "aClient",
+		BuildID:              "aBuildID",
 		DestinationURI:       "gs://ovfbucket/OVFpath/some-instance-ovf.ovf",
 		DestinationDirectory: "gs://ovfbucket/OVFpath/",
 		OvfName:              "ovfinst",

@@ -15,7 +15,6 @@
 package ovfexporter
 
 import (
-	"context"
 	"fmt"
 	"path"
 	"strconv"
@@ -54,21 +53,16 @@ func NewInstanceDisksExporter(computeClient daisycompute.Client, storageClient d
 func (ide *instanceDisksExporterImpl) Export(instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) ([]*ovfexportdomain.ExportedDisk, error) {
 	var err error
 	if ide.wf, err = generateWorkflowWithSteps("ovf-export-disk-export", params.Timeout.String(),
-		func(w *daisy.Workflow) error { return ide.populateExportDisksSteps(w, instance, params) }, params); err != nil {
+		func(w *daisy.Workflow) error { return ide.populateExportDisksSteps(w, instance, params) }); err != nil {
 		return nil, err
 	}
 	if ide.wfPreRunCallback != nil {
 		ide.wfPreRunCallback(ide.wf)
 	}
-	daisyutils.UpdateAllInstanceNoExternalIP(ide.wf, params.NoExternalIP)
-	labelResources(ide.wf, params)
-	err = ide.wf.Run(context.Background())
-	if ide.wf.Logger != nil {
-		for _, trace := range ide.wf.Logger.ReadSerialPortLogs() {
-			ide.logger.Trace(trace)
-		}
+	if err = daisyutils.NewDaisyWorker(ide.wf, params.EnvironmentSettings(ide.wf.Name), ide.logger).Run(map[string]string{}); err != nil {
+		return nil, err
 	}
-	if err := ide.populateExportedDisksMetadata(params); err != nil {
+	if err = ide.populateExportedDisksMetadata(params); err != nil {
 		return nil, err
 	}
 	return ide.exportedDisks, err

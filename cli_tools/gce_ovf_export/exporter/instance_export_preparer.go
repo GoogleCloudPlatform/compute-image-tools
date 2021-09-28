@@ -15,14 +15,13 @@
 package ovfexporter
 
 import (
-	"context"
 	"fmt"
 
 	"google.golang.org/api/compute/v1"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
+	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -41,21 +40,14 @@ func NewInstanceExportPreparer(logger logging.Logger) ovfexportdomain.InstanceEx
 func (iep *instanceExportPreparerImpl) Prepare(instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) error {
 	iep.instance = instance
 	var err error
-	iep.wf, err = generateWorkflowWithSteps("ovf-export-prepare", "30m",
-		func(w *daisy.Workflow) error { return iep.populatePrepareSteps(w, instance, params) }, params)
+	iep.wf, err = generateWorkflowWithSteps("ovf-export-prepare", "30m", func(w *daisy.Workflow) error { return iep.populatePrepareSteps(w, instance, params) })
 	if err != nil {
 		return err
 	}
 	if iep.wfPreRunCallback != nil {
 		iep.wfPreRunCallback(iep.wf)
 	}
-	err = daisyutils.RunWorkflowWithCancelSignal(context.Background(), iep.wf)
-	if iep.wf.Logger != nil {
-		for _, trace := range iep.wf.Logger.ReadSerialPortLogs() {
-			iep.logger.Trace(trace)
-		}
-	}
-	return err
+	return daisyutils.NewDaisyWorker(iep.wf, params.EnvironmentSettings(iep.wf.Name), iep.logger).Run(map[string]string{})
 }
 
 func (iep *instanceExportPreparerImpl) populatePrepareSteps(w *daisy.Workflow, instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) error {
