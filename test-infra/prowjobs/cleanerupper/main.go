@@ -383,7 +383,7 @@ func cleanOSPolicyAssignments(ctx context.Context, computeClient daisyCompute.Cl
 				fmt.Printf("Error calling ListOSPolicyAssignments in project %q: %v\n", project, err)
 				return
 			}
-			if !shouldDelete(ospa.GetName(), nil, ospa.GetDescription(), ospa.GetRevisionCreateTime().GetSeconds()) {
+			if !shouldDelete(ospa.GetName(), nil, "", ospa.GetRevisionCreateTime().GetSeconds()) {
 				continue
 			}
 			if *dryRun {
