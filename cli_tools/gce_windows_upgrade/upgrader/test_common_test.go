@@ -76,6 +76,9 @@ func newTestUpgrader() *TestUpgrader {
 			CloudLogsDisabled:    false,
 			StdoutLogsDisabled:   false,
 		},
+		derivedVars: &derivedVars{
+			executionID: "execid",
+		},
 		ctx: context.Background(),
 	}
 	return &TestUpgrader{upgrader: u}

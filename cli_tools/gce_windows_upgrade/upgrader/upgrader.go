@@ -18,12 +18,17 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+
+	"google.golang.org/api/option"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"google.golang.org/api/option"
 )
 
 // Parameter key shared with external packages
@@ -66,6 +71,7 @@ type derivedVars struct {
 	installMediaDiskName   string
 
 	originalWindowsStartupScriptURL *string
+	executionID                     string
 }
 
 // InputParams contains input params for the upgrade.
@@ -103,11 +109,22 @@ type upgrader struct {
 	rebootFn                  func() (*daisy.Workflow, error)
 	cleanupFn                 func() (*daisy.Workflow, error)
 	rollbackFn                func() (*daisy.Workflow, error)
+
+	logger logging.Logger
 }
 
 // Run runs upgrader.
 func Run(p *InputParams) (service.Loggable, error) {
-	u := upgrader{InputParams: p}
+	u := upgrader{
+		InputParams: p,
+		logger:      logging.NewToolLogger(logPrefix),
+		derivedVars: &derivedVars{
+			executionID: os.Getenv(daisyutils.BuildIDOSEnvVarName),
+		},
+	}
+	if u.executionID == "" {
+		u.executionID = path.RandString(5)
+	}
 	return u.run()
 }
 

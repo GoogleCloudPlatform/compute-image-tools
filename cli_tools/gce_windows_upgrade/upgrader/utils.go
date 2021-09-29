@@ -158,17 +158,3 @@ func needReboot(err error) bool {
 	// restarting is required
 	return strings.Contains(err.Error(), "Windows needs to be restarted")
 }
-
-func setWorkflowAttributes(w *daisy.Workflow, u *upgrader) {
-	daisyutils.EnvironmentSettings{
-		Project:           u.instanceProject,
-		Zone:              u.instanceZone,
-		GCSPath:           u.ScratchBucketGcsPath,
-		OAuth:             u.Oauth,
-		Timeout:           u.Timeout,
-		ComputeEndpoint:   u.Ce,
-		DisableGCSLogs:    u.GcsLogsDisabled,
-		DisableCloudLogs:  u.CloudLogsDisabled,
-		DisableStdoutLogs: u.StdoutLogsDisabled,
-	}.ApplyToWorkflow(w)
-}

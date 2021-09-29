@@ -507,10 +507,24 @@ func (u *upgrader) runWorkflowWithSteps(workflowName string, timeout string, pop
 		return w, err
 	}
 
-	w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
-	setWorkflowAttributes(w, u)
-	err = daisyutils.RunWorkflowWithCancelSignal(u.ctx, w)
-	return w, err
+	env := daisyutils.EnvironmentSettings{
+		Project:           u.instanceProject,
+		Zone:              u.instanceZone,
+		GCSPath:           u.ScratchBucketGcsPath,
+		OAuth:             u.Oauth,
+		Timeout:           u.Timeout,
+		ComputeEndpoint:   u.Ce,
+		DisableGCSLogs:    u.GcsLogsDisabled,
+		DisableCloudLogs:  u.CloudLogsDisabled,
+		DisableStdoutLogs: u.StdoutLogsDisabled,
+		ExecutionID:       u.executionID,
+		Tool: daisyutils.Tool{
+			HumanReadableName: "windows upgrade",
+			ResourceLabelName: "windows-upgrade",
+		},
+	}
+
+	return w, daisyutils.NewDaisyWorker(w, env, u.logger).Run(map[string]string{})
 }
 
 func (u *upgrader) generateWorkflowWithSteps(workflowName string, timeout string, populateStepsFunc func(*upgrader, *daisy.Workflow) error) (*daisy.Workflow, error) {
