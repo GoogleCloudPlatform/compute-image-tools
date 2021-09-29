@@ -247,6 +247,8 @@ func (inflater *apiInflater) getCalculateChecksumWorkflow(diskURI string) *daisy
 							NetworkInterfaces: []*compute.NetworkInterface{
 								{
 									AccessConfigs: []*compute.AccessConfig{},
+									Network: inflater.request.Network,
+									Subnetwork: inflater.request.Subnet,
 								},
 							},
 							ServiceAccounts: []*compute.ServiceAccount{
