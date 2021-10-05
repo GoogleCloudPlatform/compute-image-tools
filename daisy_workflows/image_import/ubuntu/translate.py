@@ -27,6 +27,7 @@ import re
 
 import guestfs
 import utils
+from utils.apt import Apt
 import utils.diskutils as diskutils
 from utils.guestfsprocess import run
 
@@ -89,7 +90,6 @@ system_info:
          primary: http://ports.ubuntu.com/ubuntu-ports
          security: http://ports.ubuntu.com/ubuntu-ports
 '''
-
 
 # Network configs
 #
@@ -203,6 +203,44 @@ def install_osconfig_agent(g: guestfs.GuestFS):
       'https://cloud.google.com/compute/docs/manage-os#agent-install .')
 
 
+def setup_cloud_init(g: guestfs.GuestFS):
+  """ Install cloud-init if not present, and configure to the cloud provider.
+
+  Args:
+    g: A mounted GuestFS instance.
+  """
+  a = Apt(run)
+  curr_version = a.get_package_version(g, 'cloud-init')
+  available_versions = a.list_available_versions(g, 'cloud-init')
+  # Don't install 21.3-1, which conflicts which the guest agent.
+  version_to_install = Apt.determine_version_to_install(
+    curr_version, available_versions, {'21.3-1'})
+  pkg_to_install = ''
+  if version_to_install:
+    pkg_to_install = 'cloud-init=' + version_to_install
+  elif curr_version == '':
+    pkg_to_install = 'cloud-init'
+  # If this block doesn't execute, it means that cloud-init was found
+  # on the system, but there wasn't an upgrade candidate. Therefore
+  # leave the version that's currently installed.
+  if pkg_to_install:
+    logging.info(pkg_to_install)
+    utils.install_apt_packages(g, pkg_to_install)
+  # Ubuntu 14.04's version of cloud-init doesn't have `clean`.
+  if g.gcp_image_major > '14':
+    run(g, 'cloud-init clean')
+  # Remove cloud-init configs that may conflict with GCE's.
+  #
+  # - subiquity disables automatic network configuration
+  #     https://bugs.launchpad.net/ubuntu/+source/cloud-init/+bug/1871975
+  for cfg in [
+    'azure', 'curtin', 'waagent', 'walinuxagent', 'aws', 'amazon',
+    'subiquity'
+  ]:
+    run(g, 'rm -f /etc/cloud/cloud.cfg.d/*%s*' % cfg)
+  g.write('/etc/cloud/cloud.cfg.d/91-gce-system.cfg', cloud_init_repos)
+
+
 def DistroSpecific(g):
   ubuntu_release = utils.GetMetadataAttribute('ubuntu_release')
   install_gce = utils.GetMetadataAttribute('install_gce_packages')
@@ -226,25 +264,8 @@ def DistroSpecific(g):
 
   if install_gce == 'true':
     utils.update_apt(g)
-    logging.info('Installing cloud-init.')
-    utils.install_apt_packages(g, 'cloud-init')
-    # Ubuntu 14.04's version of cloud-init doesn't have `clean`.
-    if g.gcp_image_major > '14':
-      run(g, 'cloud-init clean')
-
-    # Remove cloud-init configs that may conflict with GCE's.
-    #
-    # - subiquity disables automatic network configuration
-    #     https://bugs.launchpad.net/ubuntu/+source/cloud-init/+bug/1871975
-    for cfg in [
-        'azure', 'curtin', 'waagent', 'walinuxagent', 'aws', 'amazon',
-        'subiquity'
-    ]:
-      run(g, 'rm -f /etc/cloud/cloud.cfg.d/*%s*' % cfg)
-
+    setup_cloud_init(g)
     remove_azure_agents(g)
-
-    g.write('/etc/cloud/cloud.cfg.d/91-gce-system.cfg', cloud_init_repos)
 
     if g.gcp_image_major > '14':
       install_osconfig_agent(g)
