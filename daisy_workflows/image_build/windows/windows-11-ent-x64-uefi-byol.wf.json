@@ -1,5 +1,5 @@
 {
-  "Name": "windows-11-22000-x64-uefi-byol",
+  "Name": "windows-11-ent-x64-uefi-byol",
   "Vars": {
     "install_disk": "install-disk",
     "media": {
@@ -22,7 +22,7 @@
       "Value": "Microsoft, Windows 11 22000, x64 built on ${TIMESTAMP}, supports Shielded VM features"
     },
     "family": {
-      "Value": "windows-11-22000-x64",
+      "Value": "windows-11-ent-x64",
       "Description": "Desired image family of the output image."
     },
     "google_cloud_repo": {
@@ -30,7 +30,7 @@
       "Description": "Google Cloud repo to retrieve packages from during the build."
     },
     "name": {
-      "Value": "windows-11-22000-x64-byol-v${TIMESTAMP}",
+      "Value": "windows-11-ent-x64-byol-v${TIMESTAMP}",
       "Description": "The name of the output image."
     },
     "project": {
