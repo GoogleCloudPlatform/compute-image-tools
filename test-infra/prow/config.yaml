@@ -47,6 +47,14 @@ periodics:
       args:
       - "-dry_run=false"
       - "-duration=24h"
+      - "-instances=true"
+      - "-disks=true"
+      - "-images=true"
+      - "-machine_images=true"
+      - "-networks=true"
+      - "-snapshots=true"
+      - "-guest_policies=true"
+      - "-ospolicy_assignments=true"
       - "-projects=compute-image-test-pool-001,compute-image-test-pool-002,compute-image-test-pool-003,compute-image-test-pool-004,compute-image-test-pool-005,compute-image-osconfig-agent,compute-image-osconfig-agent-2,compute-image-test-custom-vpc,compute-image-test-pool-001-1,compute-image-test-pool-001-2"
       volumeMounts:
       - name: compute-image-tools-test-service-account
