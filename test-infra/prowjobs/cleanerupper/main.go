@@ -45,14 +45,14 @@ var (
 	oauthPath = flag.String("oauth", "", "oauth file to use to authenticate")
 	duration  = flag.Duration("duration", 24*time.Hour, "cleanup all resources with a lifetime greater than this")
 
-	instances           = flag.Bool("instances", true, "clean instances")
-	disks               = flag.Bool("disks", true, "clean disks")
-	images              = flag.Bool("images", true, "clean images")
-	machineImages       = flag.Bool("machine_images", true, "clean machine images")
-	networks            = flag.Bool("networks", true, "clean networks")
-	snapshots           = flag.Bool("snapshots", true, "clean snapshots")
-	guestPolicies       = flag.Bool("guest_policies", true, "clean guest policies")
-	osPolicyAssignments = flag.Bool("ospolicy_assignments", true, "clean ospolicy assignments")
+	instances           = flag.Bool("instances", false, "clean instances")
+	disks               = flag.Bool("disks", false, "clean disks")
+	images              = flag.Bool("images", false, "clean images")
+	machineImages       = flag.Bool("machine_images", false, "clean machine images")
+	networks            = flag.Bool("networks", false, "clean networks")
+	snapshots           = flag.Bool("snapshots", false, "clean snapshots")
+	guestPolicies       = flag.Bool("guest_policies", false, "clean guest policies")
+	osPolicyAssignments = flag.Bool("ospolicy_assignments", false, "clean ospolicy assignments")
 
 	now = time.Now()
 )
@@ -371,8 +371,13 @@ func cleanOSPolicyAssignments(ctx context.Context, computeClient daisyCompute.Cl
 		return
 	}
 	for _, zone := range zones {
+		if zone.Name == "us-east2-a" {
+			continue
+		}
+		fmt.Println("Cleaning zone:", zone.Name)
 		now := time.Now()
 		itr := client.ListOSPolicyAssignments(ctx, &osconfigv1alphapb.ListOSPolicyAssignmentsRequest{Parent: fmt.Sprintf("projects/%s/locations/%s", project, zone.Name)})
+		var count int
 		for {
 			ospa, err := itr.Next()
 			if err != nil {
@@ -381,7 +386,7 @@ func cleanOSPolicyAssignments(ctx context.Context, computeClient daisyCompute.Cl
 					break
 				}
 				fmt.Printf("Error calling ListOSPolicyAssignments in project %q: %v\n", project, err)
-				return
+				break
 			}
 			if !shouldDelete(ospa.GetName(), nil, "", ospa.GetRevisionCreateTime().GetSeconds()) {
 				continue
@@ -389,6 +394,7 @@ func cleanOSPolicyAssignments(ctx context.Context, computeClient daisyCompute.Cl
 			if *dryRun {
 				continue
 			}
+			count++
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -400,6 +406,7 @@ func cleanOSPolicyAssignments(ctx context.Context, computeClient daisyCompute.Cl
 				op.Wait(ctx)
 			}()
 		}
+		fmt.Printf("Cleaning %d OSPolicyAssignments\n", count)
 		wg.Wait()
 	}
 }
