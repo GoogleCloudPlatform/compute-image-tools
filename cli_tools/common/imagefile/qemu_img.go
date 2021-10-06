@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/files"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // FormatUnknown means that qemu-img could not determine the file's format.
@@ -39,6 +40,7 @@ type ImageInfo struct {
 	Format           string
 	ActualSizeBytes  int64
 	VirtualSizeBytes int64
+	Checksum         string
 }
 
 // InfoClient runs `qemu-img info` and returns the results.
@@ -53,35 +55,92 @@ func NewInfoClient() InfoClient {
 
 type defaultInfoClient struct{}
 
+type fileInfoJsonTemplate struct {
+Filename         string `json:"filename"`
+Format           string `json:"format"`
+ActualSizeBytes  int64  `json:"actual-size"`
+VirtualSizeBytes int64  `json:"virtual-size"`
+}
+
 func (client defaultInfoClient) GetInfo(ctx context.Context, filename string) (info ImageInfo, err error) {
 	if !files.Exists(filename) {
-		return info, fmt.Errorf("file %q not found", filename)
+		err = fmt.Errorf("file %q not found", filename)
+		return
 	}
+
+	// To reduce the runtime permissions used on the inflation worker, we pre-allocate
+	// disks sufficient to hold the disk file and the inflated disk. The scratch disk gets
+	// a padding factor to account for filesystem overhead. This info is required,
+	// so we have to terminate the import if it's failed to fetch file info.
+	jsonTemplate, err := client.getFileInfo(ctx, filename)
+	if err != nil {
+		err = daisy.Errf("Failed to inspect file %v", filename)
+		return
+	}
+
+	// To ensure disk.insert API produced expected disk content from a VMDK file, we need
+	// to calculate the checksum from qemu output for comparison. This check is required,
+	// so we have to terminate the import if it's failed to calculate the checksum.
+	checksum, err := client.getFileChecksum(ctx, filename, info.VirtualSizeBytes)
+	if err != nil {
+		err = daisy.Errf("Failed to calculate file '%v' checksum by qemu: %v", filename, err)
+		return
+	}
+
+	info.Format = lookupFileFormat(jsonTemplate.Format)
+	info.ActualSizeBytes = jsonTemplate.ActualSizeBytes
+	info.VirtualSizeBytes = jsonTemplate.VirtualSizeBytes
+	info.Checksum = checksum
+	return
+}
+
+func (client defaultInfoClient) getFileInfo(ctx context.Context, filename string) (*fileInfoJsonTemplate, error) {
 	cmd := exec.CommandContext(ctx, "qemu-img", "info", "--output=json", filename)
 	out, err := cmd.Output()
 	if err != nil {
 		var exitError *exec.ExitError
 		if errors.As(err, &exitError) {
-			return info, fmt.Errorf("inspection failure: %w, stderr: %s", err,
-				exitError.Stderr)
+			return nil, daisy.Errf("inspection failure: %w, stderr: %s", err,
+					exitError.Stderr)
 		}
-		return info, fmt.Errorf("inspection failure: %w", err)
+		return nil, daisy.Errf("inspection failure: %w", err)
 	}
-	jsonTemplate := struct {
-		Filename         string `json:"filename"`
-		Format           string `json:"format"`
-		ActualSizeBytes  int64  `json:"actual-size"`
-		VirtualSizeBytes int64  `json:"virtual-size"`
-	}{}
+	jsonTemplate := fileInfoJsonTemplate{}
 	if err = json.Unmarshal(out, &jsonTemplate); err != nil {
-		return info, fmt.Errorf("failed to inspect %q: %w", filename, err)
+		return nil, daisy.Errf("failed to inspect %q: %w", filename, err)
 	}
-	return ImageInfo{
-		Format:           lookupFileFormat(jsonTemplate.Format),
-		ActualSizeBytes:  jsonTemplate.ActualSizeBytes,
-		VirtualSizeBytes: jsonTemplate.VirtualSizeBytes,
-	}, nil
+	return &jsonTemplate, err
 }
+
+func (client defaultInfoClient) getFileChecksum(ctx context.Context, filename string, virtualSizeBytes int64) (string, error) {
+	// Check size = 200000*512 = 100MB
+	checkCount := int64(200000)
+	blockSize := int64(512)
+	blockCount := virtualSizeBytes / blockSize
+	skips := []int64{0, int64(2000000) - checkCount, int64(20000000) - checkCount, blockCount - checkCount}
+	checksum := ""
+
+	for _, skip := range skips {
+		cmd := exec.CommandContext(ctx, "qemu-img",
+			fmt.Sprintf("dd if=%v of=out1 bs=%v count=%v skip=%v", filename, blockSize, skip+checkCount, skip))
+		out, err := cmd.Output()
+		if err != nil {
+			var exitError *exec.ExitError
+			if errors.As(err, &exitError) {
+				return "", daisy.Errf("inspection for checksum failure: %w, stderr: %s", err,
+					exitError.Stderr)
+			}
+			return "nil", daisy.Errf("inspection for checksum failure: %w", err)
+		}
+
+		if checksum != "" {
+			checksum += "-"
+		}
+		checksum += string(out)
+	}
+	return checksum, nil
+}
+
 
 func lookupFileFormat(s string) string {
 	lower := strings.ToLower(s)

@@ -46,12 +46,12 @@ func NewImporter(request ImageImportRequest, computeClient compute.Client, stora
 		return nil, err
 	}
 
-	inflater, err := newInflater(request, computeClient, storageClient, imagefile.NewGCSInspector(), logger)
+	inflater, err := newInflater(request, computeClient, storageClient, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	inspector, err := disk.NewInspector(request.EnvironmentSettings(), logger)
+	inspector, err := disk.NewInspector(request.EnvironmentSettings(), lgger)
 	if err != nil {
 		return nil, err
 	}

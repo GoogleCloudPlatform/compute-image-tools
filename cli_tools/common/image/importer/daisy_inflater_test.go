@@ -50,7 +50,7 @@ func TestDaisyInflater_Inflate_ReadsDiskStatsFromWorker(t *testing.T) {
 	assert.Nil(t, e)
 	assert.Equal(t, persistentDisk{uri: "/disk/uri", sizeGb: 100, sourceGb: 200, sourceType: "vhd"}, pDisk)
 	shadowFields.inflationTime = 0
-	assert.Equal(t, shadowTestFields{checksum: "9abc", inflationType: "qemu"}, shadowFields)
+	assert.Equal(t, inflationInfo{checksum: "9abc", inflationType: "qemu"}, shadowFields)
 }
 
 func TestDaisyInflater_Inflate_IncludesDiskStatsOnError(t *testing.T) {
@@ -73,7 +73,7 @@ func TestDaisyInflater_Inflate_IncludesDiskStatsOnError(t *testing.T) {
 	assert.Equal(t, expectedError, actualError)
 	assert.Equal(t, persistentDisk{uri: "/disk/uri", sizeGb: 50, sourceGb: 12, sourceType: "qcow2"}, pDisk)
 	shadowFields.inflationTime = 0
-	assert.Equal(t, shadowTestFields{checksum: "9abc", inflationType: "qemu"}, shadowFields)
+	assert.Equal(t, inflationInfo{checksum: "9abc", inflationType: "qemu"}, shadowFields)
 }
 
 // gcloud expects log lines to start with the substring "[import". Daisy

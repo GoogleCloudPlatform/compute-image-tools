@@ -13,6 +13,7 @@
 package importer
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -26,7 +27,7 @@ import (
 // Inflater constructs a new persistentDisk, typically starting from a
 // frozen representation of a disk, such as a VMDK file or a GCP disk image.
 type Inflater interface {
-	Inflate() (persistentDisk, shadowTestFields, error)
+	Inflate() (persistentDisk, inflationInfo, error)
 	Cancel(reason string) bool
 }
 
@@ -37,17 +38,24 @@ type persistentDisk struct {
 	sourceType string
 }
 
-type shadowTestFields struct {
-	// Below fields are for shadow API inflation metrics
+type inflationInfo struct {
+	// Below fields are for inflation metrics
 	checksum      string
 	inflationTime time.Duration
 	inflationType string
 }
 
 func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient domain.StorageClientInterface,
-	inspector imagefile.Inspector, logger logging.Logger) (Inflater, error) {
+	logger logging.Logger) (Inflater, error) {
 
-	di, err := newDaisyInflater(request, inspector, logger)
+	deadline, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(inspectionTimeout))
+	defer cancelFunc()
+	fileMetadata, err := imagefile.NewGCSInspector().Inspect(deadline, request.Source.Path())
+	if err != nil {
+		return nil, err
+	}
+
+	di, err := newDaisyInflater(request, fileMetadata, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -64,6 +72,7 @@ func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, 
 			mainInflater:   di,
 			shadowInflater: createAPIInflater(request, computeClient, storageClient, logger, true),
 			logger:         logger,
+			qemuChecksum:   fileMetadata.Checksum,
 		}, nil
 	}
 
@@ -71,6 +80,7 @@ func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, 
 		apiInflater:   createAPIInflater(request, computeClient, storageClient, logger, false),
 		daisyInflater: di,
 		logger:        logger,
+		qemuChecksum:  fileMetadata.Checksum,
 	}, nil
 }
 
@@ -84,46 +94,54 @@ type inflaterFacade struct {
 	apiInflater   Inflater
 	daisyInflater Inflater
 	logger        logging.Logger
+	qemuChecksum  string
 }
 
-func (facade *inflaterFacade) Inflate() (persistentDisk, shadowTestFields, error) {
+func (facade *inflaterFacade) Inflate() (persistentDisk, inflationInfo, error) {
 	var pd persistentDisk
-	var tf shadowTestFields
+	var ii inflationInfo
 	var err error
 
-	//  Try with API inflater.
-	pd, tf, err = facade.apiInflater.Inflate()
-	if err == nil {
+	//  Try with API inflater. Verify checksum after inflation.
+	pd, ii, err = facade.apiInflater.Inflate()
+	if err == nil && ii.checksum == facade.qemuChecksum {
 		facade.logger.Metric(&pb.OutputInfo{
 			InflationType:   "api_success",
-			InflationTimeMs: []int64{tf.inflationTime.Milliseconds()},
+			InflationTimeMs: []int64{ii.inflationTime.Milliseconds()},
 		})
-		return pd, tf, err
+		return pd, ii, err
 	}
 
-	if !isCausedByUnsupportedFormat(err) {
+	if err != nil && !isCausedByUnsupportedFormat(err) {
 		facade.logger.Metric(&pb.OutputInfo{
 			InflationType:   "api_failed",
-			InflationTimeMs: []int64{tf.inflationTime.Milliseconds()},
+			InflationTimeMs: []int64{ii.inflationTime.Milliseconds()},
 		})
-		return pd, tf, err
+		return pd, ii, err
 	}
 
-	// Retry with daisy inflater.
-	pd, tf, err = facade.daisyInflater.Inflate()
+	// Retry inflation with daisy only for one of the below reasons:
+	// 1. Checksum mismatch.
+	// 2. The API doesn't support the format of the image file.
+	pd, ii, err = facade.retryWithDaisyInflater()
+	return pd, ii, err
+}
+
+func (facade *inflaterFacade) retryWithDaisyInflater() (persistentDisk, inflationInfo, error) {
+	pd, ii, err = facade.daisyInflater.Inflate()
 	if err == nil {
 		facade.logger.Metric(&pb.OutputInfo{
 			InflationType:   "qemu_success",
-			InflationTimeMs: []int64{tf.inflationTime.Milliseconds()},
+			InflationTimeMs: []int64{ii.inflationTime.Milliseconds()},
 		})
-		return pd, tf, err
+		return pd, ii, err
 	}
 
 	facade.logger.Metric(&pb.OutputInfo{
 		InflationType:   "qemu_failed",
-		InflationTimeMs: []int64{tf.inflationTime.Milliseconds()},
+		InflationTimeMs: []int64{ii.inflationTime.Milliseconds()},
 	})
-	return pd, tf, err
+	return pd, ii, err
 }
 
 func (facade *inflaterFacade) Cancel(reason string) bool {
@@ -136,6 +154,7 @@ type shadowTestInflaterFacade struct {
 	mainInflater   Inflater
 	shadowInflater Inflater
 	logger         logging.Logger
+	qemuChecksum   string
 }
 
 // signals to control the verification towards shadow inflater
@@ -146,12 +165,12 @@ const (
 	sigShadowInflaterErr  = "shadow err"
 )
 
-func (facade *shadowTestInflaterFacade) Inflate() (persistentDisk, shadowTestFields, error) {
+func (facade *shadowTestInflaterFacade) Inflate() (persistentDisk, inflationInfo, error) {
 	inflaterChan := make(chan string)
 
 	// Launch main inflater.
 	var pd persistentDisk
-	var ii shadowTestFields
+	var ii inflationInfo
 	var err error
 	go func() {
 		pd, ii, err = facade.mainInflater.Inflate()
@@ -164,7 +183,7 @@ func (facade *shadowTestInflaterFacade) Inflate() (persistentDisk, shadowTestFie
 
 	// Launch shadow inflater.
 	var shadowPd persistentDisk
-	var shadowIi shadowTestFields
+	var shadowIi inflationInfo
 	var shadowErr error
 	go func() {
 		shadowPd, shadowIi, shadowErr = facade.shadowInflater.Inflate()
@@ -227,18 +246,19 @@ func (facade *shadowTestInflaterFacade) Cancel(reason string) bool {
 	return facade.mainInflater.Cancel(reason)
 }
 
-func (facade *shadowTestInflaterFacade) compareWithShadowInflater(mainPd, shadowPd *persistentDisk, mainIi, shadowIi *shadowTestFields) string {
-	matchFormat := "sizeGb-%v,sourceGb-%v,content-%v"
+func (facade *shadowTestInflaterFacade) compareWithShadowInflater(mainPd, shadowPd *persistentDisk, mainIi, shadowIi *inflationInfo) string {
+	matchFormat := "sizeGb-%v,sourceGb-%v,content-%v,qemuchecksum-%v"
 	sizeGbMatch := shadowPd.sizeGb == mainPd.sizeGb
 	sourceGbMatch := shadowPd.sourceGb == mainPd.sourceGb
 	contentMatch := shadowIi.checksum == mainIi.checksum
-	match := sizeGbMatch && sourceGbMatch && contentMatch
+	qemuChecksumMatch := facade.qemuChecksum == mainIi.checksum
+	match := sizeGbMatch && sourceGbMatch && contentMatch && qemuChecksumMatch
 
 	var result string
 	if match {
 		result = "true"
 	} else {
-		result = fmt.Sprintf(matchFormat, sizeGbMatch, sourceGbMatch, contentMatch)
+		result = fmt.Sprintf(matchFormat, sizeGbMatch, sourceGbMatch, contentMatch, qemuChecksumMatch)
 	}
 	return result
 }

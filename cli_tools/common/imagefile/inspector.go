@@ -24,6 +24,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/gcsfuse"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/files"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	"github.com/cenkalti/backoff"
 
 	"github.com/cenkalti/backoff/v4"
 )
@@ -40,6 +41,8 @@ type Metadata struct {
 
 	// FileFormat is the format used for encoding the VM disk.
 	FileFormat string
+
+	Checksum string
 }
 
 // Inspector returns metadata about image files.
@@ -95,6 +98,7 @@ func (inspector gcsInspector) inspectOnce(ctx context.Context, gcsURI string) (m
 		PhysicalSizeGB: bytesToGB(imageInfo.ActualSizeBytes),
 		VirtualSizeGB:  bytesToGB(imageInfo.VirtualSizeBytes),
 		FileFormat:     imageInfo.Format,
+		Checksum:       imageInfo.Checksum,
 	}, nil
 }
 

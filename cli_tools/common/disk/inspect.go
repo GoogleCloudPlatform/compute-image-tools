@@ -88,12 +88,13 @@ func (i *bootInspector) Inspect(reference string) (*pb.InspectionResults, error)
 	vars := map[string]string{
 		"pd_uri": reference,
 	}
-	encodedProto, err := i.worker.RunAndReadSerialValue("inspect_pb", vars)
+	valuesMap, err := i.worker.RunAndReadSerialValues(vars, "inspect_pb", "disk-checksum")
 	if err != nil {
 		return i.assembleErrors(reference, results, pb.InspectionResults_RUNNING_WORKER, err, startTime)
 	}
 
 	// Decode the base64-encoded proto.
+	encodedProto := valuesMap["inspect_pb"]
 	bytes, err := base64.StdEncoding.DecodeString(encodedProto)
 	if err == nil {
 		err = proto.Unmarshal(bytes, results)

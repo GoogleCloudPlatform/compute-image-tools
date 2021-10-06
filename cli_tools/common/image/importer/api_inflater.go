@@ -71,7 +71,7 @@ func createAPIInflater(request ImageImportRequest, computeClient daisyCompute.Cl
 	return &inflater
 }
 
-func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error) {
+func (inflater *apiInflater) Inflate() (persistentDisk, inflationInfo, error) {
 	if inflater.isShadowInflater {
 		return inflater.inflateForShadowTest()
 	}
@@ -82,34 +82,7 @@ func (inflater *apiInflater) Inflate() (persistentDisk, shadowTestFields, error)
 
 	cd, err := inflater.createDisk(diskName)
 	if err != nil {
-		return persistentDisk{}, shadowTestFields{}, daisy.Errf("Failed to create disk by api inflater: %v", err)
-	}
-
-	return inflater.getDiskAttributes(ctx, diskName, cd, startTime)
-}
-
-func (inflater *apiInflater) inflateForShadowTest() (persistentDisk, shadowTestFields, error) {
-	inflater.wg.Add(1)
-	defer inflater.wg.Done()
-
-	ctx := context.Background()
-	startTime := time.Now()
-	diskName := inflater.getShadowDiskName()
-
-	cd, err := inflater.createDisk(diskName)
-	if err != nil {
-		return persistentDisk{}, shadowTestFields{}, daisy.Errf("Failed to create shadow disk: %v", err)
-	}
-
-	// Cleanup the shadow disk ignoring error
-	defer inflater.computeClient.DeleteDisk(inflater.request.Project, inflater.request.Zone, cd.Name)
-
-	// If received a cancel signal from cancel(), then return early. Otherwise, it will waste
-	// 2 min+ on calculateChecksum().
-	select {
-	case <-inflater.cancelChan:
-		return persistentDisk{}, shadowTestFields{}, nil
-	default:
+		return persistentDisk{}, inflationInfo{}, daisy.Errf("Failed to create disk by api inflater: %v", err)
 	}
 
 	pd, ii, err := inflater.getDiskAttributes(ctx, diskName, cd, startTime)
@@ -119,9 +92,47 @@ func (inflater *apiInflater) inflateForShadowTest() (persistentDisk, shadowTestF
 
 	// Calculate checksum by daisy workflow
 	inflater.logger.Debug("Started checksum calculation.")
-	ii.checksum, err = inflater.calculateChecksum(pd.uri)
+	ii.checksum, err = inflater.calculateChecksum(pd.uri, false)
 	if err != nil {
 		err = daisy.Errf("Failed to calculate checksum: %v", err)
+	}
+	return pd, ii, err
+}
+
+func (inflater *apiInflater) inflateForShadowTest() (persistentDisk, inflationInfo, error) {
+	inflater.wg.Add(1)
+	defer inflater.wg.Done()
+
+	ctx := context.Background()
+	startTime := time.Now()
+	diskName := inflater.getShadowDiskName()
+
+	cd, err := inflater.createDisk(diskName)
+	if err != nil {
+		return persistentDisk{}, inflationInfo{}, daisy.Errf("Failed to create shadow disk: %v", err)
+	}
+
+	// Cleanup the shadow disk ignoring error
+	defer inflater.computeClient.DeleteDisk(inflater.request.Project, inflater.request.Zone, cd.Name)
+
+	// If received a cancel signal from cancel(), then return early. Otherwise, it will waste
+	// 2 min+ on calculateChecksum().
+	select {
+	case <-inflater.cancelChan:
+		return persistentDisk{}, inflationInfo{}, nil
+	default:
+	}
+
+	pd, ii, err := inflater.getDiskAttributes(ctx, diskName, cd, startTime)
+	if err != nil {
+		return pd, ii, err
+	}
+
+	// Calculate checksum by daisy workflow
+	inflater.logger.Debug("Started shadow checksum calculation.")
+	ii.checksum, err = inflater.calculateChecksum(pd.uri, true)
+	if err != nil {
+		err = daisy.Errf("Failed to calculate shadow checksum: %v", err)
 	}
 	return pd, ii, err
 }
@@ -136,16 +147,16 @@ func (inflater *apiInflater) createDisk(diskName string) (compute.Disk, error) {
 	return cd, err
 }
 
-func (inflater *apiInflater) getDiskAttributes(ctx context.Context, diskName string, cd compute.Disk, startTime time.Time) (persistentDisk, shadowTestFields, error) {
+func (inflater *apiInflater) getDiskAttributes(ctx context.Context, diskName string, cd compute.Disk, startTime time.Time) (persistentDisk, inflationInfo, error) {
 	// Prepare return value
 	bkt, objPath, err := storage.GetGCSObjectPathElements(inflater.request.Source.Path())
 	if err != nil {
-		return persistentDisk{}, shadowTestFields{}, err
+		return persistentDisk{}, inflationInfo{}, err
 	}
 	sourceFile := inflater.storageClient.GetObject(bkt, objPath).GetObjectHandle()
 	attrs, err := sourceFile.Attrs(ctx)
 	if err != nil {
-		return persistentDisk{}, shadowTestFields{}, daisy.Errf("Failed to get source file attributes: %v", err)
+		return persistentDisk{}, inflationInfo{}, daisy.Errf("Failed to get source file attributes: %v", err)
 	}
 	sourceFileSizeGb := (attrs.Size-1)/1073741824 + 1
 
@@ -156,7 +167,7 @@ func (inflater *apiInflater) getDiskAttributes(ctx context.Context, diskName str
 		sourceGb:   sourceFileSizeGb,
 		sourceType: "vmdk", // only vmdk is supported right now
 	}
-	ii := shadowTestFields{
+	ii := inflationInfo{
 		inflationType: "api",
 		inflationTime: time.Since(startTime),
 	}
@@ -197,21 +208,26 @@ func (inflater *apiInflater) Cancel(reason string) bool {
 }
 
 // run a workflow to calculate checksum
-func (inflater *apiInflater) calculateChecksum(diskURI string) (string, error) {
+func (inflater *apiInflater) calculateChecksum(diskURI string, isShadow bool) (string, error) {
+	daisyPrefix := "api"
+	if isShadow {
+		daisyPrefix = "shadow"
+	}
+
 	env := inflater.request.EnvironmentSettings()
 	if env.DaisyLogLinePrefix != "" {
 		env.DaisyLogLinePrefix += "-"
 	}
-	env.DaisyLogLinePrefix += "shadow-disk-checksum"
+	env.DaisyLogLinePrefix += fmt.Sprintf("%v-disk-checksum", daisyPrefix)
 	worker := daisyutils.NewDaisyWorker(func() (*daisy.Workflow, error) {
-		return inflater.getCalculateChecksumWorkflow(diskURI), nil
+		return inflater.getCalculateChecksumWorkflow(diskURI, daisyPrefix), nil
 	}, env, inflater.logger)
 	return worker.RunAndReadSerialValue("disk-checksum", map[string]string{})
 }
 
-func (inflater *apiInflater) getCalculateChecksumWorkflow(diskURI string) *daisy.Workflow {
+func (inflater *apiInflater) getCalculateChecksumWorkflow(diskURI string, daisyPrefix string) *daisy.Workflow {
 	w := daisy.New()
-	w.Name = "shadow-disk-checksum"
+	w.Name = daisyPrefix + "-disk-checksum"
 	checksumScript := checksumScriptConst
 	w.Steps = map[string]*daisy.Step{
 		"create-disks": {
