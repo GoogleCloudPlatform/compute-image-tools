@@ -128,7 +128,7 @@ func (facade *inflaterFacade) Inflate() (persistentDisk, inflationInfo, error) {
 }
 
 func (facade *inflaterFacade) retryWithDaisyInflater() (persistentDisk, inflationInfo, error) {
-	pd, ii, err = facade.daisyInflater.Inflate()
+	pd, ii, err := facade.daisyInflater.Inflate()
 	if err == nil {
 		facade.logger.Metric(&pb.OutputInfo{
 			InflationType:   "qemu_success",

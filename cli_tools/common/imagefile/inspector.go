@@ -25,8 +25,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/files"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/cenkalti/backoff"
-
-	"github.com/cenkalti/backoff/v4"
 )
 
 const bytesPerGB = int64(1024 * 1024 * 1024)

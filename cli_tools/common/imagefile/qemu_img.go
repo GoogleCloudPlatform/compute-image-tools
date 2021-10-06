@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -77,19 +78,21 @@ func (client defaultInfoClient) GetInfo(ctx context.Context, filename string) (i
 		err = daisy.Errf("Failed to inspect file %v", filename)
 		return
 	}
+	info.Format = lookupFileFormat(jsonTemplate.Format)
+	info.ActualSizeBytes = jsonTemplate.ActualSizeBytes
+	info.VirtualSizeBytes = jsonTemplate.VirtualSizeBytes
 
 	// To ensure disk.insert API produced expected disk content from a VMDK file, we need
 	// to calculate the checksum from qemu output for comparison. This check is required,
 	// so we have to terminate the import if it's failed to calculate the checksum.
 	checksum, err := client.getFileChecksum(ctx, filename, info.VirtualSizeBytes)
+	fmt.Println(">>>>>>checksum qemu:[", checksum, "] ", err)
 	if err != nil {
 		err = daisy.Errf("Failed to calculate file '%v' checksum by qemu: %v", filename, err)
 		return
 	}
+	os.Exit(1)
 
-	info.Format = lookupFileFormat(jsonTemplate.Format)
-	info.ActualSizeBytes = jsonTemplate.ActualSizeBytes
-	info.VirtualSizeBytes = jsonTemplate.VirtualSizeBytes
 	info.Checksum = checksum
 	return
 }
@@ -97,14 +100,11 @@ func (client defaultInfoClient) GetInfo(ctx context.Context, filename string) (i
 func (client defaultInfoClient) getFileInfo(ctx context.Context, filename string) (*fileInfoJsonTemplate, error) {
 	cmd := exec.CommandContext(ctx, "qemu-img", "info", "--output=json", filename)
 	out, err := cmd.Output()
+	err = constructCmdErr(string(out), err, "inspection failure")
 	if err != nil {
-		var exitError *exec.ExitError
-		if errors.As(err, &exitError) {
-			return nil, daisy.Errf("inspection failure: %w, stderr: %s", err,
-					exitError.Stderr)
-		}
-		return nil, daisy.Errf("inspection failure: %w", err)
+		return nil, err
 	}
+
 	jsonTemplate := fileInfoJsonTemplate{}
 	if err = json.Unmarshal(out, &jsonTemplate); err != nil {
 		return nil, daisy.Errf("failed to inspect %q: %w", filename, err)
@@ -112,25 +112,30 @@ func (client defaultInfoClient) getFileInfo(ctx context.Context, filename string
 	return &jsonTemplate, err
 }
 
-func (client defaultInfoClient) getFileChecksum(ctx context.Context, filename string, virtualSizeBytes int64) (string, error) {
+func (client defaultInfoClient) getFileChecksum(ctx context.Context, filename string, virtualSizeBytes int64) (checksum string, err error) {
 	// Check size = 200000*512 = 100MB
 	checkCount := int64(200000)
 	blockSize := int64(512)
 	blockCount := virtualSizeBytes / blockSize
 	skips := []int64{0, int64(2000000) - checkCount, int64(20000000) - checkCount, blockCount - checkCount}
-	checksum := ""
-
-	for _, skip := range skips {
-		cmd := exec.CommandContext(ctx, "qemu-img",
-			fmt.Sprintf("dd if=%v of=out1 bs=%v count=%v skip=%v", filename, blockSize, skip+checkCount, skip))
-		out, err := cmd.Output()
+	for i, skip := range skips {
+		// Write 100MB data to a file.
+		cmd := exec.CommandContext(ctx, "qemu-img", "dd", fmt.Sprintf("if=%v", filename),
+			fmt.Sprintf("of=out%v", i), fmt.Sprintf("bs=%v", blockSize),
+			fmt.Sprintf("count=%v", skip+checkCount), fmt.Sprintf("skip=%v", skip))
+		var out []byte
+		out, err = cmd.Output()
+		err = constructCmdErr(string(out), err, "inspection for checksum failure")
 		if err != nil {
-			var exitError *exec.ExitError
-			if errors.As(err, &exitError) {
-				return "", daisy.Errf("inspection for checksum failure: %w, stderr: %s", err,
-					exitError.Stderr)
-			}
-			return "nil", daisy.Errf("inspection for checksum failure: %w", err)
+			return
+		}
+
+		// Calculate checksum for the 100MB file.
+		cmd = exec.CommandContext(ctx, "md5sum", fmt.Sprintf("out%v", i))
+		out, err = cmd.Output()
+		err = constructCmdErr(string(out), err, "inspection for checksum calculation failure")
+		if err != nil {
+			return
 		}
 
 		if checksum != "" {
@@ -138,7 +143,19 @@ func (client defaultInfoClient) getFileChecksum(ctx context.Context, filename st
 		}
 		checksum += string(out)
 	}
-	return checksum, nil
+	return
+}
+
+func constructCmdErr(out string, err error, errorFormat string) error {
+	if err == nil {
+		return nil
+	}
+
+	var exitError *exec.ExitError
+	if errors.As(err, &exitError) {
+		return daisy.Errf("%v: '%w', stderr: '%s', out: '%s'", errorFormat, err, exitError.Stderr, out)
+	}
+	return daisy.Errf("%v: '%w', out: '%s'", errorFormat, err, out)
 }
 
 func lookupFileFormat(s string) string {
