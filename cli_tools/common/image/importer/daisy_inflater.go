@@ -34,7 +34,7 @@ const (
 	// When exceeded, we use default values for PDs, rather than more accurate
 	// values used by inspection. When using default values, the worker may
 	// need to resize the PDs, which requires escalated privileges.
-	inspectionTimeout = time.Second * 10
+	inspectionTimeout = time.Second * 3
 
 	// 10GB is the default disk size used in inflate_file.wf.json.
 	defaultInflationDiskSizeGB = 10

@@ -25,7 +25,6 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
@@ -41,7 +40,6 @@ type Importer interface {
 
 // NewImporter constructs an Importer instance.
 func NewImporter(request ImageImportRequest, computeClient compute.Client, storageClient domain.StorageClientInterface, logger logging.Logger) (Importer, error) {
-
 	if err := request.validate(); err != nil {
 		return nil, err
 	}
@@ -51,7 +49,7 @@ func NewImporter(request ImageImportRequest, computeClient compute.Client, stora
 		return nil, err
 	}
 
-	inspector, err := disk.NewInspector(request.EnvironmentSettings(), lgger)
+	inspector, err := disk.NewInspector(request.EnvironmentSettings(), logger)
 	if err != nil {
 		return nil, err
 	}

@@ -141,7 +141,6 @@ func (client defaultInfoClient) getFileChecksum(ctx context.Context, filename st
 	return checksum, nil
 }
 
-
 func lookupFileFormat(s string) string {
 	lower := strings.ToLower(s)
 	for _, format := range qemuImgFormats {
