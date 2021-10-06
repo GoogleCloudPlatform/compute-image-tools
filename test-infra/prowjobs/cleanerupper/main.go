@@ -373,7 +373,7 @@ func cleanOSPolicyAssignments(ctx context.Context, computeClient daisyCompute.Cl
 	for _, zone := range zones {
 		fmt.Println("Cleaning zone:", zone.Name)
 		now := time.Now()
-		timeoutCtx, cncl := context.WithTimeout(ctx, 5*time.Minute)
+		timeoutCtx, cncl := context.WithTimeout(ctx, 60*time.Second)
 		defer cncl()
 		itr := client.ListOSPolicyAssignments(timeoutCtx, &osconfigv1alphapb.ListOSPolicyAssignmentsRequest{Parent: fmt.Sprintf("projects/%s/locations/%s", project, zone.Name)})
 		var count int
