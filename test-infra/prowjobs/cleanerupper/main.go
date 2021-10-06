@@ -371,18 +371,17 @@ func cleanOSPolicyAssignments(ctx context.Context, computeClient daisyCompute.Cl
 		return
 	}
 	for _, zone := range zones {
-		if zone.Name == "us-east2-a" {
-			continue
-		}
 		fmt.Println("Cleaning zone:", zone.Name)
 		now := time.Now()
-		itr := client.ListOSPolicyAssignments(ctx, &osconfigv1alphapb.ListOSPolicyAssignmentsRequest{Parent: fmt.Sprintf("projects/%s/locations/%s", project, zone.Name)})
+		timeoutCtx, cncl := context.WithTimeout(ctx, 5*time.Minute)
+		defer cncl()
+		itr := client.ListOSPolicyAssignments(timeoutCtx, &osconfigv1alphapb.ListOSPolicyAssignmentsRequest{Parent: fmt.Sprintf("projects/%s/locations/%s", project, zone.Name)})
 		var count int
 		for {
 			ospa, err := itr.Next()
 			if err != nil {
 				if err == iterator.Done {
-					fmt.Println(time.Since(now), zone.Name)
+					fmt.Printf("Time to list OSPolicyAssignments %s\n", time.Since(now))
 					break
 				}
 				fmt.Printf("Error calling ListOSPolicyAssignments in project %q: %v\n", project, err)
