@@ -131,36 +131,6 @@ func buildDaisyVars(destinationURI string, sourceImage string, sourceDiskSnapsho
 	return varMap
 }
 
-func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap map[string]string,
-	project string, zone string, timeout string, scratchBucketGcsPath string, oauth string, ce string,
-	gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool,
-	userLabels map[string]string) (*daisy.Workflow, error) {
-
-	workflow, err := daisyutils.ParseWorkflow(exportWorkflowPath, varMap,
-		project, zone, scratchBucketGcsPath, oauth, timeout, ce, gcsLogsDisabled,
-		cloudLogsDisabled, stdoutLogsDisabled)
-	if err != nil {
-		return nil, err
-	}
-
-	workflow.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
-	rl := &daisyutils.ResourceLabeler{
-		BuildID: os.Getenv("BUILD_ID"), UserLabels: userLabels, BuildIDLabelKey: "gce-image-export-build-id",
-		InstanceLabelKeyRetriever: func(instanceName string) string {
-			return "gce-image-export-tmp"
-		},
-		DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
-			return "gce-image-export-tmp"
-		},
-		ImageLabelKeyRetriever: func(imageName string) string {
-			return "gce-image-export"
-		}}
-	rl.LabelResources(workflow)
-
-	err = workflow.Run(ctx)
-	return workflow, err
-}
-
 // Run runs export workflow.
 func Run(clientID string, destinationURI string, sourceImage string, sourceDiskSnapshot string, format string,
 	project *string, network string, subnet string, zone string, timeout string,
@@ -168,6 +138,7 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, currentExecutablePath string) (*daisy.Workflow, error) {
 
 	log.SetPrefix(logPrefix + " ")
+	logger := logging.NewToolLogger(logPrefix)
 
 	userLabels, err := validateAndParseFlags(destinationURI, sourceImage, sourceDiskSnapshot, labels)
 	if err != nil {
@@ -177,7 +148,7 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 	ctx := context.Background()
 	metadataGCE := &compute.MetadataGCE{}
 	storageClient, err := storage.NewStorageClient(
-		ctx, logging.NewToolLogger(logPrefix), option.WithCredentialsFile(oauth))
+		ctx, logger, option.WithCredentialsFile(oauth))
 	if err != nil {
 		return nil, err
 	}
@@ -203,15 +174,37 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 	varMap := buildDaisyVars(destinationURI, sourceImage, sourceDiskSnapshot, format, network, subnet, *region, computeServiceAccount)
 
 	var w *daisy.Workflow
-	if w, err = runExportWorkflow(ctx, getWorkflowPath(format, currentExecutablePath), varMap, *project,
-		zone, timeout, scratchBucketGcsPath, oauth, ce, gcsLogsDisabled, cloudLogsDisabled,
-		stdoutLogsDisabled, userLabels); err != nil {
 
-		daisyutils.PostProcessDErrorForNetworkFlag("image export", err, network, w)
-
-		return w, err
+	w, err = daisy.NewFromFile(getWorkflowPath(format, currentExecutablePath))
+	if err != nil {
+		return nil, err
 	}
-	return w, nil
+
+	env := daisyutils.EnvironmentSettings{
+		Project:               *project,
+		Zone:                  zone,
+		GCSPath:               scratchBucketGcsPath,
+		OAuth:                 oauth,
+		Timeout:               timeout,
+		ComputeEndpoint:       ce,
+		DisableGCSLogs:        gcsLogsDisabled,
+		DisableCloudLogs:      cloudLogsDisabled,
+		DisableStdoutLogs:     stdoutLogsDisabled,
+		Network:               network,
+		Subnet:                subnet,
+		ComputeServiceAccount: computeServiceAccount,
+		Labels:                userLabels,
+		ExecutionID:           os.Getenv(os.Getenv(daisyutils.BuildIDOSEnvVarName)),
+		Tool: daisyutils.Tool{
+			HumanReadableName: "gce image export",
+			ResourceLabelName: "gce-image-export",
+		},
+	}
+
+	if env.ExecutionID == "" {
+		env.ExecutionID = path.RandString(5)
+	}
+	return w, daisyutils.NewDaisyWorker(w, env, logger).Run(varMap)
 }
 
 // validateImageExists checks whether imageName exists in the specified project.
