@@ -37,6 +37,7 @@ class Apt:
       for b in blocked_versions:
         if v.startswith(b):
           blocked = True
+          break
       if not blocked:
         non_blocked_versions.add(v)
     candidate = ''

@@ -212,7 +212,11 @@ def setup_cloud_init(g: guestfs.GuestFS):
   a = Apt(run)
   curr_version = a.get_package_version(g, 'cloud-init')
   available_versions = a.list_available_versions(g, 'cloud-init')
-  # Don't install 21.3-1, which conflicts which the guest agent.
+  # Try to avoid installing 21.3-1, which conflicts which the guest agent.
+  # On first boot, systemd reaches a deadlock deadlock and doest start
+  # its unit. If a version other than 21.3-1 isn't explicitly found, *and*
+  # cloud-init isn't currently installed, then this allows apt to pick the
+  # version to install.
   version_to_install = Apt.determine_version_to_install(
     curr_version, available_versions, {'21.3-1'})
   pkg_to_install = ''
