@@ -25,10 +25,13 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 	ovfimporter "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_importer"
 )
+
+const logPrefix = "[import-ovf]"
 
 var (
 	instanceNames               = flag.String(ovfimporter.InstanceNameFlagKey, "", "VM Instance names to be created, separated by commas.")
@@ -122,13 +125,13 @@ func runImport() (service.Loggable, error) {
 			ovfImporter.CleanUp()
 		}
 	}()
-
-	if ovfImporter, err = ovfimporter.NewOVFImporter(buildOVFImportParams()); err != nil {
+	logger := logging.NewToolLogger(logPrefix)
+	logging.RedirectGlobalLogsToUser(logger)
+	if ovfImporter, err = ovfimporter.NewOVFImporter(buildOVFImportParams(), logger); err != nil {
 		return nil, err
 	}
-
-	wf, err := ovfImporter.Import()
-	return service.NewLoggableFromWorkflow(wf), err
+	err = ovfImporter.Import()
+	return service.NewOutputInfoLoggable(logger.ReadOutputInfo()), err
 }
 
 func main() {

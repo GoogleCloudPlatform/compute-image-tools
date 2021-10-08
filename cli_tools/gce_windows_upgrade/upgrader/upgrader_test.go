@@ -18,8 +18,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 func init() {
@@ -35,7 +36,7 @@ func TestUpgraderRunFailedOnInit(t *testing.T) {
 	tu.initFn = nil
 	tu.Oauth = "bad-oauth"
 
-	_, err := tu.run()
+	err := tu.run()
 	assert.EqualError(t, err, "Failed to create GCE client: error creating HTTP API client: cannot read credentials file: open bad-oauth: no such file or directory")
 }
 
@@ -45,7 +46,7 @@ func TestUpgraderRunFailedOnValidateParams(t *testing.T) {
 		return fmt.Errorf("failed")
 	}
 
-	_, err := tu.run()
+	err := tu.run()
 	assert.EqualError(t, err, "failed")
 }
 
@@ -55,7 +56,7 @@ func TestUpgraderRunFailedOnPrintUpgradeGuide(t *testing.T) {
 		return fmt.Errorf("failed")
 	}
 
-	_, err := tu.run()
+	err := tu.run()
 	assert.EqualError(t, err, "failed")
 }
 
@@ -68,7 +69,7 @@ func TestUpgraderRunFailedOnPrepare(t *testing.T) {
 		return nil, nil
 	}
 
-	_, err := tu.run()
+	err := tu.run()
 	assert.EqualError(t, err, "failed")
 }
 
@@ -81,7 +82,7 @@ func TestUpgraderRunFailedOnUpgrade(t *testing.T) {
 		return nil, nil
 	}
 
-	_, err := tu.run()
+	err := tu.run()
 	assert.EqualError(t, err, "failed")
 }
 
@@ -97,7 +98,7 @@ func TestUpgraderRunFailedOnReboot(t *testing.T) {
 		return nil, nil
 	}
 
-	_, err := tu.run()
+	err := tu.run()
 	assert.EqualError(t, err, "failed")
 }
 
@@ -116,14 +117,14 @@ func TestUpgraderRunFailedOnRetryUpgrade(t *testing.T) {
 		return nil, nil
 	}
 
-	_, err := tu.run()
+	err := tu.run()
 	assert.EqualError(t, err, "failed")
 }
 
 func TestUpgraderRunSuccessWithoutReboot(t *testing.T) {
 	tu := initTestUpgrader(t)
 
-	_, err := tu.run()
+	err := tu.run()
 	assert.NoError(t, err)
 }
 
@@ -139,7 +140,7 @@ func TestUpgraderRunSuccessWithReboot(t *testing.T) {
 		return nil, nil
 	}
 
-	_, err := tu.run()
+	err := tu.run()
 	assert.NoError(t, err)
 }
 
@@ -162,7 +163,7 @@ func TestUpgraderRunFailedWithAutoRollback(t *testing.T) {
 		return nil, nil
 	}
 
-	_, err := tu.run()
+	err := tu.run()
 	assert.EqualError(t, err, "failed")
 	assert.True(t, rollbackExecuted, "Rollback not executed.")
 }
@@ -182,7 +183,7 @@ func TestUpgraderRunFailedWithAutoRollbackFailed(t *testing.T) {
 		return nil, fmt.Errorf("failed2")
 	}
 
-	_, err := tu.run()
+	err := tu.run()
 	assert.EqualError(t, err, "failed1")
 	assert.True(t, rollbackExecuted, "Rollback not executed.")
 }
@@ -198,7 +199,7 @@ func TestUpgraderRunFailedWithAutoRollbackWithoutNewOSDiskAttached(t *testing.T)
 		cleanupExecuted = true
 		return nil, fmt.Errorf("failed2")
 	}
-	_, err := tu.run()
+	err := tu.run()
 	assert.EqualError(t, err, "failed1")
 	assert.True(t, cleanupExecuted, "Cleanup not executed.")
 }

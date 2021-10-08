@@ -17,7 +17,6 @@ package ovfimporter
 import (
 	"context"
 	"fmt"
-	"log"
 	"path"
 	"path/filepath"
 	"strings"
@@ -48,7 +47,6 @@ const (
 	ovfWorkflowDir         = "ovf_import/"
 	createInstanceWorkflow = ovfWorkflowDir + "create_instance.wf.json"
 	createGMIWorkflow      = ovfWorkflowDir + "create_gmi.wf.json"
-	logPrefix              = "[import-ovf]"
 
 	// Amount of time required after disk files have been imported. Used to calculate the
 	// timeout budget for disk file import.
@@ -90,11 +88,8 @@ type OVFImporter struct {
 
 // NewOVFImporter creates an OVF importer, including automatically populating dependencies,
 // such as compute/storage clients. workflowDir is the filesystem path to `daisy_workflows`.
-func NewOVFImporter(params *ovfdomain.OVFImportParams) (*OVFImporter, error) {
+func NewOVFImporter(params *ovfdomain.OVFImportParams, logger logging.ToolLogger) (*OVFImporter, error) {
 	ctx := context.Background()
-	log.SetPrefix(logPrefix + " ")
-	logger := logging.NewToolLogger(logPrefix)
-	logging.RedirectGlobalLogsToUser(logger)
 	storageClient, err := storageutils.NewStorageClient(ctx, logger)
 	if err != nil {
 		return nil, err
@@ -386,17 +381,16 @@ func (oi *OVFImporter) setUpImportWorkflow() (workflow *daisy.Workflow, err erro
 }
 
 // Import runs OVF import
-func (oi *OVFImporter) Import() (*daisy.Workflow, error) {
+func (oi *OVFImporter) Import() error {
 	oi.Logger.User("Starting OVF import workflow.")
 	if err := oi.paramValidator.ValidateAndPopulate(oi.params); err != nil {
-		return nil, err
+		return err
 	}
-
 	w, err := oi.setUpImportWorkflow()
 
 	if err != nil {
 		oi.Logger.User(err.Error())
-		return w, err
+		return err
 	}
 
 	go oi.handleTimeout(w)
@@ -404,10 +398,10 @@ func (oi *OVFImporter) Import() (*daisy.Workflow, error) {
 	if err := w.Run(oi.ctx); err != nil {
 		oi.Logger.User(err.Error())
 		daisyutils.PostProcessDErrorForNetworkFlag("instance import", err, oi.params.Network, w)
-		return w, err
+		return err
 	}
 	oi.Logger.User("OVF import workflow finished successfully.")
-	return w, nil
+	return nil
 }
 
 func (oi *OVFImporter) handleTimeout(w *daisy.Workflow) {

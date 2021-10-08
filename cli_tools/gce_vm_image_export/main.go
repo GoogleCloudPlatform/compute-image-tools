@@ -19,9 +19,12 @@ import (
 	"flag"
 	"os"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_export/exporter"
 )
+
+const logPrefix = "[image-export]"
 
 var (
 	clientID              = flag.String(exporter.ClientIDFlagKey, "", "Identifies the client of the exporter, e.g. `gcloud` or `pantheon`.")
@@ -47,10 +50,12 @@ var (
 
 func exportEntry() (service.Loggable, error) {
 	currentExecutablePath := string(os.Args[0])
-	wf, err := exporter.Run(*clientID, *destinationURI, *sourceImage, *sourceDiskSnapshot, *format, project,
+	logger := logging.NewToolLogger(logPrefix)
+	logging.RedirectGlobalLogsToUser(logger)
+	err := exporter.Run(*clientID, *destinationURI, *sourceImage, *sourceDiskSnapshot, *format, project,
 		*network, *subnet, *zone, *timeout, *scratchBucketGcsPath, *oauth, *ce, *computeServiceAccount,
-		*gcsLogsDisabled, *cloudLogsDisabled, *stdoutLogsDisabled, *labels, currentExecutablePath)
-	return service.NewLoggableFromWorkflow(wf), err
+		*gcsLogsDisabled, *cloudLogsDisabled, *stdoutLogsDisabled, *labels, currentExecutablePath, logger)
+	return service.NewOutputInfoLoggable(logger.ReadOutputInfo()), err
 }
 
 func main() {
