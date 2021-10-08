@@ -16,6 +16,7 @@ package mount
 
 import (
 	"errors"
+	"sort"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -59,6 +60,7 @@ func TestMountInspector_Inspect_HappyCase_Virtual(t *testing.T) {
 	mountInspector := &defaultMountInspector{mockShell}
 	mountInfo, err := mountInspector.Inspect("/")
 	assert.NoError(t, err)
+	sort.Strings(mountInfo.UnderlyingBlockDevices)
 	assert.Equal(t, InspectionResults{
 		BlockDevicePath:        "/dev/mapper/vg-device",
 		BlockDeviceIsVirtual:   true,
