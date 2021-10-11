@@ -15,7 +15,6 @@
 package ovfexporter
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -23,7 +22,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
+	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -53,7 +52,7 @@ func (iec *instanceExportCleanerImpl) init(instance *compute.Instance, params *o
 			func(w *daisy.Workflow) error {
 				iec.addAttachDiskStepStep(w, instance, params, attachedDisk)
 				return nil
-			}, params)
+			})
 		if err != nil {
 			return err
 		}
@@ -70,7 +69,7 @@ func (iec *instanceExportCleanerImpl) init(instance *compute.Instance, params *o
 					iec.addStartInstanceStep(w, instance, params)
 				}
 				return nil
-			}, params)
+			})
 		if err != nil {
 			return err
 		}
@@ -116,23 +115,13 @@ func (iec *instanceExportCleanerImpl) Clean(instance *compute.Instance, params *
 			iec.wfPreRunCallback(attachDiskWf)
 		}
 		// ignore errors as these will be due to instance being already started or disks already attached
-		_ = daisyutils.RunWorkflowWithCancelSignal(context.Background(), attachDiskWf)
-		if attachDiskWf.Logger != nil {
-			for _, trace := range attachDiskWf.Logger.ReadSerialPortLogs() {
-				iec.logger.Trace(trace)
-			}
-		}
+		_ = daisyutils.NewDaisyWorker(attachDiskWf, params.EnvironmentSettings(attachDiskWf.Name), iec.logger).Run(map[string]string{})
 	}
 	if iec.startInstanceWf != nil {
 		if iec.wfPreRunCallback != nil {
 			iec.wfPreRunCallback(iec.startInstanceWf)
 		}
-		err = daisyutils.RunWorkflowWithCancelSignal(context.Background(), iec.startInstanceWf)
-		if iec.startInstanceWf.Logger != nil {
-			for _, trace := range iec.startInstanceWf.Logger.ReadSerialPortLogs() {
-				iec.logger.Trace(trace)
-			}
-		}
+		_ = daisyutils.NewDaisyWorker(iec.startInstanceWf, params.EnvironmentSettings(iec.startInstanceWf.Name), iec.logger).Run(map[string]string{})
 	}
 	return err
 }

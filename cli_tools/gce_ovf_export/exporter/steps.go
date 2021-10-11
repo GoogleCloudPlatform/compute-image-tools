@@ -103,37 +103,12 @@ func (oe *OVFExporter) cleanup(instance *compute.Instance, exportError error) er
 	return nil
 }
 
-func generateWorkflowWithSteps(workflowName, timeout string, populateStepsFunc populateStepsFunc,
-	params *ovfexportdomain.OVFExportArgs) (*daisy.Workflow, error) {
-
+func generateWorkflowWithSteps(workflowName, timeout string, populateStepsFunc populateStepsFunc) (*daisy.Workflow, error) {
 	w := daisy.New()
 	w.Name = workflowName
 	w.DefaultTimeout = timeout
 	w.ForceCleanupOnError = true
-	w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
-
-	if err := populateStepsFunc(w); err != nil {
-		return w, err
-	}
-
-	params.EnvironmentSettings().ApplyToWorkflow(w)
-	return w, nil
-}
-
-func labelResources(w *daisy.Workflow, params *ovfexportdomain.OVFExportArgs) {
-	rl := &daisyutils.ResourceLabeler{
-		BuildID:         params.BuildID,
-		BuildIDLabelKey: "gce-ovf-export-build-id",
-		InstanceLabelKeyRetriever: func(instanceName string) string {
-			return "gce-ovf-export-tmp"
-		},
-		DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
-			return "gce-ovf-export-tmp"
-		},
-		ImageLabelKeyRetriever: func(imageName string) string {
-			return "gce-ovf-export-tmp"
-		}}
-	rl.LabelResources(w)
+	return w, populateStepsFunc(w)
 }
 
 //TODO: consolidate with gce_vm_image_import.runStep()

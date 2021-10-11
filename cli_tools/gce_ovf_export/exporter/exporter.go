@@ -86,7 +86,7 @@ func NewOVFExporter(params *ovfexportdomain.OVFExportArgs, logger logging.ToolLo
 	if err := validateAndPopulateParams(params, paramValidator, paramPopulator); err != nil {
 		return nil, err
 	}
-	inspector, err := commondisk.NewInspector(params.EnvironmentSettings(), logger)
+	inspector, err := commondisk.NewInspector(params.EnvironmentSettings("ovf-export-disk-inspect"), logger)
 	if err != nil {
 		return nil, daisy.Errf("Error creating disk inspector: %v", err)
 	}
