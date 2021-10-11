@@ -213,7 +213,7 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap):
     templ = Template(FetchConfigPart('rhel-post.cfg'))
     majors = f'{major}-sap' if sap else major
     # RHEL 7.9 for SAP doesn't use E4S content and has a different config.
-    majors = 'rhel79-sap' if sap and major == 7 and minor == 9 else major
+    majors = '79-sap' if sap and major == 7 and minor == 9 else major
     ks_post.append(templ.substitute(pkg=pkg, major=majors))
 
     # SAP post.
