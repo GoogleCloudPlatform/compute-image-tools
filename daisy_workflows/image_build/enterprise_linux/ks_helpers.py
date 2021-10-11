@@ -180,7 +180,7 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap):
 
   rhel = release.startswith('rhel')
   if release.startswith('rhel-7-') or release.startswith('rhel-8-'):
-    minor = release[-1]
+    minor = int(release[-1])
   if release.startswith('rhel-7') or release.startswith('centos-7'):
     major = 7
   if (release.startswith('rhel-8') or release.startswith('centos-8')
