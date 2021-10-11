@@ -21,15 +21,15 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
-// RemoveExternalIPModifier is a WorkflowModifier that updates CreateInstances in a
+// RemoveExternalIPHook is a WorkflowHook that updates CreateInstances in a
 // daisy workflow such that they won't be created with an external IP address.
 //
 // For more info on external IPs, see the `--no-address` flag:
 //   https://cloud.google.com/sdk/gcloud/reference/compute/instances/create
-type RemoveExternalIPModifier struct{}
+type RemoveExternalIPHook struct{}
 
-// Modify updates the CreateInstances steps so that they won't have an external IP.
-func (t *RemoveExternalIPModifier) Modify(wf *daisy.Workflow) error {
+// PreRunHook updates the CreateInstances steps so that they won't have an external IP.
+func (t *RemoveExternalIPHook) PreRunHook(wf *daisy.Workflow) error {
 	wf.IterateWorkflowSteps(func(step *daisy.Step) {
 		if step.CreateInstances != nil {
 			for _, instance := range step.CreateInstances.Instances {
@@ -52,4 +52,9 @@ func (t *RemoveExternalIPModifier) Modify(wf *daisy.Workflow) error {
 		}
 	})
 	return nil
+}
+
+// PostRunHook is a no-op for this class.
+func (t *RemoveExternalIPHook) PostRunHook(err error) (wantRetry bool, wrapped error) {
+	return false, err
 }

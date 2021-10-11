@@ -18,26 +18,15 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
-// ApplyEnvToWorkflow is a WorkflowModifier that applies user-customizable values
-// to the top-level parent workflow.
-type ApplyEnvToWorkflow struct {
-	env EnvironmentSettings
-}
+// To rebuild the mock, run `go generate ./...`
+//go:generate go run github.com/golang/mock/mockgen -package mocks -source $GOFILE -destination ../../../mocks/mock_workflow_hook.go
 
-// Modify updates properties on wf that correspond to user-specified values
-// such as project, zone, and scratch bucket path.
-func (t *ApplyEnvToWorkflow) Modify(wf *daisy.Workflow) error {
-	set(t.env.Project, &wf.Project)
-	set(t.env.Zone, &wf.Zone)
-	set(t.env.GCSPath, &wf.GCSPath)
-	set(t.env.OAuth, &wf.OAuthPath)
-	set(t.env.Timeout, &wf.DefaultTimeout)
-	set(t.env.ComputeEndpoint, &wf.ComputeEndpoint)
-	return nil
-}
-
-func set(src string, dst *string) {
-	if src != "" {
-		*dst = src
-	}
+// WorkflowHook exposes hooks for before and after a workflow runs.
+type WorkflowHook interface {
+	// PreRunHook allows a WorkflowHook to modify a workflow prior to running.
+	PreRunHook(wf *daisy.Workflow) error
+	// PostRunHook allows a WorkflowHook to inspect the workflow's run error, and optionally
+	// decide whether to retry the workflow, or to wrap the error to expose a more useful
+	// error message.
+	PostRunHook(err error) (wantRetry bool, wrapped error)
 }

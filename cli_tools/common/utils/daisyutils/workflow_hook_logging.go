@@ -18,14 +18,14 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
-// ConfigureDaisyLogging is a WorkflowModifier that configures Daisy's
+// ConfigureDaisyLogging is a WorkflowHook that configures Daisy's
 // logging settings using the user's logging preferences, specified in EnvironmentSettings.
 type ConfigureDaisyLogging struct {
 	env EnvironmentSettings
 }
 
-// Modify applies the user's logging preferences to a daisy workflow.
-func (t *ConfigureDaisyLogging) Modify(wf *daisy.Workflow) error {
+// PreRunHook applies the user's logging preferences to a daisy workflow.
+func (t *ConfigureDaisyLogging) PreRunHook(wf *daisy.Workflow) error {
 	if t.env.DaisyLogLinePrefix != "" {
 		wf.Name = t.env.DaisyLogLinePrefix
 	}
@@ -40,4 +40,9 @@ func (t *ConfigureDaisyLogging) Modify(wf *daisy.Workflow) error {
 		wf.DisableStdoutLogging()
 	}
 	return nil
+}
+
+// PostRunHook is a no-op for this class.
+func (t *ConfigureDaisyLogging) PostRunHook(err error) (wantRetry bool, wrapped error) {
+	return false, err
 }

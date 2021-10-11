@@ -159,7 +159,7 @@ func TestBootableDiskProcessor_SetsWorkerDiskTrackingValues(t *testing.T) {
 		wf = w
 	})
 	daisyutils.CheckResourceLabeler(actual.worker, func(rl *daisyutils.ResourceLabeler) {
-		assert.NoError(t, rl.Modify(wf))
+		assert.NoError(t, rl.PreRunHook(wf))
 		disk := getFirstCreatedDisk(t, wf)
 
 		assert.Equal(t, map[string]string{
@@ -183,7 +183,7 @@ func TestBootableDiskProcessor_SetsWorkerTrackingValues(t *testing.T) {
 		wf = w
 	})
 	daisyutils.CheckResourceLabeler(actual.worker, func(rl *daisyutils.ResourceLabeler) {
-		assert.NoError(t, rl.Modify(wf))
+		assert.NoError(t, rl.PreRunHook(wf))
 		worker := getWorkerInstance(t, wf)
 
 		assert.Equal(t, map[string]string{
@@ -207,7 +207,7 @@ func TestBootableDiskProcessor_SetsImageTrackingValues(t *testing.T) {
 		wf = w
 	})
 	daisyutils.CheckResourceLabeler(actual.worker, func(rl *daisyutils.ResourceLabeler) {
-		assert.NoError(t, rl.Modify(wf))
+		assert.NoError(t, rl.PreRunHook(wf))
 		image := getImage(t, wf)
 
 		assert.Equal(t, map[string]string{

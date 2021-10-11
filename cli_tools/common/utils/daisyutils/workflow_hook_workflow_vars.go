@@ -20,7 +20,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
-// ApplyAndValidateVars is a WorkflowModifier that applies vars to a daisy workflow.
+// ApplyAndValidateVars is a WorkflowHook that applies vars to a daisy workflow.
 // To ensure consistency across worker instances, if vars omits network, subnet, or the
 // compute service account, the modifier will automatically apply these values.
 type ApplyAndValidateVars struct {
@@ -28,8 +28,8 @@ type ApplyAndValidateVars struct {
 	vars map[string]string
 }
 
-// Modify applies vars to a daisy workflow.
-func (t *ApplyAndValidateVars) Modify(wf *daisy.Workflow) error {
+// PreRunHook applies daisy vars to a workflow
+func (t *ApplyAndValidateVars) PreRunHook(wf *daisy.Workflow) error {
 
 	// All CLI tools use these variables; if they're declared in the daisy workflow, but not passed by the caller in `vars`,
 	// then apply them using the EnvironmentSettings.
@@ -50,6 +50,11 @@ Loop:
 	}
 
 	return nil
+}
+
+// PostRunHook is a no-op for this class.
+func (t *ApplyAndValidateVars) PostRunHook(err error) (wantRetry bool, wrapped error) {
+	return false, nil
 }
 
 func (t *ApplyAndValidateVars) backfillVar(keyPattern *regexp.Regexp, val string, wf *daisy.Workflow) {

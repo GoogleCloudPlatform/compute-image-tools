@@ -28,7 +28,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
-func Test_NewDaisyWorker_IncludesStandardModifiers(t *testing.T) {
+func Test_NewDaisyWorker_IncludesStandardHooks(t *testing.T) {
 	wf := daisy.New()
 	env := EnvironmentSettings{
 		Labels:             map[string]string{"env": "prod"},
@@ -38,12 +38,12 @@ func Test_NewDaisyWorker_IncludesStandardModifiers(t *testing.T) {
 		Tool:               Tool{ResourceLabelName: "unit-test"},
 	}
 	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"))
-	assert.Equal(t, appliedModifiers{
-		applyEnvToWorkflow:       true,
-		configureDaisyLogging:    true,
-		removeExternalIPModifier: false,
-		resourceLabeler:          true,
-	}, findWhichModifiersApplied(worker))
+	assert.Equal(t, appliedHooks{
+		applyEnvToWorkflow:    true,
+		configureDaisyLogging: true,
+		removeExternalIPHook:  false,
+		resourceLabeler:       true,
+	}, findWhichHooksApplied(worker))
 	rl := getResourceLabeler(t, worker)
 	assert.Equal(t, env.Labels, rl.UserLabels)
 	assert.Equal(t, env.StorageLocation, rl.ImageLocation)
@@ -51,19 +51,19 @@ func Test_NewDaisyWorker_IncludesStandardModifiers(t *testing.T) {
 	assert.Equal(t, env.ExecutionID, rl.BuildID)
 }
 
-func Test_NewDaisyWorker_IncludesNoExternalIPModifier_WhenRequestedByUser(t *testing.T) {
+func Test_NewDaisyWorker_IncludesNoExternalIPHook_WhenRequestedByUser(t *testing.T) {
 	wf := daisy.New()
 	env := EnvironmentSettings{NoExternalIP: true,
 		ExecutionID: "b1234",
 		Tool:        Tool{ResourceLabelName: "unit-test"},
 	}
 	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"))
-	assert.Equal(t, appliedModifiers{
-		applyEnvToWorkflow:       true,
-		configureDaisyLogging:    true,
-		removeExternalIPModifier: true,
-		resourceLabeler:          true,
-	}, findWhichModifiersApplied(worker))
+	assert.Equal(t, appliedHooks{
+		applyEnvToWorkflow:    true,
+		configureDaisyLogging: true,
+		removeExternalIPHook:  true,
+		resourceLabeler:       true,
+	}, findWhichHooksApplied(worker))
 }
 
 func Test_NewDaisyWorker_KeepsResourceLabelerIfSpecified(t *testing.T) {
@@ -76,15 +76,15 @@ func Test_NewDaisyWorker_KeepsResourceLabelerIfSpecified(t *testing.T) {
 	assert.Equal(t, rl, actualResourceLabeler)
 }
 
-func Test_DaisyWorkerRun_RunsCustomModifiers(t *testing.T) {
+func Test_DaisyWorkerRun_RunsCustomHooks(t *testing.T) {
 	wf := daisy.New()
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	modifier1 := mocks.NewMockWorkflowModifier(mockCtrl)
-	modifier1.EXPECT().Modify(wf).Return(nil)
-	modifier2 := mocks.NewMockWorkflowModifier(mockCtrl)
-	modifier2.EXPECT().Modify(wf).Return(nil)
+	hook1 := mocks.NewMockWorkflowHook(mockCtrl)
+	hook1.EXPECT().PreRunHook(wf).Return(nil)
+	hook2 := mocks.NewMockWorkflowHook(mockCtrl)
+	hook2.EXPECT().PreRunHook(wf).Return(nil)
 
 	env := EnvironmentSettings{
 		Project:            "lucky-lemur",
@@ -97,7 +97,7 @@ func Test_DaisyWorkerRun_RunsCustomModifiers(t *testing.T) {
 	}
 	configWorkflowForUnitTesting(t, wf, mockCtrl, env)
 
-	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"), modifier1, modifier2)
+	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"), hook1, hook2)
 	assert.NoError(t, worker.Run(map[string]string{}))
 }
 
@@ -129,19 +129,19 @@ func Test_DaisyWorkerRun_CapturesDaisyLogs(t *testing.T) {
 	assert.Equal(t, serialLogs, toolLogger.ReadOutputInfo().SerialOutputs)
 }
 
-func Test_DaisyWorkerRun_FailsIfModifierFails(t *testing.T) {
+func Test_DaisyWorkerRun_FailsIfHookFails(t *testing.T) {
 	wf := daisy.New()
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	modifier := mocks.NewMockWorkflowModifier(mockCtrl)
-	modifier.EXPECT().Modify(wf).Return(errors.New("modifier failed"))
+	hook := mocks.NewMockWorkflowHook(mockCtrl)
+	hook.EXPECT().PreRunHook(wf).Return(errors.New("hook failed"))
 
 	worker := NewDaisyWorker(wf, EnvironmentSettings{
 		ExecutionID: "b1234",
 		Tool:        Tool{ResourceLabelName: "unit-test"},
-	}, logging.NewToolLogger("test"), modifier)
-	assert.EqualError(t, worker.Run(map[string]string{}), "modifier failed")
+	}, logging.NewToolLogger("test"), hook)
+	assert.EqualError(t, worker.Run(map[string]string{}), "hook failed")
 }
 
 func Test_DaisyWorkerRun_FailsIfWorkflowFails(t *testing.T) {
@@ -238,23 +238,23 @@ func Test_DaisyWorkerRunAndReadSerialValue_HappyCase(t *testing.T) {
 	assert.Equal(t, "serial-output-value", actualValue)
 }
 
-type appliedModifiers struct {
-	applyEnvToWorkflow, configureDaisyLogging, removeExternalIPModifier, resourceLabeler bool
+type appliedHooks struct {
+	applyEnvToWorkflow, configureDaisyLogging, removeExternalIPHook, resourceLabeler bool
 }
 
-func findWhichModifiersApplied(worker DaisyWorker) (t appliedModifiers) {
+func findWhichHooksApplied(worker DaisyWorker) (t appliedHooks) {
 	realWorker := worker.(*defaultDaisyWorker)
-	for _, modifier := range realWorker.modifiers {
-		if _, ok := modifier.(*ApplyEnvToWorkflow); ok {
+	for _, hook := range realWorker.hooks {
+		if _, ok := hook.(*ApplyEnvToWorkflow); ok {
 			t.applyEnvToWorkflow = true
 		}
-		if _, ok := modifier.(*ConfigureDaisyLogging); ok {
+		if _, ok := hook.(*ConfigureDaisyLogging); ok {
 			t.configureDaisyLogging = true
 		}
-		if _, ok := modifier.(*RemoveExternalIPModifier); ok {
-			t.removeExternalIPModifier = true
+		if _, ok := hook.(*RemoveExternalIPHook); ok {
+			t.removeExternalIPHook = true
 		}
-		if _, ok := modifier.(*ResourceLabeler); ok {
+		if _, ok := hook.(*ResourceLabeler); ok {
 			t.resourceLabeler = true
 		}
 	}
@@ -264,13 +264,13 @@ func findWhichModifiersApplied(worker DaisyWorker) (t appliedModifiers) {
 func getResourceLabeler(t *testing.T, worker DaisyWorker) *ResourceLabeler {
 	var actualResourceLabeler *ResourceLabeler
 	realWorker := worker.(*defaultDaisyWorker)
-	for _, modifier := range realWorker.modifiers {
-		switch modifier.(type) {
+	for _, hook := range realWorker.hooks {
+		switch hook.(type) {
 		case *ResourceLabeler:
 			if actualResourceLabeler != nil {
-				assert.Fail(t, "Found more than one resource labeler in modifiers")
+				assert.Fail(t, "Found more than one resource labeler in hooks")
 			}
-			actualResourceLabeler = modifier.(*ResourceLabeler)
+			actualResourceLabeler = hook.(*ResourceLabeler)
 		}
 	}
 	return actualResourceLabeler

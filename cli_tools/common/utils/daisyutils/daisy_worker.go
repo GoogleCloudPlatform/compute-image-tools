@@ -38,17 +38,17 @@ type DaisyWorker interface {
 //
 // If modifiers doesn't include a resource labeler, one will be created.
 func NewDaisyWorker(wf *daisy.Workflow, env EnvironmentSettings,
-	logger logging.Logger, modifiers ...WorkflowModifier) DaisyWorker {
-	modifiers = append(modifiers, &ApplyEnvToWorkflow{env}, &ConfigureDaisyLogging{env})
+	logger logging.Logger, hooks ...WorkflowHook) DaisyWorker {
+	hooks = append(hooks, &ApplyEnvToWorkflow{env}, &ConfigureDaisyLogging{env})
 	if env.NoExternalIP {
-		modifiers = append(modifiers, &RemoveExternalIPModifier{})
+		hooks = append(hooks, &RemoveExternalIPHook{})
 	}
-	return &defaultDaisyWorker{wf: wf, env: env, logger: logger, modifiers: createResourceLabelerIfMissing(env, modifiers)}
+	return &defaultDaisyWorker{wf: wf, env: env, logger: logger, hooks: createResourceLabelerIfMissing(env, hooks)}
 }
 
 // createResourceLabelerIfMissing checks whether there is a resource labeler in modifiers.
 // If not, then it creates a new one.
-func createResourceLabelerIfMissing(env EnvironmentSettings, modifiers []WorkflowModifier) []WorkflowModifier {
+func createResourceLabelerIfMissing(env EnvironmentSettings, modifiers []WorkflowHook) []WorkflowHook {
 	for _, modifier := range modifiers {
 		switch modifier.(type) {
 		case *ResourceLabeler:
@@ -62,19 +62,19 @@ func createResourceLabelerIfMissing(env EnvironmentSettings, modifiers []Workflo
 }
 
 type defaultDaisyWorker struct {
-	wf        *daisy.Workflow
-	logger    logging.Logger
-	env       EnvironmentSettings
-	modifiers []WorkflowModifier
+	wf     *daisy.Workflow
+	logger logging.Logger
+	env    EnvironmentSettings
+	hooks  []WorkflowHook
 }
 
 // Run runs the daisy workflow with the supplied vars.
 func (w *defaultDaisyWorker) Run(vars map[string]string) error {
-	if err := (&ApplyAndValidateVars{w.env, vars}).Modify(w.wf); err != nil {
+	if err := (&ApplyAndValidateVars{w.env, vars}).PreRunHook(w.wf); err != nil {
 		return err
 	}
-	for _, t := range w.modifiers {
-		if err := t.Modify(w.wf); err != nil {
+	for _, t := range w.hooks {
+		if err := t.PreRunHook(w.wf); err != nil {
 			return err
 		}
 	}

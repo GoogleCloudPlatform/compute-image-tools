@@ -57,10 +57,15 @@ type DiskLabelKeyRetrieverFunc func(disk *daisy.Disk) string
 // ImageLabelKeyRetrieverFunc returns GCE label key to be added to given image
 type ImageLabelKeyRetrieverFunc func(imageName string) string
 
-// Modify is a facade over LabelResources to implement the WorkflowModifier interface; no errors will be returned.
-func (rl *ResourceLabeler) Modify(wf *daisy.Workflow) error {
+// PreRunHook is a facade over LabelResources to implement the WorkflowHook interface; no errors will be returned.
+func (rl *ResourceLabeler) PreRunHook(wf *daisy.Workflow) error {
 	rl.LabelResources(wf)
 	return nil
+}
+
+// PostRunHook is a no-op for this class.
+func (rl *ResourceLabeler) PostRunHook(err error) (wantRetry bool, wrapped error) {
+	return false, err
 }
 
 // LabelResources labels workflow resources temporary and permanent resources with appropriate

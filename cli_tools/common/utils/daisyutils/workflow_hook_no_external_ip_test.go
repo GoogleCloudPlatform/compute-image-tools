@@ -28,7 +28,7 @@ func Test_RemoveExternalIPModifier(t *testing.T) {
 	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
 	(*w.Steps["ci"].CreateInstances).Instances[0].Instance.NetworkInterfaces = nil
 	(*w.Steps["ci"].CreateInstances).InstancesBeta[0].Instance.NetworkInterfaces = nil
-	assert.NoError(t, (&RemoveExternalIPModifier{}).Modify(w))
+	assert.NoError(t, (&RemoveExternalIPHook{}).PreRunHook(w))
 
 	assert.Nil(t, (*w.Steps["ci"].CreateInstances).Instances[0].Instance.NetworkInterfaces)
 	assert.Nil(t, (*w.Steps["ci"].CreateInstances).InstancesBeta[0].Instance.NetworkInterfaces)
@@ -36,7 +36,7 @@ func Test_RemoveExternalIPModifier(t *testing.T) {
 
 func Test_RemoveExternalIPModifier_DoesntClobberExistingConfigs(t *testing.T) {
 	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
-	assert.NoError(t, (&RemoveExternalIPModifier{}).Modify(w))
+	assert.NoError(t, (&RemoveExternalIPHook{}).PreRunHook(w))
 
 	assert.Len(t, (*w.Steps["ci"].CreateInstances).Instances[0].Instance.NetworkInterfaces, 1)
 	assert.Len(t, (*w.Steps["ci"].CreateInstances).InstancesBeta[0].Instance.NetworkInterfaces, 1)
