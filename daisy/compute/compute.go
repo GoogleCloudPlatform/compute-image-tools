@@ -1397,9 +1397,9 @@ func (c *client) AggregatedListSubnetworks(project string, opts ...ListCallOptio
 func (c *client) ListSubnetworks(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error) {
 	var ns []*compute.Subnetwork
 	var pt string
-	call := c.raw.Subnetworks.List(project, region)
+	call := c.raw.Subnetworks.ListUsable(project)
 	for _, opt := range opts {
-		call = opt.listCallOptionApply(call).(*compute.SubnetworksListCall)
+		call = opt.listCallOptionApply(call).(*compute.SubnetworksListUsableCall)
 	}
 	for nl, err := call.PageToken(pt).Do(); ; nl, err = call.PageToken(pt).Do() {
 		if shouldRetryWithWait(c.hc.Transport, err, 2) {
@@ -1408,8 +1408,15 @@ func (c *client) ListSubnetworks(project, region string, opts ...ListCallOption)
 		if err != nil {
 			return nil, err
 		}
-		ns = append(ns, nl.Items...)
-
+		for _, item := range nl.Items {
+			subnetComponents := strings.Split(item.Subnetwork, "/")
+			subnetName := subnetComponents[len(subnetComponents)-1]
+			subnet, err := c.raw.Subnetworks.Get(project, region, subnetName).Do()
+			ns = append(ns, subnet)
+			if err != nil {
+				return nil, err
+			}
+		}
 		if nl.NextPageToken == "" {
 			return ns, nil
 		}
