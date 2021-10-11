@@ -204,15 +204,16 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap):
   if rhel:
     pkg = 'yum' if major == 7 else 'dnf'
 
-    # Why do we only do this for SAP? Does the ordering matter?
-    # Minor version post.
-    if sap and minor:
+    # Minor version post for SAP SKUs except 7.9
+    if (sap and minor) and not (major == 7 and minor == 9):
       templ = Template(FetchConfigPart('rhel-minor-post.cfg'))
       ks_post.append(templ.substitute(pkg=pkg, minor=minor, major=major))
 
     # RHEL common post.
     templ = Template(FetchConfigPart('rhel-post.cfg'))
     majors = f'{major}-sap' if sap else major
+    # RHEL 7.9 for SAP doesn't use E4S content and has a different config.
+    majors = 'rhel79-sap' if sap and major == 7 and minor == 9 else major
     ks_post.append(templ.substitute(pkg=pkg, major=majors))
 
     # SAP post.
