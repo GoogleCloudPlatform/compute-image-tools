@@ -25,7 +25,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
@@ -114,10 +113,10 @@ type upgrader struct {
 }
 
 // Run runs upgrader.
-func Run(p *InputParams) (service.Loggable, error) {
+func Run(p *InputParams, logger logging.Logger) error {
 	u := upgrader{
 		InputParams: p,
-		logger:      logging.NewToolLogger(logPrefix),
+		logger:      logger,
 		derivedVars: &derivedVars{
 			executionID: os.Getenv(daisyutils.BuildIDOSEnvVarName),
 		},
@@ -128,18 +127,18 @@ func Run(p *InputParams) (service.Loggable, error) {
 	return u.run()
 }
 
-func (u *upgrader) run() (service.Loggable, error) {
+func (u *upgrader) run() error {
 	if err := u.init(); err != nil {
-		return nil, err
+		return err
 	}
 	if err := u.validateAndDeriveParams(); err != nil {
-		return nil, err
+		return err
 	}
 	if err := u.printIntroHelpText(); err != nil {
-		return nil, err
+		return err
 	}
-	w, err := u.runUpgradeWorkflow()
-	return service.NewLoggableFromWorkflow(w), err
+	_, err := u.runUpgradeWorkflow()
+	return err
 }
 
 func (u *upgrader) init() error {

@@ -21,9 +21,12 @@ import (
 	"os"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_windows_upgrade/upgrader"
 )
+
+const logPrefix = "[windows-upgrade]"
 
 var (
 	clientID               = flag.String(upgrader.ClientIDFlagKey, "", "Identifies the upgrade client. Set to `gcloud`, `api` or `pantheon`.")
@@ -46,6 +49,8 @@ var (
 )
 
 func upgradeEntry() (service.Loggable, error) {
+	logger := logging.NewToolLogger(logPrefix)
+	logging.RedirectGlobalLogsToUser(logger)
 	p := &upgrader.InputParams{
 		ClientID:               strings.TrimSpace(*clientID),
 		Instance:               strings.TrimSpace(*instance),
@@ -64,8 +69,8 @@ func upgradeEntry() (service.Loggable, error) {
 		CloudLogsDisabled:      *cloudLogsDisabled,
 		StdoutLogsDisabled:     *stdoutLogsDisabled,
 	}
-
-	return upgrader.Run(p)
+	err := upgrader.Run(p, logger)
+	return service.NewOutputInfoLoggable(logger.ReadOutputInfo()), err
 }
 
 func main() {

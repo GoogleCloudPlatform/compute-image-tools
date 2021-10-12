@@ -29,9 +29,11 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	stringutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
 
 // Make file paths mutable
@@ -47,10 +49,9 @@ const (
 	DestinationURIFlagKey     = "destination_uri"
 	SourceImageFlagKey        = "source_image"
 	SourceDiskSnapshotFlagKey = "source_disk_snapshot"
-)
 
-const (
-	logPrefix = "[image-export]"
+	targetSizeGBKey = "target-size-gb"
+	sourceSizeGBKey = "source-size-gb"
 )
 
 func validateAndParseFlags(destinationURI string, sourceImage string, sourceDiskSnapshot string, labels string) (map[string]string, error) {
@@ -135,14 +136,11 @@ func buildDaisyVars(destinationURI string, sourceImage string, sourceDiskSnapsho
 func Run(clientID string, destinationURI string, sourceImage string, sourceDiskSnapshot string, format string,
 	project *string, network string, subnet string, zone string, timeout string,
 	scratchBucketGcsPath string, oauth string, ce string, computeServiceAccount string, gcsLogsDisabled bool,
-	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, currentExecutablePath string) (*daisy.Workflow, error) {
-
-	log.SetPrefix(logPrefix + " ")
-	logger := logging.NewToolLogger(logPrefix)
+	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, currentExecutablePath string, logger logging.Logger) error {
 
 	userLabels, err := validateAndParseFlags(destinationURI, sourceImage, sourceDiskSnapshot, labels)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	ctx := context.Background()
@@ -150,14 +148,14 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 	storageClient, err := storage.NewStorageClient(
 		ctx, logger, option.WithCredentialsFile(oauth))
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer storageClient.Close()
 
 	scratchBucketCreator := storage.NewScratchBucketCreator(ctx, storageClient)
 	computeClient, err := param.CreateComputeClient(&ctx, oauth, ce)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	resourceLocationRetriever := storage.NewResourceLocationRetriever(metadataGCE, computeClient)
 
@@ -165,11 +163,11 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 	paramPopulator := param.NewPopulator(param.NewNetworkResolver(computeClient), metadataGCE, storageClient, resourceLocationRetriever, scratchBucketCreator)
 	err = paramPopulator.PopulateMissingParameters(project, clientID, &zone, region, &scratchBucketGcsPath, destinationURI, nil, &network, &subnet)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if err = validateImageExists(computeClient, *project, sourceImage); err != nil {
-		return nil, err
+		return err
 	}
 	varMap := buildDaisyVars(destinationURI, sourceImage, sourceDiskSnapshot, format, network, subnet, *region, computeServiceAccount)
 
@@ -177,7 +175,7 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 
 	w, err = daisy.NewFromFile(getWorkflowPath(format, currentExecutablePath))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	env := daisyutils.EnvironmentSettings{
@@ -204,7 +202,13 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 	if env.ExecutionID == "" {
 		env.ExecutionID = path.RandString(5)
 	}
-	return w, daisyutils.NewDaisyWorker(w, env, logger).Run(varMap)
+	values, err := daisyutils.NewDaisyWorker(w, env, logger).RunAndReadSerialValues(
+		varMap, targetSizeGBKey, sourceSizeGBKey)
+	logger.Metric(&pb.OutputInfo{
+		SourcesSizeGb: []int64{stringutils.SafeStringToInt(values[sourceSizeGBKey])},
+		TargetsSizeGb: []int64{stringutils.SafeStringToInt(values[targetSizeGBKey])},
+	})
+	return err
 }
 
 // validateImageExists checks whether imageName exists in the specified project.
