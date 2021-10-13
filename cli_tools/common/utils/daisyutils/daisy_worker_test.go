@@ -51,6 +51,19 @@ func Test_NewDaisyWorker_IncludesStandardHooks(t *testing.T) {
 	assert.Equal(t, env.ExecutionID, rl.BuildID)
 }
 
+func Test_NewDaisyWorker_Panics_IfHooksDontImplementPreOrPostInterface(t *testing.T) {
+	wf := daisy.New()
+	env := EnvironmentSettings{
+		ExecutionID: "b1234",
+		Tool:        Tool{ResourceLabelName: "unit-test"},
+	}
+	type notAHook struct {
+	}
+	assert.PanicsWithValue(t, "daisyutils.notAHook must implement WorkflowPreHook and/or WorkflowPostHook", func() {
+		NewDaisyWorker(wf, env, logging.NewToolLogger("test"), notAHook{})
+	})
+}
+
 func Test_NewDaisyWorker_IncludesNoExternalIPHook_WhenRequestedByUser(t *testing.T) {
 	wf := daisy.New()
 	env := EnvironmentSettings{NoExternalIP: true,
@@ -76,14 +89,14 @@ func Test_NewDaisyWorker_KeepsResourceLabelerIfSpecified(t *testing.T) {
 	assert.Equal(t, rl, actualResourceLabeler)
 }
 
-func Test_DaisyWorkerRun_RunsCustomHooks(t *testing.T) {
+func Test_DaisyWorkerRun_RunsCustomPreHooks(t *testing.T) {
 	wf := daisy.New()
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	hook1 := mocks.NewMockWorkflowHook(mockCtrl)
+	hook1 := mocks.NewMockWorkflowPreHook(mockCtrl)
 	hook1.EXPECT().PreRunHook(wf).Return(nil)
-	hook2 := mocks.NewMockWorkflowHook(mockCtrl)
+	hook2 := mocks.NewMockWorkflowPreHook(mockCtrl)
 	hook2.EXPECT().PreRunHook(wf).Return(nil)
 
 	env := EnvironmentSettings{
@@ -129,12 +142,12 @@ func Test_DaisyWorkerRun_CapturesDaisyLogs(t *testing.T) {
 	assert.Equal(t, serialLogs, toolLogger.ReadOutputInfo().SerialOutputs)
 }
 
-func Test_DaisyWorkerRun_FailsIfHookFails(t *testing.T) {
+func Test_DaisyWorkerRun_FailsIfPreHookFails(t *testing.T) {
 	wf := daisy.New()
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	hook := mocks.NewMockWorkflowHook(mockCtrl)
+	hook := mocks.NewMockWorkflowPreHook(mockCtrl)
 	hook.EXPECT().PreRunHook(wf).Return(errors.New("hook failed"))
 
 	worker := NewDaisyWorker(wf, EnvironmentSettings{

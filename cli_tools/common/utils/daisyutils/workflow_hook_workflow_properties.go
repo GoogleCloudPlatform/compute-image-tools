@@ -41,8 +41,3 @@ func set(src string, dst *string) {
 		*dst = src
 	}
 }
-
-// PostRunHook is a no-op for this class.
-func (t *ApplyEnvToWorkflow) PostRunHook(err error) (wantRetry bool, wrapped error) {
-	return false, err
-}

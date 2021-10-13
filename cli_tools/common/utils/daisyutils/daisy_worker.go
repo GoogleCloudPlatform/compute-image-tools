@@ -16,6 +16,7 @@ package daisyutils
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/assert"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
@@ -36,28 +37,39 @@ type DaisyWorker interface {
 // NewDaisyWorker returns an implementation of DaisyWorker. The returned value is
 // designed to be run once and discarded. In other words, don't run the same instance twice.
 //
-// If modifiers doesn't include a resource labeler, one will be created.
+// hooks contains additional WorkflowPreHook or WorkflowPostHook instances. If hooks doesn't
+// include a resource labeler, one will be created.
 func NewDaisyWorker(wf *daisy.Workflow, env EnvironmentSettings,
-	logger logging.Logger, hooks ...WorkflowHook) DaisyWorker {
-	hooks = append(hooks, &ApplyEnvToWorkflow{env}, &ConfigureDaisyLogging{env})
+	logger logging.Logger, hooks ...interface{}) DaisyWorker {
+	hooks = append(createResourceLabelerIfMissing(env, hooks), &ApplyEnvToWorkflow{env}, &ConfigureDaisyLogging{env})
 	if env.NoExternalIP {
 		hooks = append(hooks, &RemoveExternalIPHook{})
 	}
-	return &defaultDaisyWorker{wf: wf, env: env, logger: logger, hooks: createResourceLabelerIfMissing(env, hooks)}
+	for _, hook := range hooks {
+		switch hook.(type) {
+		case WorkflowPreHook:
+			continue
+		case WorkflowPostHook:
+			continue
+		default:
+			panic(fmt.Sprintf("%T must implement WorkflowPreHook and/or WorkflowPostHook", hook))
+		}
+	}
+	return &defaultDaisyWorker{wf: wf, env: env, logger: logger, hooks: hooks}
 }
 
-// createResourceLabelerIfMissing checks whether there is a resource labeler in modifiers.
+// createResourceLabelerIfMissing checks whether there is a resource labeler in hook.
 // If not, then it creates a new one.
-func createResourceLabelerIfMissing(env EnvironmentSettings, modifiers []WorkflowHook) []WorkflowHook {
-	for _, modifier := range modifiers {
-		switch modifier.(type) {
+func createResourceLabelerIfMissing(env EnvironmentSettings, hooks []interface{}) []interface{} {
+	for _, hook := range hooks {
+		switch hook.(type) {
 		case *ResourceLabeler:
-			return modifiers
+			return hooks
 		}
 	}
 	assert.NotEmpty(env.Tool.ResourceLabelName)
 	assert.NotEmpty(env.ExecutionID)
-	return append(modifiers, NewResourceLabeler(
+	return append(hooks, NewResourceLabeler(
 		env.Tool.ResourceLabelName, env.ExecutionID, env.Labels, env.StorageLocation))
 }
 
@@ -65,7 +77,7 @@ type defaultDaisyWorker struct {
 	wf     *daisy.Workflow
 	logger logging.Logger
 	env    EnvironmentSettings
-	hooks  []WorkflowHook
+	hooks  []interface{}
 }
 
 // Run runs the daisy workflow with the supplied vars.
@@ -73,9 +85,12 @@ func (w *defaultDaisyWorker) Run(vars map[string]string) error {
 	if err := (&ApplyAndValidateVars{w.env, vars}).PreRunHook(w.wf); err != nil {
 		return err
 	}
-	for _, t := range w.hooks {
-		if err := t.PreRunHook(w.wf); err != nil {
-			return err
+	for _, hook := range w.hooks {
+		preHook, isPreHook := hook.(WorkflowPreHook)
+		if isPreHook {
+			if err := preHook.PreRunHook(w.wf); err != nil {
+				return err
+			}
 		}
 	}
 	err := RunWorkflowWithCancelSignal(context.Background(), w.wf)

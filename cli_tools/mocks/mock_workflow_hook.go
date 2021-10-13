@@ -12,31 +12,68 @@ import (
 	daisy "github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
-// MockWorkflowHook is a mock of WorkflowHook interface.
-type MockWorkflowHook struct {
+// MockWorkflowPreHook is a mock of WorkflowPreHook interface.
+type MockWorkflowPreHook struct {
 	ctrl     *gomock.Controller
-	recorder *MockWorkflowHookMockRecorder
+	recorder *MockWorkflowPreHookMockRecorder
 }
 
-// MockWorkflowHookMockRecorder is the mock recorder for MockWorkflowHook.
-type MockWorkflowHookMockRecorder struct {
-	mock *MockWorkflowHook
+// MockWorkflowPreHookMockRecorder is the mock recorder for MockWorkflowPreHook.
+type MockWorkflowPreHookMockRecorder struct {
+	mock *MockWorkflowPreHook
 }
 
-// NewMockWorkflowHook creates a new mock instance.
-func NewMockWorkflowHook(ctrl *gomock.Controller) *MockWorkflowHook {
-	mock := &MockWorkflowHook{ctrl: ctrl}
-	mock.recorder = &MockWorkflowHookMockRecorder{mock}
+// NewMockWorkflowPreHook creates a new mock instance.
+func NewMockWorkflowPreHook(ctrl *gomock.Controller) *MockWorkflowPreHook {
+	mock := &MockWorkflowPreHook{ctrl: ctrl}
+	mock.recorder = &MockWorkflowPreHookMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockWorkflowHook) EXPECT() *MockWorkflowHookMockRecorder {
+func (m *MockWorkflowPreHook) EXPECT() *MockWorkflowPreHookMockRecorder {
+	return m.recorder
+}
+
+// PreRunHook mocks base method.
+func (m *MockWorkflowPreHook) PreRunHook(wf *daisy.Workflow) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PreRunHook", wf)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PreRunHook indicates an expected call of PreRunHook.
+func (mr *MockWorkflowPreHookMockRecorder) PreRunHook(wf interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreRunHook", reflect.TypeOf((*MockWorkflowPreHook)(nil).PreRunHook), wf)
+}
+
+// MockWorkflowPostHook is a mock of WorkflowPostHook interface.
+type MockWorkflowPostHook struct {
+	ctrl     *gomock.Controller
+	recorder *MockWorkflowPostHookMockRecorder
+}
+
+// MockWorkflowPostHookMockRecorder is the mock recorder for MockWorkflowPostHook.
+type MockWorkflowPostHookMockRecorder struct {
+	mock *MockWorkflowPostHook
+}
+
+// NewMockWorkflowPostHook creates a new mock instance.
+func NewMockWorkflowPostHook(ctrl *gomock.Controller) *MockWorkflowPostHook {
+	mock := &MockWorkflowPostHook{ctrl: ctrl}
+	mock.recorder = &MockWorkflowPostHookMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockWorkflowPostHook) EXPECT() *MockWorkflowPostHookMockRecorder {
 	return m.recorder
 }
 
 // PostRunHook mocks base method.
-func (m *MockWorkflowHook) PostRunHook(err error) (bool, error) {
+func (m *MockWorkflowPostHook) PostRunHook(err error) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PostRunHook", err)
 	ret0, _ := ret[0].(bool)
@@ -45,21 +82,7 @@ func (m *MockWorkflowHook) PostRunHook(err error) (bool, error) {
 }
 
 // PostRunHook indicates an expected call of PostRunHook.
-func (mr *MockWorkflowHookMockRecorder) PostRunHook(err interface{}) *gomock.Call {
+func (mr *MockWorkflowPostHookMockRecorder) PostRunHook(err interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostRunHook", reflect.TypeOf((*MockWorkflowHook)(nil).PostRunHook), err)
-}
-
-// PreRunHook mocks base method.
-func (m *MockWorkflowHook) PreRunHook(wf *daisy.Workflow) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PreRunHook", wf)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// PreRunHook indicates an expected call of PreRunHook.
-func (mr *MockWorkflowHookMockRecorder) PreRunHook(wf interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreRunHook", reflect.TypeOf((*MockWorkflowHook)(nil).PreRunHook), wf)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostRunHook", reflect.TypeOf((*MockWorkflowPostHook)(nil).PostRunHook), err)
 }

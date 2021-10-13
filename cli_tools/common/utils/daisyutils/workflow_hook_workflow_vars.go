@@ -52,11 +52,6 @@ Loop:
 	return nil
 }
 
-// PostRunHook is a no-op for this class.
-func (t *ApplyAndValidateVars) PostRunHook(err error) (wantRetry bool, wrapped error) {
-	return false, nil
-}
-
 func (t *ApplyAndValidateVars) backfillVar(keyPattern *regexp.Regexp, val string, wf *daisy.Workflow) {
 	if val == "" {
 		return

@@ -21,10 +21,14 @@ import (
 // To rebuild the mock, run `go generate ./...`
 //go:generate go run github.com/golang/mock/mockgen -package mocks -source $GOFILE -destination ../../../mocks/mock_workflow_hook.go
 
-// WorkflowHook exposes hooks for before and after a workflow runs.
-type WorkflowHook interface {
+// WorkflowPreHook executes before the workflow runs.
+type WorkflowPreHook interface {
 	// PreRunHook allows a WorkflowHook to modify a workflow prior to running.
 	PreRunHook(wf *daisy.Workflow) error
+}
+
+// WorkflowPostHook executes after the workflow runs.
+type WorkflowPostHook interface {
 	// PostRunHook allows a WorkflowHook to inspect the workflow's run error, and optionally
 	// decide whether to retry the workflow, or to wrap the error to expose a more useful
 	// error message.

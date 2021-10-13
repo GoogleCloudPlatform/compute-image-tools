@@ -53,8 +53,3 @@ func (t *RemoveExternalIPHook) PreRunHook(wf *daisy.Workflow) error {
 	})
 	return nil
 }
-
-// PostRunHook is a no-op for this class.
-func (t *RemoveExternalIPHook) PostRunHook(err error) (wantRetry bool, wrapped error) {
-	return false, err
-}

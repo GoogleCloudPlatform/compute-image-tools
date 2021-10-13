@@ -41,8 +41,3 @@ func (t *ConfigureDaisyLogging) PreRunHook(wf *daisy.Workflow) error {
 	}
 	return nil
 }
-
-// PostRunHook is a no-op for this class.
-func (t *ConfigureDaisyLogging) PostRunHook(err error) (wantRetry bool, wrapped error) {
-	return false, err
-}

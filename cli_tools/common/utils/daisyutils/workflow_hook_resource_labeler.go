@@ -63,11 +63,6 @@ func (rl *ResourceLabeler) PreRunHook(wf *daisy.Workflow) error {
 	return nil
 }
 
-// PostRunHook is a no-op for this class.
-func (rl *ResourceLabeler) PostRunHook(err error) (wantRetry bool, wrapped error) {
-	return false, err
-}
-
 // LabelResources labels workflow resources temporary and permanent resources with appropriate
 // labels
 func (rl *ResourceLabeler) LabelResources(workflow *daisy.Workflow) {
