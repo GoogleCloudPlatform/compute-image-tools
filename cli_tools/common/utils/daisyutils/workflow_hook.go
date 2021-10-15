@@ -19,9 +19,18 @@ import (
 )
 
 // To rebuild the mock, run `go generate ./...`
-//go:generate go run github.com/golang/mock/mockgen -package mocks -source $GOFILE -destination ../../../mocks/mock_workflow_modifier.go
+//go:generate go run github.com/golang/mock/mockgen -package mocks -source $GOFILE -destination ../../../mocks/mock_workflow_hook.go
 
-// WorkflowModifier allows for modifying and validating a daisy workflow.
-type WorkflowModifier interface {
-	Modify(wf *daisy.Workflow) error
+// WorkflowPreHook executes before the workflow runs.
+type WorkflowPreHook interface {
+	// PreRunHook allows a WorkflowHook to modify a workflow prior to running.
+	PreRunHook(wf *daisy.Workflow) error
+}
+
+// WorkflowPostHook executes after the workflow runs.
+type WorkflowPostHook interface {
+	// PostRunHook allows a WorkflowHook to inspect the workflow's run error, and optionally
+	// decide whether to retry the workflow, or to wrap the error to expose a more useful
+	// error message.
+	PostRunHook(err error) (wantRetry bool, wrapped error)
 }

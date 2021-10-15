@@ -17,6 +17,8 @@ package daisyutils
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -137,7 +139,7 @@ func Test_ApplyEnvToWorkers_SetsNetworkAndAccounts(t *testing.T) {
 			for _, varname := range tt.declaredDaisyVars {
 				wf.AddVar(varname, "")
 			}
-			(&ApplyAndValidateVars{tt.env, tt.originalVars}).Modify(wf)
+			assert.NoError(t, (&ApplyAndValidateVars{tt.env, tt.originalVars}).PreRunHook(wf))
 			assertEqualWorkflowVars(t, wf, tt.expectedVars)
 		})
 	}

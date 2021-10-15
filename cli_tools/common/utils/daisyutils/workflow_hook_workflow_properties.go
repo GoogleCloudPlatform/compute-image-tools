@@ -18,15 +18,15 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
-// ApplyEnvToWorkflow is a WorkflowModifier that applies user-customizable values
+// ApplyEnvToWorkflow is a WorkflowHook that applies user-customizable values
 // to the top-level parent workflow.
 type ApplyEnvToWorkflow struct {
 	env EnvironmentSettings
 }
 
-// Modify updates properties on wf that correspond to user-specified values
+// PreRunHook updates properties on wf that correspond to user-specified values
 // such as project, zone, and scratch bucket path.
-func (t *ApplyEnvToWorkflow) Modify(wf *daisy.Workflow) error {
+func (t *ApplyEnvToWorkflow) PreRunHook(wf *daisy.Workflow) error {
 	set(t.env.Project, &wf.Project)
 	set(t.env.Zone, &wf.Zone)
 	set(t.env.GCSPath, &wf.GCSPath)

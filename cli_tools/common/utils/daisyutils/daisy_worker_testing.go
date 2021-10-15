@@ -30,10 +30,10 @@ func CheckEnvironment(worker DaisyWorker, check func(env EnvironmentSettings)) {
 
 // CheckResourceLabeler allows a test to check the fields on the resource labeler associated with a DaisyWorker.
 func CheckResourceLabeler(worker DaisyWorker, check func(rl *ResourceLabeler)) {
-	for _, modifier := range worker.(*defaultDaisyWorker).modifiers {
-		switch modifier.(type) {
+	for _, hook := range worker.(*defaultDaisyWorker).hooks {
+		switch hook.(type) {
 		case *ResourceLabeler:
-			check(modifier.(*ResourceLabeler))
+			check(hook.(*ResourceLabeler))
 			return
 		}
 	}
