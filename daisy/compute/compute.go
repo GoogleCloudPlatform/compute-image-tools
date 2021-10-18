@@ -1411,10 +1411,13 @@ func (c *client) ListSubnetworks(project, region string, opts ...ListCallOption)
 		for _, item := range nl.Items {
 			subnetComponents := strings.Split(item.Subnetwork, "/")
 			subnetName := subnetComponents[len(subnetComponents)-1]
-			subnet, err := c.raw.Subnetworks.Get(project, region, subnetName).Do()
-			ns = append(ns, subnet)
-			if err != nil {
-				return nil, err
+			regionName := subnetComponents[len(subnetComponents)-3]
+			if region != regionName {
+				subnet, err := c.raw.Subnetworks.Get(project, region, subnetName).Do()
+				ns = append(ns, subnet)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 		if nl.NextPageToken == "" {
