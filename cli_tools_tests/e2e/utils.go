@@ -26,7 +26,7 @@ import (
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
+	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 )
 
 // CLITestType defines which type of test is going to be executed
@@ -192,14 +192,25 @@ func RunTestCommandAsync(cmd string, args []string, logger *log.Logger, testCase
 
 // GcloudAuth runs "gcloud auth"
 func GcloudAuth(logger *log.Logger, testCase *junitxml.TestCase) bool {
-	// This file exists in test env. For local testing, download a creds file from project
-	// compute-image-tools-test.
-	credsPath := "/etc/compute-image-tools-test-service-account/creds.json"
-	cmd := "gcloud"
-	args := []string{"auth", "activate-service-account", "--key-file=" + credsPath}
-	if err := RunCliTool(logger, testCase, cmd, args); err != nil {
-		Failure(testCase, logger, fmt.Sprintf("Error running cmd: %v\n", err))
-		return false
+	// The environment variable `GOOGLE_APPLICATION_CREDENTIALS` is set by prow, in
+	// `test-infra/prow/config.yaml`.
+	credsPath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	gcloudHome := os.Getenv("CLOUDSDK_CONFIG")
+	if credsPath != "" {
+		logger.Printf("Configuring gcloud with the service account JSON file %s", credsPath)
+		cmd := "gcloud"
+		args := []string{"auth", "activate-service-account", "--key-file=" + credsPath}
+		if err := RunCliTool(logger, testCase, cmd, args); err != nil {
+			Failure(testCase, logger, fmt.Sprintf("Error running cmd: %v\n", err))
+			return false
+		}
+	} else if gcloudHome != "" {
+		logger.Printf("gcloud will use the credentials from the directory %s", gcloudHome)
+	} else {
+		logger.Printf("No credentials found for gcloud. If an authentication failure occurs, try setting "+
+			"one of these environment variables: GOOGLE_APPLICATION_CREDENTIALS, or CLOUDSDK_CONFIG. For more info "+
+			"on these variables, see %s and %s.", "https://cloud.google.com/docs/authentication/getting-started",
+			"https://cloud.google.com/sdk/docs/configurations")
 	}
 	return true
 }

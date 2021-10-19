@@ -26,7 +26,7 @@ RUN cd /build/cli_tools/gce_ovf_import && CGO_ENABLED=0 go build -o /gce_ovf_imp
 RUN chmod +x /gce_ovf_import
 
 # Build test container
-FROM gcr.io/$PROJECT_ID/wrapper-with-gcloud:latest
+FROM gcr.io/compute-image-tools-test/wrapper-with-gcloud:latest
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=0 /gce_ovf_import_test_runner gce_ovf_import_test_runner
