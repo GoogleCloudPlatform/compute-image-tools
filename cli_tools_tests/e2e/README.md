@@ -39,7 +39,7 @@ From the root of this repository, execute:
 ```shell
 gcloud auth login
 gcloud auth configure-docker
-docker build  -f gce_image_import_export_tests.Dockerfile  . -t e2e
+docker build -f gce_image_import_export_tests.Dockerfile . -t gce_image_import_export_tests
 ```
 
 Notes:
@@ -51,17 +51,18 @@ Use the same syntax to build other e2e Dockerfiles.
 
 ## Running
 
-Run e2e docker images using `docker run <tag name>`.
+Run e2e Docker images using `docker run <tag name>`.
 
 This example runs a subset of the tests from the image built in the prior step.
 
 ```shell
+export PROJECT=your-project
 gcloud auth application-default login
 docker run --env GOOGLE_APPLICATION_CREDENTIALS= \
            --env CLOUDSDK_CONFIG=/root/.config/gcloud \
            -v $HOME/.config/gcloud:/root/.config/gcloud \
            gce_image_import_export_tests \
-           -test_project_id compute-image-test-pool-001 \
+           -test_project_id $PROJECT \
            -test_zone us-central1-a \
            -test_suite_filter=^ImageImport$ \
            -test_case_filter=ubuntu
@@ -79,7 +80,10 @@ Notes:
    your own test project. This example uses the test pool, since the test suites assumes resources from that project
    will be present.
 4. `-test_suite_filter` and `-test_case_filter` are optional. These specify which tests to execute; if empty, all tests
-   are executed. See [launcher.go](../../go/e2e_test_utils/launcher.go) for the filter's implementation.
-
-Beyond these flags, some test suites have further customization via a `-variables` flag. Search for `-variables` in the
-[prow configuration](../../test-infra/prow/config.yaml) to see what's currently used.
+   are executed. See [launcher.go](../../go/e2e_test_utils/launcher.go) for the filter's implementation. To find values
+   for filtering, search for to `junitxml.NewTestSuite` and `junitxml.NewTestCase`. 
+5. The example uses your test project. You may find that thet tests depend on resources that were manually created in
+   the project `compute-image-test-pool-001`. If so, you'll need to re-create those resources in your test project. 
+   
+Beyond these flags, some test suites have further customization via a `-variables` flag. Search for `-variables` in
+the [prow configuration](../../test-infra/prow/config.yaml) to see what's currently used.
