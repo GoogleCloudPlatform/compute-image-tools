@@ -27,7 +27,12 @@ gce_ovf_import_tests.Dockerfile
 gce_windows_upgrade_tests.Dockerfile
 ```
 
-## Building
+## Quick Run
+
+To run e2e tests, we recommend using the script `run_e2e.sh` from the root of this repository.
+The header of that file contains usage information.
+
+## Details about building
 
 Build e2e Dockerfiles using `docker build -f <docker file name>`.
 
@@ -49,7 +54,7 @@ Notes:
 
 Use the same syntax to build other e2e Dockerfiles.
 
-## Running
+## Details about running
 
 Run e2e Docker images using `docker run <tag name>`.
 
