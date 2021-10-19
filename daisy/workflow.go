@@ -414,7 +414,7 @@ func (w *Workflow) PopulateClients(ctx context.Context, options ...option.Client
 		}
 	}
 
-	if w.externalLogging && w.cloudLoggingClient == nil {
+	if w.externalLogging && !w.cloudLoggingDisabled && w.cloudLoggingClient == nil {
 		w.cloudLoggingClient, err = logging.NewClient(ctx, w.Project, loggingOptions...)
 		if err != nil {
 			return err

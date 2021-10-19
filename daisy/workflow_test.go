@@ -1137,6 +1137,13 @@ func TestPopulateClients(t *testing.T) {
 		t.Errorf("Did not populate Cloud Logging client.")
 	}
 
+	w.cloudLoggingClient = nil
+	w.DisableCloudLogging()
+	tryPopulateClients(t, w)
+	if w.cloudLoggingClient != nil {
+		t.Errorf("Cloud Logging client populated when Cloud Logging is disabled.")
+	}
+
 	w.ComputeClient = nil
 	tryPopulateClients(t, w, option.WithEndpoint("test.com"))
 	if w.ComputeClient.BasePath() != "test.com" {
