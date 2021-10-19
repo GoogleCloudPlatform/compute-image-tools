@@ -980,9 +980,13 @@ func TestPrint(t *testing.T) {
 }
 
 func testValidateErrors(w *Workflow, want string) error {
+	wantRegex, err := regexp.Compile(want)
+	if err != nil {
+		return fmt.Errorf("did not expect regexp.Compile(%s) to return error: %s", want, err.Error())
+	}
 	if err := w.Validate(context.Background()); err == nil {
 		return errors.New("expected error, got nil")
-	} else if err.Error() != want {
+	} else if !wantRegex.MatchString(err.Error()) {
 		return fmt.Errorf("did not get expected error from Validate():\ngot: %q\nwant: %q", err.Error(), want)
 	}
 	select {
@@ -1005,7 +1009,7 @@ func TestValidateErrors(t *testing.T) {
 	// Error from populate().
 	w = testWorkflow()
 	w.Steps = map[string]*Step{"s0": {Timeout: "10", testType: &mockStep{}}}
-	want = "error populating workflow: error populating step \"s0\": time: missing unit in duration \"10\""
+	want = "error populating workflow: error populating step \"?s0\"?: time: missing unit in duration \"?10\"?"
 	if err := testValidateErrors(w, want); err != nil {
 		t.Error(err)
 	}
@@ -1014,7 +1018,7 @@ func TestValidateErrors(t *testing.T) {
 	w = testWorkflow()
 	w.Steps = map[string]*Step{"s0": {testType: &mockStep{}}}
 	w.Project = "foo"
-	want = "error validating workflow: bad project lookup: \"foo\", error: APIError: bad project"
+	want = "error validating workflow: bad project lookup: \"?foo\"?, error: APIError: bad project"
 	if err := testValidateErrors(w, want); err != nil {
 		t.Error(err)
 	}
