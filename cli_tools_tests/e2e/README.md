@@ -11,7 +11,7 @@ gce_ovf_import
 gce_windows_upgrade
 ```
 
-We build, deploy, and invoke the e2e tests using docker images, with one image per test suite. The docker image
+We build, deploy, and invoke the e2e tests using Docker images, with one image per test suite. The Docker image
 contains:
 
 1. Tests, as a compiled go binary
