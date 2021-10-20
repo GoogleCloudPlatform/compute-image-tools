@@ -55,11 +55,17 @@ EOF
 
 cd "$(dirname "$0")"
 
+#
+# Create log directory.
+#
+print_header "Initializing logs directory"
 LOGS_DIR=$(mktemp -d)
+printf "Created %s\n\n" "$LOGS_DIR"
 
 #
-# Initialize and validate ZONE, PROJECT, and DOCKER_FILE.
+# Validate ZONE, PROJECT, and DOCKER_FILE.
 #
+print_header "Checking Environment"
 ZONE=$(gcloud config get-value compute/zone | tr -d '\n')
 if [ -z "$ZONE" ]; then
   echo "Set zone with 'gcloud config set compute/zone <value>'"
@@ -100,34 +106,18 @@ fi
 echo " .. done"
 
 #
-# Authenticate to gcloud
-#
-echo "Checking for credentials that will be used when building docker"
-if ! gcloud auth print-access-token >/dev/null 2>&1; then
-  if ! gcloud auth login >"$LOGS_DIR/gcloud-auth-login.log" 2>&1; then
-    echo "failed to execute the command 'gcloud auth login'. Run the command manually and then re-run this script."
-    exit 1
-  fi
-fi
-echo " .. done"
-
-echo "Checking for credentials that will be used when running docker (may require a few seconds)"
-if ! gcloud auth application-default print-access-token >/dev/null 2>&1; then
-  if ! gcloud auth application-default login >"$LOGS_DIR/gcloud-application-default-login.log" 2>&1; then
-    echo "failed to execute the command 'gcloud auth application-default login'. Run the command manually and then re-run this script."
-    exit 1
-  fi
-fi
-echo " .. done"
-
-#
 # Run test suite using Docker.
 #
 cat <<EOF
-Environment:
+Starting tests. Environment:
   project=$PROJECT
   zone=$ZONE
   logs=$LOGS_DIR
+If there are authentication errors, run:
+  gcloud auth login \\
+   && gcloud auth configure-docker \\
+   && gcloud auth application-default login
+
 EOF
 set -e
 print_header "Building tests"
