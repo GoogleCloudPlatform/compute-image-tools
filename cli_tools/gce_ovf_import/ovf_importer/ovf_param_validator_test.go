@@ -619,6 +619,7 @@ func getAllInstanceImportParams() *domain.OVFImportParams {
 		DeletionProtection:          true,
 		Description:                 "aDescription",
 		Labels:                      "userkey1=uservalue1,userkey2=uservalue2",
+		UserLabels:                  map[string]string{"userkey1": "uservalue1", "userkey2": "uservalue2"},
 		MachineType:                 "n1-standard-2",
 		Network:                     "aNetwork",
 		Subnet:                      "aSubnet",
