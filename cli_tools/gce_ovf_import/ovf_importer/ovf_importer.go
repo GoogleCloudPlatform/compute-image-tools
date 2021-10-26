@@ -330,7 +330,6 @@ func (oi *OVFImporter) setUpImportWorkflow() (workflow *daisy.Workflow, err erro
 	}
 	workflow.ForceCleanupOnError = true
 
-	workflow.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
 	// See workflows in `ovfWorkflowDir` for variable name declaration.
 	createInstanceStepName := "create-instance"
 	cleanupStepName := "cleanup"
@@ -354,25 +353,6 @@ func (oi *OVFImporter) setUpImportWorkflow() (workflow *daisy.Workflow, err erro
 		oi.updateMachineImage(workflow)
 	}
 
-	rl := &daisyutils.ResourceLabeler{
-		BuildID:         oi.params.BuildID,
-		UserLabels:      oi.params.UserLabels,
-		BuildIDLabelKey: "gce-ovf-import-build-id",
-		ImageLocation:   oi.imageLocation,
-		InstanceLabelKeyRetriever: func(instanceName string) string {
-			if strings.ToLower(oi.params.InstanceNames) == instanceName {
-				return "gce-ovf-import"
-			}
-			return "gce-ovf-import-tmp"
-		},
-		DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
-			return "gce-ovf-import-tmp"
-		},
-		ImageLabelKeyRetriever: func(imageName string) string {
-			return "gce-ovf-import-tmp"
-		}}
-	rl.LabelResources(workflow)
-	daisyutils.UpdateAllInstanceNoExternalIP(workflow, oi.params.NoExternalIP)
 	if oi.params.UefiCompatible {
 		daisyutils.UpdateToUEFICompatible(workflow)
 	}
@@ -386,28 +366,43 @@ func (oi *OVFImporter) Import() error {
 	if err := oi.paramValidator.ValidateAndPopulate(oi.params); err != nil {
 		return err
 	}
-	w, err := oi.setUpImportWorkflow()
-
+	worker, err := oi.setupWorker()
 	if err != nil {
 		oi.Logger.User(err.Error())
 		return err
 	}
-
-	go oi.handleTimeout(w)
-
-	if err := w.Run(oi.ctx); err != nil {
+	if err := worker.Run(map[string]string{}); err != nil {
 		oi.Logger.User(err.Error())
-		daisyutils.PostProcessDErrorForNetworkFlag("instance import", err, oi.params.Network, w)
 		return err
 	}
 	oi.Logger.User("OVF import workflow finished successfully.")
 	return nil
 }
 
-func (oi *OVFImporter) handleTimeout(w *daisy.Workflow) {
-	time.Sleep(oi.params.Deadline.Sub(time.Now()))
-	oi.Logger.User(fmt.Sprintf("Timeout %v exceeded, stopping workflow %q", oi.params.Timeout, w.Name))
-	w.CancelWithReason("timed-out")
+func (oi *OVFImporter) setupWorker() (daisyutils.DaisyWorker, error) {
+	w, err := oi.setUpImportWorkflow()
+	if err != nil {
+		oi.Logger.User(err.Error())
+		return nil, err
+	}
+	return daisyutils.NewDaisyWorker(w, oi.params.EnvironmentSettings(), oi.Logger,
+		&daisyutils.ResourceLabeler{
+			BuildID:         oi.params.BuildID,
+			UserLabels:      oi.params.UserLabels,
+			BuildIDLabelKey: "gce-ovf-import-build-id",
+			ImageLocation:   oi.imageLocation,
+			InstanceLabelKeyRetriever: func(instanceName string) string {
+				if strings.ToLower(oi.params.InstanceNames) == instanceName {
+					return "gce-ovf-import"
+				}
+				return "gce-ovf-import-tmp"
+			},
+			DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
+				return "gce-ovf-import-tmp"
+			},
+			ImageLabelKeyRetriever: func(imageName string) string {
+				return "gce-ovf-import-tmp"
+			}}), nil
 }
 
 // CleanUp performs clean up of any temporary resources or connections used for OVF import

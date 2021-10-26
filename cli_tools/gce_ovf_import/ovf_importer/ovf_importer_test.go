@@ -20,13 +20,13 @@ import (
 	"errors"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/vmware/govmomi/ovf"
 	"google.golang.org/api/compute/v1"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
@@ -76,9 +76,11 @@ func TestSetupWorkflow_WithUserSpecifiedMachineType(t *testing.T) {
 				expectImportToRun:   true,
 			}
 			descriptor := createOVFDescriptor(testCase.descriptorFilenames)
-			w, err := setupMocksAndRun(t, params, mode.wfPath, descriptor, testCase)
+			worker, err := setupMocksAndRun(t, params, mode.wfPath, descriptor, testCase)
 			assert.NoError(t, err)
-			assertMachineType(t, w, "e2-small2")
+			daisyutils.CheckWorkflow(worker, func(wf *daisy.Workflow) {
+				assertMachineType(t, wf, "e2-small2")
+			})
 		})
 	}
 }
@@ -96,9 +98,11 @@ func TestSetupWorkflow_WithMachineTypeInference(t *testing.T) {
 				expectImportToRun:   true,
 			}
 			descriptor := createOVFDescriptor(testCase.descriptorFilenames)
-			w, err := setupMocksAndRun(t, params, mode.wfPath, descriptor, testCase)
+			worker, err := setupMocksAndRun(t, params, mode.wfPath, descriptor, testCase)
 			assert.NoError(t, err)
-			assertMachineType(t, w, "n1-highcpu-16")
+			daisyutils.CheckWorkflow(worker, func(w *daisy.Workflow) {
+				assertMachineType(t, w, "n1-highcpu-16")
+			})
 		})
 	}
 }
@@ -407,27 +411,7 @@ func TestToWorkingDir(t *testing.T) {
 	}
 }
 
-func TestHandleTimeoutSuccess(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockLogger := mocks.NewMockLogger(mockCtrl)
-	mockLogger.EXPECT().User("Timeout 0s exceeded, stopping workflow \"wf\"")
-
-	params := getAllInstanceImportParams()
-	params.Timeout = "0s"
-	params.Deadline = time.Now()
-
-	oi := OVFImporter{Logger: mockLogger, params: params}
-	w := daisy.New()
-	w.Name = "wf"
-	oi.handleTimeout(w)
-
-	_, channelOpen := <-w.Cancel
-	assert.False(t, channelOpen, "w.Cancel should be closed on timeout")
-}
-
-func runImportAndVerify(t *testing.T, params *domain.OVFImportParams, mode *importTarget) *daisy.Workflow {
+func runImportAndVerify(t *testing.T, params *domain.OVFImportParams, mode *importTarget) {
 	testCase := mockConfiguration{
 		descriptorFilenames: []string{
 			"Ubuntu_for_Horizon71_1_1.0-disk1.vmdk",
@@ -449,103 +433,100 @@ func runImportAndVerify(t *testing.T, params *domain.OVFImportParams, mode *impo
 	}
 
 	descriptor := createOVFDescriptor(testCase.descriptorFilenames)
-	w, err := setupMocksAndRun(t, params, mode.wfPath, descriptor, testCase)
+	worker, err := setupMocksAndRun(t, params, mode.wfPath, descriptor, testCase)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Workflow validation
-	assert.Equal(t, *params.Project, w.Project)
-	assert.Equal(t, params.Timeout, w.DefaultTimeout)
-	assert.Equal(t, params.Zone, w.Zone)
-	assert.Equal(t, params.Oauth, w.OAuthPath)
-	assert.Equal(t, params.Ce, w.ComputeEndpoint)
-	assert.Equal(t, params.ScratchBucketGcsPath, w.GCSPath)
-	if mode == gmiMode {
-		// Creating the machine image adds two steps:
-		//  1. Stop the instance
-		//  2. Create the GMI
-		//
-		// (It also updates the cleanup step to delete the instance.)
-		assert.Len(t, w.Steps, 4)
-	} else {
-		assert.Len(t, w.Steps, 2)
-	}
-	assert.Len(t, w.Steps["create-instance"].CreateInstances.Instances, 1, "Expect one instance created")
-	if mode == gmiMode {
-		assert.Len(t, *w.Steps["create-machine-image"].CreateMachineImages, 1, "Expect one GMI created")
-	}
+	daisyutils.CheckEnvironment(worker, func(env daisyutils.EnvironmentSettings) {
+		assert.Equal(t, params.NoExternalIP, env.NoExternalIP)
+	})
+	daisyutils.CheckResourceLabeler(worker, func(rl *daisyutils.ResourceLabeler) {
+		assert.Equal(t, params.BuildID, rl.BuildID)
+		assert.Equal(t, params.UserLabels, rl.UserLabels)
+		assert.Equal(t, "gce-ovf-import-build-id", rl.BuildIDLabelKey)
+		assert.Equal(t, params.Region, rl.ImageLocation)
+		assert.Equal(t, "gce-ovf-import", rl.InstanceLabelKeyRetriever(params.InstanceNames))
+		assert.Equal(t, "gce-ovf-import-tmp", rl.DiskLabelKeyRetriever(nil))
+		assert.Equal(t, "gce-ovf-import-tmp", rl.ImageLabelKeyRetriever("imgname"))
+	})
+	daisyutils.CheckWorkflow(worker, func(w *daisy.Workflow) {
+		// Workflow validation
+		assert.Equal(t, *params.Project, w.Project)
+		assert.Equal(t, params.Timeout, w.DefaultTimeout)
+		assert.Equal(t, params.Zone, w.Zone)
+		assert.Equal(t, params.Oauth, w.OAuthPath)
+		assert.Equal(t, params.Ce, w.ComputeEndpoint)
+		assert.Equal(t, params.ScratchBucketGcsPath, w.GCSPath)
+		if mode == gmiMode {
+			// Creating the machine image adds two steps:
+			//  1. Stop the instance
+			//  2. Create the GMI
+			//
+			// (It also updates the cleanup step to delete the instance.)
+			assert.Len(t, w.Steps, 4)
+		} else {
+			assert.Len(t, w.Steps, 2)
+		}
+		assert.Len(t, w.Steps["create-instance"].CreateInstances.Instances, 1, "Expect one instance created")
+		if mode == gmiMode {
+			assert.Len(t, *w.Steps["create-machine-image"].CreateMachineImages, 1, "Expect one GMI created")
+		}
 
-	instance := w.Steps["create-instance"].CreateInstances.Instances[0]
-	cleanup := w.Steps["cleanup"].DeleteResources
+		instance := w.Steps["create-instance"].CreateInstances.Instances[0]
+		cleanup := w.Steps["cleanup"].DeleteResources
 
-	// Boot Disk
-	bootDisk := instance.Disks[0]
-	checkDaisyVariable(t, w, "boot_disk_image_uri", testCase.imageURIs[0], bootDisk.InitializeParams.SourceImage)
-	assert.True(t, bootDisk.AutoDelete, "Delete boot disk when instance is deleted.")
-	assert.True(t, bootDisk.Boot, "Boot disk is configured to boot.")
-	assert.Contains(t, cleanup.Images, "${boot_disk_image_uri}", "Delete the boot disk image after instance creation.")
+		// Boot Disk
+		bootDisk := instance.Disks[0]
+		checkDaisyVariable(t, w, "boot_disk_image_uri", testCase.imageURIs[0], bootDisk.InitializeParams.SourceImage)
+		assert.True(t, bootDisk.AutoDelete, "Delete boot disk when instance is deleted.")
+		assert.True(t, bootDisk.Boot, "Boot disk is configured to boot.")
+		assert.Contains(t, cleanup.Images, "${boot_disk_image_uri}", "Delete the boot disk image after instance creation.")
 
-	// Data Disks
-	assert.Len(t, instance.Disks, len(descriptor.Disk.Disks))
-	assert.Len(t, cleanup.Images, len(testCase.imageURIs))
-	for i, diskURI := range testCase.imageURIs[1:] {
-		dataDisk := instance.Disks[i+1]
-		assert.Equal(t, diskURI, dataDisk.InitializeParams.SourceImage, "Include data disk on final instance.")
-		assert.Regexp(t, "^[a-z].*", dataDisk.InitializeParams.DiskName, "Disk name should start with letter.")
-		assert.True(t, dataDisk.AutoDelete, "Delete the disk when the instance is deleted.")
-		assert.False(t, dataDisk.Boot, "Data disk are not configured to boot.")
-		assert.Contains(t, cleanup.Images, testCase.imageURIs[i+1], "Delete the data disk image after instance creation.")
-	}
+		// Data Disks
+		assert.Len(t, instance.Disks, len(descriptor.Disk.Disks))
+		assert.Len(t, cleanup.Images, len(testCase.imageURIs))
+		for i, diskURI := range testCase.imageURIs[1:] {
+			dataDisk := instance.Disks[i+1]
+			assert.Equal(t, diskURI, dataDisk.InitializeParams.SourceImage, "Include data disk on final instance.")
+			assert.Regexp(t, "^[a-z].*", dataDisk.InitializeParams.DiskName, "Disk name should start with letter.")
+			assert.True(t, dataDisk.AutoDelete, "Delete the disk when the instance is deleted.")
+			assert.False(t, dataDisk.Boot, "Data disk are not configured to boot.")
+			assert.Contains(t, cleanup.Images, testCase.imageURIs[i+1], "Delete the data disk image after instance creation.")
+		}
 
-	// Instance
-	assert.Equal(t, params.CanIPForward, instance.CanIpForward)
-	assert.Equal(t, params.DeletionProtection, instance.DeletionProtection)
-	if params.NoRestartOnFailure {
-		assert.False(t, *instance.Scheduling.AutomaticRestart)
-	} else {
-		assert.Nil(t, instance.Scheduling.AutomaticRestart)
-	}
-	assert.Equal(t, params.NodeAffinities, instance.Scheduling.NodeAffinities)
-	assert.Equal(t, params.Hostname, instance.Hostname)
-	checkDaisyVariable(t, w, "description", params.Description, instance.Description)
-	checkDaisyVariable(t, w, "machine_type", params.MachineType, instance.MachineType)
-	assert.True(t, instance.ExactName, "Use the instance name provided by the user.")
-	assert.True(t, instance.NoCleanup, "Retain the instance after daisy runs.")
-	expectedLabels := map[string]string{
-		"gce-ovf-import-build-id": params.BuildID,
-		"gce-ovf-import-tmp":      "true",
-	}
-	for k, v := range params.UserLabels {
-		expectedLabels[k] = v
-	}
-	assert.Equal(t, expectedLabels, instance.Labels)
+		// Instance
+		assert.Equal(t, params.CanIPForward, instance.CanIpForward)
+		assert.Equal(t, params.DeletionProtection, instance.DeletionProtection)
+		if params.NoRestartOnFailure {
+			assert.False(t, *instance.Scheduling.AutomaticRestart)
+		} else {
+			assert.Nil(t, instance.Scheduling.AutomaticRestart)
+		}
+		assert.Equal(t, params.NodeAffinities, instance.Scheduling.NodeAffinities)
+		assert.Equal(t, params.Hostname, instance.Hostname)
+		checkDaisyVariable(t, w, "description", params.Description, instance.Description)
+		checkDaisyVariable(t, w, "machine_type", params.MachineType, instance.MachineType)
+		assert.True(t, instance.ExactName, "Use the instance name provided by the user.")
+		assert.True(t, instance.NoCleanup, "Retain the instance after daisy runs.")
 
-	// Network
-	assert.Len(t, instance.NetworkInterfaces, 1, "Expect one network to be created")
-	networkInterface := instance.NetworkInterfaces[0]
-	checkDaisyVariable(t, w, "network", params.Network, networkInterface.Network)
-	checkDaisyVariable(t, w, "subnet", params.Subnet, networkInterface.Subnetwork)
-	checkDaisyVariable(t, w, "private_network_ip", params.PrivateNetworkIP, networkInterface.NetworkIP)
-	if params.NoExternalIP {
-		assert.Len(t, networkInterface.AccessConfigs, 0, "No access config when disabling external IP")
-	} else {
-		assert.Len(t, networkInterface.AccessConfigs, 1, "Expect one access config to create external IP")
-		accessConfig := networkInterface.AccessConfigs[0]
-		checkDaisyVariable(t, w, "network_tier", params.NetworkTier, accessConfig.NetworkTier)
-	}
+		// Network
+		assert.Len(t, instance.NetworkInterfaces, 1, "Expect one network to be created")
+		networkInterface := instance.NetworkInterfaces[0]
+		checkDaisyVariable(t, w, "network", params.Network, networkInterface.Network)
+		checkDaisyVariable(t, w, "subnet", params.Subnet, networkInterface.Subnetwork)
+		checkDaisyVariable(t, w, "private_network_ip", params.PrivateNetworkIP, networkInterface.NetworkIP)
 
-	// Cleanup
-	if mode == gmiMode {
-		machineImage := []*daisy.MachineImage(*w.Steps["create-machine-image"].CreateMachineImages)[0]
-		checkDaisyVariable(t, w, "machine_image_name", params.MachineImageName, machineImage.Name)
-		assert.Equal(t, instance.Name, machineImage.SourceInstance)
-		checkDaisyVariable(t, w, "description", params.Description, machineImage.Description)
-		assert.True(t, machineImage.ExactName)
-		assert.True(t, machineImage.NoCleanup)
-		assert.Equal(t, []string{instance.Name}, cleanup.Instances)
-	}
-
-	return w
+		// Cleanup
+		if mode == gmiMode {
+			machineImage := []*daisy.MachineImage(*w.Steps["create-machine-image"].CreateMachineImages)[0]
+			checkDaisyVariable(t, w, "machine_image_name", params.MachineImageName, machineImage.Name)
+			assert.Equal(t, instance.Name, machineImage.SourceInstance)
+			checkDaisyVariable(t, w, "description", params.Description, machineImage.Description)
+			assert.True(t, machineImage.ExactName)
+			assert.True(t, machineImage.NoCleanup)
+			assert.Equal(t, []string{instance.Name}, cleanup.Instances)
+		}
+	})
 }
 
 // checkDaisyVariable ensures that a variable is declared, the desired value is injected, and that it's
@@ -563,7 +544,7 @@ type mockConfiguration struct {
 	imageURIs           []string
 }
 
-func setupMocksAndRun(t *testing.T, params *domain.OVFImportParams, wfPath string, descriptor *ovf.Envelope, mockConfig mockConfiguration) (*daisy.Workflow, error) {
+func setupMocksAndRun(t *testing.T, params *domain.OVFImportParams, wfPath string, descriptor *ovf.Envelope, mockConfig mockConfiguration) (daisyutils.DaisyWorker, error) {
 	expectedParams := *params
 	expectedParams.OsID = mockConfig.expectedOS
 	expectedParams.Deadline = params.Deadline.Add(-1 * instanceConstructionTime)
@@ -592,9 +573,7 @@ func setupMocksAndRun(t *testing.T, params *domain.OVFImportParams, wfPath strin
 		storageClient: mockStorageClient, computeClient: mockComputeClient,
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
 		Logger: logging.NewToolLogger("test"), params: params}
-	w, err := oi.setUpImportWorkflow()
-
-	return w, err
+	return oi.setupWorker()
 }
 
 func createControllerItem(instanceID string, resourceType uint16) ovf.ResourceAllocationSettingData {
