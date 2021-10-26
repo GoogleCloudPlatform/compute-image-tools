@@ -47,7 +47,6 @@
         "Type": "pd-ssd",
         "ExactName": true,
         "SourceImage": "${source_image}",
-        "FallbackToPdStandard": true,
         "Licenses": ["projects/compute-image-tools/global/licenses/virtual-disk-import"]
       }]
     },

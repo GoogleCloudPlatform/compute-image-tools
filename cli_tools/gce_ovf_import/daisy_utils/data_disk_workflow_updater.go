@@ -70,16 +70,14 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 					SourceImage: "projects/compute-image-tools/global/images/family/debian-9-worker",
 					Type:        "pd-ssd",
 				},
-				SizeGb:               gceMinimumDiskSizeGB,
-				FallbackToPdStandard: true,
+				SizeGb: gceMinimumDiskSizeGB,
 			},
 			{
 				Disk: compute.Disk{
 					Name: diskNames[i],
 					Type: "pd-ssd",
 				},
-				SizeGb:               gceMinimumDiskSizeGB,
-				FallbackToPdStandard: true,
+				SizeGb: gceMinimumDiskSizeGB,
 				Resource: daisy.Resource{
 					ExactName: true,
 					NoCleanup: true,
@@ -90,8 +88,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 					Name: scratchDiskDiskName,
 					Type: "pd-ssd",
 				},
-				SizeGb:               gceMinimumDiskSizeGB,
-				FallbackToPdStandard: true,
+				SizeGb: gceMinimumDiskSizeGB,
 				Resource: daisy.Resource{
 					ExactName: true,
 				},

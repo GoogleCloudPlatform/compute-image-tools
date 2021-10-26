@@ -50,8 +50,7 @@
           "Name": "disk-translator",
           "SourceImage": "projects/freebsd-org-cloud-dev/global/images/family/freebsd-11-2",
           "SizeGb": "32",
-          "Type": "pd-ssd",
-          "FallbackToPdStandard": true
+          "Type": "pd-ssd"
         }
       ]
     },
