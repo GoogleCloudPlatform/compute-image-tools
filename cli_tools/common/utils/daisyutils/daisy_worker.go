@@ -15,8 +15,9 @@
 package daisyutils
 
 import (
-	"context"
+	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/assert"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
@@ -34,12 +35,15 @@ type DaisyWorker interface {
 	Cancel(reason string) bool
 }
 
+// WorkflowProvider should return a new instance of a daisy workflow every time it is called.
+type WorkflowProvider func() (*daisy.Workflow, error)
+
 // NewDaisyWorker returns an implementation of DaisyWorker. The returned value is
 // designed to be run once and discarded. In other words, don't run the same instance twice.
 //
 // hooks contains additional WorkflowPreHook or WorkflowPostHook instances. If hooks doesn't
 // include a resource labeler, one will be created.
-func NewDaisyWorker(wf *daisy.Workflow, env EnvironmentSettings,
+func NewDaisyWorker(wf WorkflowProvider, env EnvironmentSettings,
 	logger logging.Logger, hooks ...interface{}) DaisyWorker {
 	hooks = append(createResourceLabelerIfMissing(env, hooks), &ApplyEnvToWorkflow{env}, &ConfigureDaisyLogging{env})
 	if env.NoExternalIP {
@@ -55,7 +59,7 @@ func NewDaisyWorker(wf *daisy.Workflow, env EnvironmentSettings,
 			panic(fmt.Sprintf("%T must implement WorkflowPreHook and/or WorkflowPostHook", hook))
 		}
 	}
-	return &defaultDaisyWorker{wf: wf, env: env, logger: logger, hooks: hooks}
+	return &defaultDaisyWorker{workflowProvider: wf, cancel: make(chan string, 1), env: env, logger: logger, hooks: hooks}
 }
 
 // createResourceLabelerIfMissing checks whether there is a resource labeler in hook.
@@ -74,35 +78,93 @@ func createResourceLabelerIfMissing(env EnvironmentSettings, hooks []interface{}
 }
 
 type defaultDaisyWorker struct {
-	wf     *daisy.Workflow
-	logger logging.Logger
-	env    EnvironmentSettings
-	hooks  []interface{}
+	workflowProvider WorkflowProvider
+	finished         *daisy.Workflow
+	logger           logging.Logger
+	env              EnvironmentSettings
+	hooks            []interface{}
+
+	cancel      chan string
+	cancelGuard sync.Once
 }
 
 // Run runs the daisy workflow with the supplied vars.
-func (w *defaultDaisyWorker) Run(vars map[string]string) error {
-	if err := (&ApplyAndValidateVars{w.env, vars}).PreRunHook(w.wf); err != nil {
-		return err
+func (w *defaultDaisyWorker) Run(vars map[string]string) (err error) {
+	var wf *daisy.Workflow
+	for attempts := 0; attempts <= 1; attempts++ {
+		if wf, err = w.workflowProvider(); err != nil {
+			break
+		}
+		if err = w.checkIfCancelled(wf); err != nil {
+			break
+		}
+		var retryRequested bool
+		retryRequested, err = w.runOnce(wf, vars)
+		if err == nil || !retryRequested {
+			break
+		}
+		w.logger.Debug("Retry requested. err=" + err.Error())
+	}
+	w.finished = wf
+	return err
+}
+
+// checkIfCancelled determines whether the workflow has been cancelled internally,
+// or whether a client of DaisyWorker has called cancel. If so, then a non-nil
+// error is returned describing the cancellation.
+func (w *defaultDaisyWorker) checkIfCancelled(wf *daisy.Workflow) (err error) {
+	canceled := false
+	reason := ""
+	select {
+	case reason = <-w.cancel:
+		canceled = true
+	case <-wf.Cancel:
+		canceled = true
+	default:
+		break
+	}
+	if canceled {
+		msg := "workflow canceled"
+		if reason != "" {
+			msg = fmt.Sprintf("%s: %s", msg, reason)
+		}
+		err = errors.New(msg)
+	}
+	return err
+}
+
+// runOnce applies vars to the workflow, runs hooks, and runs the workflow. The retry
+// return value indicates whether a hook has requested a retry.
+func (w *defaultDaisyWorker) runOnce(wf *daisy.Workflow, vars map[string]string) (retry bool, err error) {
+	if err := (&ApplyAndValidateVars{w.env, vars}).PreRunHook(wf); err != nil {
+		return false, err
 	}
 	for _, hook := range w.hooks {
 		preHook, isPreHook := hook.(WorkflowPreHook)
 		if isPreHook {
-			if err := preHook.PreRunHook(w.wf); err != nil {
-				return err
+			if err := preHook.PreRunHook(wf); err != nil {
+				return false, err
 			}
 		}
 	}
-	err := RunWorkflowWithCancelSignal(context.Background(), w.wf)
-	if w.wf.Logger != nil {
-		for _, trace := range w.wf.Logger.ReadSerialPortLogs() {
+	err = RunWorkflowWithCancelSignal(wf, w.cancel)
+	if wf.Logger != nil {
+		for _, trace := range wf.Logger.ReadSerialPortLogs() {
 			w.logger.Trace(trace)
 		}
 	}
 	if err != nil {
-		PostProcessDErrorForNetworkFlag(w.env.Tool.HumanReadableName, err, w.env.Network, w.wf)
+		PostProcessDErrorForNetworkFlag(w.env.Tool.HumanReadableName, err, w.env.Network, wf)
+		for _, hook := range w.hooks {
+			preHook, isPreHook := hook.(WorkflowPostHook)
+			if isPreHook {
+				wantRetry := false
+				wantRetry, err = preHook.PostRunHook(err)
+				retry = retry || wantRetry
+			}
+		}
 	}
-	return err
+	return retry, err
 }
 
 // RunAndReadSerialValue runs the daisy workflow with the supplied vars, and returns the serial
@@ -117,18 +179,22 @@ func (w *defaultDaisyWorker) RunAndReadSerialValue(key string, vars map[string]s
 func (w *defaultDaisyWorker) RunAndReadSerialValues(vars map[string]string, keys ...string) (map[string]string, error) {
 	err := w.Run(vars)
 	m := map[string]string{}
-	for _, key := range keys {
-		m[key] = w.wf.GetSerialConsoleOutputValue(key)
+	if w.finished != nil {
+		for _, key := range keys {
+			m[key] = w.finished.GetSerialConsoleOutputValue(key)
+		}
 	}
 	return m, err
 }
 
 func (w *defaultDaisyWorker) Cancel(reason string) bool {
-	if w.wf != nil {
-		w.wf.CancelWithReason(reason)
-		return true
-	}
-
-	//indicate cancel was not performed
-	return false
+	// do-once is required to ensure that additional calls
+	// to Cancel won't write to a closed channel.
+	w.cancelGuard.Do(
+		func() {
+			w.cancel <- reason
+			close(w.cancel)
+		},
+	)
+	return true
 }

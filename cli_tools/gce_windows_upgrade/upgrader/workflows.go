@@ -502,9 +502,13 @@ func (u *upgrader) getOriginalStartupScriptURL() string {
 }
 
 func (u *upgrader) runWorkflowWithSteps(workflowName string, timeout string, populateStepsFunc func(*upgrader, *daisy.Workflow) error) (*daisy.Workflow, error) {
-	w, err := u.generateWorkflowWithSteps(workflowName, timeout, populateStepsFunc)
-	if err != nil {
-		return w, err
+
+	var wf *daisy.Workflow
+
+	workflowProvider := func() (*daisy.Workflow, error) {
+		var err error
+		wf, err = u.generateWorkflowWithSteps(workflowName, timeout, populateStepsFunc)
+		return wf, err
 	}
 
 	env := daisyutils.EnvironmentSettings{
@@ -524,7 +528,8 @@ func (u *upgrader) runWorkflowWithSteps(workflowName string, timeout string, pop
 		},
 	}
 
-	return w, daisyutils.NewDaisyWorker(w, env, u.logger).Run(map[string]string{})
+	err := daisyutils.NewDaisyWorker(workflowProvider, env, u.logger).Run(map[string]string{})
+	return wf, err
 }
 
 func (u *upgrader) generateWorkflowWithSteps(workflowName string, timeout string, populateStepsFunc func(*upgrader, *daisy.Workflow) error) (*daisy.Workflow, error) {

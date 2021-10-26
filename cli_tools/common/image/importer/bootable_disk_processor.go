@@ -65,12 +65,10 @@ func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger 
 		vars["compute_service_account"] = request.ComputeServiceAccount
 	}
 
-	workflow, err := daisyutils.ParseWorkflow(wfPath, vars,
-		request.Project, request.Zone, request.ScratchBucketGcsPath, request.Oauth, request.Timeout.String(),
-		request.ComputeEndpoint, request.GcsLogsDisabled, request.CloudLogsDisabled, request.StdoutLogsDisabled)
-
-	if err != nil {
-		return nil, err
+	workflowProvider := func() (*daisy.Workflow, error) {
+		return daisyutils.ParseWorkflow(wfPath, vars,
+			request.Project, request.Zone, request.ScratchBucketGcsPath, request.Oauth, request.Timeout.String(),
+			request.ComputeEndpoint, request.GcsLogsDisabled, request.CloudLogsDisabled, request.StdoutLogsDisabled)
 	}
 
 	env := request.EnvironmentSettings()
@@ -80,12 +78,12 @@ func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger 
 	env.DaisyLogLinePrefix += "translate"
 	diskProcessor := &bootableDiskProcessor{
 		request:    request,
-		worker:     daisyutils.NewDaisyWorker(workflow, env, logger, createResourceLabeler(request)),
+		worker:     daisyutils.NewDaisyWorker(workflowProvider, env, logger, createResourceLabeler(request)),
 		logger:     logger,
 		detectedOs: detectedOs,
 		vars:       vars,
 	}
-	return diskProcessor, err
+	return diskProcessor, nil
 }
 
 func createResourceLabeler(request ImageImportRequest) *daisyutils.ResourceLabeler {

@@ -49,16 +49,20 @@ type Inspector interface {
 // A GCE instance runs the inspection; network and subnet are used
 // for its network interface.
 func NewInspector(env daisyutils.EnvironmentSettings, logger logging.Logger) (Inspector, error) {
-	wf, err := daisy.NewFromFile(path.Join(env.WorkflowDirectory, workflowFile))
-	if err != nil {
-		return nil, err
-	}
+	wfProvider := daisyutils.WorkflowProvider(func() (*daisy.Workflow, error) {
+		wf, err := daisy.NewFromFile(path.Join(env.WorkflowDirectory, workflowFile))
+		if err != nil {
+			return nil, err
+		}
 
-	if env.DaisyLogLinePrefix != "" {
-		env.DaisyLogLinePrefix += "-"
-	}
-	env.DaisyLogLinePrefix += "inspect"
-	return &bootInspector{daisyutils.NewDaisyWorker(wf, env, logger), logger}, nil
+		if env.DaisyLogLinePrefix != "" {
+			env.DaisyLogLinePrefix += "-"
+		}
+		env.DaisyLogLinePrefix += "inspect"
+		return wf, err
+	})
+
+	return &bootInspector{daisyutils.NewDaisyWorker(wfProvider, env, logger), logger}, nil
 }
 
 // bootInspector implements disk.Inspector using the Python boot-inspect package,

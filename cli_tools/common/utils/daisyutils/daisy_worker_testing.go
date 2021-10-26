@@ -19,8 +19,13 @@ import (
 )
 
 // CheckWorkflow allows a test to check the fields on the daisy workflow associated with a DaisyWorker.
-func CheckWorkflow(worker DaisyWorker, check func(wf *daisy.Workflow)) {
-	check(worker.(*defaultDaisyWorker).wf)
+func CheckWorkflow(worker DaisyWorker, check func(wf *daisy.Workflow, workflowCreationError error)) {
+	if worker.(*defaultDaisyWorker).finished != nil {
+		check(worker.(*defaultDaisyWorker).finished, nil)
+	} else {
+		wf, err := worker.(*defaultDaisyWorker).workflowProvider()
+		check(wf, err)
+	}
 }
 
 // CheckEnvironment allows a test to check the fields on the EnvironmentSettings associated with a DaisyWorker.

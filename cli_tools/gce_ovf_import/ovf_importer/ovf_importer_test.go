@@ -66,6 +66,8 @@ func TestSetupWorkflow_HappyCase(t *testing.T) {
 func TestSetupWorkflow_WithUserSpecifiedMachineType(t *testing.T) {
 	for _, mode := range []*importTarget{gmiMode, instanceMode} {
 		t.Run(mode.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
 			params := mode.paramGenerator()
 			params.MachineType = "e2-small2"
 			testCase := mockConfiguration{
@@ -76,9 +78,9 @@ func TestSetupWorkflow_WithUserSpecifiedMachineType(t *testing.T) {
 				expectImportToRun:   true,
 			}
 			descriptor := createOVFDescriptor(testCase.descriptorFilenames)
-			worker, err := setupMocksAndRun(t, params, mode.wfPath, descriptor, testCase)
+			worker, err := setupMocksAndRun(mockCtrl, params, mode.wfPath, descriptor, testCase)
 			assert.NoError(t, err)
-			daisyutils.CheckWorkflow(worker, func(wf *daisy.Workflow) {
+			daisyutils.CheckWorkflow(worker, func(wf *daisy.Workflow, err error) {
 				assertMachineType(t, wf, "e2-small2")
 			})
 		})
@@ -88,6 +90,8 @@ func TestSetupWorkflow_WithUserSpecifiedMachineType(t *testing.T) {
 func TestSetupWorkflow_WithMachineTypeInference(t *testing.T) {
 	for _, mode := range []*importTarget{gmiMode, instanceMode} {
 		t.Run(mode.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
 			params := mode.paramGenerator()
 			params.MachineType = ""
 			testCase := mockConfiguration{
@@ -98,9 +102,9 @@ func TestSetupWorkflow_WithMachineTypeInference(t *testing.T) {
 				expectImportToRun:   true,
 			}
 			descriptor := createOVFDescriptor(testCase.descriptorFilenames)
-			worker, err := setupMocksAndRun(t, params, mode.wfPath, descriptor, testCase)
+			worker, err := setupMocksAndRun(mockCtrl, params, mode.wfPath, descriptor, testCase)
 			assert.NoError(t, err)
-			daisyutils.CheckWorkflow(worker, func(w *daisy.Workflow) {
+			daisyutils.CheckWorkflow(worker, func(w *daisy.Workflow, err error) {
 				assertMachineType(t, w, "n1-highcpu-16")
 			})
 		})
@@ -209,6 +213,8 @@ func TestSetUpWork_OSIDs(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
 			descriptorFilenames := []string{"Ubuntu_for_Horizon71_1_1.0-disk1.vmdk"}
 			params := getAllInstanceImportParams()
 			params.OsID = tc.osIDFromUser
@@ -216,20 +222,23 @@ func TestSetUpWork_OSIDs(t *testing.T) {
 			if tc.osTypeFromDescriptor != "" {
 				descriptor.VirtualSystem.OperatingSystem = []ovf.OperatingSystemSection{{OSType: &tc.osTypeFromDescriptor}}
 			}
-			wf, err := setupMocksAndRun(t, params, instanceMode.wfPath, descriptor, mockConfiguration{
+			worker, err := setupMocksAndRun(mockCtrl, params, instanceMode.wfPath, descriptor, mockConfiguration{
 				descriptorFilenames: descriptorFilenames,
 				fileURIs:            []string{"gs://bucket/folder/ovf/Ubuntu_for_Horizon71_1_1.0-disk1.vmdk"},
 				imageURIs:           []string{"images/uri/boot-disk"},
 				expectedOS:          tc.expectedOSID,
 				expectImportToRun:   tc.expectedError == "",
 			})
-			if tc.expectedError == "" {
-				assert.NotNil(t, wf)
-				assert.NoError(t, err)
-			} else {
-				assert.Nil(t, wf)
-				assert.Regexp(t, tc.expectedError, err.Error())
-			}
+			assert.NoError(t, err)
+			daisyutils.CheckWorkflow(worker, func(wf *daisy.Workflow, err error) {
+				if tc.expectedError == "" {
+					assert.NotNil(t, wf)
+					assert.NoError(t, err)
+				} else {
+					assert.Nil(t, wf)
+					assert.Regexp(t, tc.expectedError, err.Error())
+				}
+			})
 		})
 	}
 }
@@ -412,6 +421,8 @@ func TestToWorkingDir(t *testing.T) {
 }
 
 func runImportAndVerify(t *testing.T, params *domain.OVFImportParams, mode *importTarget) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
 	testCase := mockConfiguration{
 		descriptorFilenames: []string{
 			"Ubuntu_for_Horizon71_1_1.0-disk1.vmdk",
@@ -433,7 +444,7 @@ func runImportAndVerify(t *testing.T, params *domain.OVFImportParams, mode *impo
 	}
 
 	descriptor := createOVFDescriptor(testCase.descriptorFilenames)
-	worker, err := setupMocksAndRun(t, params, mode.wfPath, descriptor, testCase)
+	worker, err := setupMocksAndRun(mockCtrl, params, mode.wfPath, descriptor, testCase)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -449,7 +460,7 @@ func runImportAndVerify(t *testing.T, params *domain.OVFImportParams, mode *impo
 		assert.Equal(t, "gce-ovf-import-tmp", rl.DiskLabelKeyRetriever(nil))
 		assert.Equal(t, "gce-ovf-import-tmp", rl.ImageLabelKeyRetriever("imgname"))
 	})
-	daisyutils.CheckWorkflow(worker, func(w *daisy.Workflow) {
+	daisyutils.CheckWorkflow(worker, func(w *daisy.Workflow, err error) {
 		// Workflow validation
 		assert.Equal(t, *params.Project, w.Project)
 		assert.Equal(t, params.Timeout, w.DefaultTimeout)
@@ -544,12 +555,10 @@ type mockConfiguration struct {
 	imageURIs           []string
 }
 
-func setupMocksAndRun(t *testing.T, params *domain.OVFImportParams, wfPath string, descriptor *ovf.Envelope, mockConfig mockConfiguration) (daisyutils.DaisyWorker, error) {
+func setupMocksAndRun(mockCtrl *gomock.Controller, params *domain.OVFImportParams, wfPath string, descriptor *ovf.Envelope, mockConfig mockConfiguration) (daisyutils.DaisyWorker, error) {
 	expectedParams := *params
 	expectedParams.OsID = mockConfig.expectedOS
 	expectedParams.Deadline = params.Deadline.Add(-1 * instanceConstructionTime)
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
 	if params.MachineType == "" {
@@ -573,7 +582,7 @@ func setupMocksAndRun(t *testing.T, params *domain.OVFImportParams, wfPath strin
 		storageClient: mockStorageClient, computeClient: mockComputeClient,
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
 		Logger: logging.NewToolLogger("test"), params: params}
-	return oi.setupWorker()
+	return oi.setupWorker(), nil
 }
 
 func createControllerItem(instanceID string, resourceType uint16) ovf.ResourceAllocationSettingData {

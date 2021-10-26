@@ -101,18 +101,24 @@ func newDaisyInflater(request ImageImportRequest, fileInspector imagefile.Inspec
 		inflationDiskIndex = 1 // First disk is for the worker
 	}
 
-	wf, err := daisyutils.ParseWorkflow(path.Join(request.WorkflowDir, wfPath), vars,
-		request.Project, request.Zone, request.ScratchBucketGcsPath, request.Oauth, request.Timeout.String(), request.ComputeEndpoint,
-		request.GcsLogsDisabled, request.CloudLogsDisabled, request.StdoutLogsDisabled)
-	if err != nil {
-		return nil, err
-	}
+	workflowProvider := func() (*daisy.Workflow, error) {
+		wf, err := daisyutils.ParseWorkflow(path.Join(request.WorkflowDir, wfPath), vars,
+			request.Project, request.Zone, request.ScratchBucketGcsPath, request.Oauth, request.Timeout.String(), request.ComputeEndpoint,
+			request.GcsLogsDisabled, request.CloudLogsDisabled, request.StdoutLogsDisabled)
 
-	if request.UefiCompatible {
-		addFeatureToDisk(wf, "UEFI_COMPATIBLE", inflationDiskIndex)
-	}
-	if strings.Contains(request.OS, "windows") {
-		addFeatureToDisk(wf, "WINDOWS", inflationDiskIndex)
+		if err != nil {
+			return nil, err
+		}
+		// If there's a failure during inflation, remove the PD that would otherwise
+		// be left for translation.
+		wf.ForceCleanupOnError = true
+		if request.UefiCompatible {
+			addFeatureToDisk(wf, "UEFI_COMPATIBLE", inflationDiskIndex)
+		}
+		if strings.Contains(request.OS, "windows") {
+			addFeatureToDisk(wf, "WINDOWS", inflationDiskIndex)
+		}
+		return wf, err
 	}
 
 	env := request.EnvironmentSettings()
@@ -121,7 +127,7 @@ func newDaisyInflater(request ImageImportRequest, fileInspector imagefile.Inspec
 	}
 	env.DaisyLogLinePrefix += "inflate"
 	return &daisyInflater{
-		worker:          daisyutils.NewDaisyWorker(wf, env, logger),
+		worker:          daisyutils.NewDaisyWorker(workflowProvider, env, logger),
 		inflatedDiskURI: fmt.Sprintf("zones/%s/disks/%s", request.Zone, diskName),
 		logger:          logger,
 		source:          request.Source,

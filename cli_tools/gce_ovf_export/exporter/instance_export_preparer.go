@@ -26,7 +26,7 @@ import (
 )
 
 type instanceExportPreparerImpl struct {
-	wf               *daisy.Workflow
+	worker           daisyutils.DaisyWorker
 	instance         *compute.Instance
 	logger           logging.Logger
 	wfPreRunCallback wfCallback
@@ -38,16 +38,21 @@ func NewInstanceExportPreparer(logger logging.Logger) ovfexportdomain.InstanceEx
 }
 
 func (iep *instanceExportPreparerImpl) Prepare(instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) error {
+	wfName := "ovf-export-prepare"
 	iep.instance = instance
-	var err error
-	iep.wf, err = generateWorkflowWithSteps("ovf-export-prepare", "30m", func(w *daisy.Workflow) error { return iep.populatePrepareSteps(w, instance, params) })
-	if err != nil {
-		return err
+	workflowProvider := func() (*daisy.Workflow, error) {
+		wf, err := generateWorkflowWithSteps(wfName, "30m", func(w *daisy.Workflow) error { return iep.populatePrepareSteps(w, instance, params) })
+		if err != nil {
+			return nil, err
+		}
+		if iep.wfPreRunCallback != nil {
+			iep.wfPreRunCallback(wf)
+		}
+		return wf, nil
 	}
-	if iep.wfPreRunCallback != nil {
-		iep.wfPreRunCallback(iep.wf)
-	}
-	return daisyutils.NewDaisyWorker(iep.wf, params.EnvironmentSettings(iep.wf.Name), iep.logger).Run(map[string]string{})
+
+	iep.worker = daisyutils.NewDaisyWorker(workflowProvider, params.EnvironmentSettings(wfName), iep.logger)
+	return iep.worker.Run(map[string]string{})
 }
 
 func (iep *instanceExportPreparerImpl) populatePrepareSteps(w *daisy.Workflow, instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) error {
@@ -88,10 +93,10 @@ func (iep *instanceExportPreparerImpl) addDetachDisksSteps(w *daisy.Workflow,
 }
 
 func (iep *instanceExportPreparerImpl) Cancel(reason string) bool {
-	if iep.wf == nil {
+	if iep.worker == nil {
 		return false
 	}
-	iep.wf.CancelWithReason(reason)
+	iep.worker.Cancel(reason)
 	return true
 }
 
