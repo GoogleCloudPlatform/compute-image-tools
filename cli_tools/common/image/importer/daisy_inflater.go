@@ -83,7 +83,7 @@ func NewDaisyInflater(request ImageImportRequest, fileMetadata imagefile.Metadat
 }
 
 func newDaisyInflater(request ImageImportRequest, fileMetadata imagefile.Metadata, logger logging.Logger) (*daisyInflater, error) {
-	diskName := "disk-" + request.ExecutionID
+	diskName := getDiskName(request.ExecutionID)
 	var wfPath string
 	var vars map[string]string
 	var inflationDiskIndex int
@@ -171,8 +171,17 @@ func createDaisyVarsForFile(request ImageImportRequest,
 		vars["compute_service_account"] = request.ComputeServiceAccount
 	}
 
-	vars["inflated_disk_size_gb"] = fmt.Sprintf("%d", calculateInflatedSize(fileMetadata))
-	vars["scratch_disk_size_gb"] = fmt.Sprintf("%d", calculateScratchDiskSize(fileMetadata))
+	// To reduce the runtime permissions used on the inflation worker, we pre-allocate
+	// disks sufficient to hold the disk file and the inflated disk. If inspection fails,
+	// then the default values in the daisy workflow will be used. The scratch disk gets
+	// a padding factor to account for filesystem overhead.
+	if fileMetadata.VirtualSizeGB != 0 {
+		vars["inflated_disk_size_gb"] = fmt.Sprintf("%d", calculateInflatedSize(fileMetadata))
+
+	}
+	if fileMetadata.PhysicalSizeGB != 0 {
+		vars["scratch_disk_size_gb"] = fmt.Sprintf("%d", calculateScratchDiskSize(fileMetadata))
+	}
 	return vars
 }
 

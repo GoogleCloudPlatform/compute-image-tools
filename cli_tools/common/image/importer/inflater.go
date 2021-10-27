@@ -20,6 +20,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
@@ -48,12 +49,16 @@ type inflationInfo struct {
 func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient domain.StorageClientInterface,
 	logger logging.Logger) (Inflater, error) {
 
+	// 1. To reduce the runtime permissions used on the inflation worker, we pre-allocate
+	// disks sufficient to hold the disk file and the inflated disk. If inspection fails,
+	// then the default values in the daisy workflow will be used. The scratch disk gets
+	// a padding factor to account for filesystem overhead.
+	// 2. Inspection also returns checksum of the image file for sanitary check. If it's
+	// failed to get the checksum, the following sanitary check will be skipped.
 	deadline, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(inspectionTimeout))
 	defer cancelFunc()
-	fileMetadata, err := imagefile.NewGCSInspector().Inspect(deadline, request.Source.Path())
-	if err != nil {
-		return nil, err
-	}
+	logger.User("Inspecting the image file...")
+	fileMetadata, _ := imagefile.NewGCSInspector().Inspect(deadline, request.Source.Path())
 
 	di, err := newDaisyInflater(request, fileMetadata, logger)
 	if err != nil {
@@ -70,17 +75,19 @@ func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, 
 	if isShadowTestFormat(request) {
 		return &shadowTestInflaterFacade{
 			mainInflater:   di,
-			shadowInflater: createAPIInflater(request, computeClient, storageClient, logger, true),
+			shadowInflater: createAPIInflater(request, computeClient, storageClient, logger, true, true),
 			logger:         logger,
 			qemuChecksum:   fileMetadata.Checksum,
 		}, nil
 	}
 
 	return &inflaterFacade{
-		apiInflater:   createAPIInflater(request, computeClient, storageClient, logger, false),
+		apiInflater:   createAPIInflater(request, computeClient, storageClient, logger, false, fileMetadata.Checksum != ""),
 		daisyInflater: di,
 		logger:        logger,
 		qemuChecksum:  fileMetadata.Checksum,
+		computeClient: computeClient,
+		request:       request,
 	}, nil
 }
 
@@ -95,6 +102,8 @@ type inflaterFacade struct {
 	daisyInflater Inflater
 	logger        logging.Logger
 	qemuChecksum  string
+	computeClient daisyCompute.Client
+	request       ImageImportRequest
 }
 
 func (facade *inflaterFacade) Inflate() (persistentDisk, inflationInfo, error) {
@@ -105,8 +114,12 @@ func (facade *inflaterFacade) Inflate() (persistentDisk, inflationInfo, error) {
 	//  Try with API inflater. Verify checksum after inflation.
 	pd, ii, err = facade.apiInflater.Inflate()
 	if err == nil && ii.checksum == facade.qemuChecksum {
+		inflationType := "api_success"
+		if facade.qemuChecksum == "" {
+			inflationType = "api_success_checksum_skipped"
+		}
 		facade.logger.Metric(&pb.OutputInfo{
-			InflationType:   "api_success",
+			InflationType:   inflationType,
 			InflationTimeMs: []int64{ii.inflationTime.Milliseconds()},
 		})
 		return pd, ii, err
@@ -118,6 +131,15 @@ func (facade *inflaterFacade) Inflate() (persistentDisk, inflationInfo, error) {
 			InflationTimeMs: []int64{ii.inflationTime.Milliseconds()},
 		})
 		return pd, ii, err
+	}
+
+	// Delete the disk before retry, if checksum mismatch detected.
+	if err == nil && ii.checksum != facade.qemuChecksum {
+		facade.logger.User("Disk checksum mismatch, recreating...")
+		err = facade.computeClient.DeleteDisk(facade.request.Project, facade.request.Zone, getDiskName(facade.request.ExecutionID))
+		if err != nil {
+			return pd, ii, daisy.Errf("Tried to delete the disk after checksum mismatch is detected, but failed on: %v", err)
+		}
 	}
 
 	// Retry inflation with daisy only for one of the below reasons:
@@ -251,8 +273,14 @@ func (facade *shadowTestInflaterFacade) compareWithShadowInflater(mainPd, shadow
 	sizeGbMatch := shadowPd.sizeGb == mainPd.sizeGb
 	sourceGbMatch := shadowPd.sourceGb == mainPd.sourceGb
 	contentMatch := shadowIi.checksum == mainIi.checksum
-	qemuChecksumMatch := facade.qemuChecksum == mainIi.checksum
-	match := sizeGbMatch && sourceGbMatch && contentMatch && qemuChecksumMatch
+	qemuChecksumMatch := "false"
+	if facade.qemuChecksum == "" {
+		qemuChecksumMatch = "skipped"
+	} else if facade.qemuChecksum == mainIi.checksum {
+		qemuChecksumMatch = "true"
+	}
+
+	match := sizeGbMatch && sourceGbMatch && contentMatch && (qemuChecksumMatch == "true")
 
 	var result string
 	if match {
@@ -260,5 +288,11 @@ func (facade *shadowTestInflaterFacade) compareWithShadowInflater(mainPd, shadow
 	} else {
 		result = fmt.Sprintf(matchFormat, sizeGbMatch, sourceGbMatch, contentMatch, qemuChecksumMatch)
 	}
+	//TODO remove
+	fmt.Println(">>>", result)
 	return result
+}
+
+func getDiskName(executionID string) string {
+	return fmt.Sprintf("disk-%v", executionID)
 }

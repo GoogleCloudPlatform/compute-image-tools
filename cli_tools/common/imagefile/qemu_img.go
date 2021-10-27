@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/files"
+	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -57,10 +58,10 @@ func NewInfoClient() InfoClient {
 type defaultInfoClient struct{}
 
 type fileInfoJsonTemplate struct {
-Filename         string `json:"filename"`
-Format           string `json:"format"`
-ActualSizeBytes  int64  `json:"actual-size"`
-VirtualSizeBytes int64  `json:"virtual-size"`
+	Filename         string `json:"filename"`
+	Format           string `json:"format"`
+	ActualSizeBytes  int64  `json:"actual-size"`
+	VirtualSizeBytes int64  `json:"virtual-size"`
 }
 
 func (client defaultInfoClient) GetInfo(ctx context.Context, filename string) (info ImageInfo, err error) {
@@ -86,12 +87,10 @@ func (client defaultInfoClient) GetInfo(ctx context.Context, filename string) (i
 	// to calculate the checksum from qemu output for comparison. This check is required,
 	// so we have to terminate the import if it's failed to calculate the checksum.
 	checksum, err := client.getFileChecksum(ctx, filename, info.VirtualSizeBytes)
-	fmt.Println(">>>>>>checksum qemu:[", checksum, "] ", err)
 	if err != nil {
 		err = daisy.Errf("Failed to calculate file '%v' checksum by qemu: %v", filename, err)
 		return
 	}
-	os.Exit(1)
 
 	info.Checksum = checksum
 	return
@@ -118,10 +117,14 @@ func (client defaultInfoClient) getFileChecksum(ctx context.Context, filename st
 	blockSize := int64(512)
 	blockCount := virtualSizeBytes / blockSize
 	skips := []int64{0, int64(2000000) - checkCount, int64(20000000) - checkCount, blockCount - checkCount}
+	tmpOutFilePrefix := "out" + pathutils.RandString(5)
 	for i, skip := range skips {
+		tmpOutFileName := fmt.Sprintf("%v%v", tmpOutFilePrefix, i)
+		defer os.Remove(tmpOutFileName)
+
 		// Write 100MB data to a file.
 		cmd := exec.CommandContext(ctx, "qemu-img", "dd", fmt.Sprintf("if=%v", filename),
-			fmt.Sprintf("of=out%v", i), fmt.Sprintf("bs=%v", blockSize),
+			fmt.Sprintf("of=%v", tmpOutFileName), fmt.Sprintf("bs=%v", blockSize),
 			fmt.Sprintf("count=%v", skip+checkCount), fmt.Sprintf("skip=%v", skip))
 		var out []byte
 		out, err = cmd.Output()
@@ -131,7 +134,7 @@ func (client defaultInfoClient) getFileChecksum(ctx context.Context, filename st
 		}
 
 		// Calculate checksum for the 100MB file.
-		cmd = exec.CommandContext(ctx, "md5sum", fmt.Sprintf("out%v", i))
+		cmd = exec.CommandContext(ctx, "md5sum", tmpOutFileName)
 		out, err = cmd.Output()
 		err = constructCmdErr(string(out), err, "inspection for checksum calculation failure")
 		if err != nil {
@@ -141,7 +144,14 @@ func (client defaultInfoClient) getFileChecksum(ctx context.Context, filename st
 		if checksum != "" {
 			checksum += "-"
 		}
-		checksum += string(out)
+
+		// Extract the first string in the output as the checksum.
+		outArr := strings.Fields(string(out))
+		newChecksum := ""
+		if len(outArr) > 0 {
+			newChecksum = outArr[0]
+		}
+		checksum += newChecksum
 	}
 	return
 }
