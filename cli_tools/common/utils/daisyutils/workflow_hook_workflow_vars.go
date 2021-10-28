@@ -24,9 +24,9 @@ var (
 	// These patterns match a key of "Vars" in a daisy workflow. All CLI tools use these variables.
 	//
 	// For network and subnet, some workflows use the prefix `import_`.
-	networkPattern               = regexp.MustCompile("^(import_)?network$")
-	subnetPattern                = regexp.MustCompile("^(import_)?subnet$")
-	computeServiceAccountPattern = regexp.MustCompile("compute_service_account")
+	networkVarPattern               = regexp.MustCompile("^(import_)?network$")
+	subnetVarPattern                = regexp.MustCompile("^(import_)?subnet$")
+	computeServiceAccountVarPattern = regexp.MustCompile("compute_service_account")
 )
 
 // ApplyAndValidateVars is a WorkflowHook that applies vars to a daisy workflow.
@@ -41,7 +41,7 @@ type ApplyAndValidateVars struct {
 func (t *ApplyAndValidateVars) PreRunHook(wf *daisy.Workflow) error {
 	t.updateNetworkAndSubnet(wf)
 	if t.env.ComputeServiceAccount != "" {
-		t.backfillVar(computeServiceAccountPattern, t.env.ComputeServiceAccount, wf)
+		t.backfillVar(computeServiceAccountVarPattern, t.env.ComputeServiceAccount, wf)
 	}
 Loop:
 	for k, v := range t.vars {
@@ -67,13 +67,13 @@ Loop:
 //   https://cloud.google.com/compute/docs/reference/rest/v1/instances
 func (t *ApplyAndValidateVars) updateNetworkAndSubnet(wf *daisy.Workflow) {
 	if t.env.Subnet != "" {
-		t.backfillVar(subnetPattern, t.env.Subnet, wf)
+		t.backfillVar(subnetVarPattern, t.env.Subnet, wf)
 		if t.env.Network == "" {
-			t.backfillVar(networkPattern, "", wf)
+			t.backfillVar(networkVarPattern, "", wf)
 		}
 	}
 	if t.env.Network != "" {
-		t.backfillVar(networkPattern, t.env.Network, wf)
+		t.backfillVar(networkVarPattern, t.env.Network, wf)
 	}
 }
 
