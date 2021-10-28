@@ -92,6 +92,21 @@ func Test_ApplyEnvToWorkers_SetsNetworkAndAccounts(t *testing.T) {
 			},
 		},
 		{
+			name: "clear default network from workflow when " +
+				"only subnet is specified. This ensures GCE " +
+				"API infers the network from the subnet.",
+			declaredDaisyVars: []string{"network", "subnet"},
+			env: EnvironmentSettings{
+				Network: "",
+				Subnet:  "path/to/subnet",
+			},
+			originalVars: map[string]string{},
+			expectedVars: map[string]string{
+				"network": "",
+				"subnet":  "path/to/subnet",
+			},
+		},
+		{
 			name:              "support `import_network` and `import_subnet` naming",
 			declaredDaisyVars: []string{"import_network", "import_subnet"},
 			env: EnvironmentSettings{
@@ -118,7 +133,7 @@ func Test_ApplyEnvToWorkers_SetsNetworkAndAccounts(t *testing.T) {
 			},
 		},
 		{
-			name:              "apply non-env variables to workfly",
+			name:              "apply non-env variables to workflow",
 			declaredDaisyVars: []string{"var1", "var2"},
 			env: EnvironmentSettings{
 				Network: "a",

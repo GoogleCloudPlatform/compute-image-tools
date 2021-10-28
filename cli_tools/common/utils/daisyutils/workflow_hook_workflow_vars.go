@@ -20,6 +20,15 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
+var (
+	// These patterns match a key of "Vars" in a daisy workflow. All CLI tools use these variables.
+	//
+	// For network and subnet, some workflows use the prefix `import_`.
+	networkPattern               = regexp.MustCompile("^(import_)?network$")
+	subnetPattern                = regexp.MustCompile("^(import_)?subnet$")
+	computeServiceAccountPattern = regexp.MustCompile("compute_service_account")
+)
+
 // ApplyAndValidateVars is a WorkflowHook that applies vars to a daisy workflow.
 // To ensure consistency across worker instances, if vars omits network, subnet, or the
 // compute service account, the modifier will automatically apply these values.
@@ -30,14 +39,10 @@ type ApplyAndValidateVars struct {
 
 // PreRunHook applies daisy vars to a workflow
 func (t *ApplyAndValidateVars) PreRunHook(wf *daisy.Workflow) error {
-
-	// All CLI tools use these variables; if they're declared in the daisy workflow, but not passed by the caller in `vars`,
-	// then apply them using the EnvironmentSettings.
-	//
-	// For network and subnet, some workflows use the prefix `import_`.
-	t.backfillVar(regexp.MustCompile("^(import_)?network$"), t.env.Network, wf)
-	t.backfillVar(regexp.MustCompile("^(import_)?subnet$"), t.env.Subnet, wf)
-	t.backfillVar(regexp.MustCompile("compute_service_account"), t.env.ComputeServiceAccount, wf)
+	t.updateNetworkAndSubnet(wf)
+	if t.env.ComputeServiceAccount != "" {
+		t.backfillVar(computeServiceAccountPattern, t.env.ComputeServiceAccount, wf)
+	}
 Loop:
 	for k, v := range t.vars {
 		for wv := range wf.Vars {
@@ -52,10 +57,29 @@ Loop:
 	return nil
 }
 
-func (t *ApplyAndValidateVars) backfillVar(keyPattern *regexp.Regexp, val string, wf *daisy.Workflow) {
-	if val == "" {
-		return
+// updateNetworkAndSubnet updates vars with the network and subnet from the environment.
+// It has special logic to explicitly set network to the empty string when the user
+// specified the subnet but did not specify the network. This is required to ensure the
+// GCE API infers the network from the subnet, rather than trying to use the 'default'
+// network from the GCE project.
+//
+// For more information on this inference, see:
+//   https://cloud.google.com/compute/docs/reference/rest/v1/instances
+func (t *ApplyAndValidateVars) updateNetworkAndSubnet(wf *daisy.Workflow) {
+	if t.env.Subnet != "" {
+		t.backfillVar(subnetPattern, t.env.Subnet, wf)
+		if t.env.Network == "" {
+			t.backfillVar(networkPattern, "", wf)
+		}
 	}
+	if t.env.Network != "" {
+		t.backfillVar(networkPattern, t.env.Network, wf)
+	}
+}
+
+// backfillVar searches for a declared daisy variable that matches keyPattern. If a match is found,
+// the `vars` is updated with val.
+func (t *ApplyAndValidateVars) backfillVar(keyPattern *regexp.Regexp, val string, wf *daisy.Workflow) {
 	for k := range wf.Vars {
 		if keyPattern.MatchString(k) && t.vars[k] == "" {
 			t.vars[k] = val
