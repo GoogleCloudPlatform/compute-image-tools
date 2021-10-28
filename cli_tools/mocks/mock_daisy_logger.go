@@ -19,10 +19,8 @@
 package mocks
 
 import (
-	bytes "bytes"
 	reflect "reflect"
 
-	logging "cloud.google.com/go/logging"
 	gomock "github.com/golang/mock/gomock"
 
 	daisy "github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -49,6 +47,30 @@ func NewMockDaisyLogger(ctrl *gomock.Controller) *MockDaisyLogger {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockDaisyLogger) EXPECT() *MockDaisyLoggerMockRecorder {
 	return m.recorder
+}
+
+// AppendSerialPortLogs mocks base method.
+func (m *MockDaisyLogger) AppendSerialPortLogs(arg0 *daisy.Workflow, arg1, arg2 string) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "AppendSerialPortLogs", arg0, arg1, arg2)
+}
+
+// AppendSerialPortLogs indicates an expected call of AppendSerialPortLogs.
+func (mr *MockDaisyLoggerMockRecorder) AppendSerialPortLogs(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AppendSerialPortLogs", reflect.TypeOf((*MockDaisyLogger)(nil).AppendSerialPortLogs), arg0, arg1, arg2)
+}
+
+// WriteSerialPortLogsToCloudLogging mocks base method.
+func (m *MockDaisyLogger) WriteSerialPortLogsToCloudLogging(arg0 *daisy.Workflow, arg1 string) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "WriteSerialPortLogsToCloudLogging", arg0, arg1)
+}
+
+// WriteSerialPortLogsToCloudLogging indicates an expected call of WriteSerialPortLogsToCloudLogging.
+func (mr *MockDaisyLoggerMockRecorder) WriteSerialPortLogsToCloudLogging(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteSerialPortLogsToCloudLogging", reflect.TypeOf((*MockDaisyLogger)(nil).WriteSerialPortLogsToCloudLogging), arg0, arg1)
 }
 
 // Flush mocks base method.
@@ -78,74 +100,13 @@ func (mr *MockDaisyLoggerMockRecorder) ReadSerialPortLogs() *gomock.Call {
 }
 
 // WriteLogEntry mocks base method.
-func (m *MockDaisyLogger) WriteLogEntry(e *daisy.LogEntry) {
+func (m *MockDaisyLogger) WriteLogEntry(arg0 *daisy.LogEntry) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "WriteLogEntry", e)
+	m.ctrl.Call(m, "WriteLogEntry", arg0)
 }
 
 // WriteLogEntry indicates an expected call of WriteLogEntry.
-func (mr *MockDaisyLoggerMockRecorder) WriteLogEntry(e interface{}) *gomock.Call {
+func (mr *MockDaisyLoggerMockRecorder) WriteLogEntry(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteLogEntry", reflect.TypeOf((*MockDaisyLogger)(nil).WriteLogEntry), e)
-}
-
-// WriteSerialPortLogs mocks base method.
-func (m *MockDaisyLogger) WriteSerialPortLogs(w *daisy.Workflow, instance string, buf bytes.Buffer) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "WriteSerialPortLogs", w, instance, buf)
-}
-
-// WriteSerialPortLogs indicates an expected call of WriteSerialPortLogs.
-func (mr *MockDaisyLoggerMockRecorder) WriteSerialPortLogs(w, instance, buf interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteSerialPortLogs", reflect.TypeOf((*MockDaisyLogger)(nil).WriteSerialPortLogs), w, instance, buf)
-}
-
-// MockcloudLogWriter is a mock of cloudLogWriter interface.
-type MockcloudLogWriter struct {
-	ctrl     *gomock.Controller
-	recorder *MockcloudLogWriterMockRecorder
-}
-
-// MockcloudLogWriterMockRecorder is the mock recorder for MockcloudLogWriter.
-type MockcloudLogWriterMockRecorder struct {
-	mock *MockcloudLogWriter
-}
-
-// NewMockcloudLogWriter creates a new mock instance.
-func NewMockcloudLogWriter(ctrl *gomock.Controller) *MockcloudLogWriter {
-	mock := &MockcloudLogWriter{ctrl: ctrl}
-	mock.recorder = &MockcloudLogWriterMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockcloudLogWriter) EXPECT() *MockcloudLogWriterMockRecorder {
-	return m.recorder
-}
-
-// Flush mocks base method.
-func (m *MockcloudLogWriter) Flush() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Flush")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Flush indicates an expected call of Flush.
-func (mr *MockcloudLogWriterMockRecorder) Flush() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Flush", reflect.TypeOf((*MockcloudLogWriter)(nil).Flush))
-}
-
-// Log mocks base method.
-func (m *MockcloudLogWriter) Log(e logging.Entry) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Log", e)
-}
-
-// Log indicates an expected call of Log.
-func (mr *MockcloudLogWriterMockRecorder) Log(e interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Log", reflect.TypeOf((*MockcloudLogWriter)(nil).Log), e)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteLogEntry", reflect.TypeOf((*MockDaisyLogger)(nil).WriteLogEntry), arg0)
 }

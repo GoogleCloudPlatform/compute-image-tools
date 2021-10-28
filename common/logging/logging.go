@@ -38,12 +38,16 @@ type goLogToDaisyLog struct {
 	logger *log.Logger
 }
 
-func (l goLogToDaisyLog) WriteLogEntry(e *daisy.LogEntry) {
-	l.logger.Printf(e.Message)
+func (l goLogToDaisyLog) AppendSerialPortLogs(w *daisy.Workflow, instance string, logs string) {
+	// no-op
 }
 
-func (l goLogToDaisyLog) WriteSerialPortLogs(w *daisy.Workflow, instance string, buf bytes.Buffer) {
+func (l goLogToDaisyLog) WriteSerialPortLogsToCloudLogging(w *daisy.Workflow, instance string) {
 	// no-op
+}
+
+func (l goLogToDaisyLog) WriteLogEntry(e *daisy.LogEntry) {
+	l.logger.Printf(e.Message)
 }
 
 func (l goLogToDaisyLog) ReadSerialPortLogs() []string {

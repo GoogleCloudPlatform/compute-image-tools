@@ -31,7 +31,11 @@ import (
 // Logger is a helper that encapsulates the logging logic for Daisy.
 type Logger interface {
 	WriteLogEntry(e *LogEntry)
-	WriteSerialPortLogs(w *Workflow, instance string, buf bytes.Buffer)
+	// AppendSerialPortLogs appends a portion of serial port logs for a GCE instance.
+	AppendSerialPortLogs(w *Workflow, instance string, logs string)
+	// WriteSerialPortLogsToCloudLogging writes all of the collected logs for instance to cloud logging.
+	WriteSerialPortLogsToCloudLogging(w *Workflow, instance string)
+	// ReadSerialPortLogs returns all collected serial port logs, with one entry per instance.
 	ReadSerialPortLogs() []string
 	Flush()
 }
@@ -48,7 +52,7 @@ type daisyLog struct {
 	stdoutLogging   bool
 	logCleanupRegex *regexp.Regexp
 	// A map of instance name to its serial logs.
-	serialLogs map[string][]byte
+	serialLogs map[string]*bytes.Buffer
 }
 
 // createLogger builds a Logger.
@@ -88,7 +92,7 @@ func (w *Workflow) createLogger(ctx context.Context) {
 func newDaisyLogger(stdOutLoggingEnabled bool) *daisyLog {
 	return &daisyLog{
 		stdoutLogging: stdOutLoggingEnabled,
-		serialLogs:    map[string][]byte{},
+		serialLogs:    map[string]*bytes.Buffer{},
 	}
 }
 
@@ -128,14 +132,29 @@ func (w *Workflow) logEntry(e *LogEntry) {
 	w.Logger.WriteLogEntry(e)
 }
 
-// WriteSerialPortLogs writes serial port logs to cloud logging.
-func (l *daisyLog) WriteSerialPortLogs(w *Workflow, instance string, buf bytes.Buffer) {
+
+// AppendSerialPortLogs collects a segment of serial port logs for an instance.
+func (l *daisyLog) AppendSerialPortLogs(w *Workflow, instance string, logs string) {
+	// Only collect serial port logs if the user has opted-in to cloud logging.
+	if l.cloudLogger == nil {
+		return
+	}
+	if _, hasBuffer := l.serialLogs[instance]; !hasBuffer {
+		l.serialLogs[instance] = &bytes.Buffer{}
+	}
+	l.serialLogs[instance].WriteString(logs)
+}
+
+// WriteSerialPortLogsToCloudLogging writes the serial port logs for an instance to cloud logging.
+func (l *daisyLog) WriteSerialPortLogsToCloudLogging(w *Workflow, instance string) {
 	if l.cloudLogger == nil {
 		return
 	}
 
-	logs := buf.Bytes()
-	l.serialLogs[instance] = logs
+	if _, hasBuffer := l.serialLogs[instance]; !hasBuffer {
+		return
+	}
+	logs := l.serialLogs[instance].Bytes()
 
 	writeLog := func(data []byte) {
 		entry := &LogEntry{
@@ -171,7 +190,7 @@ func (l *daisyLog) WriteSerialPortLogs(w *Workflow, instance string, buf bytes.B
 func (l *daisyLog) ReadSerialPortLogs() []string {
 	allLogs := make([]string, 0, len(l.serialLogs))
 	for instance, log := range l.serialLogs {
-		allLogs = append(allLogs, fmt.Sprintf("Serial logs for instance: %s\n%s", instance, log))
+		allLogs = append(allLogs, fmt.Sprintf("Serial logs for instance: %s\n%s", instance, log.Bytes()))
 	}
 	return allLogs
 }
