@@ -132,7 +132,6 @@ func (w *Workflow) logEntry(e *LogEntry) {
 	w.Logger.WriteLogEntry(e)
 }
 
-
 // AppendSerialPortLogs collects a segment of serial port logs for an instance.
 func (l *daisyLog) AppendSerialPortLogs(w *Workflow, instance string, logs string) {
 	// Only collect serial port logs if the user has opted-in to cloud logging.
