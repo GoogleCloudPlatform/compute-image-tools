@@ -96,6 +96,7 @@ Loop:
 			numErr = 0
 			start = resp.Next
 			buf.WriteString(resp.Contents)
+			w.Logger.AppendSerialPortLogs(w, ii.getName(), resp.Contents)
 			wc := w.StorageClient.Bucket(w.bucket).Object(logsObj).NewWriter(ctx)
 			wc.ContentType = "text/plain"
 			if _, err := wc.Write(buf.Bytes()); err != nil && !gcsErr {
@@ -117,7 +118,7 @@ Loop:
 		}
 	}
 
-	w.Logger.WriteSerialPortLogs(w, ii.getName(), buf)
+	w.Logger.WriteSerialPortLogsToCloudLogging(w, ii.getName())
 }
 
 // populate preprocesses fields: Name, Project, Zone, Description, MachineType, NetworkInterfaces, Scopes, ServiceAccounts, and daisyName.

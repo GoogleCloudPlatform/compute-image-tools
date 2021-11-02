@@ -140,14 +140,18 @@ type logger struct {
 	mx  sync.Mutex
 }
 
+func (l *logger) AppendSerialPortLogs(w *daisy.Workflow, instance string, logs string) {
+	// no-op
+}
+
+func (l *logger) WriteSerialPortLogsToCloudLogging(w *daisy.Workflow, instance string) {
+	// no-op
+}
+
 func (l *logger) WriteLogEntry(e *daisy.LogEntry) {
 	l.mx.Lock()
 	defer l.mx.Unlock()
 	l.buf.WriteString(e.String())
-}
-
-func (l *logger) WriteSerialPortLogs(w *daisy.Workflow, instance string, buf bytes.Buffer) {
-	return
 }
 
 func (l *logger) ReadSerialPortLogs() []string {

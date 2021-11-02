@@ -29,15 +29,28 @@ import (
 type MockLogger struct {
 	entries        []*LogEntry
 	mx             sync.Mutex
-	serialPortLogs []string
+	serialPortLogs map[string]string
 }
 
-func (l *MockLogger) WriteSerialPortLogs(w *Workflow, instance string, buf bytes.Buffer) {
-	l.serialPortLogs = append(l.serialPortLogs, buf.String())
+func (l *MockLogger) WriteSerialPortLogsToCloudLogging(w *Workflow, instance string) {
+	// no-op
+}
+
+func (l *MockLogger) AppendSerialPortLogs(w *Workflow, instance string, logs string) {
+	l.mx.Lock()
+	defer l.mx.Unlock()
+	if l.serialPortLogs == nil {
+		l.serialPortLogs = map[string]string{}
+	}
+	l.serialPortLogs[instance] += logs
 }
 
 func (l *MockLogger) ReadSerialPortLogs() []string {
-	return l.serialPortLogs
+	var logs []string
+	for _, log := range l.serialPortLogs {
+		logs = append(logs, log)
+	}
+	return logs
 }
 
 func (l *MockLogger) WriteLogEntry(e *LogEntry) {
@@ -119,10 +132,11 @@ func TestSendSerialPortLogsToCloud(t *testing.T) {
 	w.Logger.(*daisyLog).cloudLogger = cl
 	var buf bytes.Buffer
 	for i := 0; i < 98*1024; i++ {
+		w.Logger.AppendSerialPortLogs(w, "instance-name", "Serial output\n")
 		buf.WriteString("Serial output\n")
 	}
 
-	w.Logger.WriteSerialPortLogs(w, "instance-name", buf)
+	w.Logger.WriteSerialPortLogsToCloudLogging(w, "instance-name")
 
 	// We expect 14 entries
 	if len(cl.entries) != 14 {
@@ -151,9 +165,7 @@ func TestSendSerialPortLogsToCloudMultipleInstances(t *testing.T) {
 	}
 
 	for i, log := range contentOfLogs {
-		var buf bytes.Buffer
-		buf.WriteString(log)
-		w.Logger.WriteSerialPortLogs(w, fmt.Sprintf("instance-%d", i), buf)
+		w.Logger.AppendSerialPortLogs(w, fmt.Sprintf("instance-%d", i), log)
 	}
 
 	assertLogOutput(t, w.Logger.ReadSerialPortLogs(), instanceAnnotatedLogs)
@@ -163,10 +175,8 @@ func TestSendSerialPortLogsToCloudDisabled(t *testing.T) {
 	w := New()
 	w.Name = "Test"
 	w.Logger = newDaisyLogger(false)
-	var buf bytes.Buffer
-	buf.WriteString("Serial output\n")
 
-	w.Logger.WriteSerialPortLogs(w, "instance-name", buf)
+	w.Logger.AppendSerialPortLogs(w, "instance-name", "Serial output\n")
 
 	assert.Equal(t, len(w.Logger.ReadSerialPortLogs()), 0,
 		"Don't retain logs if cloud logging disabled.")
