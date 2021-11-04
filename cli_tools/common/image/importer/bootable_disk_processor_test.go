@@ -92,9 +92,8 @@ func TestBootableDiskProcessor_SupportsNoExternalIPForWorker(t *testing.T) {
 func TestBootableDiskProcessor_SetsWorkflowNameToGcloudPrefix(t *testing.T) {
 	args := defaultImportArgs()
 	args.DaisyLogLinePrefix = "disk-1"
-	processor, e := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()),
+	processor := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()),
 		distro.FromGcloudOSArgumentMustParse("windows-2008r2"))
-	assert.NoError(t, e)
 
 	daisyutils.CheckEnvironment((processor.(*bootableDiskProcessor)).worker, func(env daisyutils.EnvironmentSettings) {
 		assert.Equal(t, "disk-1-translate", env.DaisyLogLinePrefix)
@@ -236,9 +235,8 @@ func TestBootableDiskProcessor_PermitsUnsetStorageLocation(t *testing.T) {
 
 func TestBootableDiskProcessor_SupportsCancel(t *testing.T) {
 	args := defaultImportArgs()
-	processor, e := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()),
+	processor := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()),
 		distro.FromGcloudOSArgumentMustParse("windows-2008r2"))
-	assert.NoError(t, e)
 
 	realProcessor := processor.(*bootableDiskProcessor)
 	realProcessor.cancel("timed-out")
@@ -247,10 +245,9 @@ func TestBootableDiskProcessor_SupportsCancel(t *testing.T) {
 }
 
 func createProcessor(t *testing.T, request ImageImportRequest) *bootableDiskProcessor {
-	translator, e := newBootableDiskProcessor(request, opensuse15workflow, logging.NewToolLogger(t.Name()),
+	processor := newBootableDiskProcessor(request, opensuse15workflow, logging.NewToolLogger(t.Name()),
 		distro.FromGcloudOSArgumentMustParse("windows-2008r2"))
-	assert.NoError(t, e)
-	realTranslator := translator.(*bootableDiskProcessor)
+	realTranslator := processor.(*bootableDiskProcessor)
 	// A concrete logger is required since the import/export logging framework writes a log entry
 	// when the workflow starts. Without this there's a panic.
 	return realTranslator

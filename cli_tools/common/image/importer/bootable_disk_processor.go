@@ -50,7 +50,7 @@ func (b *bootableDiskProcessor) cancel(reason string) bool {
 	return true
 }
 
-func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger logging.Logger, detectedOs distro.Release) (processor, error) {
+func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger logging.Logger, detectedOs distro.Release) processor {
 	vars := map[string]string{
 		"image_name":           request.ImageName,
 		"install_gce_packages": strconv.FormatBool(!request.NoGuestEnvironment),
@@ -83,7 +83,7 @@ func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger 
 		detectedOs: detectedOs,
 		vars:       vars,
 	}
-	return diskProcessor, nil
+	return diskProcessor
 }
 
 func createResourceLabeler(request ImageImportRequest) *daisyutils.ResourceLabeler {

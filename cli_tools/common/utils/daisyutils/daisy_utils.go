@@ -366,6 +366,8 @@ func RunWorkflowWithCancelSignal(w *daisy.Workflow, cancel <-chan string) error 
 		case reason := <-cancel:
 			if reason != "" {
 				w.CancelWithReason(reason)
+			} else {
+				w.CancelWorkflow()
 			}
 			break
 		case <-c:
@@ -375,6 +377,9 @@ func RunWorkflowWithCancelSignal(w *daisy.Workflow, cancel <-chan string) error 
 		case <-w.Cancel:
 		}
 	}(w)
+	// Daisy doesn't support cancellation through context; if the context that's passed in
+	// is cancelled, then all of its clients die, causing confusing errors and resources
+	// being left that should have been cleaned up.
 	return w.Run(context.Background())
 }
 

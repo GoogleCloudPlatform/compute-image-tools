@@ -35,7 +35,7 @@ type DaisyWorker interface {
 	Cancel(reason string) bool
 }
 
-// WorkflowProvider should return a new instance of a daisy workflow every time it is called.
+// WorkflowProvider returns a new instance of a Daisy workflow.
 type WorkflowProvider func() (*daisy.Workflow, error)
 
 // NewDaisyWorker returns an implementation of DaisyWorker. The returned value is
@@ -79,7 +79,7 @@ func createResourceLabelerIfMissing(env EnvironmentSettings, hooks []interface{}
 
 type defaultDaisyWorker struct {
 	workflowProvider WorkflowProvider
-	finished         *daisy.Workflow
+	finishedWf       *daisy.Workflow
 	logger           logging.Logger
 	env              EnvironmentSettings
 	hooks            []interface{}
@@ -103,9 +103,9 @@ func (w *defaultDaisyWorker) Run(vars map[string]string) (err error) {
 		if err == nil || !retryRequested {
 			break
 		}
-		w.logger.Debug("Retry requested. err=" + err.Error())
+		w.logger.Debug(fmt.Sprintf("retryRequested=%v. err=%v", retryRequested, err))
 	}
-	w.finished = wf
+	w.finishedWf = wf
 	return err
 }
 
@@ -156,10 +156,10 @@ func (w *defaultDaisyWorker) runOnce(wf *daisy.Workflow, vars map[string]string)
 	if err != nil {
 		PostProcessDErrorForNetworkFlag(w.env.Tool.HumanReadableName, err, w.env.Network, wf)
 		for _, hook := range w.hooks {
-			preHook, isPreHook := hook.(WorkflowPostHook)
-			if isPreHook {
+			postHook, isPostHook := hook.(WorkflowPostHook)
+			if isPostHook {
 				wantRetry := false
-				wantRetry, err = preHook.PostRunHook(err)
+				wantRetry, err = postHook.PostRunHook(err)
 				retry = retry || wantRetry
 			}
 		}
@@ -179,16 +179,16 @@ func (w *defaultDaisyWorker) RunAndReadSerialValue(key string, vars map[string]s
 func (w *defaultDaisyWorker) RunAndReadSerialValues(vars map[string]string, keys ...string) (map[string]string, error) {
 	err := w.Run(vars)
 	m := map[string]string{}
-	if w.finished != nil {
+	if w.finishedWf != nil {
 		for _, key := range keys {
-			m[key] = w.finished.GetSerialConsoleOutputValue(key)
+			m[key] = w.finishedWf.GetSerialConsoleOutputValue(key)
 		}
 	}
 	return m, err
 }
 
 func (w *defaultDaisyWorker) Cancel(reason string) bool {
-	// do-once is required to ensure that additional calls
+	// once.Do is required to ensure that additional calls
 	// to Cancel won't write to a closed channel.
 	w.cancelGuard.Do(
 		func() {

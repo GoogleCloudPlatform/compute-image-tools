@@ -109,9 +109,6 @@ func newDaisyInflater(request ImageImportRequest, fileInspector imagefile.Inspec
 		if err != nil {
 			return nil, err
 		}
-		// If there's a failure during inflation, remove the PD that would otherwise
-		// be left for translation.
-		wf.ForceCleanupOnError = true
 		if request.UefiCompatible {
 			addFeatureToDisk(wf, "UEFI_COMPATIBLE", inflationDiskIndex)
 		}
