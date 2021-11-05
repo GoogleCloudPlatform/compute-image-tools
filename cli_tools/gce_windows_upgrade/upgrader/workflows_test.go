@@ -139,18 +139,21 @@ func TestRunWorkflowWithSteps(t *testing.T) {
 			continue
 		}
 
-		w, err := u.runWorkflowWithSteps("test", "10m", tc.populateFunc)
-		if _, ok := w.Steps["step1"]; !ok {
-			t.Errorf("[%v]: missed step.", tc.testName)
-		}
+		worker, err := u.runWorkflowWithSteps("test", "10m", tc.populateFunc)
 
-		if tc.expectExitOnPopulateSteps {
-			if w.DefaultTimeout == u.Timeout {
-				t.Errorf("[%v]: Default timeout of the workflow '%v' was overrided to '%v' unexpected.", tc.testName, w.DefaultTimeout, u.Timeout)
+		daisyutils.CheckWorkflow(worker, func(w *daisy.Workflow, workflowCreationError error) {
+			if _, ok := w.Steps["step1"]; !ok {
+				t.Errorf("[%v]: missed step.", tc.testName)
 			}
-		} else if w.DefaultTimeout != u.Timeout {
-			t.Errorf("[%v]: Default timeout of the workflow '%v' should be overrided to '%v'.", tc.testName, w.DefaultTimeout, u.Timeout)
-		}
+
+			if tc.expectExitOnPopulateSteps {
+				if w.DefaultTimeout == u.Timeout {
+					t.Errorf("[%v]: Default timeout of the workflow '%v' was overrided to '%v' unexpected.", tc.testName, w.DefaultTimeout, u.Timeout)
+				}
+			} else if w.DefaultTimeout != u.Timeout {
+				t.Errorf("[%v]: Default timeout of the workflow '%v' should be overrided to '%v'.", tc.testName, w.DefaultTimeout, u.Timeout)
+			}
+		})
 	}
 }
 
@@ -159,7 +162,7 @@ func TestRunAllWorkflowFunctions(t *testing.T) {
 
 	type testCase struct {
 		testName     string
-		workflowFunc func() (*daisy.Workflow, error)
+		workflowFunc func() (daisyutils.DaisyWorker, error)
 	}
 
 	tcs := []testCase{
@@ -178,10 +181,12 @@ func TestRunAllWorkflowFunctions(t *testing.T) {
 			continue
 		}
 
-		w, err := tc.workflowFunc()
+		worker, err := tc.workflowFunc()
 
-		if w.DefaultTimeout != u.Timeout {
-			t.Errorf("[%v]: Default timeout of the workflow '%v' should be overrided to '%v'.", tc.testName, w.DefaultTimeout, u.Timeout)
-		}
+		daisyutils.CheckWorkflow(worker, func(w *daisy.Workflow, workflowCreationError error) {
+			if w.DefaultTimeout != u.Timeout {
+				t.Errorf("[%v]: Default timeout of the workflow '%v' should be overrided to '%v'.", tc.testName, w.DefaultTimeout, u.Timeout)
+			}
+		})
 	}
 }

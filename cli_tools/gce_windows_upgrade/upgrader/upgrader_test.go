@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
@@ -62,10 +62,10 @@ func TestUpgraderRunFailedOnPrintUpgradeGuide(t *testing.T) {
 
 func TestUpgraderRunFailedOnPrepare(t *testing.T) {
 	tu := initTestUpgrader(t)
-	tu.prepareFn = func() (*daisy.Workflow, error) {
+	tu.prepareFn = func() (daisyutils.DaisyWorker, error) {
 		return nil, fmt.Errorf("failed")
 	}
-	tu.cleanupFn = func() (*daisy.Workflow, error) {
+	tu.cleanupFn = func() (daisyutils.DaisyWorker, error) {
 		return nil, nil
 	}
 
@@ -75,10 +75,10 @@ func TestUpgraderRunFailedOnPrepare(t *testing.T) {
 
 func TestUpgraderRunFailedOnUpgrade(t *testing.T) {
 	tu := initTestUpgrader(t)
-	tu.upgradeFn = func() (*daisy.Workflow, error) {
+	tu.upgradeFn = func() (daisyutils.DaisyWorker, error) {
 		return nil, fmt.Errorf("failed")
 	}
-	tu.cleanupFn = func() (*daisy.Workflow, error) {
+	tu.cleanupFn = func() (daisyutils.DaisyWorker, error) {
 		return nil, nil
 	}
 
@@ -88,13 +88,13 @@ func TestUpgraderRunFailedOnUpgrade(t *testing.T) {
 
 func TestUpgraderRunFailedOnReboot(t *testing.T) {
 	tu := initTestUpgrader(t)
-	tu.upgradeFn = func() (*daisy.Workflow, error) {
+	tu.upgradeFn = func() (daisyutils.DaisyWorker, error) {
 		return nil, fmt.Errorf("Windows needs to be restarted")
 	}
-	tu.rebootFn = func() (*daisy.Workflow, error) {
+	tu.rebootFn = func() (daisyutils.DaisyWorker, error) {
 		return nil, fmt.Errorf("failed")
 	}
-	tu.cleanupFn = func() (*daisy.Workflow, error) {
+	tu.cleanupFn = func() (daisyutils.DaisyWorker, error) {
 		return nil, nil
 	}
 
@@ -104,16 +104,16 @@ func TestUpgraderRunFailedOnReboot(t *testing.T) {
 
 func TestUpgraderRunFailedOnRetryUpgrade(t *testing.T) {
 	tu := initTestUpgrader(t)
-	tu.upgradeFn = func() (*daisy.Workflow, error) {
+	tu.upgradeFn = func() (daisyutils.DaisyWorker, error) {
 		return nil, fmt.Errorf("Windows needs to be restarted")
 	}
-	tu.rebootFn = func() (*daisy.Workflow, error) {
+	tu.rebootFn = func() (daisyutils.DaisyWorker, error) {
 		return nil, nil
 	}
-	tu.retryUpgradeFn = func() (*daisy.Workflow, error) {
+	tu.retryUpgradeFn = func() (daisyutils.DaisyWorker, error) {
 		return nil, fmt.Errorf("failed")
 	}
-	tu.cleanupFn = func() (*daisy.Workflow, error) {
+	tu.cleanupFn = func() (daisyutils.DaisyWorker, error) {
 		return nil, nil
 	}
 
@@ -130,13 +130,13 @@ func TestUpgraderRunSuccessWithoutReboot(t *testing.T) {
 
 func TestUpgraderRunSuccessWithReboot(t *testing.T) {
 	tu := initTestUpgrader(t)
-	tu.upgradeFn = func() (*daisy.Workflow, error) {
+	tu.upgradeFn = func() (daisyutils.DaisyWorker, error) {
 		return nil, fmt.Errorf("Windows needs to be restarted")
 	}
-	tu.rebootFn = func() (*daisy.Workflow, error) {
+	tu.rebootFn = func() (daisyutils.DaisyWorker, error) {
 		return nil, nil
 	}
-	tu.retryUpgradeFn = func() (*daisy.Workflow, error) {
+	tu.retryUpgradeFn = func() (daisyutils.DaisyWorker, error) {
 		return nil, nil
 	}
 
@@ -146,7 +146,7 @@ func TestUpgraderRunSuccessWithReboot(t *testing.T) {
 
 func TestUpgraderRunFailedWithAutoRollback(t *testing.T) {
 	tu := initTestUpgrader(t)
-	tu.prepareFn = func() (*daisy.Workflow, error) {
+	tu.prepareFn = func() (daisyutils.DaisyWorker, error) {
 		// Test workaround: let newOSDiskName to be the same as current disk name
 		// in order to trigger auto rollback.
 		tu.newOSDiskName = testDisk
@@ -154,11 +154,11 @@ func TestUpgraderRunFailedWithAutoRollback(t *testing.T) {
 	}
 	tu.AutoRollback = true
 	rollbackExecuted := false
-	tu.rollbackFn = func() (*daisy.Workflow, error) {
+	tu.rollbackFn = func() (daisyutils.DaisyWorker, error) {
 		rollbackExecuted = true
 		return nil, nil
 	}
-	tu.cleanupFn = func() (*daisy.Workflow, error) {
+	tu.cleanupFn = func() (daisyutils.DaisyWorker, error) {
 		t.Errorf("Unexpected cleanup.")
 		return nil, nil
 	}
@@ -170,7 +170,7 @@ func TestUpgraderRunFailedWithAutoRollback(t *testing.T) {
 
 func TestUpgraderRunFailedWithAutoRollbackFailed(t *testing.T) {
 	tu := initTestUpgrader(t)
-	tu.prepareFn = func() (*daisy.Workflow, error) {
+	tu.prepareFn = func() (daisyutils.DaisyWorker, error) {
 		// Test workaround: let newOSDiskName to be the same as current disk name
 		// in order to trigger auto rollback.
 		tu.newOSDiskName = testDisk
@@ -178,7 +178,7 @@ func TestUpgraderRunFailedWithAutoRollbackFailed(t *testing.T) {
 	}
 	tu.AutoRollback = true
 	rollbackExecuted := false
-	tu.rollbackFn = func() (*daisy.Workflow, error) {
+	tu.rollbackFn = func() (daisyutils.DaisyWorker, error) {
 		rollbackExecuted = true
 		return nil, fmt.Errorf("failed2")
 	}
@@ -190,12 +190,12 @@ func TestUpgraderRunFailedWithAutoRollbackFailed(t *testing.T) {
 
 func TestUpgraderRunFailedWithAutoRollbackWithoutNewOSDiskAttached(t *testing.T) {
 	tu := initTestUpgrader(t)
-	tu.prepareFn = func() (*daisy.Workflow, error) {
+	tu.prepareFn = func() (daisyutils.DaisyWorker, error) {
 		return nil, fmt.Errorf("failed1")
 	}
 	tu.AutoRollback = true
 	cleanupExecuted := false
-	tu.cleanupFn = func() (*daisy.Workflow, error) {
+	tu.cleanupFn = func() (daisyutils.DaisyWorker, error) {
 		cleanupExecuted = true
 		return nil, fmt.Errorf("failed2")
 	}
@@ -210,28 +210,28 @@ func initTestUpgrader(t *testing.T) *TestUpgrader {
 		computeClient = newTestGCEClient()
 		return nil
 	}
-	tu.prepareFn = func() (workflow *daisy.Workflow, e error) {
+	tu.prepareFn = func() (worker daisyutils.DaisyWorker, e error) {
 		// Test workaround: let newOSDiskName to be the same as current disk name
 		// in order to pretend the enw OS disk has been attached.
 		tu.newOSDiskName = testDisk
 		return nil, nil
 	}
-	tu.upgradeFn = func() (workflow *daisy.Workflow, e error) {
+	tu.upgradeFn = func() (worker daisyutils.DaisyWorker, e error) {
 		return nil, nil
 	}
-	tu.rebootFn = func() (workflow *daisy.Workflow, e error) {
+	tu.rebootFn = func() (worker daisyutils.DaisyWorker, e error) {
 		t.Errorf("Unexpected reboot.")
 		return nil, nil
 	}
-	tu.retryUpgradeFn = func() (workflow *daisy.Workflow, e error) {
+	tu.retryUpgradeFn = func() (worker daisyutils.DaisyWorker, e error) {
 		t.Errorf("Unexpected retryUpgrade.")
 		return nil, nil
 	}
-	tu.cleanupFn = func() (workflow *daisy.Workflow, e error) {
+	tu.cleanupFn = func() (worker daisyutils.DaisyWorker, e error) {
 		t.Errorf("Unexpected cleanup.")
 		return nil, nil
 	}
-	tu.rollbackFn = func() (workflow *daisy.Workflow, e error) {
+	tu.rollbackFn = func() (worker daisyutils.DaisyWorker, e error) {
 		t.Errorf("Unexpected rollback.")
 		return nil, nil
 	}
