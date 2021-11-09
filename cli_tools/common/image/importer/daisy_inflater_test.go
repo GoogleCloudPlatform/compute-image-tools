@@ -97,7 +97,7 @@ func TestCreateDaisyInflater_Image_HappyCase(t *testing.T) {
 
 	assert.Equal(t, "zones/us-west1-b/disks/disk-1234", inflater.inflatedDiskURI)
 	assert.Equal(t, "projects/test/uri/image", inflater.vars["source_image"])
-	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow) {
+	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		assert.Contains(t, getDisk(wf, 0).Licenses,
 			"projects/compute-image-tools/global/licenses/virtual-disk-import")
 	})
@@ -108,7 +108,7 @@ func TestCreateDaisyInflater_Image_Windows(t *testing.T) {
 		Source: imageSource{uri: "image/uri"},
 		OS:     "windows-2019",
 	})
-	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow) {
+	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		assert.Contains(t, getDisk(wf, 0).GuestOsFeatures, &compute.GuestOsFeature{
 			Type: "WINDOWS",
 		})
@@ -120,7 +120,7 @@ func TestCreateDaisyInflater_Image_NotWindows(t *testing.T) {
 		Source: imageSource{uri: "image/uri"},
 		OS:     "ubuntu-1804",
 	})
-	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow) {
+	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		assert.NotContains(t, getDisk(wf, 0).GuestOsFeatures, &compute.GuestOsFeature{
 			Type: "WINDOWS",
 		})
@@ -133,7 +133,7 @@ func TestCreateDaisyInflater_Image_UEFI(t *testing.T) {
 		OS:             "ubuntu-1804",
 		UefiCompatible: true,
 	})
-	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow) {
+	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		assert.Contains(t, getDisk(wf, 0).GuestOsFeatures, &compute.GuestOsFeature{
 			Type: "UEFI_COMPATIBLE",
 		})
@@ -146,7 +146,7 @@ func TestCreateDaisyInflater_Image_NotUEFI(t *testing.T) {
 		OS:             "ubuntu-1804",
 		UefiCompatible: false,
 	})
-	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow) {
+	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		assert.NotContains(t, getDisk(wf, 0).GuestOsFeatures, &compute.GuestOsFeature{
 			Type: "UEFI_COMPATIBLE",
 		})
@@ -168,7 +168,7 @@ func TestCreateDaisyInflater_File_HappyCase(t *testing.T) {
 		errorToReturn:     nil,
 		metaToReturn:      imagefile.Metadata{},
 	})
-	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow) {
+	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		assert.Equal(t, "zones/us-west1-c/disks/disk-1234", inflater.inflatedDiskURI)
 		assert.Equal(t, "gs://bucket/vmdk", wf.Vars["source_disk_file"].Value)
 		assert.Equal(t, "projects/subnet/subnet", wf.Vars["import_subnet"].Value)
@@ -191,7 +191,7 @@ func TestCreateDaisyInflater_File_ComputeServiceAcount(t *testing.T) {
 		errorToReturn:     nil,
 		metaToReturn:      imagefile.Metadata{},
 	})
-	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow) {
+	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		assert.Equal(t, "csa", wf.Vars["compute_service_account"].Value)
 	})
 }
@@ -223,7 +223,7 @@ func TestCreateDaisyInflater_File_UsesFallbackSizes_WhenInspectionFails(t *testi
 		errorToReturn:     errors.New("inspection failed"),
 		metaToReturn:      imagefile.Metadata{},
 	})
-	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow) {
+	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		// The 10GB defaults are hardcoded in inflate_file.wf.json.
 		assert.Equal(t, "10", wf.Vars["scratch_disk_size_gb"].Value)
 		assert.Equal(t, "10", wf.Vars["inflated_disk_size_gb"].Value)
@@ -269,7 +269,7 @@ func TestCreateDaisyInflater_File_SetsSizesFromInspectedFile(t *testing.T) {
 					PhysicalSizeGB: tt.physicalSize,
 				},
 			})
-			daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow) {
+			daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 				assert.Equal(t, tt.expectedInflated, wf.Vars["inflated_disk_size_gb"].Value)
 				assert.Equal(t, tt.expectedScratch, wf.Vars["scratch_disk_size_gb"].Value)
 			})
@@ -288,7 +288,7 @@ func TestCreateDaisyInflater_File_Windows(t *testing.T) {
 		errorToReturn:     nil,
 		metaToReturn:      imagefile.Metadata{},
 	})
-	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow) {
+	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		inflatedDisk := getDisk(wf, 1)
 		assert.Contains(t, inflatedDisk.GuestOsFeatures, &compute.GuestOsFeature{
 			Type: "WINDOWS",
@@ -308,7 +308,7 @@ func TestCreateDaisyInflater_File_NotWindows(t *testing.T) {
 		metaToReturn:      imagefile.Metadata{},
 	})
 
-	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow) {
+	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		inflatedDisk := getDisk(wf, 1)
 		assert.NotContains(t, inflatedDisk.GuestOsFeatures, &compute.GuestOsFeature{
 			Type: "WINDOWS",
@@ -329,7 +329,7 @@ func TestCreateDaisyInflater_File_UEFI(t *testing.T) {
 		metaToReturn:      imagefile.Metadata{},
 	})
 
-	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow) {
+	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		inflatedDisk := getDisk(wf, 1)
 		assert.Contains(t, inflatedDisk.GuestOsFeatures, &compute.GuestOsFeature{
 			Type: "UEFI_COMPATIBLE",
@@ -350,7 +350,7 @@ func TestCreateDaisyInflater_File_NotUEFI(t *testing.T) {
 		metaToReturn:      imagefile.Metadata{},
 	})
 
-	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow) {
+	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		inflatedDisk := getDisk(wf, 1)
 		assert.NotContains(t, inflatedDisk.GuestOsFeatures, &compute.GuestOsFeature{
 			Type: "UEFI_COMPATIBLE",

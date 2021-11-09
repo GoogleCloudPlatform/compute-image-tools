@@ -64,7 +64,7 @@ func (d defaultProcessorProvider) provide(pd persistentDisk) ([]processor, error
 		processors = append(processors, p)
 	}
 
-	bootableDiskProcessor, err := newBootableDiskProcessor(d.ImageImportRequest, plan.translationWorkflowPath, d.logger, plan.detectedOs)
+	bootableDiskProcessor := newBootableDiskProcessor(d.ImageImportRequest, plan.translationWorkflowPath, d.logger, plan.detectedOs)
 	if err != nil {
 		return nil, err
 	}

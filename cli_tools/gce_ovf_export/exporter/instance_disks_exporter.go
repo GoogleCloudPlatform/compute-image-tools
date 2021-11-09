@@ -33,7 +33,7 @@ import (
 )
 
 type instanceDisksExporterImpl struct {
-	wf               *daisy.Workflow
+	worker           daisyutils.DaisyWorker
 	computeClient    daisycompute.Client
 	storageClient    domain.StorageClientInterface
 	exportedDisks    []*ovfexportdomain.ExportedDisk
@@ -51,21 +51,26 @@ func NewInstanceDisksExporter(computeClient daisycompute.Client, storageClient d
 }
 
 func (ide *instanceDisksExporterImpl) Export(instance *compute.Instance, params *ovfexportdomain.OVFExportArgs) ([]*ovfexportdomain.ExportedDisk, error) {
-	var err error
-	if ide.wf, err = generateWorkflowWithSteps("ovf-export-disk-export", params.Timeout.String(),
-		func(w *daisy.Workflow) error { return ide.populateExportDisksSteps(w, instance, params) }); err != nil {
+	wfName := "ovf-export-disk-export"
+	workflowProvider := func() (wf *daisy.Workflow, err error) {
+		if wf, err = generateWorkflowWithSteps(wfName, params.Timeout.String(),
+			func(w *daisy.Workflow) error { return ide.populateExportDisksSteps(w, instance, params) }); err != nil {
+			return nil, err
+		}
+		if ide.wfPreRunCallback != nil {
+			ide.wfPreRunCallback(wf)
+		}
+		return wf, err
+	}
+
+	ide.worker = daisyutils.NewDaisyWorker(workflowProvider, params.EnvironmentSettings(wfName), ide.logger)
+	if err := ide.worker.Run(map[string]string{}); err != nil {
 		return nil, err
 	}
-	if ide.wfPreRunCallback != nil {
-		ide.wfPreRunCallback(ide.wf)
-	}
-	if err = daisyutils.NewDaisyWorker(ide.wf, params.EnvironmentSettings(ide.wf.Name), ide.logger).Run(map[string]string{}); err != nil {
+	if err := ide.populateExportedDisksMetadata(params); err != nil {
 		return nil, err
 	}
-	if err = ide.populateExportedDisksMetadata(params); err != nil {
-		return nil, err
-	}
-	return ide.exportedDisks, err
+	return ide.exportedDisks, nil
 }
 
 func (ide *instanceDisksExporterImpl) populateExportedDisksMetadata(params *ovfexportdomain.OVFExportArgs) error {
@@ -176,9 +181,9 @@ func instantiateIncludedWorkflow(w *daisy.Workflow, includedWorkflowPath string,
 }
 
 func (ide *instanceDisksExporterImpl) Cancel(reason string) bool {
-	if ide.wf == nil {
+	if ide.worker == nil {
 		return false
 	}
-	ide.wf.CancelWithReason(reason)
+	ide.worker.Cancel(reason)
 	return true
 }

@@ -55,7 +55,7 @@ func TestCreateFallbackInflater_File(t *testing.T) {
 	daisyInflater, ok := facade.daisyInflater.(*daisyInflater)
 	assert.True(t, ok)
 	assert.Equal(t, "zones/us-west1-c/disks/disk-1234", daisyInflater.inflatedDiskURI)
-	daisyutils.CheckWorkflow(daisyInflater.worker, func(wf *daisy.Workflow) {
+	daisyutils.CheckWorkflow(daisyInflater.worker, func(wf *daisy.Workflow, err error) {
 		assert.Equal(t, "gs://bucket/vmdk", wf.Vars["source_disk_file"].Value)
 		assert.Equal(t, "projects/subnet/subnet", wf.Vars["import_subnet"].Value)
 		assert.Equal(t, "projects/network/network", wf.Vars["import_network"].Value)
@@ -99,7 +99,7 @@ func TestCreateShadowTestInflater_File(t *testing.T) {
 
 	daisyInflater, ok := facade.mainInflater.(*daisyInflater)
 	assert.True(t, ok)
-	daisyutils.CheckWorkflow(daisyInflater.worker, func(wf *daisy.Workflow) {
+	daisyutils.CheckWorkflow(daisyInflater.worker, func(wf *daisy.Workflow, err error) {
 		assert.Equal(t, "zones/us-west1-c/disks/disk-1234", daisyInflater.inflatedDiskURI)
 		assert.Equal(t, "gs://bucket/vmdk", wf.Vars["source_disk_file"].Value)
 		assert.Equal(t, "projects/subnet/subnet", wf.Vars["import_subnet"].Value)
@@ -128,7 +128,7 @@ func TestCreateInflater_Image(t *testing.T) {
 	assert.NoError(t, err)
 	realInflater, ok := inflater.(*daisyInflater)
 	assert.True(t, ok)
-	daisyutils.CheckWorkflow(realInflater.worker, func(wf *daisy.Workflow) {
+	daisyutils.CheckWorkflow(realInflater.worker, func(wf *daisy.Workflow, err error) {
 		assert.Equal(t, "zones/us-west1-b/disks/disk-1234", realInflater.inflatedDiskURI)
 		assert.Equal(t, "projects/test/uri/image", wf.Vars["source_image"].Value)
 		inflatedDisk := getDisk(wf, 0)

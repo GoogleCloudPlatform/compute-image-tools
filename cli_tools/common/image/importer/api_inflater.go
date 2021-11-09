@@ -203,8 +203,9 @@ func (inflater *apiInflater) calculateChecksum(diskURI string) (string, error) {
 		env.DaisyLogLinePrefix += "-"
 	}
 	env.DaisyLogLinePrefix += "shadow-disk-checksum"
-	worker := daisyutils.NewDaisyWorker(inflater.getCalculateChecksumWorkflow(diskURI),
-		env, inflater.logger)
+	worker := daisyutils.NewDaisyWorker(func() (*daisy.Workflow, error) {
+		return inflater.getCalculateChecksumWorkflow(diskURI), nil
+	}, env, inflater.logger)
 	return worker.RunAndReadSerialValue("disk-checksum", map[string]string{})
 }
 

@@ -31,7 +31,7 @@ var (
 	retryUpgradeSteps = map[string]func(*upgrader, *daisy.Workflow) error{versionWindows2008r2: populateRetryUpgradeStepsFrom2008r2To2012r2}
 )
 
-func (u *upgrader) prepare() (*daisy.Workflow, error) {
+func (u *upgrader) prepare() (daisyutils.DaisyWorker, error) {
 	if u.prepareFn != nil {
 		return u.prepareFn()
 	}
@@ -204,7 +204,7 @@ func populatePrepareSteps(u *upgrader, w *daisy.Workflow) error {
 	return nil
 }
 
-func (u *upgrader) upgrade() (*daisy.Workflow, error) {
+func (u *upgrader) upgrade() (daisyutils.DaisyWorker, error) {
 	if u.upgradeFn != nil {
 		return u.upgradeFn()
 	}
@@ -273,7 +273,7 @@ func populateUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow) erro
 	return nil
 }
 
-func (u *upgrader) retryUpgrade() (*daisy.Workflow, error) {
+func (u *upgrader) retryUpgrade() (daisyutils.DaisyWorker, error) {
 	if u.retryUpgradeFn != nil {
 		return u.retryUpgradeFn()
 	}
@@ -333,7 +333,7 @@ func populateRetryUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow)
 	return nil
 }
 
-func (u *upgrader) reboot() (*daisy.Workflow, error) {
+func (u *upgrader) reboot() (daisyutils.DaisyWorker, error) {
 	if u.rebootFn != nil {
 		return u.rebootFn()
 	}
@@ -360,7 +360,7 @@ func populateRebootSteps(u *upgrader, w *daisy.Workflow) error {
 	return nil
 }
 
-func (u *upgrader) cleanup() (*daisy.Workflow, error) {
+func (u *upgrader) cleanup() (daisyutils.DaisyWorker, error) {
 	if u.cleanupFn != nil {
 		return u.cleanupFn()
 	}
@@ -409,7 +409,7 @@ func populateCleanupSteps(u *upgrader, w *daisy.Workflow) error {
 	return nil
 }
 
-func (u *upgrader) rollback() (*daisy.Workflow, error) {
+func (u *upgrader) rollback() (daisyutils.DaisyWorker, error) {
 	if u.rollbackFn != nil {
 		return u.rollbackFn()
 	}
@@ -501,10 +501,10 @@ func (u *upgrader) getOriginalStartupScriptURL() string {
 	return originalStartupScriptURL
 }
 
-func (u *upgrader) runWorkflowWithSteps(workflowName string, timeout string, populateStepsFunc func(*upgrader, *daisy.Workflow) error) (*daisy.Workflow, error) {
-	w, err := u.generateWorkflowWithSteps(workflowName, timeout, populateStepsFunc)
-	if err != nil {
-		return w, err
+func (u *upgrader) runWorkflowWithSteps(workflowName string, timeout string, populateStepsFunc func(*upgrader, *daisy.Workflow) error) (daisyutils.DaisyWorker, error) {
+
+	workflowProvider := func() (*daisy.Workflow, error) {
+		return u.generateWorkflowWithSteps(workflowName, timeout, populateStepsFunc)
 	}
 
 	env := daisyutils.EnvironmentSettings{
@@ -524,7 +524,9 @@ func (u *upgrader) runWorkflowWithSteps(workflowName string, timeout string, pop
 		},
 	}
 
-	return w, daisyutils.NewDaisyWorker(w, env, u.logger).Run(map[string]string{})
+	worker := daisyutils.NewDaisyWorker(workflowProvider, env, u.logger)
+	err := worker.Run(map[string]string{})
+	return worker, err
 }
 
 func (u *upgrader) generateWorkflowWithSteps(workflowName string, timeout string, populateStepsFunc func(*upgrader, *daisy.Workflow) error) (*daisy.Workflow, error) {

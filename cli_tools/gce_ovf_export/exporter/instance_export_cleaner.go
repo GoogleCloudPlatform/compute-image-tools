@@ -115,13 +115,17 @@ func (iec *instanceExportCleanerImpl) Clean(instance *compute.Instance, params *
 			iec.wfPreRunCallback(attachDiskWf)
 		}
 		// ignore errors as these will be due to instance being already started or disks already attached
-		_ = daisyutils.NewDaisyWorker(attachDiskWf, params.EnvironmentSettings(attachDiskWf.Name), iec.logger).Run(map[string]string{})
+		_ = daisyutils.NewDaisyWorker(func() (*daisy.Workflow, error) {
+			return attachDiskWf, nil
+		}, params.EnvironmentSettings(attachDiskWf.Name), iec.logger).Run(map[string]string{})
 	}
 	if iec.startInstanceWf != nil {
 		if iec.wfPreRunCallback != nil {
 			iec.wfPreRunCallback(iec.startInstanceWf)
 		}
-		_ = daisyutils.NewDaisyWorker(iec.startInstanceWf, params.EnvironmentSettings(iec.startInstanceWf.Name), iec.logger).Run(map[string]string{})
+		_ = daisyutils.NewDaisyWorker(func() (*daisy.Workflow, error) {
+			return iec.startInstanceWf, nil
+		}, params.EnvironmentSettings(iec.startInstanceWf.Name), iec.logger).Run(map[string]string{})
 	}
 	return err
 }

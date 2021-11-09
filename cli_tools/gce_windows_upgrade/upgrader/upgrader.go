@@ -102,12 +102,12 @@ type upgrader struct {
 	initFn                    func() error
 	printIntroHelpTextFn      func() error
 	validateAndDeriveParamsFn func() error
-	prepareFn                 func() (*daisy.Workflow, error)
-	upgradeFn                 func() (*daisy.Workflow, error)
-	retryUpgradeFn            func() (*daisy.Workflow, error)
-	rebootFn                  func() (*daisy.Workflow, error)
-	cleanupFn                 func() (*daisy.Workflow, error)
-	rollbackFn                func() (*daisy.Workflow, error)
+	prepareFn                 func() (daisyutils.DaisyWorker, error)
+	upgradeFn                 func() (daisyutils.DaisyWorker, error)
+	retryUpgradeFn            func() (daisyutils.DaisyWorker, error)
+	rebootFn                  func() (daisyutils.DaisyWorker, error)
+	cleanupFn                 func() (daisyutils.DaisyWorker, error)
+	rollbackFn                func() (daisyutils.DaisyWorker, error)
 
 	logger logging.Logger
 }
@@ -171,7 +171,7 @@ func (u *upgrader) printIntroHelpText() error {
 	return nil
 }
 
-func (u *upgrader) runUpgradeWorkflow() (*daisy.Workflow, error) {
+func (u *upgrader) runUpgradeWorkflow() (daisyutils.DaisyWorker, error) {
 	var err error
 
 	// If upgrade failed, run cleanup or rollback before exiting.

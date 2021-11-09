@@ -171,11 +171,8 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 	}
 	varMap := buildDaisyVars(destinationURI, sourceImage, sourceDiskSnapshot, format, network, subnet, *region, computeServiceAccount)
 
-	var w *daisy.Workflow
-
-	w, err = daisy.NewFromFile(getWorkflowPath(format, currentExecutablePath))
-	if err != nil {
-		return err
+	workflowProvider := func() (*daisy.Workflow, error) {
+		return daisy.NewFromFile(getWorkflowPath(format, currentExecutablePath))
 	}
 
 	env := daisyutils.EnvironmentSettings{
@@ -202,7 +199,7 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 	if env.ExecutionID == "" {
 		env.ExecutionID = path.RandString(5)
 	}
-	values, err := daisyutils.NewDaisyWorker(w, env, logger).RunAndReadSerialValues(
+	values, err := daisyutils.NewDaisyWorker(workflowProvider, env, logger).RunAndReadSerialValues(
 		varMap, targetSizeGBKey, sourceSizeGBKey)
 	logger.Metric(&pb.OutputInfo{
 		SourcesSizeGb: []int64{stringutils.SafeStringToInt(values[sourceSizeGBKey])},

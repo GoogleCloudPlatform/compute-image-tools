@@ -366,12 +366,7 @@ func (oi *OVFImporter) Import() error {
 	if err := oi.paramValidator.ValidateAndPopulate(oi.params); err != nil {
 		return err
 	}
-	worker, err := oi.setupWorker()
-	if err != nil {
-		oi.Logger.User(err.Error())
-		return err
-	}
-	if err := worker.Run(map[string]string{}); err != nil {
+	if err := oi.setupWorker().Run(map[string]string{}); err != nil {
 		oi.Logger.User(err.Error())
 		return err
 	}
@@ -379,13 +374,10 @@ func (oi *OVFImporter) Import() error {
 	return nil
 }
 
-func (oi *OVFImporter) setupWorker() (daisyutils.DaisyWorker, error) {
-	w, err := oi.setUpImportWorkflow()
-	if err != nil {
-		oi.Logger.User(err.Error())
-		return nil, err
-	}
-	return daisyutils.NewDaisyWorker(w, oi.params.EnvironmentSettings(), oi.Logger,
+func (oi *OVFImporter) setupWorker() daisyutils.DaisyWorker {
+	return daisyutils.NewDaisyWorker(func() (*daisy.Workflow, error) {
+		return oi.setUpImportWorkflow()
+	}, oi.params.EnvironmentSettings(), oi.Logger,
 		&daisyutils.ResourceLabeler{
 			BuildID:         oi.params.BuildID,
 			UserLabels:      oi.params.UserLabels,
@@ -402,7 +394,7 @@ func (oi *OVFImporter) setupWorker() (daisyutils.DaisyWorker, error) {
 			},
 			ImageLabelKeyRetriever: func(imageName string) string {
 				return "gce-ovf-import-tmp"
-			}}), nil
+			}})
 }
 
 // CleanUp performs clean up of any temporary resources or connections used for OVF import

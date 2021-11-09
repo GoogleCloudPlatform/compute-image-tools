@@ -92,9 +92,8 @@ func TestBootableDiskProcessor_SupportsNoExternalIPForWorker(t *testing.T) {
 func TestBootableDiskProcessor_SetsWorkflowNameToGcloudPrefix(t *testing.T) {
 	args := defaultImportArgs()
 	args.DaisyLogLinePrefix = "disk-1"
-	processor, e := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()),
+	processor := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()),
 		distro.FromGcloudOSArgumentMustParse("windows-2008r2"))
-	assert.NoError(t, e)
 
 	daisyutils.CheckEnvironment((processor.(*bootableDiskProcessor)).worker, func(env daisyutils.EnvironmentSettings) {
 		assert.Equal(t, "disk-1-translate", env.DaisyLogLinePrefix)
@@ -112,7 +111,7 @@ func TestBootableDiskProcessor_PopulatesWorkflowVarsUsingArgs(t *testing.T) {
 	imageSpec.SysprepWindows = true
 	imageSpec.ComputeServiceAccount = "csa@email.com"
 	diskProcessor := createProcessor(t, imageSpec)
-	daisyutils.CheckWorkflow(diskProcessor.worker, func(wf *daisy.Workflow) {
+	daisyutils.CheckWorkflow(diskProcessor.worker, func(wf *daisy.Workflow, err error) {
 		actual := asMap(wf.Vars)
 		assert.Equal(t, map[string]string{
 			"source_disk":             "", // source_disk is written in process, since a previous processor may create a new disk
@@ -130,7 +129,7 @@ func TestBootableDiskProcessor_PopulatesWorkflowVarsUsingArgs(t *testing.T) {
 
 func TestBootableDiskProcessor_SupportsWorkflowDefaultVars(t *testing.T) {
 	diskProcessor := createProcessor(t, defaultImportArgs())
-	daisyutils.CheckWorkflow(diskProcessor.worker, func(wf *daisy.Workflow) {
+	daisyutils.CheckWorkflow(diskProcessor.worker, func(wf *daisy.Workflow, err error) {
 		actual := asMap(wf.Vars)
 		assert.Equal(t, map[string]string{
 			"source_disk":             "",
@@ -155,7 +154,7 @@ func TestBootableDiskProcessor_SetsWorkerDiskTrackingValues(t *testing.T) {
 	actual := createProcessor(t, imageSpec)
 
 	var wf *daisy.Workflow
-	daisyutils.CheckWorkflow(actual.worker, func(w *daisy.Workflow) {
+	daisyutils.CheckWorkflow(actual.worker, func(w *daisy.Workflow, err error) {
 		wf = w
 	})
 	daisyutils.CheckResourceLabeler(actual.worker, func(rl *daisyutils.ResourceLabeler) {
@@ -179,7 +178,7 @@ func TestBootableDiskProcessor_SetsWorkerTrackingValues(t *testing.T) {
 	actual := createProcessor(t, imageSpec)
 
 	var wf *daisy.Workflow
-	daisyutils.CheckWorkflow(actual.worker, func(w *daisy.Workflow) {
+	daisyutils.CheckWorkflow(actual.worker, func(w *daisy.Workflow, err error) {
 		wf = w
 	})
 	daisyutils.CheckResourceLabeler(actual.worker, func(rl *daisyutils.ResourceLabeler) {
@@ -203,7 +202,7 @@ func TestBootableDiskProcessor_SetsImageTrackingValues(t *testing.T) {
 	actual := createProcessor(t, imageSpec)
 
 	var wf *daisy.Workflow
-	daisyutils.CheckWorkflow(actual.worker, func(w *daisy.Workflow) {
+	daisyutils.CheckWorkflow(actual.worker, func(w *daisy.Workflow, err error) {
 		wf = w
 	})
 	daisyutils.CheckResourceLabeler(actual.worker, func(rl *daisyutils.ResourceLabeler) {
@@ -228,7 +227,7 @@ func TestBootableDiskProcessor_SupportsStorageLocation(t *testing.T) {
 
 func TestBootableDiskProcessor_PermitsUnsetStorageLocation(t *testing.T) {
 	actual := createProcessor(t, defaultImportArgs())
-	daisyutils.CheckWorkflow(actual.worker, func(wf *daisy.Workflow) {
+	daisyutils.CheckWorkflow(actual.worker, func(wf *daisy.Workflow, err error) {
 		image := getImage(t, wf)
 		assert.Empty(t, image.StorageLocations)
 	})
@@ -236,23 +235,19 @@ func TestBootableDiskProcessor_PermitsUnsetStorageLocation(t *testing.T) {
 
 func TestBootableDiskProcessor_SupportsCancel(t *testing.T) {
 	args := defaultImportArgs()
-	processor, e := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()),
+	processor := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()),
 		distro.FromGcloudOSArgumentMustParse("windows-2008r2"))
-	assert.NoError(t, e)
 
 	realProcessor := processor.(*bootableDiskProcessor)
 	realProcessor.cancel("timed-out")
-	daisyutils.CheckWorkflow(realProcessor.worker, func(wf *daisy.Workflow) {
-		_, channelOpen := <-wf.Cancel
-		assert.False(t, channelOpen, "realProcessor.workflow.Cancel should be closed on timeout")
-	})
+	err := realProcessor.worker.Run(map[string]string{})
+	assert.EqualError(t, err, "workflow canceled: timed-out")
 }
 
 func createProcessor(t *testing.T, request ImageImportRequest) *bootableDiskProcessor {
-	translator, e := newBootableDiskProcessor(request, opensuse15workflow, logging.NewToolLogger(t.Name()),
+	processor := newBootableDiskProcessor(request, opensuse15workflow, logging.NewToolLogger(t.Name()),
 		distro.FromGcloudOSArgumentMustParse("windows-2008r2"))
-	assert.NoError(t, e)
-	realTranslator := translator.(*bootableDiskProcessor)
+	realTranslator := processor.(*bootableDiskProcessor)
 	// A concrete logger is required since the import/export logging framework writes a log entry
 	// when the workflow starts. Without this there's a panic.
 	return realTranslator

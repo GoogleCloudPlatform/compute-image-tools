@@ -355,19 +355,32 @@ func PostProcessDErrorForNetworkFlag(action string, err error, network string, w
 	}
 }
 
-// RunWorkflowWithCancelSignal runs Daisy workflow with accepting Ctrl-C signal
-func RunWorkflowWithCancelSignal(ctx context.Context, w *daisy.Workflow) error {
+// RunWorkflowWithCancelSignal runs a Daisy workflow, and allows for cancellation from two sources:
+//   1. The user types Ctrl-C on their keyboard.
+//   2. The caller sends a cancellation reason on the cancel channel (or closes it).
+func RunWorkflowWithCancelSignal(w *daisy.Workflow, cancel <-chan string) error {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	go func(w *daisy.Workflow) {
 		select {
+		case reason := <-cancel:
+			if reason != "" {
+				w.CancelWithReason(reason)
+			} else {
+				w.CancelWorkflow()
+			}
+			break
 		case <-c:
 			w.LogWorkflowInfo("\nCtrl-C caught, sending cancel signal to %q...\n", w.Name)
 			w.CancelWorkflow()
+			break
 		case <-w.Cancel:
 		}
 	}(w)
-	return w.Run(ctx)
+	// Daisy doesn't support cancellation through context; if the context that's passed in
+	// is cancelled, then all of its clients die, causing confusing errors and resources
+	// being left that should have been cleaned up.
+	return w.Run(context.Background())
 }
 
 // NewStep creates a new step for the workflow along with dependencies.

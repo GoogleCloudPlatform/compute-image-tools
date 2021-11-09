@@ -37,7 +37,9 @@ func Test_NewDaisyWorker_IncludesStandardHooks(t *testing.T) {
 		ExecutionID:        "b1234",
 		Tool:               Tool{ResourceLabelName: "unit-test"},
 	}
-	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"))
+	worker := NewDaisyWorker(func() (*daisy.Workflow, error) {
+		return wf, nil
+	}, env, logging.NewToolLogger("test"))
 	assert.Equal(t, appliedHooks{
 		applyEnvToWorkflow:    true,
 		configureDaisyLogging: true,
@@ -60,7 +62,9 @@ func Test_NewDaisyWorker_Panics_IfHooksDontImplementPreOrPostInterface(t *testin
 	type notAHook struct {
 	}
 	assert.PanicsWithValue(t, "daisyutils.notAHook must implement WorkflowPreHook and/or WorkflowPostHook", func() {
-		NewDaisyWorker(wf, env, logging.NewToolLogger("test"), notAHook{})
+		NewDaisyWorker(func() (*daisy.Workflow, error) {
+			return wf, nil
+		}, env, logging.NewToolLogger("test"), notAHook{})
 	})
 }
 
@@ -70,7 +74,9 @@ func Test_NewDaisyWorker_IncludesNoExternalIPHook_WhenRequestedByUser(t *testing
 		ExecutionID: "b1234",
 		Tool:        Tool{ResourceLabelName: "unit-test"},
 	}
-	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"))
+	worker := NewDaisyWorker(func() (*daisy.Workflow, error) {
+		return wf, nil
+	}, env, logging.NewToolLogger("test"))
 	assert.Equal(t, appliedHooks{
 		applyEnvToWorkflow:    true,
 		configureDaisyLogging: true,
@@ -84,7 +90,9 @@ func Test_NewDaisyWorker_KeepsResourceLabelerIfSpecified(t *testing.T) {
 	env := EnvironmentSettings{NoExternalIP: true, ExecutionID: "b1234",
 		Tool: Tool{ResourceLabelName: "unit-test"}}
 	rl := NewResourceLabeler("tool", "buildid", map[string]string{}, "location")
-	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"), rl)
+	worker := NewDaisyWorker(func() (*daisy.Workflow, error) {
+		return wf, nil
+	}, env, logging.NewToolLogger("test"), rl)
 	actualResourceLabeler := getResourceLabeler(t, worker)
 	assert.Equal(t, rl, actualResourceLabeler)
 }
@@ -110,7 +118,9 @@ func Test_DaisyWorkerRun_RunsCustomPreHooks(t *testing.T) {
 	}
 	configWorkflowForUnitTesting(t, wf, mockCtrl, env)
 
-	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"), hook1, hook2)
+	worker := NewDaisyWorker(func() (*daisy.Workflow, error) {
+		return wf, nil
+	}, env, logging.NewToolLogger("test"), hook1, hook2)
 	assert.NoError(t, worker.Run(map[string]string{}))
 }
 
@@ -137,9 +147,62 @@ func Test_DaisyWorkerRun_CapturesDaisyLogs(t *testing.T) {
 	configWorkflowForUnitTesting(t, wf, mockCtrl, env)
 
 	toolLogger := logging.NewToolLogger("test")
-	worker := NewDaisyWorker(wf, env, toolLogger)
+	worker := NewDaisyWorker(func() (*daisy.Workflow, error) {
+		return wf, nil
+	}, env, toolLogger)
 	assert.NoError(t, worker.Run(map[string]string{}))
 	assert.Equal(t, serialLogs, toolLogger.ReadOutputInfo().SerialOutputs)
+}
+
+func Test_DaisyWorkerRun_DoesntRunWorkflow_IfCancelWasCalled(t *testing.T) {
+	wf := daisy.New()
+	worker := NewDaisyWorker(func() (*daisy.Workflow, error) {
+		return wf, nil
+	}, EnvironmentSettings{
+		ExecutionID: "b1234",
+		Tool:        Tool{ResourceLabelName: "unit-test"},
+	}, logging.NewToolLogger("test"))
+	worker.Cancel("don't run workflow")
+	assert.EqualError(t, worker.Run(map[string]string{}), "workflow canceled: don't run workflow")
+}
+
+func Test_DaisyWorkerCancel_SafeToCallMultipleTimes(t *testing.T) {
+	wf := daisy.New()
+	worker := NewDaisyWorker(func() (*daisy.Workflow, error) {
+		return wf, nil
+	}, EnvironmentSettings{
+		ExecutionID: "b1234",
+		Tool:        Tool{ResourceLabelName: "unit-test"},
+	}, logging.NewToolLogger("test"))
+	worker.Cancel("reason")
+	worker.Cancel("reason")
+	worker.Cancel("reason")
+	assert.EqualError(t, worker.Run(map[string]string{}), "workflow canceled: reason")
+	assert.EqualError(t, worker.Run(map[string]string{}), "workflow canceled")
+}
+
+func Test_DaisyWorkerRun_DoesntRunWorkflow_IfCancelChanelClosedAndEmpty(t *testing.T) {
+	wf := daisy.New()
+	worker := NewDaisyWorker(func() (*daisy.Workflow, error) {
+		return wf, nil
+	}, EnvironmentSettings{
+		ExecutionID: "b1234",
+		Tool:        Tool{ResourceLabelName: "unit-test"},
+	}, logging.NewToolLogger("test"))
+	close(worker.(*defaultDaisyWorker).cancel)
+	assert.EqualError(t, worker.Run(map[string]string{}), "workflow canceled")
+}
+
+func Test_DaisyWorkerRun_DoesntRunWorkflow_IfWorkflowAlreadyCanceled(t *testing.T) {
+	wf := daisy.New()
+	worker := NewDaisyWorker(func() (*daisy.Workflow, error) {
+		return wf, nil
+	}, EnvironmentSettings{
+		ExecutionID: "b1234",
+		Tool:        Tool{ResourceLabelName: "unit-test"},
+	}, logging.NewToolLogger("test"))
+	close(wf.Cancel)
+	assert.EqualError(t, worker.Run(map[string]string{}), "workflow canceled")
 }
 
 func Test_DaisyWorkerRun_FailsIfPreHookFails(t *testing.T) {
@@ -150,7 +213,9 @@ func Test_DaisyWorkerRun_FailsIfPreHookFails(t *testing.T) {
 	hook := mocks.NewMockWorkflowPreHook(mockCtrl)
 	hook.EXPECT().PreRunHook(wf).Return(errors.New("hook failed"))
 
-	worker := NewDaisyWorker(wf, EnvironmentSettings{
+	worker := NewDaisyWorker(func() (*daisy.Workflow, error) {
+		return wf, nil
+	}, EnvironmentSettings{
 		ExecutionID: "b1234",
 		Tool:        Tool{ResourceLabelName: "unit-test"},
 	}, logging.NewToolLogger("test"), hook)
@@ -159,7 +224,9 @@ func Test_DaisyWorkerRun_FailsIfPreHookFails(t *testing.T) {
 
 func Test_DaisyWorkerRun_FailsIfWorkflowFails(t *testing.T) {
 	wf := daisy.New()
-	worker := NewDaisyWorker(wf, EnvironmentSettings{
+	worker := NewDaisyWorker(func() (*daisy.Workflow, error) {
+		return wf, nil
+	}, EnvironmentSettings{
 		ExecutionID: "b1234",
 		Tool:        Tool{ResourceLabelName: "unit-test"},
 	}, logging.NewToolLogger("test"))
@@ -190,7 +257,9 @@ func Test_DaisyWorkerRun_AppliesEnvToWorkflow(t *testing.T) {
 	}
 	configWorkflowForUnitTesting(t, wf, mockCtrl, env)
 
-	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"))
+	worker := NewDaisyWorker(func() (*daisy.Workflow, error) {
+		return wf, nil
+	}, env, logging.NewToolLogger("test"))
 	if err := worker.Run(map[string]string{}); err != nil {
 		t.Fatal(err)
 	}
@@ -201,6 +270,54 @@ func Test_DaisyWorkerRun_AppliesEnvToWorkflow(t *testing.T) {
 	assert.Equal(t, wf.DefaultTimeout, "60s")
 	assert.Equal(t, wf.ComputeEndpoint, "new-endpoint")
 	assert.Equal(t, wf.Name, "import-image")
+}
+
+func Test_DaisyWorkerRun_DoesntRunWorkflowMoreThanTwiceEventWhenRequested(t *testing.T) {
+	expectedError := "error validating workflow: must provide workflow field 'Name'"
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	numWorkflowInvocations := 0
+	postHook := mocks.NewMockWorkflowPostHook(mockCtrl)
+	postHook.EXPECT().PostRunHook(gomock.Any()).DoAndReturn(
+		func(err error) (bool, error) {
+			assert.EqualError(t, err, expectedError)
+			return true, err
+		}).Times(2)
+	worker := NewDaisyWorker(func() (*daisy.Workflow, error) {
+		numWorkflowInvocations++
+		return daisy.New(), nil
+	}, EnvironmentSettings{
+		ExecutionID: "b1234",
+		Tool:        Tool{ResourceLabelName: "unit-test"},
+	}, logging.NewToolLogger("test"), postHook)
+	assert.EqualError(t, worker.Run(map[string]string{}),
+		expectedError)
+	assert.Equal(t, 2, numWorkflowInvocations)
+}
+
+func Test_DaisyWorkerRun_DoesntReRunFailedWorkflowIfNotRequested(t *testing.T) {
+	expectedError := "error validating workflow: must provide workflow field 'Name'"
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	numWorkflowInvocations := 0
+	postHook := mocks.NewMockWorkflowPostHook(mockCtrl)
+	postHook.EXPECT().PostRunHook(gomock.Any()).DoAndReturn(
+		func(err error) (bool, error) {
+			assert.EqualError(t, err, expectedError)
+			return false, err
+		}).Times(1)
+	worker := NewDaisyWorker(func() (*daisy.Workflow, error) {
+		numWorkflowInvocations++
+		return daisy.New(), nil
+	}, EnvironmentSettings{
+		ExecutionID: "b1234",
+		Tool:        Tool{ResourceLabelName: "unit-test"},
+	}, logging.NewToolLogger("test"), postHook)
+	assert.EqualError(t, worker.Run(map[string]string{}),
+		expectedError)
+	assert.Equal(t, 1, numWorkflowInvocations)
 }
 
 func Test_DaisyWorkerRun_AppliesVariables(t *testing.T) {
@@ -223,7 +340,9 @@ func Test_DaisyWorkerRun_AppliesVariables(t *testing.T) {
 	}
 	configWorkflowForUnitTesting(t, wf, mockCtrl, env)
 
-	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"))
+	worker := NewDaisyWorker(func() (*daisy.Workflow, error) {
+		return wf, nil
+	}, env, logging.NewToolLogger("test"))
 	assert.NoError(t, worker.Run(map[string]string{"v": "value"}))
 }
 
@@ -245,7 +364,9 @@ func Test_DaisyWorkerRunAndReadSerialValue_HappyCase(t *testing.T) {
 	}
 	configWorkflowForUnitTesting(t, wf, mockCtrl, env)
 
-	worker := NewDaisyWorker(wf, env, logging.NewToolLogger("test"))
+	worker := NewDaisyWorker(func() (*daisy.Workflow, error) {
+		return wf, nil
+	}, env, logging.NewToolLogger("test"))
 	actualValue, err := worker.RunAndReadSerialValue("serial-key", map[string]string{})
 	assert.NoError(t, err)
 	assert.Equal(t, "serial-output-value", actualValue)
