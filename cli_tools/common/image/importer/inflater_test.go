@@ -17,7 +17,11 @@ package importer
 import (
 	"fmt"
 	"testing"
+	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
+	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
 
@@ -47,7 +51,7 @@ func TestCreateFallbackInflater_File(t *testing.T) {
 		expectedReference: "gs://bucket/vmdk",
 		errorToReturn:     nil,
 		metaToReturn:      imagefile.Metadata{},
-	}, nil)
+	}, logging.NewToolLogger("test"))
 	assert.NoError(t, err)
 	facade, ok := inflater.(*inflaterFacade)
 	assert.True(t, ok)
@@ -92,7 +96,7 @@ func TestCreateShadowTestInflater_File(t *testing.T) {
 		expectedReference: "gs://bucket/vmdk",
 		errorToReturn:     nil,
 		metaToReturn:      imagefile.Metadata{},
-	}, nil)
+	}, logging.NewToolLogger("test"))
 	assert.NoError(t, err)
 	facade, ok := inflater.(*shadowTestInflaterFacade)
 	assert.True(t, ok)
@@ -124,7 +128,7 @@ func TestCreateInflater_Image(t *testing.T) {
 		Tool: daisyutils.Tool{
 			ResourceLabelName: "image-import",
 		},
-	}, nil, &storage.Client{}, nil, nil)
+	}, nil, &storage.Client{}, nil, logging.NewToolLogger("test"))
 	assert.NoError(t, err)
 	realInflater, ok := inflater.(*daisyInflater)
 	assert.True(t, ok)
@@ -191,6 +195,7 @@ func TestInflaterFacade_SuccessOnDaisyInflater(t *testing.T) {
 	}
 
 	pd, _, err := facade.Inflate()
+
 	assert.NoError(t, err)
 	assert.Equal(t, "disk2", pd.uri)
 }
@@ -210,4 +215,250 @@ func TestInflaterFacade_FailedOnDaisyInflater(t *testing.T) {
 
 	_, _, err := facade.Inflate()
 	assert.Equal(t, daisyError, err)
+}
+
+func TestCompareWithShadowInflater_QEMUChecksumMismatch(t *testing.T) {
+	facade := shadowTestInflaterFacade{
+		qemuChecksum: "bad-checksum",
+	}
+	pd := persistentDisk{}
+	shadowPd := persistentDisk{}
+	ii := inflationInfo{
+		checksum: "good-checksum",
+	}
+	shadowIi := inflationInfo{
+		checksum: "good-checksum",
+	}
+	matchResult := facade.compareWithShadowInflater(&pd, &shadowPd, &ii, &shadowIi)
+
+	expectedMatchResult := fmt.Sprintf(matchFormat, true, true, true, "false")
+	assert.Equal(t, expectedMatchResult, matchResult, "Unexpected match result.")
+}
+
+func TestCompareWithShadowInflater_QEMUChecksumMatches(t *testing.T) {
+	facade := shadowTestInflaterFacade{
+		qemuChecksum: "good-checksum",
+	}
+	pd := persistentDisk{}
+	shadowPd := persistentDisk{}
+	ii := inflationInfo{
+		checksum: "good-checksum",
+	}
+	shadowIi := inflationInfo{
+		checksum: "good-checksum",
+	}
+	matchResult := facade.compareWithShadowInflater(&pd, &shadowPd, &ii, &shadowIi)
+
+	expectedMatchResult := "true"
+	assert.Equal(t, expectedMatchResult, matchResult, "Unexpected match result.")
+}
+
+func TestCompareWithShadowInflater_QEMUChecksumEmpty(t *testing.T) {
+	facade := shadowTestInflaterFacade{
+		qemuChecksum: "",
+	}
+	pd := persistentDisk{}
+	shadowPd := persistentDisk{}
+	ii := inflationInfo{
+		checksum: "good-checksum",
+	}
+	shadowIi := inflationInfo{
+		checksum: "good-checksum",
+	}
+	matchResult := facade.compareWithShadowInflater(&pd, &shadowPd, &ii, &shadowIi)
+
+	expectedMatchResult := fmt.Sprintf(matchFormat, true, true, true, "skipped")
+	assert.Equal(t, expectedMatchResult, matchResult, "Unexpected match result.")
+}
+
+func TestInflaterRerun_QEMUChecksumEmpty_SkipRerun(t *testing.T) {
+	expectedInflationType := "api_success_checksum_skipped"
+	expectedInflationTime := int64(13)
+	expectedDiskURI := "api_disk"
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockLogger := mocks.NewMockLogger(mockCtrl)
+	mockLogger.EXPECT().Metric(&pb.OutputInfo{
+		InflationType:   expectedInflationType,
+		InflationTimeMs: []int64{expectedInflationTime * 1000},
+	})
+
+	facade := inflaterFacade{
+		qemuChecksum: "",
+		apiInflater: &mockInflater{
+			pd: persistentDisk{
+				uri: "api_disk",
+			},
+			ii: inflationInfo{
+				checksum: "good-checksum",
+				inflationTime: time.Second * time.Duration(expectedInflationTime),
+			},
+		},
+		daisyInflater: &mockInflater{
+			pd: persistentDisk{
+				uri: "daisy_disk",
+			},
+		},
+		logger: mockLogger,
+	}
+	pd, _, err := facade.Inflate()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedDiskURI, pd.uri)
+}
+
+func TestInflaterRerun_QEMUChecksumMatches_NoRerun(t *testing.T) {
+	expectedInflationType := "api_success"
+	expectedInflationTime := int64(13)
+	expectedDiskURI := "api_disk"
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockLogger := mocks.NewMockLogger(mockCtrl)
+	mockLogger.EXPECT().Metric(&pb.OutputInfo{
+		InflationType:   expectedInflationType,
+		InflationTimeMs: []int64{expectedInflationTime * 1000},
+	})
+
+	facade := inflaterFacade{
+		qemuChecksum: "good-checksum",
+		apiInflater: &mockInflater{
+			pd: persistentDisk{
+				uri: "api_disk",
+			},
+			ii: inflationInfo{
+				checksum: "good-checksum",
+				inflationTime: time.Second * time.Duration(expectedInflationTime),
+			},
+		},
+		daisyInflater: &mockInflater{
+			pd: persistentDisk{
+				uri: "daisy_disk",
+			},
+		},
+		logger: mockLogger,
+	}
+	pd, _, err := facade.Inflate()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedDiskURI, pd.uri)
+}
+
+func TestInflaterRerun_QEMUChecksumMismatch_Rerun_Success(t *testing.T) {
+	expectedInflationType := "qemu_success"
+	expectedInflationTime := int64(13)
+	expectedDiskURI := "daisy_disk"
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockLogger := mocks.NewMockLogger(mockCtrl)
+	mockLogger.EXPECT().Metric(&pb.OutputInfo{
+		InflationType:   expectedInflationType,
+		InflationTimeMs: []int64{expectedInflationTime * 1000},
+	})
+	mockLogger.EXPECT().User("Disk checksum mismatch, recreating...")
+
+	facade := inflaterFacade{
+		qemuChecksum: "good-checksum",
+		apiInflater: &mockInflater{
+			pd: persistentDisk{
+				uri: "api_disk",
+			},
+			ii: inflationInfo{
+				checksum: "bad-checksum",
+				inflationTime: time.Second * time.Duration(expectedInflationTime + 1),
+			},
+		},
+		daisyInflater: &mockInflater{
+			pd: persistentDisk{
+				uri: "daisy_disk",
+			},
+			ii: inflationInfo{
+				checksum: "good-checksum",
+				inflationTime: time.Second * time.Duration(expectedInflationTime),
+			},
+		},
+		logger: mockLogger,
+		computeClient: &mockComputeClient{
+			deleteDiskSuccess: true,
+		},
+	}
+	pd, _, err := facade.Inflate()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedDiskURI, pd.uri)
+}
+
+func TestInflaterRerun_FailedOnUnsupportedFormat_Rerun_Failed(t *testing.T) {
+	expectedInflationType := "qemu_failed"
+	expectedInflationTime := int64(13)
+	expectedDiskURI := "daisy_disk"
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockLogger := mocks.NewMockLogger(mockCtrl)
+	mockLogger.EXPECT().Metric(&pb.OutputInfo{
+		InflationType:   expectedInflationType,
+		InflationTimeMs: []int64{expectedInflationTime * 1000},
+	})
+
+	facade := inflaterFacade{
+		qemuChecksum: "good-checksum",
+		apiInflater: &mockInflater{
+			pd: persistentDisk{
+				uri: "api_disk",
+			},
+			ii: inflationInfo{
+				inflationTime: time.Second * time.Duration(expectedInflationTime + 1),
+			},
+			err: fmt.Errorf("INVALID_IMAGE_FILE"),
+		},
+		daisyInflater: &mockInflater{
+			pd: persistentDisk{
+				uri: "daisy_disk",
+			},
+			ii: inflationInfo{
+				inflationTime: time.Second * time.Duration(expectedInflationTime),
+			},
+			err: fmt.Errorf("daisy inflater failed"),
+		},
+		logger: mockLogger,
+	}
+	pd, _, err := facade.Inflate()
+	assert.Error(t, err)
+	assert.Equal(t, expectedDiskURI, pd.uri)
+}
+
+func TestInflaterRerun_FailedOnGeneralError_NoRerun(t *testing.T) {
+	expectedInflationType := "api_failed"
+	expectedInflationTime := int64(13)
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockLogger := mocks.NewMockLogger(mockCtrl)
+	mockLogger.EXPECT().Metric(&pb.OutputInfo{
+		InflationType:   expectedInflationType,
+		InflationTimeMs: []int64{expectedInflationTime * 1000},
+	})
+
+	facade := inflaterFacade{
+		qemuChecksum: "good-checksum",
+		apiInflater: &mockInflater{
+			pd: persistentDisk{},
+			ii: inflationInfo{
+				inflationTime: time.Second * time.Duration(expectedInflationTime),
+			},
+			err: fmt.Errorf("a general error"),
+		},
+		daisyInflater: &mockInflater{
+			pd: persistentDisk{
+				uri: "daisy_disk",
+			},
+			ii: inflationInfo{
+				inflationTime: time.Second * time.Duration(expectedInflationTime + 1),
+			},
+		},
+		logger: mockLogger,
+	}
+	pd, _, err := facade.Inflate()
+	assert.Error(t, err)
+	assert.Empty(t, pd.uri)
 }

@@ -70,22 +70,15 @@ func (client defaultInfoClient) GetInfo(ctx context.Context, filename string) (i
 		return
 	}
 
-	// To reduce the runtime permissions used on the inflation worker, we pre-allocate
-	// disks sufficient to hold the disk file and the inflated disk. The scratch disk gets
-	// a padding factor to account for filesystem overhead. This info is required,
-	// so we have to terminate the import if it's failed to fetch file info.
 	jsonTemplate, err := client.getFileInfo(ctx, filename)
 	if err != nil {
-		err = daisy.Errf("Failed to inspect file %v", filename)
+		err = daisy.Errf("Failed to inspect file %v: %v", filename, err)
 		return
 	}
 	info.Format = lookupFileFormat(jsonTemplate.Format)
 	info.ActualSizeBytes = jsonTemplate.ActualSizeBytes
 	info.VirtualSizeBytes = jsonTemplate.VirtualSizeBytes
 
-	// To ensure disk.insert API produced expected disk content from a VMDK file, we need
-	// to calculate the checksum from qemu output for comparison. This check is required,
-	// so we have to terminate the import if it's failed to calculate the checksum.
 	checksum, err := client.getFileChecksum(ctx, filename, info.VirtualSizeBytes)
 	if err != nil {
 		err = daisy.Errf("Failed to calculate file '%v' checksum by qemu: %v", filename, err)
@@ -121,6 +114,10 @@ func (client defaultInfoClient) getFileChecksum(ctx context.Context, filename st
 	for i, skip := range skips {
 		tmpOutFileName := fmt.Sprintf("%v%v", tmpOutFilePrefix, i)
 		defer os.Remove(tmpOutFileName)
+
+		if skip < 0 {
+			skip = 0
+		}
 
 		// Write 100MB data to a file.
 		cmd := exec.CommandContext(ctx, "qemu-img", "dd", fmt.Sprintf("if=%v", filename),

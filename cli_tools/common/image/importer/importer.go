@@ -21,6 +21,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 	"google.golang.org/api/googleapi"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
@@ -44,7 +45,7 @@ func NewImporter(request ImageImportRequest, computeClient compute.Client, stora
 		return nil, err
 	}
 
-	inflater, err := newInflater(request, computeClient, storageClient, logger)
+	inflater, err := newInflater(request, computeClient, storageClient, imagefile.NewGCSInspector(), logger)
 	if err != nil {
 		return nil, err
 	}

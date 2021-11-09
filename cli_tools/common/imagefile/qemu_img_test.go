@@ -102,6 +102,8 @@ func TestGetInfo_FormatDetection(t *testing.T) {
 			// because some image formats have additional overhead such that
 			// the virtual size doesn't match the requested size in qemu-img create.
 			assert.Equal(t, tt.expectedVirtualSizeGB/bytesPerGB, imageInfo.VirtualSizeBytes/bytesPerGB)
+
+			assert.NotEmpty(t, imageInfo.Checksum, "Checksum shouldn't be empty.")
 		})
 	}
 }
@@ -128,7 +130,7 @@ func TestGetInfo_PropagateContextCancellation(t *testing.T) {
 	cancelFunc()
 	_, err := client.GetInfo(ctx, "/tmp")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "inspection failure: context canceled")
+	assert.Contains(t, err.Error(), "inspection failure: 'context canceled'")
 }
 
 func TestGetInfo_InspectionClassifiesCompressedAsRaw(t *testing.T) {

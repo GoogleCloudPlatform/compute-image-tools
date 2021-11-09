@@ -47,18 +47,21 @@ type inflationInfo struct {
 }
 
 func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient domain.StorageClientInterface,
-	logger logging.Logger) (Inflater, error) {
+	inspector imagefile.Inspector, logger logging.Logger) (Inflater, error) {
 
-	// 1. To reduce the runtime permissions used on the inflation worker, we pre-allocate
-	// disks sufficient to hold the disk file and the inflated disk. If inspection fails,
-	// then the default values in the daisy workflow will be used. The scratch disk gets
-	// a padding factor to account for filesystem overhead.
-	// 2. Inspection also returns checksum of the image file for sanitary check. If it's
-	// failed to get the checksum, the following sanitary check will be skipped.
-	deadline, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(inspectionTimeout))
-	defer cancelFunc()
-	logger.User("Inspecting the image file...")
-	fileMetadata, _ := imagefile.NewGCSInspector().Inspect(deadline, request.Source.Path())
+	var fileMetadata = imagefile.Metadata{}
+	if !isImage(request.Source) {
+		// 1. To reduce the runtime permissions used on the inflation worker, we pre-allocate
+		// disks sufficient to hold the disk file and the inflated disk. If inspection fails,
+		// then the default values in the daisy workflow will be used. The scratch disk gets
+		// a padding factor to account for filesystem overhead.
+		// 2. Inspection also returns checksum of the image file for sanitary check. If it's
+		// failed to get the checksum, the following sanitary check will be skipped.
+		deadline, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(inspectionTimeout))
+		defer cancelFunc()
+		logger.User("Inspecting the image file...")
+		fileMetadata, _ = inspector.Inspect(deadline, request.Source.Path())
+	}
 
 	di, err := newDaisyInflater(request, fileMetadata, logger)
 	if err != nil {
@@ -111,20 +114,26 @@ func (facade *inflaterFacade) Inflate() (persistentDisk, inflationInfo, error) {
 	var ii inflationInfo
 	var err error
 
-	//  Try with API inflater. Verify checksum after inflation.
+	//  Run API inflater as the primary inflation method.
 	pd, ii, err = facade.apiInflater.Inflate()
-	if err == nil && ii.checksum == facade.qemuChecksum {
-		inflationType := "api_success"
-		if facade.qemuChecksum == "" {
+	if err == nil {
+		inflationType := ""
+		if ii.checksum == facade.qemuChecksum {
+			inflationType = "api_success"
+		} else if facade.qemuChecksum == "" {
 			inflationType = "api_success_checksum_skipped"
 		}
-		facade.logger.Metric(&pb.OutputInfo{
-			InflationType:   inflationType,
-			InflationTimeMs: []int64{ii.inflationTime.Milliseconds()},
-		})
-		return pd, ii, err
+
+		if inflationType != "" {
+			facade.logger.Metric(&pb.OutputInfo{
+				InflationType:   inflationType,
+				InflationTimeMs: []int64{ii.inflationTime.Milliseconds()},
+			})
+			return pd, ii, err
+		}
 	}
 
+	// If the inflation is failed but not due to unsupported format, don't rerun inflation.
 	if err != nil && !isCausedByUnsupportedFormat(err) {
 		facade.logger.Metric(&pb.OutputInfo{
 			InflationType:   "api_failed",
@@ -133,7 +142,7 @@ func (facade *inflaterFacade) Inflate() (persistentDisk, inflationInfo, error) {
 		return pd, ii, err
 	}
 
-	// Delete the disk before retry, if checksum mismatch detected.
+	// If checksum mismatches , delete the corrupted disk.
 	if err == nil && ii.checksum != facade.qemuChecksum {
 		facade.logger.User("Disk checksum mismatch, recreating...")
 		err = facade.computeClient.DeleteDisk(facade.request.Project, facade.request.Zone, getDiskName(facade.request.ExecutionID))
@@ -142,9 +151,9 @@ func (facade *inflaterFacade) Inflate() (persistentDisk, inflationInfo, error) {
 		}
 	}
 
-	// Retry inflation with daisy only for one of the below reasons:
-	// 1. Checksum mismatch.
-	// 2. The API doesn't support the format of the image file.
+	// Now rerun inflation with daisy inflater. As described above, it is due to one of the below reasons:
+	// 1. The API doesn't support the format of the image file.
+	// 2. Checksum mismatch, which means the API produced a corrupted disk.
 	pd, ii, err = facade.retryWithDaisyInflater()
 	return pd, ii, err
 }
@@ -176,7 +185,9 @@ type shadowTestInflaterFacade struct {
 	mainInflater   Inflater
 	shadowInflater Inflater
 	logger         logging.Logger
-	qemuChecksum   string
+
+	// Runtime-populated fields
+	qemuChecksum string
 }
 
 // signals to control the verification towards shadow inflater
@@ -268,8 +279,9 @@ func (facade *shadowTestInflaterFacade) Cancel(reason string) bool {
 	return facade.mainInflater.Cancel(reason)
 }
 
+const matchFormat = "sizeGb-%v,sourceGb-%v,content-%v,qemuchecksum-%v"
+
 func (facade *shadowTestInflaterFacade) compareWithShadowInflater(mainPd, shadowPd *persistentDisk, mainIi, shadowIi *inflationInfo) string {
-	matchFormat := "sizeGb-%v,sourceGb-%v,content-%v,qemuchecksum-%v"
 	sizeGbMatch := shadowPd.sizeGb == mainPd.sizeGb
 	sourceGbMatch := shadowPd.sourceGb == mainPd.sourceGb
 	contentMatch := shadowIi.checksum == mainIi.checksum
@@ -288,8 +300,6 @@ func (facade *shadowTestInflaterFacade) compareWithShadowInflater(mainPd, shadow
 	} else {
 		result = fmt.Sprintf(matchFormat, sizeGbMatch, sourceGbMatch, contentMatch, qemuChecksumMatch)
 	}
-	//TODO remove
-	fmt.Println(">>>", result)
 	return result
 }
 
