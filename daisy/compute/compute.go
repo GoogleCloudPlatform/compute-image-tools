@@ -104,6 +104,7 @@ type Client interface {
 	ListNetworks(project string, opts ...ListCallOption) ([]*compute.Network, error)
 	AggregatedListSubnetworks(project string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
 	ListSubnetworks(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
+	ListUsableSubnetworks(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
 	ListTargetInstances(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error)
 	ResizeDisk(project, zone, disk string, drr *compute.DisksResizeRequest) error
 	SetInstanceMetadata(project, zone, name string, md *compute.Metadata) error
@@ -1397,6 +1398,37 @@ func (c *client) AggregatedListSubnetworks(project string, opts ...ListCallOptio
 func (c *client) ListSubnetworks(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error) {
 	var ns []*compute.Subnetwork
 	var pt string
+	call := c.raw.Subnetworks.List(project, region)
+	for _, opt := range opts {
+		call = opt.listCallOptionApply(call).(*compute.SubnetworksListCall)
+	}
+	for nl, err := call.PageToken(pt).Do(); ; nl, err = call.PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			nl, err = call.PageToken(pt).Do()
+		}
+		if err != nil {
+			if e, ok := err.(*googleapi.Error); ok {
+				if e.Code == 403 {
+					// The user may only have access to some subnets within the
+					// project, to accomadate this try ListUsableSubnetworks.
+					return c.ListUsableSubnetworks(project, region, opts...)
+				}
+			}
+			return nil, err
+		}
+		ns = append(ns, nl.Items...)
+
+		if nl.NextPageToken == "" {
+			return ns, nil
+		}
+		pt = nl.NextPageToken
+	}
+}
+
+// ListUsaableSubnetworks gets a list of GCE subnetworks usable to create an instance.
+func (c *client) ListUsableSubnetworks(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error) {
+	var ns []*compute.Subnetwork
+	var pt string
 	call := c.raw.Subnetworks.ListUsable(project)
 	for _, opt := range opts {
 		call = opt.listCallOptionApply(call).(*compute.SubnetworksListUsableCall)
@@ -1408,11 +1440,14 @@ func (c *client) ListSubnetworks(project, region string, opts ...ListCallOption)
 		if err != nil {
 			return nil, err
 		}
+		// This will cause a fanout RPC call, however this is required since
+		// ListUsable returns a UsableSubnetwork Dasiy requires a Subnet,
+		// and there is no bulk Get API for Subnets
 		for _, item := range nl.Items {
 			subnetComponents := strings.Split(item.Subnetwork, "/")
 			subnetName := subnetComponents[len(subnetComponents)-1]
 			regionName := subnetComponents[len(subnetComponents)-3]
-			if region != regionName {
+			if region == regionName {
 				subnet, err := c.raw.Subnetworks.Get(project, region, subnetName).Do()
 				ns = append(ns, subnet)
 				if err != nil {
