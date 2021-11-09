@@ -462,3 +462,11 @@ func TestInflaterRerun_FailedOnGeneralError_NoRerun(t *testing.T) {
 	assert.Error(t, err)
 	assert.Empty(t, pd.uri)
 }
+
+func TestVerifyChecksumMatch(t *testing.T) {
+	assert.True(t, isChecksumMatch("aaa-bbb", "aaa-bbb"))
+	assert.True(t, isChecksumMatch("aaa-bbb", "  --aaa  --bbb"))
+	assert.True(t, isChecksumMatch("aaabbb", "aaa-bbb"))
+	assert.False(t, isChecksumMatch("aaa-bbb", "aaa-bbc"))
+	assert.True(t, isChecksumMatch("", ""))
+}

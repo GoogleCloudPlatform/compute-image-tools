@@ -15,6 +15,7 @@ package importer
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
@@ -118,12 +119,11 @@ func (facade *inflaterFacade) Inflate() (persistentDisk, inflationInfo, error) {
 	pd, ii, err = facade.apiInflater.Inflate()
 	if err == nil {
 		inflationType := ""
-		if ii.checksum == facade.qemuChecksum {
-			inflationType = "api_success"
-		} else if facade.qemuChecksum == "" {
+		if facade.qemuChecksum == "" {
 			inflationType = "api_success_checksum_skipped"
+		} else if isChecksumMatch(ii.checksum, facade.qemuChecksum) {
+			inflationType = "api_success"
 		}
-
 		if inflationType != "" {
 			facade.logger.Metric(&pb.OutputInfo{
 				InflationType:   inflationType,
@@ -284,11 +284,11 @@ const matchFormat = "sizeGb-%v,sourceGb-%v,content-%v,qemuchecksum-%v"
 func (facade *shadowTestInflaterFacade) compareWithShadowInflater(mainPd, shadowPd *persistentDisk, mainIi, shadowIi *inflationInfo) string {
 	sizeGbMatch := shadowPd.sizeGb == mainPd.sizeGb
 	sourceGbMatch := shadowPd.sourceGb == mainPd.sourceGb
-	contentMatch := shadowIi.checksum == mainIi.checksum
+	contentMatch := isChecksumMatch(shadowIi.checksum, mainIi.checksum)
 	qemuChecksumMatch := "false"
 	if facade.qemuChecksum == "" {
 		qemuChecksumMatch = "skipped"
-	} else if facade.qemuChecksum == mainIi.checksum {
+	} else if isChecksumMatch(facade.qemuChecksum, mainIi.checksum) {
 		qemuChecksumMatch = "true"
 	}
 
@@ -305,4 +305,12 @@ func (facade *shadowTestInflaterFacade) compareWithShadowInflater(mainPd, shadow
 
 func getDiskName(executionID string) string {
 	return fmt.Sprintf("disk-%v", executionID)
+}
+
+// isChecksumMatch verifies whether checksum matches, excluded useless characters.
+func isChecksumMatch(checksum1, checksum2 string) bool {
+	reg, _ := regexp.Compile("[^a-zA-Z0-9]+")
+	processedChecksum1 := reg.ReplaceAllString(checksum1, "")
+	processedChecksum2 := reg.ReplaceAllString(checksum2, "")
+	return processedChecksum1 == processedChecksum2
 }

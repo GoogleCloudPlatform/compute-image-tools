@@ -105,6 +105,7 @@ func TestGetInfo_FormatDetection(t *testing.T) {
 
 			assert.NotEmpty(t, imageInfo.Checksum, "Checksum shouldn't be empty.")
 		})
+
 	}
 }
 
