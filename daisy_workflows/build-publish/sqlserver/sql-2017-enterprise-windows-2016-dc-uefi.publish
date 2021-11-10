@@ -1,0 +1,54 @@
+{{/*
+  Template to publish SQL Server Windows images
+  By default this template is setup to publish to the 'gce-image-builder'
+  project, the 'environment' variable can be used to publish to 'test', 'prod',
+  or 'staging'.
+  DeleteAfter is set to 180 days for all environments other than prod where no
+  time period is set.
+*/}}
+{
+  "Name": "sql-server-windows-uefi",
+  "SourceGCSPath":   "gs://gce-image-archive/sqlserver-uefi",
+  {{$work_project := `"gce-image-builder"` -}}
+  {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
+  {{$delete_after := `"24h*30*6"` -}}
+  {{if eq .environment "test" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "bct-prod-images",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- else if eq .environment "prod" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "windows-sql-cloud",
+  "ComputeEndpoint": {{$endpoint}},
+  {{- else if eq .environment "staging" -}}
+  "WorkProject": "bct-staging-images",
+  "PublishProject": "bct-staging-images",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
+  "DeleteAfter": {{$delete_after}},
+  {{- else -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": {{$work_project}},
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- end}}
+  {{$guest_features := `["MULTI_IP_SUBNET","UEFI_COMPATIBLE","VIRTIO_SCSI_MULTIQUEUE","WINDOWS"]` -}}
+  {{$time := trimPrefix .publish_version "v"}}
+  "Images": [
+    {
+      "Prefix": "sql-2017-enterprise-windows-2016-dc",
+      "Family": "sql-ent-2017-win-2016",
+      "Description": "Microsoft, SQL Server 2017 Enterprise, on Windows Server 2016 Datacenter, x64 built on {{$time}}, supports Shielded VM features",
+      "Licenses": [
+        {{if eq .environment "staging" -}}
+        "projects/bct-staging-functional/global/licenses/sql-server-2017-enterprise",
+        "projects/bct-staging-functional/global/licenses/windows-server-2016-dc"
+        {{- else -}}
+        "projects/windows-sql-cloud/global/licenses/sql-server-2017-enterprise",
+        "projects/windows-cloud/global/licenses/windows-server-2016-dc"
+        {{- end}}
+      ],
+      "GuestOsFeatures": {{$guest_features}}
+    }
+  ]
+}
