@@ -57,6 +57,11 @@ type apiInflater struct {
 	needChecksum     bool
 }
 
+// createAPIInflater creates an apiInflater.
+//"isShadowInflater" indicates whether it's used as a shadow inflater.
+// "needChecksum" indicates whether checksum of the output disk needs to be
+// calculated. When QEMU checksum is failed to calculated, we don't need to
+// calculate the disk checksum anymore.
 func createAPIInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient domain.StorageClientInterface,
 	logger logging.Logger, isShadowInflater bool, needChecksum bool) *apiInflater {
 

@@ -16,9 +16,11 @@ package imagefile
 
 import (
 	"context"
+	"crypto/md5"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -42,7 +44,8 @@ type ImageInfo struct {
 	Format           string
 	ActualSizeBytes  int64
 	VirtualSizeBytes int64
-	Checksum         string
+	// This checksum is calculated from the partial disk content extracted by QEMU.
+	Checksum string
 }
 
 // InfoClient runs `qemu-img info` and returns the results.
@@ -131,22 +134,21 @@ func (client defaultInfoClient) getFileChecksum(ctx context.Context, filename st
 		}
 
 		// Calculate checksum for the 100MB file.
-		cmd = exec.CommandContext(ctx, "md5sum", tmpOutFileName)
-		out, err = cmd.Output()
-		err = constructCmdErr(string(out), err, "inspection for checksum calculation failure")
+		f, fileErr := os.Open(tmpOutFileName)
 		if err != nil {
+			err = daisy.Errf("Failed to open file '%v' for QEMU md5 checksum calculation: %v", tmpOutFileName, fileErr)
 			return
 		}
+		defer f.Close()
+		h := md5.New()
+		if _, md5Err := io.Copy(h, f); err != nil {
+			err = daisy.Errf("Failed to copy data from file '%v' for QEMU md5 checksum calculation: %v", tmpOutFileName, md5Err)
+			return
+		}
+		newChecksum := fmt.Sprintf("%x", h.Sum(nil))
 
 		if checksum != "" {
 			checksum += "-"
-		}
-
-		// Extract the first string in the output as the checksum.
-		outArr := strings.Fields(string(out))
-		newChecksum := ""
-		if len(outArr) > 0 {
-			newChecksum = outArr[0]
 		}
 		checksum += newChecksum
 	}

@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"os/exec"
 	"path"
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -103,7 +104,8 @@ func TestGetInfo_FormatDetection(t *testing.T) {
 			// the virtual size doesn't match the requested size in qemu-img create.
 			assert.Equal(t, tt.expectedVirtualSizeGB/bytesPerGB, imageInfo.VirtualSizeBytes/bytesPerGB)
 
-			assert.NotEmpty(t, imageInfo.Checksum, "Checksum shouldn't be empty.")
+			reg, _ := regexp.Compile("^[a-zA-Z0-9]{32}-[a-zA-Z0-9]{32}-[a-zA-Z0-9]{32}-[a-zA-Z0-9]{32}$")
+			assert.True(t, reg.MatchString(imageInfo.Checksum), "Checksum content has a incorrect format: '%v'", imageInfo.Checksum)
 		})
 
 	}
