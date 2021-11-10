@@ -15,7 +15,6 @@
 package import_test
 
 import (
-	"context"
 	"strings"
 	"sync"
 	"testing"
@@ -26,7 +25,6 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/cli"
-	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pbtesting"
 )
@@ -82,38 +80,6 @@ func Test_IncludeTranslationLogs_WhenTranslationFails(t *testing.T) {
 			DistroId:     pb.Distro_DEBIAN,
 		},
 	}, actualResults)
-}
-
-func Test_IncludeInspectionResults_WhenImportSucceeds(t *testing.T) {
-	t.Parallel()
-	client, err := daisycompute.NewClient(context.Background())
-	assert.NoError(t, err)
-
-	logger := newBufferedToolLogger()
-	imageName := "i" + uuid.New().String()
-	err = cli.Main([]string{
-		"-image_name", imageName,
-		"-client_id", "test",
-		"-source_image", "projects/compute-image-tools-test/global/images/debian-9-translate",
-		"-project", project,
-		"-zone", zone,
-	}, logger, "../../../daisy_workflows")
-
-	assert.NoError(t, err)
-	actualResults := logger.ReadOutputInfo().InspectionResults
-	actualResults.ElapsedTimeMs = 0
-	pbtesting.AssertEqual(t, &pb.InspectionResults{
-		OsCount: 1,
-		OsRelease: &pb.OsRelease{
-			CliFormatted: "debian-9",
-			Distro:       "debian",
-			MajorVersion: "9",
-			MinorVersion: "12",
-			Architecture: pb.Architecture_X64,
-			DistroId:     pb.Distro_DEBIAN,
-		},
-	}, actualResults)
-	client.DeleteImage(project, imageName)
 }
 
 func assertTraceLogsContain(t *testing.T, logger *bufferedLogger, substring string) {

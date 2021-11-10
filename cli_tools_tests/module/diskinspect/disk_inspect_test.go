@@ -20,6 +20,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -39,13 +41,18 @@ const (
 	workflowDir = "../../../daisy_workflows"
 )
 
-var (
-	defaultEnvironment = daisyutils.EnvironmentSettings{
+func createEnvironment() daisyutils.EnvironmentSettings {
+	return daisyutils.EnvironmentSettings{
 		Zone:              runtime.GetConfig("GOOGLE_CLOUD_ZONE", "compute/zone"),
 		Project:           runtime.GetConfig("GOOGLE_CLOUD_PROJECT", "project"),
 		WorkflowDirectory: workflowDir,
+		Tool: daisyutils.Tool{
+			HumanReadableName: "module-tests",
+			ResourceLabelName: "module-tests",
+		},
+		ExecutionID: path.RandString(5),
 	}
-)
+}
 
 func TestInspectDisk(t *testing.T) {
 	t.Parallel()
@@ -61,13 +68,13 @@ func TestInspectDisk(t *testing.T) {
 		expected *pb.InspectionResults
 	}{
 		{
-			imageURI: "projects/opensuse-cloud/global/images/opensuse-leap-15-2-v20200702",
+			imageURI: "projects/opensuse-cloud/global/images/opensuse-leap-15-3-v20211011",
 			expected: &pb.InspectionResults{
 				OsRelease: &pb.OsRelease{
 					CliFormatted: "opensuse-15",
 					Distro:       "opensuse",
 					MajorVersion: "15",
-					MinorVersion: "2",
+					MinorVersion: "3",
 					Architecture: pb.Architecture_X64,
 					DistroId:     pb.Distro_OPENSUSE,
 				},
@@ -76,13 +83,13 @@ func TestInspectDisk(t *testing.T) {
 				OsCount:      1,
 			},
 		}, {
-			imageURI: "projects/suse-sap-cloud/global/images/sles-15-sp1-sap-v20200803",
+			imageURI: "projects/suse-sap-cloud/global/images/sles-15-sp3-sap-v20210812",
 			expected: &pb.InspectionResults{
 				OsRelease: &pb.OsRelease{
 					CliFormatted: "sles-sap-15",
 					Distro:       "sles-sap",
 					MajorVersion: "15",
-					MinorVersion: "1",
+					MinorVersion: "3",
 					Architecture: pb.Architecture_X64,
 					DistroId:     pb.Distro_SLES_SAP,
 				},
@@ -110,13 +117,13 @@ func TestInspectDisk(t *testing.T) {
 			},
 		}, {
 			caseName: "UEFI inspection test for MBR-only",
-			imageURI: "projects/debian-cloud/global/images/debian-9-stretch-v20200714",
+			imageURI: "projects/debian-cloud/global/images/debian-9-stretch-v20211028",
 			expected: &pb.InspectionResults{
 				OsRelease: &pb.OsRelease{
 					CliFormatted: "debian-9",
 					Distro:       "debian",
 					MajorVersion: "9",
-					MinorVersion: "12",
+					MinorVersion: "13",
 					Architecture: pb.Architecture_X64,
 					DistroId:     pb.Distro_DEBIAN,
 				},
@@ -324,12 +331,13 @@ func TestInspectDisk(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			inspector, err := disk.NewInspector(defaultEnvironment, logging.NewToolLogger(t.Name()))
+			env := createEnvironment()
+			inspector, err := disk.NewInspector(env, logging.NewToolLogger(t.Name()))
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			diskURI := createDisk(t, client, defaultEnvironment, currentTest.imageURI)
+			diskURI := createDisk(t, client, env, currentTest.imageURI)
 
 			actual, err := inspector.Inspect(diskURI)
 			assert.NoError(t, err)
@@ -337,7 +345,7 @@ func TestInspectDisk(t *testing.T) {
 			if diff := cmp.Diff(currentTest.expected, actual, protocmp.Transform()); diff != "" {
 				t.Errorf("unexpected difference:\n%v", diff)
 			}
-			deleteDisk(t, client, defaultEnvironment, diskURI)
+			deleteDisk(t, client, env, diskURI)
 		})
 	}
 }
@@ -348,7 +356,7 @@ func TestInspectDisk_NoOSResults_WhenDistroUnrecognized(t *testing.T) {
 	image := "projects/compute-image-tools-test/global/images/manjaro"
 	expected := &pb.InspectionResults{}
 
-	assertInspectionSucceeds(t, image, defaultEnvironment, expected)
+	assertInspectionSucceeds(t, image, createEnvironment(), expected)
 }
 
 func TestInspectDisk_NoOSResults_WhenDiskEmpty(t *testing.T) {
@@ -357,7 +365,7 @@ func TestInspectDisk_NoOSResults_WhenDiskEmpty(t *testing.T) {
 	image := "projects/compute-image-tools-test/global/images/blank-10g"
 	expected := &pb.InspectionResults{}
 
-	assertInspectionSucceeds(t, image, defaultEnvironment, expected)
+	assertInspectionSucceeds(t, image, createEnvironment(), expected)
 }
 
 func TestInspectDisk_SupportsNoExternalIP(t *testing.T) {
@@ -375,6 +383,11 @@ func TestInspectDisk_SupportsNoExternalIP(t *testing.T) {
 		NoExternalIP:      true,
 		Network:           "projects/gce-guest-no-external-ip-3afc2/global/networks/nat",
 		Subnet:            "projects/gce-guest-no-external-ip-3afc2/regions/us-west1/subnetworks/nat",
+		Tool: daisyutils.Tool{
+			HumanReadableName: "module-tests",
+			ResourceLabelName: "module-tests",
+		},
+		ExecutionID: path.RandString(5),
 	}
 	inspector, err := disk.NewInspector(env, logging.NewToolLogger(t.Name()))
 	if err != nil {
@@ -432,13 +445,18 @@ func TestInspectionDisk_SupportsNonDefaultNetwork(t *testing.T) {
 		currentTest := tt
 		t.Run(currentTest.caseName, func(t *testing.T) {
 			t.Parallel()
-			t.Logf("Network=%s, Subnet=%s, project=%s", network, subnet, project)
+			t.Logf("Network=%s, Subnet=%s, project=%s", currentTest.network, currentTest.subnet, project)
 			env := daisyutils.EnvironmentSettings{
 				Project:           "compute-image-test-custom-vpc",
 				Zone:              zone,
 				WorkflowDirectory: workflowDir,
 				Network:           currentTest.network,
 				Subnet:            currentTest.subnet,
+				Tool: daisyutils.Tool{
+					HumanReadableName: "module-tests",
+					ResourceLabelName: "module-tests",
+				},
+				ExecutionID: path.RandString(5),
 			}
 			inspector, err := disk.NewInspector(env, logging.NewToolLogger(t.Name()))
 			if err != nil {

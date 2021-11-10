@@ -316,41 +316,41 @@ func runImageImportWithSubnetWithoutNetworkSpecified(ctx context.Context, testCa
 	logger *log.Logger, testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	suffix := path.RandString(5)
-	imageName := "e2e-test-image-import-subnet-" + suffix
-	region, _ := paramhelper.GetRegion(testProjectConfig.TestZone)
+	destinationImage := "e2e-test-image-import-subnet-" + suffix
 
+	// This project doesn't have a 'default' network. Import will fail if a worker
+	// isn't configured to use the custom network and subnet.
+	project := "compute-image-test-custom-vpc"
+	subnet := "regions/us-central1/subnetworks/unrestricted-egress"
+	zone := "us-central1-a"
 	argsMap := map[e2e.CLITestType][]string{
-		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-image_name=%s", imageName), "-data_disk",
-			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-subnet=https://www.googleapis.com/compute/v1/projects/%v/regions/%v/subnetworks/%v-subnet-1",
-				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
-			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+		e2e.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", project),
+			fmt.Sprintf("-image_name=%s", destinationImage),
+			fmt.Sprintf("-source_file=gs://%v-test-image/ubuntu-1804.vpc", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-subnet=%s", subnet),
+			fmt.Sprintf("-zone=%v", zone),
 		},
-		e2e.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
-			"--docker-image-tag=latest", "--data-disk", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--subnet=https://www.googleapis.com/compute/v1/projects/%v/regions/%v/subnetworks/%v-subnet-1",
-				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		e2e.GcloudBetaProdWrapperLatest: {"beta", "compute", "images", "import", destinationImage, "--quiet",
+			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", project),
+			fmt.Sprintf("--source-file=gs://%v-test-image/ubuntu-1804.vpc", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--subnet=%s", subnet),
+			fmt.Sprintf("--zone=%v", zone),
 		},
-		e2e.GcloudBetaLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
-			"--docker-image-tag=latest", "--data-disk", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--subnet=https://www.googleapis.com/compute/v1/projects/%v/regions/%v/subnetworks/%v-subnet-1",
-				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		e2e.GcloudBetaLatestWrapperLatest: {"beta", "compute", "images", "import", destinationImage, "--quiet",
+			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", project),
+			fmt.Sprintf("--source-file=gs://%v-test-image/ubuntu-1804.vpc", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--subnet=%s", subnet),
+			fmt.Sprintf("--zone=%v", zone),
 		},
-		e2e.GcloudGaLatestWrapperRelease: {"compute", "images", "import", imageName, "--quiet",
-			"--data-disk", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--subnet=https://www.googleapis.com/compute/v1/projects/%v/regions/%v/subnetworks/%v-subnet-1",
-				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
-			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		e2e.GcloudGaLatestWrapperRelease: {"compute", "images", "import", destinationImage, "--quiet",
+			fmt.Sprintf("--project=%v", project),
+			fmt.Sprintf("--source-file=gs://%v-test-image/ubuntu-1804.vpc", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--subnet=%s", subnet),
+			fmt.Sprintf("--zone=%v", zone),
 		},
 	}
 
-	runImportTest(ctx, argsMap[testType], testType, testProjectConfig.TestProjectID, imageName, logger, testCase)
+	runImportTest(ctx, argsMap[testType], testType, testProjectConfig.TestProjectID, destinationImage, logger, testCase)
 }
 
 func runImageImportShadowDiskCleanedUpWhenMainInflaterFails(ctx context.Context, testCase *junitxml.TestCase,
