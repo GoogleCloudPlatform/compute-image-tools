@@ -60,7 +60,7 @@ func NewInfoClient() InfoClient {
 
 type defaultInfoClient struct{}
 
-type fileInfoJsonTemplate struct {
+type fileInfoJSONTemplate struct {
 	Filename         string `json:"filename"`
 	Format           string `json:"format"`
 	ActualSizeBytes  int64  `json:"actual-size"`
@@ -92,7 +92,7 @@ func (client defaultInfoClient) GetInfo(ctx context.Context, filename string) (i
 	return
 }
 
-func (client defaultInfoClient) getFileInfo(ctx context.Context, filename string) (*fileInfoJsonTemplate, error) {
+func (client defaultInfoClient) getFileInfo(ctx context.Context, filename string) (*fileInfoJSONTemplate, error) {
 	cmd := exec.CommandContext(ctx, "qemu-img", "info", "--output=json", filename)
 	out, err := cmd.Output()
 	err = constructCmdErr(string(out), err, "inspection failure")
@@ -100,7 +100,7 @@ func (client defaultInfoClient) getFileInfo(ctx context.Context, filename string
 		return nil, err
 	}
 
-	jsonTemplate := fileInfoJsonTemplate{}
+	jsonTemplate := fileInfoJSONTemplate{}
 	if err = json.Unmarshal(out, &jsonTemplate); err != nil {
 		return nil, daisy.Errf("failed to inspect %q: %w", filename, err)
 	}
