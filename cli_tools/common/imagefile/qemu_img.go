@@ -108,11 +108,14 @@ func (client defaultInfoClient) getFileInfo(ctx context.Context, filename string
 }
 
 func (client defaultInfoClient) getFileChecksum(ctx context.Context, filename string, virtualSizeBytes int64) (checksum string, err error) {
-	// Check size = 200000*512 = 100MB
-	checkCount := int64(200000)
+	// We calculate 4 chunks' checksum. Each of them is 100MB: 0~100MB, 0.9GB~1GB, 9.9GB~10GB, the last 100MB.
+	// It is align with what we did for "daisy_workflows/image_import/import_image.sh" so that we can compare them.
+	// Each block size is 512 Bytes. So, we need to check 20000 blocks: 200000 * 512 Bytes = 100MB
+	// "skips" is also the start point of each chunks.
+	checkBlockCount := int64(200000)
 	blockSize := int64(512)
-	blockCount := virtualSizeBytes / blockSize
-	skips := []int64{0, int64(2000000) - checkCount, int64(20000000) - checkCount, blockCount - checkCount}
+	totalBlockCount := virtualSizeBytes / blockSize
+	skips := []int64{0, int64(2000000) - checkBlockCount, int64(20000000) - checkBlockCount, totalBlockCount - checkBlockCount}
 	tmpOutFilePrefix := "out" + pathutils.RandString(5)
 	for i, skip := range skips {
 		tmpOutFileName := fmt.Sprintf("%v%v", tmpOutFilePrefix, i)
@@ -125,7 +128,7 @@ func (client defaultInfoClient) getFileChecksum(ctx context.Context, filename st
 		// Write 100MB data to a file.
 		cmd := exec.CommandContext(ctx, "qemu-img", "dd", fmt.Sprintf("if=%v", filename),
 			fmt.Sprintf("of=%v", tmpOutFileName), fmt.Sprintf("bs=%v", blockSize),
-			fmt.Sprintf("count=%v", skip+checkCount), fmt.Sprintf("skip=%v", skip))
+			fmt.Sprintf("count=%v", skip+checkBlockCount), fmt.Sprintf("skip=%v", skip))
 		var out []byte
 		out, err = cmd.Output()
 		err = constructCmdErr(string(out), err, "inspection for checksum failure")
