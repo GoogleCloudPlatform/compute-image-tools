@@ -162,7 +162,6 @@ func TestCreateDaisyInflater_File_HappyCase(t *testing.T) {
 		Zone:         "us-west1-c",
 		ExecutionID:  "1234",
 		NoExternalIP: false,
-
 	}, imagefile.Metadata{})
 	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		assert.Equal(t, "zones/us-west1-c/disks/disk-1234", inflater.inflatedDiskURI)

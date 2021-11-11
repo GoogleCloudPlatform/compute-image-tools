@@ -291,7 +291,7 @@ func TestInflaterRerun_QEMUChecksumEmpty_SkipRerun(t *testing.T) {
 				uri: "api_disk",
 			},
 			ii: inflationInfo{
-				checksum: "good-checksum",
+				checksum:      "good-checksum",
 				inflationTime: time.Second * time.Duration(expectedInflationTime),
 			},
 		},
@@ -327,7 +327,7 @@ func TestInflaterRerun_QEMUChecksumMatches_NoRerun(t *testing.T) {
 				uri: "api_disk",
 			},
 			ii: inflationInfo{
-				checksum: "good-checksum",
+				checksum:      "good-checksum",
 				inflationTime: time.Second * time.Duration(expectedInflationTime),
 			},
 		},
@@ -364,8 +364,8 @@ func TestInflaterRerun_QEMUChecksumMismatch_Rerun_Success(t *testing.T) {
 				uri: "api_disk",
 			},
 			ii: inflationInfo{
-				checksum: "bad-checksum",
-				inflationTime: time.Second * time.Duration(expectedInflationTime + 1),
+				checksum:      "bad-checksum",
+				inflationTime: time.Second * time.Duration(expectedInflationTime+1),
 			},
 		},
 		daisyInflater: &mockInflater{
@@ -373,7 +373,7 @@ func TestInflaterRerun_QEMUChecksumMismatch_Rerun_Success(t *testing.T) {
 				uri: "daisy_disk",
 			},
 			ii: inflationInfo{
-				checksum: "good-checksum",
+				checksum:      "good-checksum",
 				inflationTime: time.Second * time.Duration(expectedInflationTime),
 			},
 		},
@@ -407,7 +407,7 @@ func TestInflaterRerun_FailedOnUnsupportedFormat_Rerun_Failed(t *testing.T) {
 				uri: "api_disk",
 			},
 			ii: inflationInfo{
-				inflationTime: time.Second * time.Duration(expectedInflationTime + 1),
+				inflationTime: time.Second * time.Duration(expectedInflationTime+1),
 			},
 			err: fmt.Errorf("INVALID_IMAGE_FILE"),
 		},
@@ -453,7 +453,7 @@ func TestInflaterRerun_FailedOnGeneralError_NoRerun(t *testing.T) {
 				uri: "daisy_disk",
 			},
 			ii: inflationInfo{
-				inflationTime: time.Second * time.Duration(expectedInflationTime + 1),
+				inflationTime: time.Second * time.Duration(expectedInflationTime+1),
 			},
 		},
 		logger: mockLogger,
