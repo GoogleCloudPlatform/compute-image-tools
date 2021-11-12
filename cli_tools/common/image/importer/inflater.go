@@ -97,7 +97,7 @@ func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, 
 
 func isShadowTestFormat(request ImageImportRequest) bool {
 	// TODO: process VHD/VPC differently
-	return false
+	return true
 }
 
 // inflaterFacade implements an inflater using other concrete implementations.
