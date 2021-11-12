@@ -1,0 +1,76 @@
+{
+  "Name": "sql-2012-web-windows-2012-r2-dc",
+  "Project": "gce-image-builder",
+  "Zone": "us-central1-b",
+  "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
+  "Vars": {
+    "build_date": {
+      "Value": "${TIMESTAMP}",
+      "Description": "Build datestamp used to version the image."
+    },
+    "gcs_url": {
+      "Required": true,
+      "Description": "The GCS url that the image raw file exported to."
+    },
+    "gcs_internal_url": {
+      "Required": true,
+      "Description": "The GCS url that the exported image is saved to for internal use."
+    },
+    "workflow_root": {
+      "Value": "/workflows",
+      "Description": "Root of github workflows, defaults to /workflows in the container."
+    },
+    "install_disk": "disk-install",
+    "publish_project": "${PROJECT}",
+    "sql_server_media": {
+      "Required": true,
+      "Description": "GCS or local path to the SQL Server installer media"
+    },
+    "source_image_project": {
+      "Value": "windows-cloud",
+      "Description": "Project to source base image from."
+    },
+    "ssms_exe": {
+      "Required": true,
+      "Description": "GCS or local path to SSMS installer"
+    },
+    "timeout": {
+      "Value": "2h",
+      "Description": "The timeout to set for the image build."
+    }
+  },
+  "Steps": {
+    "build": {
+      "Timeout": "4h",
+      "IncludeWorkflow": {
+        "Path": "${workflow_root}/image_build/sql-2012-web-windows-2012-r2-dc.wf.json",
+        "Vars": {
+          "build_date": "${TIMESTAMP}",
+          "install_disk": "disk-install",
+          "publish_project": "${publish_project}",
+          "sql_server_media": "${sql_server_media}",
+          "source_image_project": "${source_image_project}",
+          "ssms_exe": "${ssms_exe}",
+          "timeout": "2h"
+        }
+      }
+    },
+    "sqlserver-export": {
+      "Timeout": "60m",
+      "IncludeWorkflow": {
+        "Path": "./sql-server-export.wf.json",
+        "Vars": {
+          "build_date": "${build_date}",
+          "gcs_url": "${gcs_url}",
+          "gcs_internal_url": "${gcs_internal_url}",
+          "workflow_root": "${workflow_root}"
+        }
+      }
+    }
+  },
+  "Dependencies": {
+    "sqlserver-export": [
+      "build"
+    ]
+  }
+}
