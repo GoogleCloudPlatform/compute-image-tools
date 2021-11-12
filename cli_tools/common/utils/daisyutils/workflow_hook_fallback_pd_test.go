@@ -16,6 +16,7 @@ package daisyutils
 
 import (
 	"errors"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -28,35 +29,39 @@ var errQuota = errors.New("insufficient quota: SSD_TOTAL_GB")
 var errNotQuota = errors.New("failed to start workflow")
 
 func Test_FallbackToPDStandard_PostRunHook_RequestsRetryIfQuotaError(t *testing.T) {
-	hook := FallbackToPDStandard{}
+	hook := FallbackToPDStandard{
+		logger: logging.NewToolLogger("test"),
+	}
 	wantRetry, wrapped := hook.PostRunHook(errQuota)
 	assert.Equal(t, errQuota, wrapped)
 	assert.True(t, wantRetry)
-	assert.True(t, hook.fallback)
+	assert.True(t, hook.shouldFallback)
 }
 
 func Test_FallbackToPDStandard_PostRunHook_DoesntRequestsRetryIfNotQuotaError(t *testing.T) {
 	hook := FallbackToPDStandard{
-		fallback: true,
+		shouldFallback: true,
+		logger:         logging.NewToolLogger("test"),
 	}
 	wantRetry, wrapped := hook.PostRunHook(errNotQuota)
 	assert.Equal(t, errNotQuota, wrapped)
 	assert.False(t, wantRetry)
-	assert.False(t, hook.fallback)
 }
 
 func Test_FallbackToPDStandard_PostRunHook_OnlyFallsBackOnce(t *testing.T) {
 	hook := FallbackToPDStandard{
-		fallback: true,
+		shouldFallback: true,
+		logger:         logging.NewToolLogger("test"),
 	}
 	wantRetry, wrapped := hook.PostRunHook(errQuota)
 	assert.Equal(t, errQuota, wrapped)
 	assert.False(t, wantRetry)
-	assert.False(t, hook.fallback)
 }
 
 func Test_FallbackToPDStandard_PreRunHook_DoesntModifyWorkflowOnFirstRun(t *testing.T) {
-	hook := FallbackToPDStandard{}
+	hook := FallbackToPDStandard{
+		logger: logging.NewToolLogger("test"),
+	}
 	// If the hook attempts to modify the workflow,
 	// then the test will fail with a panic.
 	var wf *daisy.Workflow
@@ -65,7 +70,8 @@ func Test_FallbackToPDStandard_PreRunHook_DoesntModifyWorkflowOnFirstRun(t *test
 
 func Test_FallbackToPDStandard_PreRunHook_RemovesSSDIfFallbackRequired(t *testing.T) {
 	hook := FallbackToPDStandard{
-		fallback: true,
+		shouldFallback: true,
+		logger:         logging.NewToolLogger("test"),
 	}
 	w := createSSDWorkflow()
 

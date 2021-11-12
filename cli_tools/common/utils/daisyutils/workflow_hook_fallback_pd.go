@@ -24,34 +24,32 @@ import (
 // FallbackToPDStandard detects if a workflow fails due to insufficient SSD
 // quota. If so, it re-runs the workflow and modifies the disks to use PD Standard.
 type FallbackToPDStandard struct {
-	logger   logging.Logger
-	fallback bool
+	logger         logging.Logger
+	shouldFallback bool
 }
 
-// PreRunHook modifies the workflow to use standard disks if `fallback` is true.
-func (t *FallbackToPDStandard) PreRunHook(wf *daisy.Workflow) error {
-	if t.fallback {
-		fallbackToPDStandard(wf)
+// PreRunHook modifies the workflow to use standard disks if `shouldFallback` is true.
+func (f *FallbackToPDStandard) PreRunHook(wf *daisy.Workflow) error {
+	if f.shouldFallback {
+		useStandardDisks(wf)
 	}
 	return nil
 }
 
 // PostRunHook inspects the workflow error to see if it's related to insufficient SSD quota.
 // If so, it requests a retry that will re-run the workflow using standard disks.
-func (t *FallbackToPDStandard) PostRunHook(err error) (wantRetry bool, wrapped error) {
-	if t.fallback {
+func (f *FallbackToPDStandard) PostRunHook(err error) (wantRetry bool, wrapped error) {
+	if f.shouldFallback {
 		// A fallback has already occurred; don't request retry.
-		t.fallback = false
+		return false, err
 	} else if err != nil && strings.Contains(err.Error(), "SSD_TOTAL_GB") {
-		if t.logger != nil {
-			t.logger.Debug("Workflow failed with insufficient SSD quota. Requesting retry. error=" + err.Error())
-		}
-		t.fallback = true
+		f.logger.Debug("Workflow failed with insufficient SSD quota. Requesting retry. error=" + err.Error())
+		f.shouldFallback = true
 	}
-	return t.fallback, err
+	return f.shouldFallback, err
 }
 
-func fallbackToPDStandard(workflow *daisy.Workflow) {
+func useStandardDisks(workflow *daisy.Workflow) {
 	workflow.IterateWorkflowSteps(func(step *daisy.Step) {
 		if step.CreateDisks != nil {
 			for _, disk := range *step.CreateDisks {

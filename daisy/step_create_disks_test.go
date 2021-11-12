@@ -30,17 +30,21 @@ func TestCreateDisksRun(t *testing.T) {
 	w.snapshots.m = map[string]*Resource{"ss1": {RealName: "ss1", link: "ss1link"}}
 
 	e := Errf("error")
+	quotaExceededErr := Errf("Some error\nCode: QUOTA_EXCEEDED\nMessage: some message.")
 	tests := []struct {
-		desc      string
-		d         compute.Disk
-		wantD     compute.Disk
-		clientErr []error
-		wantErr   DError
+		desc                 string
+		d                    compute.Disk
+		wantD                compute.Disk
+		clientErr            []error
+		wantErr              DError
+		fallbackToPdStandard bool
 	}{
-		{"blank case", compute.Disk{}, compute.Disk{}, nil, nil},
-		{"resolve source image case", compute.Disk{SourceImage: "i1"}, compute.Disk{SourceImage: "i1link"}, nil, nil},
-		{"client error case", compute.Disk{}, compute.Disk{}, []error{e}, e},
-		{"create from snapshot case", compute.Disk{SourceSnapshot: "ss1"}, compute.Disk{SourceSnapshot: "ss1link"}, nil, nil},
+		{"blank case", compute.Disk{}, compute.Disk{}, nil, nil, false},
+		{"resolve source image case", compute.Disk{SourceImage: "i1"}, compute.Disk{SourceImage: "i1link"}, nil, nil, false},
+		{"client error case", compute.Disk{}, compute.Disk{}, []error{e}, e, false},
+		{"not fallback to pd-standard case", compute.Disk{Type: "prefix/pd-ssd"}, compute.Disk{Type: "prefix/pd-ssd"}, []error{e}, e, true},
+		{"fallback to pd-standard case", compute.Disk{Type: "prefix/pd-ssd"}, compute.Disk{Type: "prefix/pd-standard"}, []error{quotaExceededErr, nil}, nil, true},
+		{"create from snapshot case", compute.Disk{SourceSnapshot: "ss1"}, compute.Disk{SourceSnapshot: "ss1link"}, nil, nil, false},
 	}
 	for _, tt := range tests {
 		var gotD compute.Disk
@@ -55,7 +59,7 @@ func TestCreateDisksRun(t *testing.T) {
 			return ret
 		}
 		w.ComputeClient = &daisyCompute.TestClient{CreateDiskFn: fake}
-		cds := &CreateDisks{{Disk: tt.d}}
+		cds := &CreateDisks{{Disk: tt.d, FallbackToPdStandard: tt.fallbackToPdStandard}}
 		if err := cds.run(ctx, s); err != tt.wantErr {
 			t.Errorf("%s: unexpected error returned, got: %v, want: %v", tt.desc, err, tt.wantErr)
 		}
