@@ -157,7 +157,7 @@ func TestInflaterFacade_SuccessOnApiInflater(t *testing.T) {
 				uri: "disk2",
 			},
 		},
-		logger: logging.NewToolLogger(t.Name()),
+		logger:       logging.NewToolLogger(t.Name()),
 		qemuChecksum: "good-checksum",
 	}
 
@@ -177,7 +177,7 @@ func TestInflaterFacade_FailedOnApiInflater(t *testing.T) {
 				uri: "disk2",
 			},
 		},
-		logger: logging.NewToolLogger(t.Name()),
+		logger:       logging.NewToolLogger(t.Name()),
 		qemuChecksum: "good-checksum",
 	}
 
@@ -196,7 +196,7 @@ func TestInflaterFacade_SuccessOnDaisyInflater(t *testing.T) {
 				uri: "disk2",
 			},
 		},
-		logger: logging.NewToolLogger(t.Name()),
+		logger:       logging.NewToolLogger(t.Name()),
 		qemuChecksum: "good-checksum",
 	}
 
@@ -216,7 +216,7 @@ func TestInflaterFacade_FailedOnDaisyInflater(t *testing.T) {
 		daisyInflater: &mockInflater{
 			err: daisyError,
 		},
-		logger: logging.NewToolLogger(t.Name()),
+		logger:       logging.NewToolLogger(t.Name()),
 		qemuChecksum: "good-checksum",
 	}
 
@@ -364,8 +364,8 @@ func TestInflaterRerun_QEMUChecksumMismatch_Rerun_Success(t *testing.T) {
 	defer mockCtrl.Finish()
 	mockLogger := mocks.NewMockLogger(mockCtrl)
 	mockLogger.EXPECT().Metric(&pb.OutputInfo{
-		InflationType:   expectedInflationType,
-		InflationTimeMs: []int64{expectedInflationTime * 1000},
+		InflationType:           expectedInflationType,
+		InflationTimeMs:         []int64{expectedInflationTime * 1000},
 		InflationFallbackReason: "checksum_mismatch",
 	})
 	mockLogger.EXPECT().User("Disk checksum mismatch, recreating...")
@@ -409,8 +409,8 @@ func TestInflaterRerun_FailedOnUnsupportedFormat_Rerun_Failed(t *testing.T) {
 	defer mockCtrl.Finish()
 	mockLogger := mocks.NewMockLogger(mockCtrl)
 	mockLogger.EXPECT().Metric(&pb.OutputInfo{
-		InflationType:   expectedInflationType,
-		InflationTimeMs: []int64{expectedInflationTime * 1000},
+		InflationType:           expectedInflationType,
+		InflationTimeMs:         []int64{expectedInflationTime * 1000},
 		InflationFallbackReason: "unsupported_format",
 	})
 

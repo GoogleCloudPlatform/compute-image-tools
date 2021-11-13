@@ -79,14 +79,14 @@ func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, 
 	if isShadowTestFormat(request) {
 		return &shadowTestInflaterFacade{
 			mainInflater:   di,
-			shadowInflater: createAPIInflater(request, computeClient, storageClient, logger, true, true),
+			shadowInflater: createAPIInflater(&apiInflaterProperties{request, computeClient, storageClient, logger, true, true}),
 			logger:         logger,
 			qemuChecksum:   fileMetadata.Checksum,
 		}, nil
 	}
 
 	return &inflaterFacade{
-		apiInflater:   createAPIInflater(request, computeClient, storageClient, logger, false, fileMetadata.Checksum != ""),
+		apiInflater:   createAPIInflater(&apiInflaterProperties{request, computeClient, storageClient, logger, false, fileMetadata.Checksum != ""}),
 		daisyInflater: di,
 		logger:        logger,
 		qemuChecksum:  fileMetadata.Checksum,

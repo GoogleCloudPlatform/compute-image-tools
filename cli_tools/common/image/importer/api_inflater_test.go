@@ -34,7 +34,7 @@ func TestCreateAPIInflater_IncludesUEFIGuestOSFeature(t *testing.T) {
 	request := ImageImportRequest{
 		UefiCompatible: true,
 	}
-	apiInflater := createAPIInflater(request, nil, &storage.Client{}, logging.NewToolLogger(t.Name()), true, true)
+	apiInflater := createAPIInflater(&apiInflaterProperties{request, nil, &storage.Client{}, logging.NewToolLogger(t.Name()), true, true})
 	assert.Contains(t, apiInflater.guestOsFeatures,
 		&compute.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
 }
@@ -49,7 +49,7 @@ func TestAPIInflater_ShadowInflate_CreateDiskFailed_CancelWithoutDeleteDisk(t *t
 	mockLogger := mocks.NewMockLogger(mockCtrl)
 	mockLogger.EXPECT().Debug("apiInflater.inflate is canceled: cancel")
 
-	apiInflater := createAPIInflater(ImageImportRequest{
+	apiInflater := createAPIInflater(&apiInflaterProperties{ImageImportRequest{
 		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:       "projects/subnet/subnet",
 		Network:      "projects/network/network",
@@ -57,7 +57,7 @@ func TestAPIInflater_ShadowInflate_CreateDiskFailed_CancelWithoutDeleteDisk(t *t
 		ExecutionID:  "1234",
 		NoExternalIP: false,
 		WorkflowDir:  daisyWorkflows,
-	}, mockComputeClient, &storage.Client{}, mockLogger, true, true)
+	}, mockComputeClient, &storage.Client{}, mockLogger, true, true})
 
 	// Send a cancel signal in prior to guarantee cancellation logic can be executed.
 	cancelResult := apiInflater.Cancel("cancel")
@@ -78,7 +78,7 @@ func TestAPIInflater_ShadowInflate_CreateDiskSuccess_CancelWithDeleteDisk(t *tes
 	mockLogger := mocks.NewMockLogger(mockCtrl)
 	mockLogger.EXPECT().Debug("apiInflater.inflate is canceled: cancel")
 
-	apiInflater := createAPIInflater(ImageImportRequest{
+	apiInflater := createAPIInflater(&apiInflaterProperties{ImageImportRequest{
 		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:       "projects/subnet/subnet",
 		Network:      "projects/network/network",
@@ -86,7 +86,7 @@ func TestAPIInflater_ShadowInflate_CreateDiskSuccess_CancelWithDeleteDisk(t *tes
 		ExecutionID:  "1234",
 		NoExternalIP: false,
 		WorkflowDir:  daisyWorkflows,
-	}, mockComputeClient, &storage.Client{}, mockLogger, true, true)
+	}, mockComputeClient, &storage.Client{}, mockLogger, true, true})
 
 	// Send a cancel signal in prior to guarantee cancellation logic can be executed.
 	cancelResult := apiInflater.Cancel("cancel")
@@ -105,7 +105,7 @@ func TestAPIInflater_ShadowInflate_Cancel_CleanupFailedToVerify(t *testing.T) {
 	mockLogger := mocks.NewMockLogger(mockCtrl)
 	mockLogger.EXPECT().Debug("apiInflater.inflate is canceled, cleanup failed to verify: cancel")
 
-	apiInflater := createAPIInflater(ImageImportRequest{
+	apiInflater := createAPIInflater(&apiInflaterProperties{ImageImportRequest{
 		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:       "projects/subnet/subnet",
 		Network:      "projects/network/network",
@@ -113,7 +113,7 @@ func TestAPIInflater_ShadowInflate_Cancel_CleanupFailedToVerify(t *testing.T) {
 		ExecutionID:  "1234",
 		NoExternalIP: false,
 		WorkflowDir:  daisyWorkflows,
-	}, mockComputeClient, &storage.Client{}, mockLogger, true, true)
+	}, mockComputeClient, &storage.Client{}, mockLogger, true, true})
 
 	cancelResult := apiInflater.Cancel("cancel")
 	assert.False(t, cancelResult)
@@ -128,7 +128,7 @@ func TestAPIInflater_ShadowInflate_Cancel_CleanupFailed(t *testing.T) {
 	mockLogger := mocks.NewMockLogger(mockCtrl)
 	mockLogger.EXPECT().Debug("apiInflater.inflate is canceled, cleanup is failed: cancel")
 
-	apiInflater := createAPIInflater(ImageImportRequest{
+	apiInflater := createAPIInflater(&apiInflaterProperties{ImageImportRequest{
 		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:       "projects/subnet/subnet",
 		Network:      "projects/network/network",
@@ -136,14 +136,14 @@ func TestAPIInflater_ShadowInflate_Cancel_CleanupFailed(t *testing.T) {
 		ExecutionID:  "1234",
 		NoExternalIP: false,
 		WorkflowDir:  daisyWorkflows,
-	}, mockComputeClient, &storage.Client{}, mockLogger, true, true)
+	}, mockComputeClient, &storage.Client{}, mockLogger, true, true})
 
 	cancelResult := apiInflater.Cancel("cancel")
 	assert.False(t, cancelResult)
 }
 
 func TestAPIInflater_getCalculateChecksumWorkflow(t *testing.T) {
-	apiInflater := createAPIInflater(ImageImportRequest{
+	apiInflater := createAPIInflater(&apiInflaterProperties{ImageImportRequest{
 		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:       "projects/subnet/subnet",
 		Network:      "projects/network/network",
@@ -151,7 +151,7 @@ func TestAPIInflater_getCalculateChecksumWorkflow(t *testing.T) {
 		ExecutionID:  "1234",
 		NoExternalIP: false,
 		WorkflowDir:  daisyWorkflows,
-	}, nil, &storage.Client{}, logging.NewToolLogger(t.Name()), true, true)
+	}, nil, &storage.Client{}, logging.NewToolLogger(t.Name()), true, true})
 
 	w := apiInflater.getCalculateChecksumWorkflow("", "shadow")
 	assert.Equal(t, "default", w.Vars["compute_service_account"].Value)
