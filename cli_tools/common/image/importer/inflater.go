@@ -114,63 +114,68 @@ func (facade *inflaterFacade) Inflate() (persistentDisk, inflationInfo, error) {
 	var pd persistentDisk
 	var ii inflationInfo
 	var err error
+	var fallbackReason string
 
-	//  Run API inflater as the primary inflation method.
-	pd, ii, err = facade.apiInflater.Inflate()
-	if err == nil {
-		inflationType := ""
-		if facade.qemuChecksum == "" {
-			inflationType = "api_success_checksum_skipped"
-		} else if isChecksumMatch(ii.checksum, facade.qemuChecksum) {
-			inflationType = "api_success"
-		}
-		if inflationType != "" {
-			facade.logger.Metric(&pb.OutputInfo{
-				InflationType:   inflationType,
-				InflationTimeMs: []int64{ii.inflationTime.Milliseconds()},
-			})
-			return pd, ii, err
-		}
-	}
+	if facade.qemuChecksum == "" {
+		fallbackReason = "qemu_checksum_missing"
+	} else {
+		//  Run API inflater as the primary inflation method.
+		pd, ii, err = facade.apiInflater.Inflate()
 
-	// If the inflation is failed but not due to unsupported format, don't rerun inflation.
-	if err != nil && !isCausedByUnsupportedFormat(err) {
-		facade.logger.Metric(&pb.OutputInfo{
-			InflationType:   "api_failed",
-			InflationTimeMs: []int64{ii.inflationTime.Milliseconds()},
-		})
-		return pd, ii, err
-	}
-
-	// If checksum mismatches , delete the corrupted disk.
-	if err == nil && ii.checksum != facade.qemuChecksum {
-		facade.logger.User("Disk checksum mismatch, recreating...")
-		err = facade.computeClient.DeleteDisk(facade.request.Project, facade.request.Zone, getDiskName(facade.request.ExecutionID))
 		if err != nil {
-			return pd, ii, daisy.Errf("Tried to delete the disk after checksum mismatch is detected, but failed on: %v", err)
+			// If the inflation is failed but not due to unsupported format, don't rerun inflation.
+			if !isCausedByUnsupportedFormat(err) {
+				facade.logger.Metric(&pb.OutputInfo{
+					InflationType:   "api_failed",
+					InflationTimeMs: []int64{ii.inflationTime.Milliseconds()},
+				})
+				return pd, ii, err
+			}
+			fallbackReason = "unsupported_format"
+		}
+
+		if err == nil {
+			if isChecksumMatch(ii.checksum, facade.qemuChecksum) {
+				facade.logger.Metric(&pb.OutputInfo{
+					InflationType:   "api_success",
+					InflationTimeMs: []int64{ii.inflationTime.Milliseconds()},
+				})
+				return pd, ii, err
+			}
+
+			// If checksum mismatches , delete the corrupted disk.
+			facade.logger.User("Disk checksum mismatch, recreating...")
+			err = facade.computeClient.DeleteDisk(facade.request.Project, facade.request.Zone, getDiskName(facade.request.ExecutionID))
+			if err != nil {
+				return pd, ii, daisy.Errf("Tried to delete the disk after checksum mismatch is detected, but failed on: %v", err)
+			}
+			fallbackReason = "checksum_mismatch"
 		}
 	}
 
-	// Now rerun inflation with daisy inflater. As described above, it is due to one of the below reasons:
-	// 1. The API doesn't support the format of the image file.
+	// Now fallback to daisy inflater. As described above, it is due to one of the below reasons:
+	// 1. The API failed because it doesn't support the format of the image file.
 	// 2. Checksum mismatch, which means the API produced a corrupted disk.
-	pd, ii, err = facade.retryWithDaisyInflater()
+	// 3. QEMU checksum missed, which means we have no way to compare the checksum.
+	pd, ii, err = facade.fallbackToDaisyInflater(fallbackReason)
 	return pd, ii, err
 }
 
-func (facade *inflaterFacade) retryWithDaisyInflater() (persistentDisk, inflationInfo, error) {
+func (facade *inflaterFacade) fallbackToDaisyInflater(reason string) (persistentDisk, inflationInfo, error) {
 	pd, ii, err := facade.daisyInflater.Inflate()
 	if err == nil {
 		facade.logger.Metric(&pb.OutputInfo{
-			InflationType:   "qemu_success",
-			InflationTimeMs: []int64{ii.inflationTime.Milliseconds()},
+			InflationType:           "qemu_success",
+			InflationTimeMs:         []int64{ii.inflationTime.Milliseconds()},
+			InflationFallbackReason: reason,
 		})
 		return pd, ii, err
 	}
 
 	facade.logger.Metric(&pb.OutputInfo{
-		InflationType:   "qemu_failed",
-		InflationTimeMs: []int64{ii.inflationTime.Milliseconds()},
+		InflationType:           "qemu_failed",
+		InflationTimeMs:         []int64{ii.inflationTime.Milliseconds()},
+		InflationFallbackReason: reason,
 	})
 	return pd, ii, err
 }

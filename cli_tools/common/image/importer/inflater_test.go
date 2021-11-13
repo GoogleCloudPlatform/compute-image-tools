@@ -148,6 +148,9 @@ func TestInflaterFacade_SuccessOnApiInflater(t *testing.T) {
 			pd: persistentDisk{
 				uri: "disk1",
 			},
+			ii: inflationInfo{
+				checksum: "good-checksum",
+			},
 		},
 		daisyInflater: &mockInflater{
 			pd: persistentDisk{
@@ -155,6 +158,7 @@ func TestInflaterFacade_SuccessOnApiInflater(t *testing.T) {
 			},
 		},
 		logger: logging.NewToolLogger(t.Name()),
+		qemuChecksum: "good-checksum",
 	}
 
 	pd, _, err := facade.Inflate()
@@ -174,6 +178,7 @@ func TestInflaterFacade_FailedOnApiInflater(t *testing.T) {
 			},
 		},
 		logger: logging.NewToolLogger(t.Name()),
+		qemuChecksum: "good-checksum",
 	}
 
 	_, _, err := facade.Inflate()
@@ -192,6 +197,7 @@ func TestInflaterFacade_SuccessOnDaisyInflater(t *testing.T) {
 			},
 		},
 		logger: logging.NewToolLogger(t.Name()),
+		qemuChecksum: "good-checksum",
 	}
 
 	pd, _, err := facade.Inflate()
@@ -211,6 +217,7 @@ func TestInflaterFacade_FailedOnDaisyInflater(t *testing.T) {
 			err: daisyError,
 		},
 		logger: logging.NewToolLogger(t.Name()),
+		qemuChecksum: "good-checksum",
 	}
 
 	_, _, err := facade.Inflate()
@@ -271,17 +278,18 @@ func TestCompareWithShadowInflater_QEMUChecksumEmpty(t *testing.T) {
 	assert.Equal(t, expectedMatchResult, matchResult, "Unexpected match result.")
 }
 
-func TestInflaterRerun_QEMUChecksumEmpty_SkipRerun(t *testing.T) {
-	expectedInflationType := "api_success_checksum_skipped"
+func TestInflaterRerun_QEMUChecksumEmpty_SkipAPIInflater(t *testing.T) {
+	expectedInflationType := "qemu_success"
 	expectedInflationTime := int64(13)
-	expectedDiskURI := "api_disk"
+	expectedDiskURI := "daisy_disk"
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	mockLogger := mocks.NewMockLogger(mockCtrl)
 	mockLogger.EXPECT().Metric(&pb.OutputInfo{
-		InflationType:   expectedInflationType,
-		InflationTimeMs: []int64{expectedInflationTime * 1000},
+		InflationType:           expectedInflationType,
+		InflationTimeMs:         []int64{expectedInflationTime * 1000},
+		InflationFallbackReason: "qemu_checksum_missing",
 	})
 
 	facade := inflaterFacade{
@@ -292,12 +300,16 @@ func TestInflaterRerun_QEMUChecksumEmpty_SkipRerun(t *testing.T) {
 			},
 			ii: inflationInfo{
 				checksum:      "good-checksum",
-				inflationTime: time.Second * time.Duration(expectedInflationTime),
+				inflationTime: time.Second * time.Duration(expectedInflationTime+1),
 			},
 		},
 		daisyInflater: &mockInflater{
 			pd: persistentDisk{
 				uri: "daisy_disk",
+			},
+			ii: inflationInfo{
+				checksum:      "good-checksum",
+				inflationTime: time.Second * time.Duration(expectedInflationTime),
 			},
 		},
 		logger: mockLogger,
@@ -354,6 +366,7 @@ func TestInflaterRerun_QEMUChecksumMismatch_Rerun_Success(t *testing.T) {
 	mockLogger.EXPECT().Metric(&pb.OutputInfo{
 		InflationType:   expectedInflationType,
 		InflationTimeMs: []int64{expectedInflationTime * 1000},
+		InflationFallbackReason: "checksum_mismatch",
 	})
 	mockLogger.EXPECT().User("Disk checksum mismatch, recreating...")
 
@@ -398,6 +411,7 @@ func TestInflaterRerun_FailedOnUnsupportedFormat_Rerun_Failed(t *testing.T) {
 	mockLogger.EXPECT().Metric(&pb.OutputInfo{
 		InflationType:   expectedInflationType,
 		InflationTimeMs: []int64{expectedInflationTime * 1000},
+		InflationFallbackReason: "unsupported_format",
 	})
 
 	facade := inflaterFacade{

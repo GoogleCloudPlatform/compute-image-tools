@@ -62,6 +62,8 @@ type OutputInfo struct {
 	InflationType string `protobuf:"bytes,8,opt,name=inflation_type,json=inflationType,proto3" json:"inflation_type,omitempty"`
 	// Inflation time
 	InflationTimeMs []int64 `protobuf:"varint,9,rep,packed,name=inflation_time_ms,json=inflationTimeMs,proto3" json:"inflation_time_ms,omitempty"`
+	// Inflation fallback reason.
+	InflationFallbackReason string `protobuf:"bytes,8,opt,name=inflation_fallback,json=inflationFallbackReason,proto3" json:"inflation_fallback_reason,omitempty"`
 	// Inflation time of the shadow disk.  It's for new API validation.
 	ShadowInflationTimeMs []int64 `protobuf:"varint,10,rep,packed,name=shadow_inflation_time_ms,json=shadowInflationTimeMs,proto3" json:"shadow_inflation_time_ms,omitempty"`
 	// Shadow disk match result for shadow disk inflater. It's for new API
