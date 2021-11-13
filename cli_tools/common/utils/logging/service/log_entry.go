@@ -289,6 +289,8 @@ type OutputInfo struct {
 	IsUEFICompatibleImage bool `json:"is_uefi_compatible_image,omitempty"`
 	// Indicates whether the image is auto-detected to be UEFI compatible
 	IsUEFIDetected bool `json:"is_uefi_detected,omitempty"`
+	// Inflation fallback reason
+	InflationFallbackReason string `json:"inflation_fallback_reason,omitempty"`
 }
 
 // InspectionResults contains metadata determined using automated inspection

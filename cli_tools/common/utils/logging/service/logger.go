@@ -64,18 +64,19 @@ const (
 	keyP1           = "AzSCO1066k_gFH2sJg3I"
 	keyP2           = "IaymztUIWu9U8THBeTx"
 
-	targetSizeGb          = "target-size-gb"
-	sourceSizeGb          = "source-size-gb"
-	importFileFormat      = "import-file-format"
-	inflationType         = "inflation-type"
-	inflationTime         = "inflation-time"
-	shadowInflationTime   = "shadow-inflation-time"
-	shadowDiskMatchResult = "shadow-disk-match-result"
-	isUEFICompatibleImage = "is-uefi-compatible-image"
-	isUEFIDetected        = "is-uefi-detected"
-	uefiBootable          = "uefi-bootable"
-	biosBootable          = "bios-bootable"
-	rootFS                = "root-fs"
+	targetSizeGb            = "target-size-gb"
+	sourceSizeGb            = "source-size-gb"
+	importFileFormat        = "import-file-format"
+	inflationType           = "inflation-type"
+	inflationTime           = "inflation-time"
+	inflationFallbackReason = "inflation-fallback-reason"
+	shadowInflationTime     = "shadow-inflation-time"
+	shadowDiskMatchResult   = "shadow-disk-match-result"
+	isUEFICompatibleImage   = "is-uefi-compatible-image"
+	isUEFIDetected          = "is-uefi-detected"
+	uefiBootable            = "uefi-bootable"
+	biosBootable            = "bios-bootable"
+	rootFS                  = "root-fs"
 
 	statusStart   = "Start"
 	statusSuccess = "Success"
@@ -199,6 +200,7 @@ func (l *Logger) getOutputInfo(loggable Loggable, err error) *OutputInfo {
 		o.ShadowDiskMatchResult = loggable.GetValue(shadowDiskMatchResult)
 		o.IsUEFICompatibleImage = loggable.GetValueAsBool(isUEFICompatibleImage)
 		o.IsUEFIDetected = loggable.GetValueAsBool(isUEFIDetected)
+		o.InflationFallbackReason = loggable.GetValue(inflationFallbackReason)
 
 		// TODO: ideally we suppose to set o.InspectionResults. Will modify after proto is adjusted.
 		if l.Params.ImageImportParams != nil {

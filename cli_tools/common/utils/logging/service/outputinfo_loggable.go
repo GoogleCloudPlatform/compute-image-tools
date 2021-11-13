@@ -35,6 +35,8 @@ func (o *outputInfoLoggable) GetValue(key string) string {
 		return o.outputInfo.GetImportFileFormat()
 	case inflationType:
 		return o.outputInfo.GetInflationType()
+	case inflationFallbackReason:
+		return o.outputInfo.GetInflationFallbackReason()
 	case shadowDiskMatchResult:
 		return o.outputInfo.GetShadowDiskMatchResult()
 	}
