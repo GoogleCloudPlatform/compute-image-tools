@@ -132,9 +132,7 @@ func (facade *inflaterFacade) Inflate() (persistentDisk, inflationInfo, error) {
 				return pd, ii, err
 			}
 			fallbackReason = "unsupported_format"
-		}
-
-		if err == nil {
+		} else {
 			if isChecksumMatch(ii.checksum, facade.qemuChecksum) {
 				facade.logger.Metric(&pb.OutputInfo{
 					InflationType:   "api_success",
@@ -144,11 +142,11 @@ func (facade *inflaterFacade) Inflate() (persistentDisk, inflationInfo, error) {
 			}
 
 			// If checksum mismatches , delete the corrupted disk.
-			facade.logger.User("Disk checksum mismatch, recreating...")
 			err = facade.computeClient.DeleteDisk(facade.request.Project, facade.request.Zone, getDiskName(facade.request.ExecutionID))
 			if err != nil {
 				return pd, ii, daisy.Errf("Tried to delete the disk after checksum mismatch is detected, but failed on: %v", err)
 			}
+			facade.logger.User("Disk checksum mismatch, recreating...")
 			fallbackReason = "checksum_mismatch"
 		}
 	}
@@ -156,9 +154,8 @@ func (facade *inflaterFacade) Inflate() (persistentDisk, inflationInfo, error) {
 	// Now fallback to daisy inflater. As described above, it is due to one of the below reasons:
 	// 1. The API failed because it doesn't support the format of the image file.
 	// 2. Checksum mismatch, which means the API produced a corrupted disk.
-	// 3. QEMU checksum missed, which means we have no way to compare the checksum.
-	pd, ii, err = facade.fallbackToDaisyInflater(fallbackReason)
-	return pd, ii, err
+	// 3. QEMU checksum is missing, which means we have no way to compare the checksum.
+	return facade.fallbackToDaisyInflater(fallbackReason)
 }
 
 func (facade *inflaterFacade) fallbackToDaisyInflater(reason string) (persistentDisk, inflationInfo, error) {
