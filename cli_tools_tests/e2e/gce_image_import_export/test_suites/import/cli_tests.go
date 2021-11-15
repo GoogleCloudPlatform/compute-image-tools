@@ -350,7 +350,7 @@ func runImageImportWithSubnetWithoutNetworkSpecified(ctx context.Context, testCa
 		},
 	}
 
-	runImportTest(ctx, argsMap[testType], testType, testProjectConfig.TestProjectID, destinationImage, logger, testCase)
+	runImportTest(ctx, argsMap[testType], testType, project, destinationImage, logger, testCase)
 }
 
 func runImageImportShadowDiskCleanedUpWhenMainInflaterFails(ctx context.Context, testCase *junitxml.TestCase,
