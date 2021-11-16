@@ -68,5 +68,5 @@ message OutputInfo {
   InspectionResults inspection_results = 14;
 
   // Inflation fallback reason
-  string InflationFallbackReason = 15;
+  string inflation_fallback_reason = 15;
 }
