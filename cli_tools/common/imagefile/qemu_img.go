@@ -59,8 +59,8 @@ func NewInfoClient() InfoClient {
 	return defaultInfoClient{shell.NewShellExecutor(), "out" + pathutils.RandString(5)}
 }
 
-type defaultInfoClient struct{
-	shellExecutor shell.Executor
+type defaultInfoClient struct {
+	shellExecutor    shell.Executor
 	tmpOutFilePrefix string
 }
 
