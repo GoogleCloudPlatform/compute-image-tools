@@ -27,6 +27,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/files"
 	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/shell"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -55,10 +56,13 @@ type InfoClient interface {
 
 // NewInfoClient returns a new instance of InfoClient.
 func NewInfoClient() InfoClient {
-	return defaultInfoClient{}
+	return defaultInfoClient{shell.NewShellExecutor(), "out" + pathutils.RandString(5)}
 }
 
-type defaultInfoClient struct{}
+type defaultInfoClient struct{
+	shellExecutor shell.Executor
+	tmpOutFilePrefix string
+}
 
 type fileInfoJSONTemplate struct {
 	Filename         string `json:"filename"`
@@ -116,9 +120,8 @@ func (client defaultInfoClient) getFileChecksum(ctx context.Context, filename st
 	blockSize := int64(512)
 	totalBlockCount := virtualSizeBytes / blockSize
 	skips := []int64{0, int64(2000000) - checkBlockCount, int64(20000000) - checkBlockCount, totalBlockCount - checkBlockCount}
-	tmpOutFilePrefix := "out" + pathutils.RandString(5)
 	for i, skip := range skips {
-		tmpOutFileName := fmt.Sprintf("%v%v", tmpOutFilePrefix, i)
+		tmpOutFileName := fmt.Sprintf("%v%v", client.tmpOutFilePrefix, i)
 		defer os.Remove(tmpOutFileName)
 
 		if skip < 0 {
@@ -126,25 +129,24 @@ func (client defaultInfoClient) getFileChecksum(ctx context.Context, filename st
 		}
 
 		// Write 100MB data to a file.
-		cmd := exec.CommandContext(ctx, "qemu-img", "dd", fmt.Sprintf("if=%v", filename),
+		var out string
+		out, err = client.shellExecutor.Exec("qemu-img", "dd", fmt.Sprintf("if=%v", filename),
 			fmt.Sprintf("of=%v", tmpOutFileName), fmt.Sprintf("bs=%v", blockSize),
 			fmt.Sprintf("count=%v", skip+checkBlockCount), fmt.Sprintf("skip=%v", skip))
-		var out []byte
-		out, err = cmd.Output()
-		err = constructCmdErr(string(out), err, "inspection for checksum failure")
+		err = constructCmdErr(out, err, "inspection for checksum failure")
 		if err != nil {
 			return
 		}
 
 		// Calculate checksum for the 100MB file.
 		f, fileErr := os.Open(tmpOutFileName)
-		if err != nil {
+		if fileErr != nil {
 			err = daisy.Errf("Failed to open file '%v' for QEMU md5 checksum calculation: %v", tmpOutFileName, fileErr)
 			return
 		}
 		defer f.Close()
 		h := md5.New()
-		if _, md5Err := io.Copy(h, f); err != nil {
+		if _, md5Err := io.Copy(h, f); md5Err != nil {
 			err = daisy.Errf("Failed to copy data from file '%v' for QEMU md5 checksum calculation: %v", tmpOutFileName, md5Err)
 			return
 		}

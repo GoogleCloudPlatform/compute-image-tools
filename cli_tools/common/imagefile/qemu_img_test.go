@@ -17,14 +17,15 @@ package imagefile
 import (
 	"context"
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"path"
-	"regexp"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/test"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 )
 
 const bytesPerMB = int64(1024 * 1024)
@@ -81,9 +82,36 @@ func TestGetInfo_FormatDetection(t *testing.T) {
 		},
 	}
 
-	client := NewInfoClient()
-
 	for _, tt := range cases {
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+		mockShell := mocks.NewMockShellExecutor(mockCtrl)
+		client := defaultInfoClient{mockShell, "out54321"}
+		mockShell.EXPECT().Exec("qemu-img", "dd", gomock.Any(), gomock.Any(),
+			"bs=512", "count=200000", "skip=0").DoAndReturn(func(_ interface{}, _ ...interface{}) (string, error) {
+			f, _ := os.Create("out543210")
+			f.WriteString("test_file_content_0")
+			return "", nil
+		})
+		mockShell.EXPECT().Exec("qemu-img", "dd", gomock.Any(), gomock.Any(),
+			"bs=512", "count=2000000", "skip=1800000").DoAndReturn(func(_ interface{}, _ ...interface{}) (string, error) {
+			f, _ := os.Create("out543211")
+			f.WriteString("test_file_content_1")
+			return "", nil
+		})
+		mockShell.EXPECT().Exec("qemu-img", "dd", gomock.Any(), gomock.Any(),
+			"bs=512", "count=20000000", "skip=19800000").DoAndReturn(func(_ interface{}, _ ...interface{}) (string, error) {
+			f, _ := os.Create("out543212")
+			f.WriteString("test_file_content_2")
+			return "", nil
+		})
+		mockShell.EXPECT().Exec("qemu-img", "dd", gomock.Any(), gomock.Any(),
+			"bs=512", gomock.Any(), gomock.Any()).DoAndReturn(func(_ interface{}, _ ...interface{}) (string, error) {
+			f, _ := os.Create("out543213")
+			f.WriteString("test_file_content_3")
+			return "", nil
+		})
+
 		t.Run(tt.filename, func(t *testing.T) {
 			// 1. Create temp dir
 			dir, err := ioutil.TempDir("", "")
@@ -104,8 +132,7 @@ func TestGetInfo_FormatDetection(t *testing.T) {
 			// the virtual size doesn't match the requested size in qemu-img create.
 			assert.Equal(t, tt.expectedVirtualSizeGB/bytesPerGB, imageInfo.VirtualSizeBytes/bytesPerGB)
 
-			reg, _ := regexp.Compile("^[a-zA-Z0-9]{32}-[a-zA-Z0-9]{32}-[a-zA-Z0-9]{32}-[a-zA-Z0-9]{32}$")
-			assert.True(t, reg.MatchString(imageInfo.Checksum), "Checksum content has a incorrect format: '%v'", imageInfo.Checksum)
+			assert.Equal(t, "7db8ff7ab828caf88d4cad4b0f8dd327-2e32e795a3d735fd93bd105b6f1fdf47-6646221c272b17d6206e2a4d1621b69b-f82500bc5c1b309426ac37f25a938966", imageInfo.Checksum)
 		})
 
 	}
