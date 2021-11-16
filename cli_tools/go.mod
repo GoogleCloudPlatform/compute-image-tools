@@ -13,7 +13,6 @@ require (
 	github.com/GoogleCloudPlatform/compute-image-tools/proto/go v0.0.0
 	github.com/GoogleCloudPlatform/osconfig v0.0.0-20210202205636-8f5a30e8969f
 	github.com/aws/aws-sdk-go v1.37.5
-	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cenkalti/backoff/v4 v4.1.0
 	github.com/dustin/go-humanize v1.0.0
 	github.com/go-ole/go-ole v1.2.5
