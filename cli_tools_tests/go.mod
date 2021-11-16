@@ -1,6 +1,6 @@
 module github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests
 
-go 1.13
+go 1.17
 
 require (
 	cloud.google.com/go/logging v1.4.2 // indirect
@@ -30,9 +30,25 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.7 // indirect
 	google.golang.org/api v0.60.0
-	google.golang.org/genproto v0.0.0-20211115160612-a5da7257a6f7 // indirect
+	google.golang.org/genproto v0.0.0-20211116182654-e63d96a377c4 // indirect
 	google.golang.org/grpc v1.42.0 // indirect
 	google.golang.org/protobuf v1.27.1
+)
+
+require (
+	cloud.google.com/go v0.97.0 // indirect
+	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
+	github.com/cncf/udpa/go v0.0.0-20210930031921-04548b0d99d4 // indirect
+	github.com/cncf/xds/go v0.0.0-20211011173535-cb28da3451f1 // indirect
+	github.com/go-playground/locales v0.14.0 // indirect
+	github.com/go-playground/universal-translator v0.18.0 // indirect
+	github.com/googleapis/gax-go/v2 v2.1.1 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/leodido/go-urn v1.2.1 // indirect
+	go.opencensus.io v0.23.0 // indirect
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	google.golang.org/appengine v1.6.7 // indirect
 )
 
 replace github.com/GoogleCloudPlatform/compute-image-tools/common => ../common
