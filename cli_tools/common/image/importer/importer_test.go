@@ -500,14 +500,14 @@ func (m *mockProcessor) cancel(reason string) bool {
 type mockInflater struct {
 	serialLogs    []string
 	pd            persistentDisk
-	ii            shadowTestFields
+	ii            inflationInfo
 	err           error
 	interactions  int
 	inflationTime time.Duration
 	cancelChan    chan bool
 }
 
-func (m *mockInflater) Inflate() (persistentDisk, shadowTestFields, error) {
+func (m *mockInflater) Inflate() (persistentDisk, inflationInfo, error) {
 	m.interactions++
 	m.cancelChan = make(chan bool)
 

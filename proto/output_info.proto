@@ -66,4 +66,7 @@ message OutputInfo {
 
   // Inspection results. Ref to the def of 'InspectionResults' to see details.
   InspectionResults inspection_results = 14;
+
+  // Inflation fallback reason
+  string inflation_fallback_reason = 15;
 }

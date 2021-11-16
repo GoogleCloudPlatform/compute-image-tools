@@ -16,13 +16,19 @@ package imagefile
 
 import (
 	"context"
+	"crypto/md5"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/files"
+	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/shell"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // FormatUnknown means that qemu-img could not determine the file's format.
@@ -39,6 +45,8 @@ type ImageInfo struct {
 	Format           string
 	ActualSizeBytes  int64
 	VirtualSizeBytes int64
+	// This checksum is calculated from the partial disk content extracted by QEMU.
+	Checksum string
 }
 
 // InfoClient runs `qemu-img info` and returns the results.
@@ -48,39 +56,120 @@ type InfoClient interface {
 
 // NewInfoClient returns a new instance of InfoClient.
 func NewInfoClient() InfoClient {
-	return defaultInfoClient{}
+	return defaultInfoClient{shell.NewShellExecutor(), "out" + pathutils.RandString(5)}
 }
 
-type defaultInfoClient struct{}
+type defaultInfoClient struct {
+	shellExecutor    shell.Executor
+	tmpOutFilePrefix string
+}
+
+type fileInfoJSONTemplate struct {
+	Filename         string `json:"filename"`
+	Format           string `json:"format"`
+	ActualSizeBytes  int64  `json:"actual-size"`
+	VirtualSizeBytes int64  `json:"virtual-size"`
+}
 
 func (client defaultInfoClient) GetInfo(ctx context.Context, filename string) (info ImageInfo, err error) {
 	if !files.Exists(filename) {
-		return info, fmt.Errorf("file %q not found", filename)
+		err = fmt.Errorf("file %q not found", filename)
+		return
 	}
+
+	jsonTemplate, err := client.getFileInfo(ctx, filename)
+	if err != nil {
+		err = daisy.Errf("Failed to inspect file %v: %v", filename, err)
+		return
+	}
+	info.Format = lookupFileFormat(jsonTemplate.Format)
+	info.ActualSizeBytes = jsonTemplate.ActualSizeBytes
+	info.VirtualSizeBytes = jsonTemplate.VirtualSizeBytes
+
+	checksum, err := client.getFileChecksum(ctx, filename, info.VirtualSizeBytes)
+	if err != nil {
+		err = daisy.Errf("Failed to calculate file '%v' checksum by qemu: %v", filename, err)
+		return
+	}
+
+	info.Checksum = checksum
+	return
+}
+
+func (client defaultInfoClient) getFileInfo(ctx context.Context, filename string) (*fileInfoJSONTemplate, error) {
 	cmd := exec.CommandContext(ctx, "qemu-img", "info", "--output=json", filename)
 	out, err := cmd.Output()
+	err = constructCmdErr(string(out), err, "inspection failure")
 	if err != nil {
-		var exitError *exec.ExitError
-		if errors.As(err, &exitError) {
-			return info, fmt.Errorf("inspection failure: %w, stderr: %s", err,
-				exitError.Stderr)
-		}
-		return info, fmt.Errorf("inspection failure: %w", err)
+		return nil, err
 	}
-	jsonTemplate := struct {
-		Filename         string `json:"filename"`
-		Format           string `json:"format"`
-		ActualSizeBytes  int64  `json:"actual-size"`
-		VirtualSizeBytes int64  `json:"virtual-size"`
-	}{}
+
+	jsonTemplate := fileInfoJSONTemplate{}
 	if err = json.Unmarshal(out, &jsonTemplate); err != nil {
-		return info, fmt.Errorf("failed to inspect %q: %w", filename, err)
+		return nil, daisy.Errf("failed to inspect %q: %w", filename, err)
 	}
-	return ImageInfo{
-		Format:           lookupFileFormat(jsonTemplate.Format),
-		ActualSizeBytes:  jsonTemplate.ActualSizeBytes,
-		VirtualSizeBytes: jsonTemplate.VirtualSizeBytes,
-	}, nil
+	return &jsonTemplate, err
+}
+
+func (client defaultInfoClient) getFileChecksum(ctx context.Context, filename string, virtualSizeBytes int64) (checksum string, err error) {
+	// We calculate 4 chunks' checksum. Each of them is 100MB: 0~100MB, 0.9GB~1GB, 9.9GB~10GB, the last 100MB.
+	// It is align with what we did for "daisy_workflows/image_import/import_image.sh" so that we can compare them.
+	// Each block size is 512 Bytes. So, we need to check 20000 blocks: 200000 * 512 Bytes = 100MB
+	// "skips" is also the start point of each chunks.
+	checkBlockCount := int64(200000)
+	blockSize := int64(512)
+	totalBlockCount := virtualSizeBytes / blockSize
+	skips := []int64{0, int64(2000000) - checkBlockCount, int64(20000000) - checkBlockCount, totalBlockCount - checkBlockCount}
+	for i, skip := range skips {
+		tmpOutFileName := fmt.Sprintf("%v%v", client.tmpOutFilePrefix, i)
+		defer os.Remove(tmpOutFileName)
+
+		if skip < 0 {
+			skip = 0
+		}
+
+		// Write 100MB data to a file.
+		var out string
+		out, err = client.shellExecutor.Exec("qemu-img", "dd", fmt.Sprintf("if=%v", filename),
+			fmt.Sprintf("of=%v", tmpOutFileName), fmt.Sprintf("bs=%v", blockSize),
+			fmt.Sprintf("count=%v", skip+checkBlockCount), fmt.Sprintf("skip=%v", skip))
+		err = constructCmdErr(out, err, "inspection for checksum failure")
+		if err != nil {
+			return
+		}
+
+		// Calculate checksum for the 100MB file.
+		f, fileErr := os.Open(tmpOutFileName)
+		if fileErr != nil {
+			err = daisy.Errf("Failed to open file '%v' for QEMU md5 checksum calculation: %v", tmpOutFileName, fileErr)
+			return
+		}
+		defer f.Close()
+		h := md5.New()
+		if _, md5Err := io.Copy(h, f); md5Err != nil {
+			err = daisy.Errf("Failed to copy data from file '%v' for QEMU md5 checksum calculation: %v", tmpOutFileName, md5Err)
+			return
+		}
+		newChecksum := fmt.Sprintf("%x", h.Sum(nil))
+
+		if checksum != "" {
+			checksum += "-"
+		}
+		checksum += newChecksum
+	}
+	return
+}
+
+func constructCmdErr(out string, err error, errorFormat string) error {
+	if err == nil {
+		return nil
+	}
+
+	var exitError *exec.ExitError
+	if errors.As(err, &exitError) {
+		return daisy.Errf("%v: '%w', stderr: '%s', out: '%s'", errorFormat, err, exitError.Stderr, out)
+	}
+	return daisy.Errf("%v: '%w', out: '%s'", errorFormat, err, out)
 }
 
 func lookupFileFormat(s string) string {

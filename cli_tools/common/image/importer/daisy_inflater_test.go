@@ -50,7 +50,7 @@ func TestDaisyInflater_Inflate_ReadsDiskStatsFromWorker(t *testing.T) {
 	assert.Nil(t, e)
 	assert.Equal(t, persistentDisk{uri: "/disk/uri", sizeGb: 100, sourceGb: 200, sourceType: "vhd"}, pDisk)
 	shadowFields.inflationTime = 0
-	assert.Equal(t, shadowTestFields{checksum: "9abc", inflationType: "qemu"}, shadowFields)
+	assert.Equal(t, inflationInfo{checksum: "9abc", inflationType: "qemu"}, shadowFields)
 }
 
 func TestDaisyInflater_Inflate_IncludesDiskStatsOnError(t *testing.T) {
@@ -73,7 +73,7 @@ func TestDaisyInflater_Inflate_IncludesDiskStatsOnError(t *testing.T) {
 	assert.Equal(t, expectedError, actualError)
 	assert.Equal(t, persistentDisk{uri: "/disk/uri", sizeGb: 50, sourceGb: 12, sourceType: "qcow2"}, pDisk)
 	shadowFields.inflationTime = 0
-	assert.Equal(t, shadowTestFields{checksum: "9abc", inflationType: "qemu"}, shadowFields)
+	assert.Equal(t, inflationInfo{checksum: "9abc", inflationType: "qemu"}, shadowFields)
 }
 
 // gcloud expects log lines to start with the substring "[import". Daisy
@@ -162,12 +162,7 @@ func TestCreateDaisyInflater_File_HappyCase(t *testing.T) {
 		Zone:         "us-west1-c",
 		ExecutionID:  "1234",
 		NoExternalIP: false,
-	}, mockInspector{
-		t:                 t,
-		expectedReference: source.gcsPath,
-		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{},
-	})
+	}, imagefile.Metadata{})
 	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		assert.Equal(t, "zones/us-west1-c/disks/disk-1234", inflater.inflatedDiskURI)
 		assert.Equal(t, "gs://bucket/vmdk", wf.Vars["source_disk_file"].Value)
@@ -185,12 +180,7 @@ func TestCreateDaisyInflater_File_ComputeServiceAcount(t *testing.T) {
 	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 		Source:                source,
 		ComputeServiceAccount: "csa",
-	}, mockInspector{
-		t:                 t,
-		expectedReference: source.gcsPath,
-		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{},
-	})
+	}, imagefile.Metadata{})
 	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		assert.Equal(t, "csa", wf.Vars["compute_service_account"].Value)
 	})
@@ -201,12 +191,7 @@ func TestCreateDaisyInflater_File_NoExternalIP(t *testing.T) {
 	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 		Source:       source,
 		NoExternalIP: true,
-	}, mockInspector{
-		t:                 t,
-		expectedReference: source.gcsPath,
-		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{},
-	})
+	}, imagefile.Metadata{})
 	daisyutils.CheckEnvironment(inflater.worker, func(env daisyutils.EnvironmentSettings) {
 		assert.True(t, env.NoExternalIP)
 	})
@@ -217,12 +202,7 @@ func TestCreateDaisyInflater_File_UsesFallbackSizes_WhenInspectionFails(t *testi
 	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 		Source:       source,
 		NoExternalIP: true,
-	}, mockInspector{
-		t:                 t,
-		expectedReference: source.gcsPath,
-		errorToReturn:     errors.New("inspection failed"),
-		metaToReturn:      imagefile.Metadata{},
-	})
+	}, imagefile.Metadata{})
 	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		// The 10GB defaults are hardcoded in inflate_file.wf.json.
 		assert.Equal(t, "10", wf.Vars["scratch_disk_size_gb"].Value)
@@ -261,13 +241,9 @@ func TestCreateDaisyInflater_File_SetsSizesFromInspectedFile(t *testing.T) {
 			inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 				Source:       source,
 				NoExternalIP: true,
-			}, mockInspector{
-				t:                 t,
-				expectedReference: source.gcsPath,
-				metaToReturn: imagefile.Metadata{
-					VirtualSizeGB:  tt.virtualSize,
-					PhysicalSizeGB: tt.physicalSize,
-				},
+			}, imagefile.Metadata{
+				VirtualSizeGB:  tt.virtualSize,
+				PhysicalSizeGB: tt.physicalSize,
 			})
 			daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 				assert.Equal(t, tt.expectedInflated, wf.Vars["inflated_disk_size_gb"].Value)
@@ -282,12 +258,7 @@ func TestCreateDaisyInflater_File_Windows(t *testing.T) {
 	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 		Source: source,
 		OS:     "windows-2019",
-	}, mockInspector{
-		t:                 t,
-		expectedReference: source.gcsPath,
-		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{},
-	})
+	}, imagefile.Metadata{})
 	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		inflatedDisk := getDisk(wf, 1)
 		assert.Contains(t, inflatedDisk.GuestOsFeatures, &compute.GuestOsFeature{
@@ -301,12 +272,7 @@ func TestCreateDaisyInflater_File_NotWindows(t *testing.T) {
 	inflater := createDaisyInflaterSafe(t, ImageImportRequest{
 		Source: source,
 		OS:     "ubuntu-1804",
-	}, mockInspector{
-		t:                 t,
-		expectedReference: source.gcsPath,
-		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{},
-	})
+	}, imagefile.Metadata{})
 
 	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		inflatedDisk := getDisk(wf, 1)
@@ -322,12 +288,7 @@ func TestCreateDaisyInflater_File_UEFI(t *testing.T) {
 		Source:         source,
 		OS:             "ubuntu-1804",
 		UefiCompatible: true,
-	}, mockInspector{
-		t:                 t,
-		expectedReference: source.gcsPath,
-		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{},
-	})
+	}, imagefile.Metadata{})
 
 	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		inflatedDisk := getDisk(wf, 1)
@@ -343,12 +304,7 @@ func TestCreateDaisyInflater_File_NotUEFI(t *testing.T) {
 		Source:         source,
 		OS:             "ubuntu-1804",
 		UefiCompatible: false,
-	}, mockInspector{
-		t:                 t,
-		expectedReference: source.gcsPath,
-		errorToReturn:     nil,
-		metaToReturn:      imagefile.Metadata{},
-	})
+	}, imagefile.Metadata{})
 
 	daisyutils.CheckWorkflow(inflater.worker, func(wf *daisy.Workflow, err error) {
 		inflatedDisk := getDisk(wf, 1)
@@ -359,7 +315,7 @@ func TestCreateDaisyInflater_File_NotUEFI(t *testing.T) {
 }
 
 func createDaisyInflaterSafe(t *testing.T, request ImageImportRequest,
-	inspector imagefile.Inspector) *daisyInflater {
+	fileMetadata imagefile.Metadata) *daisyInflater {
 
 	if request.ExecutionID == "" {
 		request.ExecutionID = "build-id"
@@ -370,13 +326,13 @@ func createDaisyInflaterSafe(t *testing.T, request ImageImportRequest,
 	}
 
 	request.WorkflowDir = "../../../../daisy_workflows"
-	daisyInflater, err := newDaisyInflater(request, inspector, logging.NewToolLogger("test"))
+	daisyInflater, err := newDaisyInflater(request, fileMetadata, logging.NewToolLogger("test"))
 	assert.NoError(t, err)
 	return daisyInflater
 }
 
 func createDaisyInflaterForImageSafe(t *testing.T, request ImageImportRequest) *daisyInflater {
-	return createDaisyInflaterSafe(t, request, nil)
+	return createDaisyInflaterSafe(t, request, imagefile.Metadata{})
 }
 
 func getWorkerNetwork(t *testing.T, workflow *daisy.Workflow) *compute.NetworkInterface {

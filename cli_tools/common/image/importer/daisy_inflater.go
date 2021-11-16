@@ -13,7 +13,6 @@
 package importer
 
 import (
-	"context"
 	"fmt"
 	"path"
 	"strings"
@@ -35,7 +34,7 @@ const (
 	// When exceeded, we use default values for PDs, rather than more accurate
 	// values used by inspection. When using default values, the worker may
 	// need to resize the PDs, which requires escalated privileges.
-	inspectionTimeout = time.Second * 3
+	inspectionTimeout = time.Second * 60
 
 	// 10GB is the default disk size used in inflate_file.wf.json.
 	defaultInflationDiskSizeGB = 10
@@ -57,7 +56,7 @@ type daisyInflater struct {
 	logger          logging.Logger
 }
 
-func (inflater *daisyInflater) Inflate() (persistentDisk, shadowTestFields, error) {
+func (inflater *daisyInflater) Inflate() (persistentDisk, inflationInfo, error) {
 	if inflater.source != nil {
 		inflater.logger.User("Creating Google Compute Engine disk from " + inflater.source.Path())
 	}
@@ -71,7 +70,7 @@ func (inflater *daisyInflater) Inflate() (persistentDisk, shadowTestFields, erro
 			sizeGb:     enforceMinimumDiskSize(string_utils.SafeStringToInt(serialValues[targetSizeGBKey])),
 			sourceGb:   string_utils.SafeStringToInt(serialValues[sourceSizeGBKey]),
 			sourceType: serialValues[importFileFormatKey],
-		}, shadowTestFields{
+		}, inflationInfo{
 			checksum:      serialValues[diskChecksumKey],
 			inflationTime: time.Since(time.Now()),
 			inflationType: "qemu",
@@ -79,12 +78,12 @@ func (inflater *daisyInflater) Inflate() (persistentDisk, shadowTestFields, erro
 }
 
 // NewDaisyInflater returns an inflater that uses a Daisy workflow.
-func NewDaisyInflater(request ImageImportRequest, fileInspector imagefile.Inspector, logger logging.Logger) (Inflater, error) {
-	return newDaisyInflater(request, fileInspector, logger)
+func NewDaisyInflater(request ImageImportRequest, fileMetadata imagefile.Metadata, logger logging.Logger) (Inflater, error) {
+	return newDaisyInflater(request, fileMetadata, logger)
 }
 
-func newDaisyInflater(request ImageImportRequest, fileInspector imagefile.Inspector, logger logging.Logger) (*daisyInflater, error) {
-	diskName := "disk-" + request.ExecutionID
+func newDaisyInflater(request ImageImportRequest, fileMetadata imagefile.Metadata, logger logging.Logger) (*daisyInflater, error) {
+	diskName := getDiskName(request.ExecutionID)
 	var wfPath string
 	var vars map[string]string
 	var inflationDiskIndex int
@@ -97,7 +96,7 @@ func newDaisyInflater(request ImageImportRequest, fileInspector imagefile.Inspec
 		inflationDiskIndex = 0 // Workflow only uses one disk.
 	} else {
 		wfPath = inflateFilePath
-		vars = createDaisyVarsForFile(request, fileInspector, diskName)
+		vars = createDaisyVarsForFile(request, fileMetadata, diskName)
 		inflationDiskIndex = 1 // First disk is for the worker
 	}
 
@@ -163,7 +162,7 @@ func (inflater *daisyInflater) Cancel(reason string) bool {
 }
 
 func createDaisyVarsForFile(request ImageImportRequest,
-	fileInspector imagefile.Inspector, diskName string) map[string]string {
+	fileMetadata imagefile.Metadata, diskName string) map[string]string {
 	vars := map[string]string{
 		"source_disk_file": request.Source.Path(),
 		"import_network":   request.Network,
@@ -179,12 +178,12 @@ func createDaisyVarsForFile(request ImageImportRequest,
 	// disks sufficient to hold the disk file and the inflated disk. If inspection fails,
 	// then the default values in the daisy workflow will be used. The scratch disk gets
 	// a padding factor to account for filesystem overhead.
-	deadline, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(inspectionTimeout))
-	defer cancelFunc()
-	metadata, err := fileInspector.Inspect(deadline, request.Source.Path())
-	if err == nil {
-		vars["inflated_disk_size_gb"] = fmt.Sprintf("%d", calculateInflatedSize(metadata))
-		vars["scratch_disk_size_gb"] = fmt.Sprintf("%d", calculateScratchDiskSize(metadata))
+	if fileMetadata.VirtualSizeGB != 0 {
+		vars["inflated_disk_size_gb"] = fmt.Sprintf("%d", calculateInflatedSize(fileMetadata))
+
+	}
+	if fileMetadata.PhysicalSizeGB != 0 {
+		vars["scratch_disk_size_gb"] = fmt.Sprintf("%d", calculateScratchDiskSize(fileMetadata))
 	}
 	return vars
 }

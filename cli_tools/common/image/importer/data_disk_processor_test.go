@@ -15,6 +15,7 @@
 package importer
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -56,10 +57,11 @@ func Test_ImageIncludesTrackingLabelAndLicense(t *testing.T) {
 
 type mockComputeClient struct {
 	daisyCompute.Client
-	expectedProject string
-	actualImage     compute.Image
-	t               *testing.T
-	invocations     int
+	expectedProject   string
+	actualImage       compute.Image
+	t                 *testing.T
+	invocations       int
+	deleteDiskSuccess bool
 }
 
 func (m *mockComputeClient) CreateImage(project string, i *compute.Image) error {
@@ -67,4 +69,11 @@ func (m *mockComputeClient) CreateImage(project string, i *compute.Image) error 
 	m.actualImage = *i
 	m.invocations++
 	return nil
+}
+
+func (m *mockComputeClient) DeleteDisk(_, _, _ string) error {
+	if m.deleteDiskSuccess {
+		return nil
+	}
+	return fmt.Errorf("failed to delete disk")
 }
