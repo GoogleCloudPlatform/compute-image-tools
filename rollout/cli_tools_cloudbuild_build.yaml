@@ -32,9 +32,9 @@ steps:
   env: ['GOOS=darwin']
 - name: 'gcr.io/kaniko-project/executor:v1.0.0'
   args:
-  - --destination=gcr.io/$PROJECT_ID/daisy:$_RELEASE
-  - --destination=gcr.io/$PROJECT_ID/daisy:$COMMIT_SHA
-  - --destination=gcr.io/$PROJECT_ID/daisy:$_WORKFLOW_EXECUTION_ID
+  - --destination=gcr.io/$_IMAGE_PROJECT/daisy:$_RELEASE
+  - --destination=gcr.io/$_IMAGE_PROJECT/daisy:$COMMIT_SHA
+  - --destination=gcr.io/$_IMAGE_PROJECT/daisy:$_WORKFLOW_EXECUTION_ID
   - --context=/workspace
   - --dockerfile=daisy.Dockerfile
 
@@ -53,9 +53,9 @@ steps:
   env: ['GOOS=darwin']
 - name: 'gcr.io/kaniko-project/executor:v1.0.0'
   args:
-  - --destination=gcr.io/$PROJECT_ID/gce_image_publish:$_RELEASE
-  - --destination=gcr.io/$PROJECT_ID/gce_image_publish:$COMMIT_SHA
-  - --destination=gcr.io/$PROJECT_ID/gce_image_publish:$_WORKFLOW_EXECUTION_ID
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_image_publish:$_RELEASE
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_image_publish:$COMMIT_SHA
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_image_publish:$_WORKFLOW_EXECUTION_ID
   - --context=/workspace
   - --dockerfile=gce_image_publish.Dockerfile
 
@@ -70,9 +70,9 @@ steps:
   env: ['GOOS=windows']
 - name: 'gcr.io/kaniko-project/executor:v1.0.0'
   args:
-  - --destination=gcr.io/$PROJECT_ID/gce_export:$_RELEASE
-  - --destination=gcr.io/$PROJECT_ID/gce_export:$COMMIT_SHA
-  - --destination=gcr.io/$PROJECT_ID/gce_export:$_WORKFLOW_EXECUTION_ID
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_export:$_RELEASE
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_export:$COMMIT_SHA
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_export:$_WORKFLOW_EXECUTION_ID
   - --context=/workspace
   - --dockerfile=gce_export.Dockerfile
 
@@ -93,9 +93,9 @@ steps:
   env: ['CGO_ENABLED=0']
 - name: 'gcr.io/kaniko-project/executor:v1.1.0'
   args:
-  - --destination=gcr.io/$PROJECT_ID/gce_vm_image_import:$_RELEASE
-  - --destination=gcr.io/$PROJECT_ID/gce_vm_image_import:$COMMIT_SHA
-  - --destination=gcr.io/$PROJECT_ID/gce_vm_image_import:$_WORKFLOW_EXECUTION_ID
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$_RELEASE
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$COMMIT_SHA
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$_WORKFLOW_EXECUTION_ID
   - --context=/workspace
   - --dockerfile=gce_vm_image_import.Dockerfile
 
@@ -106,9 +106,9 @@ steps:
   env: ['CGO_ENABLED=0']
 - name: 'gcr.io/kaniko-project/executor:v1.1.0'
   args:
-  - --destination=gcr.io/$PROJECT_ID/gce_onestep_image_import:$_RELEASE
-  - --destination=gcr.io/$PROJECT_ID/gce_onestep_image_import:$COMMIT_SHA
-  - --destination=gcr.io/$PROJECT_ID/gce_onestep_image_import:$_WORKFLOW_EXECUTION_ID
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_onestep_image_import:$_RELEASE
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_onestep_image_import:$COMMIT_SHA
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_onestep_image_import:$_WORKFLOW_EXECUTION_ID
   - --context=/workspace
   - --dockerfile=gce_onestep_image_import.Dockerfile
 
@@ -119,9 +119,9 @@ steps:
   env: ['CGO_ENABLED=0']
 - name: 'gcr.io/kaniko-project/executor:v1.1.0'
   args:
-  - --destination=gcr.io/$PROJECT_ID/gce_vm_image_export:$_RELEASE
-  - --destination=gcr.io/$PROJECT_ID/gce_vm_image_export:$COMMIT_SHA
-  - --destination=gcr.io/$PROJECT_ID/gce_vm_image_export:$_WORKFLOW_EXECUTION_ID
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_vm_image_export:$_RELEASE
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_vm_image_export:$COMMIT_SHA
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_vm_image_export:$_WORKFLOW_EXECUTION_ID
   - --context=/workspace
   - --dockerfile=gce_vm_image_export.Dockerfile
 
@@ -132,9 +132,9 @@ steps:
   env: ['CGO_ENABLED=0']
 - name: 'gcr.io/kaniko-project/executor:v1.1.0'
   args:
-  - --destination=gcr.io/$PROJECT_ID/gce_ovf_import:$_RELEASE
-  - --destination=gcr.io/$PROJECT_ID/gce_ovf_import:$COMMIT_SHA
-  - --destination=gcr.io/$PROJECT_ID/gce_ovf_import:$_WORKFLOW_EXECUTION_ID
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_ovf_import:$_RELEASE
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_ovf_import:$COMMIT_SHA
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_ovf_import:$_WORKFLOW_EXECUTION_ID
   - --context=/workspace
   - --dockerfile=gce_ovf_import.Dockerfile
 
@@ -145,9 +145,9 @@ steps:
   env: ['CGO_ENABLED=0']
 - name: 'gcr.io/kaniko-project/executor:v1.1.0'
   args:
-  - --destination=gcr.io/$PROJECT_ID/gce_ovf_export:$_RELEASE
-  - --destination=gcr.io/$PROJECT_ID/gce_ovf_export:$COMMIT_SHA
-  - --destination=gcr.io/$PROJECT_ID/gce_ovf_export:$_WORKFLOW_EXECUTION_ID
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_ovf_export:$_RELEASE
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_ovf_export:$COMMIT_SHA
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_ovf_export:$_WORKFLOW_EXECUTION_ID
   - --context=/workspace
   - --dockerfile=gce_ovf_export.Dockerfile
 
@@ -158,25 +158,25 @@ steps:
   env: ['CGO_ENABLED=0']
 - name: 'gcr.io/kaniko-project/executor:v1.1.0'
   args:
-  - --destination=gcr.io/$PROJECT_ID/gce_windows_upgrade:$_RELEASE
-  - --destination=gcr.io/$PROJECT_ID/gce_windows_upgrade:$COMMIT_SHA
-  - --destination=gcr.io/$PROJECT_ID/gce_windows_upgrade:$_WORKFLOW_EXECUTION_ID
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_windows_upgrade:$_RELEASE
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_windows_upgrade:$COMMIT_SHA
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_windows_upgrade:$_WORKFLOW_EXECUTION_ID
   - --context=/workspace
   - --dockerfile=gce_windows_upgrade.Dockerfile
 
 # Copy Linux binaries to GCS
 - name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/linux/*', 'gs://$PROJECT_ID/$_RELEASE/linux/']
+  args: ['cp', '/workspace/linux/*', 'gs://$_IMAGE_PROJECT/$_RELEASE/linux/']
 
 # Copy Windows binaries to GCS
 - name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/windows/*', 'gs://$PROJECT_ID/$_RELEASE/windows/']
+  args: ['cp', '/workspace/windows/*', 'gs://$_IMAGE_PROJECT/$_RELEASE/windows/']
 
 # Copy OSX binaries to GCS
 - name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/darwin/*', 'gs://$PROJECT_ID/$_RELEASE/darwin/']
+  args: ['cp', '/workspace/darwin/*', 'gs://$_IMAGE_PROJECT/$_RELEASE/darwin/']
 
 
 # TODO: Make binaries world-readable.
 #- name: 'gcr.io/cloud-builders/gsutil'
-#  args: ['-m', 'acl', '-r', 'ch', '-u', 'AllUsers:R', 'gs://$PROJECT_ID/$_RELEASE/*']
+#  args: ['-m', 'acl', '-r', 'ch', '-u', 'AllUsers:R', 'gs://$_IMAGE_PROJECT/$_RELEASE/*']

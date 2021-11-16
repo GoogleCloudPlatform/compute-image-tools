@@ -24,7 +24,7 @@ steps:
     for _TOOL in $$TOOLS_ARR
     do
       echo "----> Preparing docker images for $$_TOOL..."
-      docker pull gcr.io/$PROJECT_ID/$$_TOOL:$_WORKFLOW_EXECUTION_ID || exit 1
+      docker pull gcr.io/$_IMAGE_PROJECT/$$_TOOL:$_WORKFLOW_EXECUTION_ID || exit 1
     done
 
 
@@ -34,13 +34,13 @@ steps:
       do
         echo "--> Deploying... $$_TOOL -> $$_REGION"
 
-        docker tag gcr.io/$PROJECT_ID/$$_TOOL:$_WORKFLOW_EXECUTION_ID $$_REGION-docker.pkg.dev/$PROJECT_ID/wrappers/$$_TOOL:$_WORKFLOW_EXECUTION_ID || exit 1
-        docker tag gcr.io/$PROJECT_ID/$$_TOOL:$_WORKFLOW_EXECUTION_ID $$_REGION-docker.pkg.dev/$PROJECT_ID/wrappers/$$_TOOL:$COMMIT_SHA || exit 1
-        docker tag gcr.io/$PROJECT_ID/$$_TOOL:$_WORKFLOW_EXECUTION_ID $$_REGION-docker.pkg.dev/$PROJECT_ID/wrappers/$$_TOOL:release || exit 1
+        docker tag gcr.io/$_IMAGE_PROJECT/$$_TOOL:$_WORKFLOW_EXECUTION_ID $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/wrappers/$$_TOOL:$_WORKFLOW_EXECUTION_ID || exit 1
+        docker tag gcr.io/$_IMAGE_PROJECT/$$_TOOL:$_WORKFLOW_EXECUTION_ID $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/wrappers/$$_TOOL:$COMMIT_SHA || exit 1
+        docker tag gcr.io/$_IMAGE_PROJECT/$$_TOOL:$_WORKFLOW_EXECUTION_ID $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/wrappers/$$_TOOL:release || exit 1
 
-        docker push $$_REGION-docker.pkg.dev/$PROJECT_ID/wrappers/$$_TOOL:$_WORKFLOW_EXECUTION_ID || exit 1
-        docker push $$_REGION-docker.pkg.dev/$PROJECT_ID/wrappers/$$_TOOL:$COMMIT_SHA || exit 1
-        docker push $$_REGION-docker.pkg.dev/$PROJECT_ID/wrappers/$$_TOOL:release || exit 1
+        docker push $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/wrappers/$$_TOOL:$_WORKFLOW_EXECUTION_ID || exit 1
+        docker push $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/wrappers/$$_TOOL:$COMMIT_SHA || exit 1
+        docker push $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/wrappers/$$_TOOL:release || exit 1
       done
       echo "----> Deployed all tools for $$_REGION"
     done
