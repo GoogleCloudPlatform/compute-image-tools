@@ -47,8 +47,7 @@
           "Name": "disk-${NAME}",
           "SourceImage": "${source_image}",
           "SourceSnapshot": "${source_disk_snapshot}",
-          "Type": "${export_instance_disk_type}",
-          "FallbackToPdStandard": true
+          "Type": "${export_instance_disk_type}"
         }
       ]
     },

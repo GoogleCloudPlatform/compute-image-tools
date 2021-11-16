@@ -51,8 +51,7 @@
           "Name": "disk-importer",
           "SourceImage": "${import_instance_disk_image}",
           "SizeGb": "${importer_instance_disk_size}",
-          "Type": "pd-ssd",
-          "FallbackToPdStandard": true
+          "Type": "pd-ssd"
         },
         {
           "Name": "${disk_name}",
@@ -60,15 +59,13 @@
           "Type": "pd-ssd",
           "ExactName": true,
           "NoCleanup": true,
-          "FallbackToPdStandard": true,
           "Licenses": ["${import_license}"]
         },
         {
           "Name": "disk-${NAME}-scratch-${ID}",
           "SizeGb": "${scratch_disk_size_gb}",
           "Type": "pd-ssd",
-          "ExactName": true,
-          "FallbackToPdStandard": true
+          "ExactName": true
         }
       ]
     },

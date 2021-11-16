@@ -63,8 +63,7 @@
         {
           "Name": "disk-bootstrap",
           "SourceImage": "projects/windows-cloud/global/images/family/windows-2019-core",
-          "Type": "pd-ssd",
-          "FallbackToPdStandard": true
+          "Type": "pd-ssd"
         }
       ]
     },

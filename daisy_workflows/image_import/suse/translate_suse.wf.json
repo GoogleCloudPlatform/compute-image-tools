@@ -56,8 +56,7 @@
           "SourceImage": "projects/compute-image-tools/global/images/family/debian-9-worker",
           "Licenses": ["${license}"],
           "SizeGb": "10",
-          "Type": "pd-ssd",
-          "FallbackToPdStandard": true
+          "Type": "pd-ssd"
         }
       ]
     },

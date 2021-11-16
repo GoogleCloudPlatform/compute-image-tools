@@ -222,7 +222,6 @@ func (inflater *apiInflater) getCalculateChecksumWorkflow(diskURI string) *daisy
 						SourceImage: "projects/compute-image-tools/global/images/family/debian-9-worker",
 						Type:        "pd-ssd",
 					},
-					FallbackToPdStandard: true,
 				},
 			},
 		},

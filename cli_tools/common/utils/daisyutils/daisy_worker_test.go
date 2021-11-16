@@ -45,6 +45,7 @@ func Test_NewDaisyWorker_IncludesStandardHooks(t *testing.T) {
 		configureDaisyLogging: true,
 		removeExternalIPHook:  false,
 		resourceLabeler:       true,
+		fallbackToPDStandard:  true,
 	}, findWhichHooksApplied(worker))
 	rl := getResourceLabeler(t, worker)
 	assert.Equal(t, env.Labels, rl.UserLabels)
@@ -82,6 +83,7 @@ func Test_NewDaisyWorker_IncludesNoExternalIPHook_WhenRequestedByUser(t *testing
 		configureDaisyLogging: true,
 		removeExternalIPHook:  true,
 		resourceLabeler:       true,
+		fallbackToPDStandard:  true,
 	}, findWhichHooksApplied(worker))
 }
 
@@ -373,7 +375,7 @@ func Test_DaisyWorkerRunAndReadSerialValue_HappyCase(t *testing.T) {
 }
 
 type appliedHooks struct {
-	applyEnvToWorkflow, configureDaisyLogging, removeExternalIPHook, resourceLabeler bool
+	applyEnvToWorkflow, configureDaisyLogging, removeExternalIPHook, resourceLabeler, fallbackToPDStandard bool
 }
 
 func findWhichHooksApplied(worker DaisyWorker) (t appliedHooks) {
@@ -390,6 +392,9 @@ func findWhichHooksApplied(worker DaisyWorker) (t appliedHooks) {
 		}
 		if _, ok := hook.(*ResourceLabeler); ok {
 			t.resourceLabeler = true
+		}
+		if _, ok := hook.(*FallbackToPDStandard); ok {
+			t.fallbackToPDStandard = true
 		}
 	}
 	return t

@@ -69,17 +69,11 @@ func TestAddDiskImportSteps(t *testing.T) {
 	assert.Equal(t, "10", (*w.Steps["setup-data-disk-1"].CreateDisks)[0].SizeGb)
 	assert.Equal(t, "10", (*w.Steps["setup-data-disk-1"].CreateDisks)[1].SizeGb)
 	assert.Equal(t, "10", (*w.Steps["setup-data-disk-1"].CreateDisks)[2].SizeGb)
-	assert.Equal(t, true, (*w.Steps["setup-data-disk-1"].CreateDisks)[0].FallbackToPdStandard)
-	assert.Equal(t, true, (*w.Steps["setup-data-disk-1"].CreateDisks)[1].FallbackToPdStandard)
-	assert.Equal(t, true, (*w.Steps["setup-data-disk-1"].CreateDisks)[2].FallbackToPdStandard)
 
 	assert.Equal(t, 3, len(*w.Steps["setup-data-disk-2"].CreateDisks))
 	assert.Equal(t, "10", (*w.Steps["setup-data-disk-2"].CreateDisks)[0].SizeGb)
 	assert.Equal(t, "10", (*w.Steps["setup-data-disk-2"].CreateDisks)[1].SizeGb)
 	assert.Equal(t, "10", (*w.Steps["setup-data-disk-2"].CreateDisks)[2].SizeGb)
-	assert.Equal(t, true, (*w.Steps["setup-data-disk-2"].CreateDisks)[0].FallbackToPdStandard)
-	assert.Equal(t, true, (*w.Steps["setup-data-disk-2"].CreateDisks)[1].FallbackToPdStandard)
-	assert.Equal(t, true, (*w.Steps["setup-data-disk-2"].CreateDisks)[2].FallbackToPdStandard)
 
 	assert.Equal(t,
 		[]*compute.AttachedDisk{

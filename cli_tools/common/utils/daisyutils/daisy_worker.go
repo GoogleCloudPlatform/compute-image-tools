@@ -45,7 +45,11 @@ type WorkflowProvider func() (*daisy.Workflow, error)
 // include a resource labeler, one will be created.
 func NewDaisyWorker(wf WorkflowProvider, env EnvironmentSettings,
 	logger logging.Logger, hooks ...interface{}) DaisyWorker {
-	hooks = append(createResourceLabelerIfMissing(env, hooks), &ApplyEnvToWorkflow{env}, &ConfigureDaisyLogging{env})
+	hooks = append(createResourceLabelerIfMissing(env, hooks),
+		&ApplyEnvToWorkflow{env},
+		&ConfigureDaisyLogging{env},
+		&FallbackToPDStandard{logger: logger},
+	)
 	if env.NoExternalIP {
 		hooks = append(hooks, &RemoveExternalIPHook{})
 	}

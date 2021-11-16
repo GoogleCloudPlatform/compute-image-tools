@@ -20,7 +20,10 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"strings"
 	"sync"
+
+	"google.golang.org/api/compute/v1"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
@@ -125,8 +128,51 @@ func TestSuite(
 	testsMap[e2e.Wrapper][instanceImportDefaultServiceAccountNoAccessScopeTestCase] = runInstanceImportDefaultServiceAccountNoAccessScope
 	testsMap[e2e.Wrapper][instanceImportNoServiceAccountTestCase] = runInstanceImportNoServiceAccount
 
+	// wrapper only tests
+	testsMap[e2e.Wrapper][junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "Allow import to work when SSD quota is exhausted"))] = fallbackWhenSSDQuotaExhausted
+
 	e2e.CLITestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
 		testProjectConfig, testSuiteName, testsMap)
+}
+
+func fallbackWhenSSDQuotaExhausted(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+	suffix := path.RandString(5)
+	zone := "us-central2-a"
+	project := testProjectConfig.TestProjectID
+
+	// Verify that the quota is insufficient to create an SSD disk of size 600GB.
+	client, err := daisyCompute.NewClient(ctx)
+	if err != nil {
+		e2e.Failure(testCase, logger, fmt.Sprintf("Error creating client: %v", err))
+		return
+	}
+	err = client.CreateDisk(project, zone, &compute.Disk{
+		Name:   "should-fail-" + suffix,
+		Zone:   zone,
+		Type:   fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", project, zone),
+		SizeGb: 600,
+	})
+	if err == nil || !strings.Contains(err.Error(), "SSD_TOTAL_GB") {
+		e2e.Failure(testCase, logger, fmt.Sprintf("Expected insufficient SSD quota: %v", err))
+		return
+	}
+
+	props := &ovfInstanceImportTestProperties{
+		instanceName: fmt.Sprintf("insufficient-ssd-quota-%v", suffix),
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{
+			VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
+				"daisy_integration_tests/scripts/post_translate_test.sh", logger),
+			Zone:                  zone,
+			ExpectedStartupOutput: "All tests passed!",
+			FailureMatches:        []string{"FAILED:", "TestFailed:"},
+			SourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-1604-1000GB-disk", ovaBucket),
+			Os:                    "ubuntu-1604",
+			MachineType:           "n1-standard-4",
+		}}
+
+	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
 func runOVFInstanceImportUbuntu3DisksNetworkSettingsName(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
