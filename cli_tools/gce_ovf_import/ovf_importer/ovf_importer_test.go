@@ -111,7 +111,7 @@ func TestSetupWorkflow_WithMachineTypeInference(t *testing.T) {
 	}
 }
 
-func TestSetUpWorkflow_ErrorUnpackingOVA(t *testing.T) {
+func TestDiskImport_ErrorUnpackingOVA(t *testing.T) {
 	params := getAllInstanceImportParams()
 	project := defaultProject
 	params.Project = &project
@@ -130,13 +130,11 @@ func TestSetUpWorkflow_ErrorUnpackingOVA(t *testing.T) {
 	oi := OVFImporter{workflowPath: instanceMode.wfPath,
 		tarGcsExtractor: mockMockTarGcsExtractorInterface, Logger: logging.NewToolLogger("test"),
 		params: params}
-	w, err := oi.setUpImportWorkflow()
-
+	err := oi.importDiskFilesToImages()
 	assert.Equal(t, expectedError, err)
-	assert.Nil(t, w)
 }
 
-func TestSetUpWorkflow_ErrorLoadingDescriptor(t *testing.T) {
+func TestDiskImport_ErrorLoadingDescriptor(t *testing.T) {
 	params := getAllInstanceImportParams()
 	project := defaultProject
 	params.Project = &project
@@ -155,10 +153,9 @@ func TestSetUpWorkflow_ErrorLoadingDescriptor(t *testing.T) {
 	oi := OVFImporter{workflowPath: instanceMode.wfPath,
 		ovfDescriptorLoader: mockOvfDescriptorLoader,
 		Logger:              logging.NewToolLogger("test"), params: params}
-	w, err := oi.setUpImportWorkflow()
+	err := oi.importDiskFilesToImages()
 
 	assert.Equal(t, expectedError, err)
-	assert.Nil(t, w)
 	assert.Equal(t, "", oi.gcsPathToClean)
 }
 
@@ -229,16 +226,13 @@ func TestSetUpWork_OSIDs(t *testing.T) {
 				expectedOS:          tc.expectedOSID,
 				expectImportToRun:   tc.expectedError == "",
 			})
-			assert.NoError(t, err)
-			daisyutils.CheckWorkflow(worker, func(wf *daisy.Workflow, err error) {
-				if tc.expectedError == "" {
-					assert.NotNil(t, wf)
-					assert.NoError(t, err)
-				} else {
-					assert.Nil(t, wf)
-					assert.Regexp(t, tc.expectedError, err.Error())
-				}
-			})
+			if tc.expectedError == "" {
+				assert.NoError(t, err)
+				assert.NotNil(t, worker)
+			} else {
+				assert.Contains(t, err.Error(), tc.expectedError)
+				assert.Nil(t, worker)
+			}
 		})
 	}
 }
@@ -582,7 +576,11 @@ func setupMocksAndRun(mockCtrl *gomock.Controller, params *domain.OVFImportParam
 		storageClient: mockStorageClient, computeClient: mockComputeClient,
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
 		Logger: logging.NewToolLogger("test"), params: params}
-	return oi.setupWorker(), nil
+	err := oi.importDiskFilesToImages()
+	if err != nil {
+		return nil, err
+	}
+	return oi.createWorkerForFinalInstance(), nil
 }
 
 func createControllerItem(instanceID string, resourceType uint16) ovf.ResourceAllocationSettingData {

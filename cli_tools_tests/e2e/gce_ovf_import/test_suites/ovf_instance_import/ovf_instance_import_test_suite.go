@@ -164,12 +164,13 @@ func fallbackWhenSSDQuotaExhausted(ctx context.Context, testCase *junitxml.TestC
 		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{
 			VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 				"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-			Zone:                  zone,
-			ExpectedStartupOutput: "All tests passed!",
-			FailureMatches:        []string{"FAILED:", "TestFailed:"},
-			SourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-1604-1000GB-disk", ovaBucket),
-			Os:                    "ubuntu-1604",
-			MachineType:           "n1-standard-4",
+			Zone:                      zone,
+			ExpectedStartupOutput:     "All tests passed!",
+			FailureMatches:            []string{"FAILED:", "TestFailed:"},
+			SourceURI:                 fmt.Sprintf("gs://%v/ova/debian-11-600GB-disk", ovaBucket),
+			Os:                        "debian-11",
+			MachineType:               "n1-standard-1",
+			AllowFallbackToPDStandard: true,
 		}}
 
 	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)

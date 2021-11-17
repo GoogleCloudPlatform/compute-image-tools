@@ -40,6 +40,7 @@ type OvfImportTestProperties struct {
 	ExpectedStartupOutput     string
 	FailureMatches            []string
 	VerificationStartupScript string
+	AllowFallbackToPDStandard bool
 	Zone                      string
 	SourceURI                 string
 	Os                        string
@@ -185,9 +186,9 @@ func VerifyInstance(instance *gcp.InstanceBeta, client daisyCompute.Client,
 
 		// Verify disk type (SSD vs Standard)
 		expectedDiskType := "pd-ssd"
-		if !strings.Contains(disk.Type, expectedDiskType) {
+		if !strings.Contains(disk.Type, expectedDiskType) && !props.AllowFallbackToPDStandard {
 			e2e.Failure(testCase, logger, fmt.Sprintf(
-				"Disk should be of `%v` type, but is `%v`", expectedDiskType, attachedDisk.Type))
+				"Disk should be of `%v` type, but is `%v`", expectedDiskType, disk.Type))
 			return
 		}
 
