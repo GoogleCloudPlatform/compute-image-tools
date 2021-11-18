@@ -303,11 +303,6 @@ func (facade *shadowTestInflaterFacade) compareWithShadowInflater(mainPd, shadow
 		result = fmt.Sprintf(matchFormat, sizeGbMatch, sourceGbMatch, contentMatch, qemuChecksumMatch)
 	}
 
-	fmt.Println("1>>>", mainIi.checksum)
-	fmt.Println("2>>>", facade.qemuChecksum)
-	fmt.Println("3>>>", shadowIi.checksum)
-	fmt.Println("r>>>", result)
-
 	return result
 }
 
