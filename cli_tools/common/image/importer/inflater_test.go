@@ -35,8 +35,6 @@ import (
 func TestCreateFallbackInflater_File(t *testing.T) {
 	//Test the creation of a fallback inflater, which primarily uses API inflater
 	//and uses Daisy inflater as a fallback.
-	//TODO: remove SkipNow once inflater is switched to the fallback variant (not shadow)
-	t.SkipNow()
 
 	inflater, err := newInflater(ImageImportRequest{
 		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
@@ -44,6 +42,9 @@ func TestCreateFallbackInflater_File(t *testing.T) {
 		Network:      "projects/network/network",
 		Zone:         "us-west1-c",
 		ExecutionID:  "1234",
+		Tool: daisyutils.Tool{
+			ResourceLabelName: "image-import",
+		},
 		NoExternalIP: false,
 		WorkflowDir:  daisyWorkflows,
 	}, nil, &storage.Client{}, mockInspector{
@@ -79,6 +80,7 @@ func TestCreateShadowTestInflater_File(t *testing.T) {
 	//inflater while API inflater is used only to verify its output against Daisy
 	//inflater
 	//TODO: remove/disable this test once API inflater is the default (fallback mode)
+	t.SkipNow()
 
 	inflater, err := newInflater(ImageImportRequest{
 		Source:      fileSource{gcsPath: "gs://bucket/vmdk"},
