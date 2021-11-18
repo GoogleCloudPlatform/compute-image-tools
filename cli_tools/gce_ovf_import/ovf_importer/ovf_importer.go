@@ -84,6 +84,9 @@ type OVFImporter struct {
 
 	// Populated when disk file import finishes.
 	imageURIs []string
+
+	// Populated after reading OVF file descriptor.
+	machineTypeString string
 }
 
 // NewOVFImporter creates an OVF importer, including automatically populating dependencies,
@@ -285,8 +288,7 @@ func (oi *OVFImporter) getMachineType(
 	return machineTypeProvider.GetMachineType()
 }
 
-func (oi *OVFImporter) setUpImportWorkflow() (workflow *daisy.Workflow, err error) {
-
+func (oi *OVFImporter) importDiskFilesToImages() error {
 	oi.imageLocation = oi.params.Region
 
 	ovfGcsPath, shouldCleanup, err := oi.getOvfGcsPath(oi.params.ScratchBucketGcsPath)
@@ -294,32 +296,33 @@ func (oi *OVFImporter) setUpImportWorkflow() (workflow *daisy.Workflow, err erro
 		oi.gcsPathToClean = ovfGcsPath
 	}
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	ovfDescriptor, diskInfos, err := ovfutils.GetOVFDescriptorAndDiskPaths(
 		oi.ovfDescriptorLoader, ovfGcsPath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	osIDValue, err := oi.getOsIDValue(ovfDescriptor)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	machineTypeStr, err := oi.getMachineType(ovfDescriptor, *oi.params.Project, oi.params.Zone)
+	oi.machineTypeString, err = oi.getMachineType(ovfDescriptor, *oi.params.Project, oi.params.Zone)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	oi.Logger.User(fmt.Sprintf("Will create instance of `%v` machine type.", machineTypeStr))
+	oi.Logger.User(fmt.Sprintf("Will create instance of `%v` machine type.", oi.machineTypeString))
 
-	if err := oi.importDisks(osIDValue, &diskInfos); err != nil {
-		return nil, err
-	}
+	return oi.importDisks(osIDValue, &diskInfos)
+}
 
-	varMap := oi.buildDaisyVars(oi.imageURIs[0], machineTypeStr)
+func (oi *OVFImporter) createWorkflowForFinalInstance() (workflow *daisy.Workflow, err error) {
+
+	varMap := oi.buildDaisyVars(oi.imageURIs[0], oi.machineTypeString)
 
 	workflow, err = daisyutils.ParseWorkflow(oi.workflowPath, varMap, *oi.params.Project,
 		oi.params.Zone, oi.params.ScratchBucketGcsPath, oi.params.Oauth, oi.params.Timeout, oi.params.Ce,
@@ -360,13 +363,17 @@ func (oi *OVFImporter) setUpImportWorkflow() (workflow *daisy.Workflow, err erro
 	return workflow, nil
 }
 
-// Import runs OVF import
+// Import runs OVF import. It first imports all of the disk files to images, and then uses the images
+// to create an instance. If the user requested a machine image, then it converts the instance to a machine image.
 func (oi *OVFImporter) Import() error {
 	oi.Logger.User("Starting OVF import workflow.")
 	if err := oi.paramValidator.ValidateAndPopulate(oi.params); err != nil {
 		return err
 	}
-	if err := oi.setupWorker().Run(map[string]string{}); err != nil {
+	if err := oi.importDiskFilesToImages(); err != nil {
+		return err
+	}
+	if err := oi.createWorkerForFinalInstance().Run(map[string]string{}); err != nil {
 		oi.Logger.User(err.Error())
 		return err
 	}
@@ -374,9 +381,9 @@ func (oi *OVFImporter) Import() error {
 	return nil
 }
 
-func (oi *OVFImporter) setupWorker() daisyutils.DaisyWorker {
+func (oi *OVFImporter) createWorkerForFinalInstance() daisyutils.DaisyWorker {
 	return daisyutils.NewDaisyWorker(func() (*daisy.Workflow, error) {
-		return oi.setUpImportWorkflow()
+		return oi.createWorkflowForFinalInstance()
 	}, oi.params.EnvironmentSettings(), oi.Logger,
 		&daisyutils.ResourceLabeler{
 			BuildID:         oi.params.BuildID,

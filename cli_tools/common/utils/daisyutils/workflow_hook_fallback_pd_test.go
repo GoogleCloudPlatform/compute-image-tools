@@ -16,12 +16,12 @@ package daisyutils
 
 import (
 	"errors"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -80,6 +80,10 @@ func Test_FallbackToPDStandard_PreRunHook_RemovesSSDIfFallbackRequired(t *testin
 	assert.Equal(t, 1, len(*w.Steps["cd"].CreateDisks))
 	assert.Equal(t, "pd-standard", (*w.Steps["cd"].CreateDisks)[0].Type)
 
+	assert.Equal(t, 1, len((*w.Steps["ci"].CreateInstances).Instances))
+	assert.Equal(t, 1, len(((*w.Steps["ci"].CreateInstances).Instances)[0].Instance.Disks))
+	assert.Equal(t, "pd-standard", (w.Steps["ci"].CreateInstances.Instances)[0].Instance.Disks[0].InitializeParams.DiskType)
+
 	assert.Equal(t, 1, len(*w.Steps["iw"].IncludeWorkflow.Workflow.Steps["iw-cd"].CreateDisks))
 	assert.Equal(t, "pd-standard", (*w.Steps["iw"].IncludeWorkflow.Workflow.Steps["iw-cd"].CreateDisks)[0].Type)
 }
@@ -96,6 +100,21 @@ func createSSDWorkflow() *daisy.Workflow {
 				},
 			},
 		},
+		"ci": {
+			CreateInstances: &daisy.CreateInstances{
+				Instances: []*daisy.Instance{
+					{
+						Instance: compute.Instance{
+							Disks: []*compute.AttachedDisk{{
+								InitializeParams: &compute.AttachedDiskInitializeParams{
+									DiskType: "pd-ssd",
+								},
+							}},
+						},
+					},
+				},
+			},
+		},
 		"iw": {
 			IncludeWorkflow: &daisy.IncludeWorkflow{
 				Workflow: &daisy.Workflow{
@@ -104,7 +123,7 @@ func createSSDWorkflow() *daisy.Workflow {
 							CreateDisks: &daisy.CreateDisks{
 								{
 									Disk: compute.Disk{
-										Type: "pd-standard",
+										Type: "pd-ssd",
 									},
 								},
 							},

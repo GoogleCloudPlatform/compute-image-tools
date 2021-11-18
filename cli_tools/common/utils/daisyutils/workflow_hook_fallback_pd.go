@@ -56,5 +56,14 @@ func useStandardDisks(workflow *daisy.Workflow) {
 				disk.Disk.Type = "pd-standard"
 			}
 		}
+		if step.CreateInstances != nil {
+			for _, instance := range (*step.CreateInstances).Instances {
+				for _, disk := range instance.Disks {
+					if disk.InitializeParams != nil {
+						disk.InitializeParams.DiskType = "pd-standard"
+					}
+				}
+			}
+		}
 	})
 }
