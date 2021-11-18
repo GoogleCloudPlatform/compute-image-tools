@@ -24,6 +24,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/gcsfuse"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/files"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	"github.com/cenkalti/backoff"
 	"github.com/cenkalti/backoff/v4"
 )
 
@@ -68,6 +69,8 @@ type gcsInspector struct {
 func (inspector gcsInspector) Inspect(ctx context.Context, gcsURI string) (metadata Metadata, err error) {
 	operation := func() error {
 		metadata, err = inspector.inspectOnce(ctx, gcsURI)
+		fmt.Println(">>>>>>err>>>>>", err)
+		fmt.Println(">>>>>>met>>>>>", metadata)
 		return err
 	}
 	return metadata, backoff.Retry(operation,
@@ -85,6 +88,9 @@ func (inspector gcsInspector) inspectOnce(ctx context.Context, gcsURI string) (m
 		return metadata, err
 	}
 	absPath := path.Join(mountedDirectory, object)
+	fmt.Println(">>>md>>>", mountedDirectory)
+	fmt.Println(">>>ob>>>", object)
+	fmt.Println(">>>abs>>>", absPath)
 	if !files.Exists(absPath) {
 		return metadata, fmt.Errorf("the file %q was not found", gcsURI)
 	}

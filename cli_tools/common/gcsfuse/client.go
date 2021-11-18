@@ -17,8 +17,10 @@ package gcsfuse
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"os/exec"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 )
 
 // Client provides methods for mounting and unmounting FUSE filesystems
@@ -39,7 +41,9 @@ func NewClient() Client {
 type defaultClient struct{}
 
 func (client defaultClient) MountToTemp(ctx context.Context, bucket string) (string, error) {
-	dir, err := ioutil.TempDir("", bucket)
+	//dir, err := ioutil.TempDir("", bucket)
+	dir := bucket + path.RandString(5)
+	err := os.Mkdir(dir, 0755)
 	if err != nil {
 		return "", fmt.Errorf("failed to create a destination directory: %w", err)
 	}
