@@ -60,6 +60,7 @@ func (inflater *daisyInflater) Inflate() (persistentDisk, inflationInfo, error) 
 	if inflater.source != nil {
 		inflater.logger.User("Creating Google Compute Engine disk from " + inflater.source.Path())
 	}
+	startTime := time.Now()
 	serialValues, err := inflater.worker.RunAndReadSerialValues(inflater.vars,
 		targetSizeGBKey, sourceSizeGBKey, importFileFormatKey, diskChecksumKey)
 	if err == nil {
@@ -72,7 +73,7 @@ func (inflater *daisyInflater) Inflate() (persistentDisk, inflationInfo, error) 
 			sourceType: serialValues[importFileFormatKey],
 		}, inflationInfo{
 			checksum:      serialValues[diskChecksumKey],
-			inflationTime: time.Since(time.Now()),
+			inflationTime: time.Since(startTime),
 			inflationType: "qemu",
 		}, err
 }

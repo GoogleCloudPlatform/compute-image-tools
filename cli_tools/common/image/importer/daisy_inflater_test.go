@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -40,15 +41,21 @@ func TestDaisyInflater_Inflate_ReadsDiskStatsFromWorker(t *testing.T) {
 		mockWorker, map[string]string{}, nil, "/disk/uri", logging.NewToolLogger("test"),
 	}
 	mockWorker.EXPECT().RunAndReadSerialValues(inflater.vars, targetSizeGBKey,
-		sourceSizeGBKey, importFileFormatKey, diskChecksumKey).Return(map[string]string{
-		targetSizeGBKey:     "100",
-		sourceSizeGBKey:     "200",
-		importFileFormatKey: "vhd",
-		diskChecksumKey:     "9abc",
-	}, nil)
+		sourceSizeGBKey, importFileFormatKey, diskChecksumKey).DoAndReturn(
+		func (vars map[string]string, keys ...string) (map[string]string, error) {
+			// Guarantee that the workflow executes for at least 1ms
+			time.Sleep(time.Millisecond)
+			return map[string]string{
+				targetSizeGBKey:     "100",
+				sourceSizeGBKey:     "200",
+				importFileFormatKey: "vhd",
+				diskChecksumKey:     "9abc",
+			}, nil
+		})
 	pDisk, shadowFields, e := inflater.Inflate()
 	assert.Nil(t, e)
 	assert.Equal(t, persistentDisk{uri: "/disk/uri", sizeGb: 100, sourceGb: 200, sourceType: "vhd"}, pDisk)
+	assert.Greater(t, shadowFields.inflationTime.Milliseconds(), int64(0), "inflation time should be greater than 0")
 	shadowFields.inflationTime = 0
 	assert.Equal(t, inflationInfo{checksum: "9abc", inflationType: "qemu"}, shadowFields)
 }

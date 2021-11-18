@@ -43,7 +43,7 @@ func (client defaultClient) MountToTemp(ctx context.Context, bucket string) (str
 	if err != nil {
 		return "", fmt.Errorf("failed to create a destination directory: %w", err)
 	}
-	cmd := exec.CommandContext(ctx, "gcsfuse", bucket, dir)
+	cmd := exec.CommandContext(ctx, "gcsfuse", "--implicit-dirs", bucket, dir)
 	_, err = cmd.Output()
 	if err != nil {
 		return "", err
