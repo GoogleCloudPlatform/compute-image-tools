@@ -65,14 +65,20 @@ apt_cloud_sdk = '''
 deb http://archive.canonical.com/ubuntu {ubuntu_release} partner
 '''
 
-# Repo Mirrors
+# Cloud init config
 #
-# This configures apt to prefer GCE's apt repos. It mirrors what's
-# provided on the official images in
-# /etc/cloud/cloud.cfg.d/91-gce.cfg and
-# /etc/cloud/cloud.cfg.d/91-gce-system.cfg.
-cloud_init_repos = '''
-datasource_list: [ GCE ]
+# This provides cloud-init with the configurations from the official
+# GCP images.
+cloud_init_config = '''
+## The following config files are the official GCP Ubuntu image,
+##  ubuntu-os-cloud/global/images/ubuntu-2004-focal-v20211118
+
+## Source:
+##   /etc/cloud/cloud.cfg.d/91-gce-system.cfg
+#############################################
+
+# CLOUD_IMG: This file was created/modified by the Cloud Image build process
+
 system_info:
    package_mirrors:
      - arches: [i386, amd64]
@@ -89,6 +95,28 @@ system_info:
        failsafe:
          primary: http://ports.ubuntu.com/ubuntu-ports
          security: http://ports.ubuntu.com/ubuntu-ports
+ntp:
+   enabled: true
+   ntp_client: chrony
+   servers:
+      - metadata.google.internal
+
+## Source:
+##   /etc/cloud/cloud.cfg.d/91-gce.cfg
+######################################
+
+# Use the GCE data source for cloud-init
+datasource_list: [ GCE ]
+
+## Source:
+##   /etc/cloud/cloud.cfg.d/99-disable-network-activation.cfg
+#############################################################
+
+# Disable network activation to prevent `cloud-init` from making network
+# changes that conflict with `google-guest-agent`.
+# See: https://github.com/canonical/cloud-init/pull/1048
+
+disable_network_activation: true
 '''
 
 # Network configs
@@ -242,7 +270,7 @@ def setup_cloud_init(g: guestfs.GuestFS):
     'subiquity'
   ]:
     run(g, 'rm -f /etc/cloud/cloud.cfg.d/*%s*' % cfg)
-  g.write('/etc/cloud/cloud.cfg.d/91-gce-system.cfg', cloud_init_repos)
+  g.write('/etc/cloud/cloud.cfg.d/91-gce-system.cfg', cloud_init_config)
 
 
 def DistroSpecific(g):
