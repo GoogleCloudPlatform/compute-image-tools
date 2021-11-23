@@ -18,6 +18,17 @@ substitutions:
   _PREV_RELEASE: 'prev-release'
 
 steps:
+- name: 'docker'
+  dir: 'cli_tools/gce_vm_image_import'
+  args: ['pull', 'gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$_RELEASE']
+  env: ['CGO_ENABLED=0']
+- name: 'docker'
+  dir: 'cli_tools/gce_vm_image_import'
+  args: ['tag', 'gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$_RELEASE', 'gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$_PREV_RELEASE']
+  env: ['CGO_ENABLED=0']
+- name: 'docker'
+  dir: 'cli_tools/gce_vm_image_import'
+  args: ['push', 'gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$_PREV_RELEASE']
 # Build daisy.
 - name: 'golang'
   dir: 'daisy/cli'
@@ -90,7 +101,15 @@ steps:
 # Build gce_vm_image_import.
 - name: 'docker'
   dir: 'cli_tools/gce_vm_image_import'
+  args: ['pull', 'gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$_RELEASE']
+  env: ['CGO_ENABLED=0']
+- name: 'docker'
+  dir: 'cli_tools/gce_vm_image_import'
   args: ['tag', 'gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$_RELEASE', 'gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$_PREV_RELEASE']
+  env: ['CGO_ENABLED=0']
+- name: 'docker'
+  dir: 'cli_tools/gce_vm_image_import'
+  args: ['push', 'gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$_PREV_RELEASE']
   env: ['CGO_ENABLED=0']
 - name: 'golang'
   dir: 'cli_tools/gce_vm_image_import'
