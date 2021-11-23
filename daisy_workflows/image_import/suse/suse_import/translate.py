@@ -113,7 +113,7 @@ _releases = [
     _SuseRelease(
         product='sles',
         major='15',
-        minor='1|2',
+        minor='1|2|3',
         cloud_product='sle-module-public-cloud/{major}.{minor}/x86_64',
         on_demand_rpms=_Tarball(
             _on_demand_rpm_pattern.format(major=15, timestamp=1599058662),
