@@ -14,7 +14,8 @@ options:
     path: /go/src
 
 substitutions:
-  _RELEASE: 'latest'
+  _RELEASE: 'release'
+  _PREV_RELEASE: 'prev-release'
 
 steps:
 # Build daisy.
@@ -87,6 +88,10 @@ steps:
   env: ['GOOS=windows']
 
 # Build gce_vm_image_import.
+- name: 'docker'
+  dir: 'cli_tools/gce_vm_image_import'
+  args: ['tag', 'gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$_RELEASE', 'gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$_PREV_RELEASE']
+  env: ['CGO_ENABLED=0']
 - name: 'golang'
   dir: 'cli_tools/gce_vm_image_import'
   args: ['go', 'build', '-o=/workspace/linux/gce_vm_image_import']
