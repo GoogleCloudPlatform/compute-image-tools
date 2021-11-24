@@ -25,7 +25,7 @@ steps:
       do
         echo "--> Tagging prev-release... $$_TOOL -> $$_REGION"
 
-        gcloud container images add-tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:prev-release -q
+        gcloud container images add-tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/wrappers/$$_TOOL:release $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/wrappers/$$_TOOL:prev-release -q
         exit_on_error $$?
       done
       echo "----> Tagged all tools for $$_REGION done."
