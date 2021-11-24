@@ -21,26 +21,19 @@ steps:
     REGIONS_ARR=$(echo "$_REGIONS" | tr ";" "\n")
     TOOLS_ARR=$(echo "$_TOOLS" | tr ";" "\n")
 
-    for _TOOL in $$TOOLS_ARR
-    do
-      echo "----> Preparing docker images for $$_TOOL..."
-      docker pull gcr.io/$_IMAGE_PROJECT/$$_TOOL:$_WORKFLOW_EXECUTION_ID || exit 1
-    done
-
-
     for _REGION in $$REGIONS_ARR
     do
       for _TOOL in $$TOOLS_ARR
       do
         echo "--> Deploying... $$_TOOL -> $$_REGION"
 
-        docker tag gcr.io/$_IMAGE_PROJECT/$$_TOOL:$_WORKFLOW_EXECUTION_ID $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/wrappers/$$_TOOL:$_WORKFLOW_EXECUTION_ID || exit 1
-        docker tag gcr.io/$_IMAGE_PROJECT/$$_TOOL:$_WORKFLOW_EXECUTION_ID $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/wrappers/$$_TOOL:$COMMIT_SHA || exit 1
-        docker tag gcr.io/$_IMAGE_PROJECT/$$_TOOL:$_WORKFLOW_EXECUTION_ID $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/wrappers/$$_TOOL:release || exit 1
+        # Mark current "release" as "prev-release" for rollback.
+        crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release prev-release
 
-        docker push $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/wrappers/$$_TOOL:$_WORKFLOW_EXECUTION_ID || exit 1
-        docker push $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/wrappers/$$_TOOL:$COMMIT_SHA || exit 1
-        docker push $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/wrappers/$$_TOOL:release || exit 1
+        # Copy the new "release" from gcr.io.
+        crane copy gcr.io/$_IMAGE_PROJECT/$$_TOOL:release $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release
+        crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $_WORKFLOW_EXECUTION_ID
+        crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $COMMIT_SHA
       done
       echo "----> Deployed all tools for $$_REGION"
     done
