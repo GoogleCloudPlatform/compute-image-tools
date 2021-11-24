@@ -13,7 +13,7 @@ steps:
 # It's specifically useful when the original workflow was failed and we resumed it.
 # 2. The commit SHA is used to track which version of source code produced the image.
 # 3. The "release" tag marks it as the current effective image.
-- name: 'gcr.io/go-containerregistry/crane'
+- name: 'google/cloud-sdk:alpine'
   args:
   - 'bash'
   - '-c'
@@ -36,15 +36,15 @@ steps:
         echo "--> Deploying... $$_TOOL -> $$_REGION"
 
         # Mark current "release" as "prev-release" for rollback.
-        crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release prev-release
+        docker run --rm gcr.io/go-containerregistry/crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release prev-release
         exit_on_error $$?
 
         # Copy the new "release" from gcr.io.
-        crane copy gcr.io/$_IMAGE_PROJECT/$$_TOOL:release $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release
+        docker run --rm gcr.io/go-containerregistry/crane copy gcr.io/$_IMAGE_PROJECT/$$_TOOL:release $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release
         exit_on_error $$?
-        crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $_WORKFLOW_EXECUTION_ID
+        docker run --rm gcr.io/go-containerregistry/crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $_WORKFLOW_EXECUTION_ID
         exit_on_error $$?
-        crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $COMMIT_SHA
+        docker run --rm gcr.io/go-containerregistry/crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $COMMIT_SHA
         exit_on_error $$?
       done
       echo "----> Deployed all tools for $$_REGION"

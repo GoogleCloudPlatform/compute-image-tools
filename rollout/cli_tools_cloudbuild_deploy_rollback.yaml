@@ -13,7 +13,7 @@ steps:
 # It's specifically useful when the original workflow was failed and we resumed it.
 # 2. The commit SHA is used to track which version of source code produced the image.
 # 3. The "release" tag marks it as the current effective image.
-- name: 'gcr.io/go-containerregistry/crane'
+- name: 'google/cloud-sdk:alpine'
   args:
   - 'bash'
   - '-c'
@@ -35,7 +35,7 @@ steps:
       do
         echo "--> Rollback... $$_TOOL -> $$_REGION"
 
-        crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:prev-release release -q
+        docker run --rm gcr.io/go-containerregistry/crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:prev-release release -q
         exit_on_error $$?
       done
       echo "----> Rollback all tools for $$_REGION done."
