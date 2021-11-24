@@ -34,11 +34,11 @@ steps:
         echo "--> Deploying... $$_TOOL -> $$_REGION"
 
         # Copy the new "release" from gcr.io and tag.
-        gcloud container images add-tag gcr.io/$_IMAGE_PROJECT/$$_TOOL:release $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release
+        gcloud container images add-tag gcr.io/$_IMAGE_PROJECT/$$_TOOL:release $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release -q
         exit_on_error $$?
-        gcloud container images add-tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:$_WORKFLOW_EXECUTION_ID
+        gcloud container images add-tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:$_WORKFLOW_EXECUTION_ID -q
         exit_on_error $$?
-        gcloud container images add-tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:$COMMIT_SHA
+        gcloud container images add-tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:$COMMIT_SHA -q
         exit_on_error $$?
       done
       echo "----> Deployed all tools for $$_REGION"

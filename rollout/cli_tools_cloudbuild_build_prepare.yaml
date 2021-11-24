@@ -25,7 +25,7 @@ steps:
       do
         echo "--> Tagging prev-release... $$_TOOL -> $$_REGION"
 
-        gcloud container images add-tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:prev-release
+        gcloud container images add-tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:prev-release -q
         exit_on_error $$?
       done
       echo "----> Tagged all tools for $$_REGION done."
@@ -35,7 +35,7 @@ steps:
     do
       echo "--> Tagging prev-release... $$_TOOL -> gcr.io"
 
-      gcloud container images add-tag gcr.io/$_IMAGE_PROJECT/$$_TOOL:release gcr.io/$_IMAGE_PROJECT/$$_TOOL:prev-release
+      gcloud container images add-tag gcr.io/$_IMAGE_PROJECT/$$_TOOL:release gcr.io/$_IMAGE_PROJECT/$$_TOOL:prev-release -q
       exit_on_error $$?
     done
     echo "----> Tagged all tools for gcr.io done."
