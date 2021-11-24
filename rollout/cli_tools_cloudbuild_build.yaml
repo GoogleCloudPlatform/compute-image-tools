@@ -19,6 +19,10 @@ substitutions:
 
 steps:
 # Build daisy.
+- name: 'crane'
+  dir: 'daisy/cli'
+  args: ['tag', 'gcr.io/$_IMAGE_PROJECT/daisy:$_RELEASE', 'gcr.io/$_IMAGE_PROJECT/daisy:$_PREV_RELEASE']
+  env: ['CGO_ENABLED=0']
 - name: 'docker'
   dir: 'daisy/cli'
   args: ['pull', 'gcr.io/$_IMAGE_PROJECT/daisy:$_RELEASE']
