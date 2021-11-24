@@ -19,8 +19,6 @@ substitutions:
 
 steps:
 # Build daisy.
-- name: 'gcr.io/go-containerregistry/crane'
-  args: ['tag', 'gcr.io/$_IMAGE_PROJECT/daisy:$_RELEASE', '$_PREV_RELEASE']
 - name: 'golang'
   dir: 'daisy/cli'
   args: ['go', 'build', '-o=/workspace/linux/daisy']
@@ -42,8 +40,6 @@ steps:
   - --dockerfile=daisy.Dockerfile
 
 # Build gce_image_publish.
-- name: 'gcr.io/go-containerregistry/crane'
-  args: ['tag', 'gcr.io/$_IMAGE_PROJECT/gce_image_publish:$_RELEASE', '$_PREV_RELEASE']
 - name: 'golang'
   dir: 'cli_tools/gce_image_publish'
   args: ['go', 'build', '-o=/workspace/linux/gce_image_publish']
@@ -65,8 +61,6 @@ steps:
   - --dockerfile=gce_image_publish.Dockerfile
 
 # Build gce_export.
-- name: 'gcr.io/go-containerregistry/crane'
-  args: ['tag', 'gcr.io/$_IMAGE_PROJECT/gce_export:$_RELEASE', '$_PREV_RELEASE']
 - name: 'golang'
   dir: 'cli_tools/gce_export'
   args: ['go', 'build', '-o=/workspace/linux/gce_export']
@@ -94,8 +88,6 @@ steps:
   env: ['GOOS=windows']
 
 # Build gce_vm_image_import.
-- name: 'gcr.io/go-containerregistry/crane'
-  args: ['tag', 'gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$_RELEASE', '$_PREV_RELEASE']
 - name: 'golang'
   dir: 'cli_tools/gce_vm_image_import'
   args: ['go', 'build', '-o=/workspace/linux/gce_vm_image_import']
@@ -109,8 +101,6 @@ steps:
   - --dockerfile=gce_vm_image_import.Dockerfile
 
 # Build gce_onestep_image_import.
-- name: 'gcr.io/go-containerregistry/crane'
-  args: ['tag', 'gcr.io/$_IMAGE_PROJECT/gce_onestep_image_import:$_RELEASE', '$_PREV_RELEASE']
 - name: 'golang'
   dir: 'cli_tools/gce_onestep_image_import'
   args: ['go', 'build', '-o=/workspace/linux/gce_onestep_image_import']
@@ -124,8 +114,6 @@ steps:
   - --dockerfile=gce_onestep_image_import.Dockerfile
 
 # Build gce_vm_image_export.
-- name: 'gcr.io/go-containerregistry/crane'
-  args: ['tag', 'gcr.io/$_IMAGE_PROJECT/gce_vm_image_export:$_RELEASE', '$_PREV_RELEASE']
 - name: 'golang'
   dir: 'cli_tools/gce_vm_image_export'
   args: ['go', 'build', '-o=/workspace/linux/gce_vm_image_export']
@@ -139,8 +127,6 @@ steps:
   - --dockerfile=gce_vm_image_export.Dockerfile
 
 # Build gce_ovf_import.
-- name: 'gcr.io/go-containerregistry/crane'
-  args: ['tag', 'gcr.io/$_IMAGE_PROJECT/gce_ovf_import:$_RELEASE', '$_PREV_RELEASE']
 - name: 'golang'
   dir: 'cli_tools/gce_ovf_import'
   args: ['go', 'build', '-o=/workspace/linux/gce_ovf_import']
@@ -154,8 +140,6 @@ steps:
   - --dockerfile=gce_ovf_import.Dockerfile
 
 # Build gce_ovf_export.
-- name: 'gcr.io/go-containerregistry/crane'
-  args: ['tag', 'gcr.io/$_IMAGE_PROJECT/gce_ovf_export:$_RELEASE', '$_PREV_RELEASE']
 - name: 'golang'
   dir: 'cli_tools/gce_ovf_export'
   args: ['go', 'build', '-o=/workspace/linux/gce_ovf_export']
@@ -169,8 +153,6 @@ steps:
   - --dockerfile=gce_ovf_export.Dockerfile
 
 # Build gce_windows_upgrade.
-- name: 'gcr.io/go-containerregistry/crane'
-  args: ['tag', 'gcr.io/$_IMAGE_PROJECT/gce_windows_upgrade:$_RELEASE', '$_PREV_RELEASE']
 - name: 'golang'
   dir: 'cli_tools/gce_windows_upgrade'
   args: ['go', 'build', '-o=/workspace/linux/gce_windows_upgrade']

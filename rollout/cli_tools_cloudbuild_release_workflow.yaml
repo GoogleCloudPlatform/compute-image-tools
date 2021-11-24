@@ -2,8 +2,6 @@
 
 timeout: 30s
 
-options:
-
 steps:
 - name: 'google/cloud-sdk:alpine'
   args:

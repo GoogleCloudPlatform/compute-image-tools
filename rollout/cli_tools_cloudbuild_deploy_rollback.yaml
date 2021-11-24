@@ -1,7 +1,5 @@
 timeout: 5400s
 
-options:
-
 steps:
 # Rollback given tools to given locations. Expect 2 vars substitutions, examples:
 # 1. $_REGIONS="us;us-east1;us-east2"
@@ -35,8 +33,17 @@ steps:
       do
         echo "--> Rollback... $$_TOOL -> $$_REGION"
 
-        docker run --rm gcr.io/go-containerregistry/crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:prev-release release -q
+        docker run --rm gcr.io/go-containerregistry/crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:prev-release release
         exit_on_error $$?
       done
       echo "----> Rollback all tools for $$_REGION done."
     done
+
+    for _TOOL in $$TOOLS_ARR
+    do
+      echo "--> Rollback... $$_TOOL -> gcr.io"
+
+      docker run --rm gcr.io/go-containerregistry/crane tag gcr.io/$_IMAGE_PROJECT/$$_TOOL:prev-release release
+      exit_on_error $$?
+    done
+    echo "----> Rollback all tools for gcr.io done."

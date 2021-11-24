@@ -1,0 +1,41 @@
+# Tag all the 'release' docker images as 'prev-release' so they can be rollback.
+
+timeout: 300s
+
+steps:
+- name: 'google/cloud-sdk:alpine'
+  args:
+  - 'bash'
+  - '-c'
+  - |
+    REGIONS_ARR=$(echo "$_REGIONS" | tr ";" "\n")
+    TOOLS_ARR=$(echo "$_TOOLS" | tr ";" "\n")
+
+    exit_on_error() {
+      ERR=$$1
+      if [[ $$ERR != 0 ]]; then
+      echo "Build preparation failed with exit code $$ERR. Please check the error message, debug and rerun."
+      exit "$$ERR"
+      fi
+    }
+
+    for _REGION in $$REGIONS_ARR
+    do
+      for _TOOL in $$TOOLS_ARR
+      do
+        echo "--> Tagging prev-release... $$_TOOL -> $$_REGION"
+
+        gcloud container images add-tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:prev-release
+        exit_on_error $$?
+      done
+      echo "----> Tagged all tools for $$_REGION done."
+    done
+
+    for _TOOL in $$TOOLS_ARR
+    do
+      echo "--> Tagging prev-release... $$_TOOL -> gcr.io"
+
+      gcloud container images add-tag gcr.io/$_IMAGE_PROJECT/$$_TOOL:release gcr.io/$_IMAGE_PROJECT/$$_TOOL:prev-release
+      exit_on_error $$?
+    done
+    echo "----> Tagged all tools for gcr.io done."

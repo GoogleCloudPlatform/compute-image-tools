@@ -1,7 +1,5 @@
 timeout: 5400s
 
-options:
-
 steps:
 # Deploy given tools to given locations. Expect 2 vars substitutions, examples:
 # 1. $_REGIONS="us;us-east1;us-east2"
@@ -35,16 +33,12 @@ steps:
       do
         echo "--> Deploying... $$_TOOL -> $$_REGION"
 
-        # Mark current "release" as "prev-release" for rollback.
-        docker run --rm gcr.io/go-containerregistry/crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release prev-release
+        # Copy the new "release" from gcr.io and tag.
+        gcloud container images add-tag gcr.io/$_IMAGE_PROJECT/$$_TOOL:release $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release
         exit_on_error $$?
-
-        # Copy the new "release" from gcr.io.
-        docker run --rm gcr.io/go-containerregistry/crane copy gcr.io/$_IMAGE_PROJECT/$$_TOOL:release $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release
+        gcloud container images add-tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:$_WORKFLOW_EXECUTION_ID
         exit_on_error $$?
-        docker run --rm gcr.io/go-containerregistry/crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $_WORKFLOW_EXECUTION_ID
-        exit_on_error $$?
-        docker run --rm gcr.io/go-containerregistry/crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $COMMIT_SHA
+        gcloud container images add-tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:$COMMIT_SHA
         exit_on_error $$?
       done
       echo "----> Deployed all tools for $$_REGION"
