@@ -68,9 +68,9 @@ func BuildArgsMap(props *OvfImportTestProperties, testProjectConfig *testconfig.
 	gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--source-uri=%v", props.SourceURI))
 	gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--zone=%v", props.Zone))
 
-	gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--project=%v", project))
-	gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--source-uri=%v", props.SourceURI))
-	gcloudArgs = append(gcloudBetaArgs, fmt.Sprintf("--zone=%v", props.Zone))
+	gcloudArgs = append(gcloudArgs, fmt.Sprintf("--project=%v", project))
+	gcloudArgs = append(gcloudArgs, fmt.Sprintf("--source-uri=%v", props.SourceURI))
+	gcloudArgs = append(gcloudArgs, fmt.Sprintf("--zone=%v", props.Zone))
 
 	wrapperArgs = append(wrapperArgs, fmt.Sprintf("-project=%v", project))
 	wrapperArgs = append(wrapperArgs, fmt.Sprintf("-ovf-gcs-path=%v", props.SourceURI))
@@ -197,7 +197,7 @@ func VerifyInstance(instance *gcp.InstanceBeta, client daisyCompute.Client,
 			// while the boot disk for other operating systems shouldn't have it.
 			hasWindowsFeature := false
 			for _, feature := range attachedDisk.GuestOsFeatures {
-				if "WINDOWS" == feature.Type {
+				if feature.Type == "WINDOWS" {
 					hasWindowsFeature = true
 					break
 				}
@@ -271,7 +271,7 @@ func VerifyInstance(instance *gcp.InstanceBeta, client daisyCompute.Client,
 		}
 	} else {
 		if len(instance.ServiceAccounts) == 0 {
-			e2e.Failure(testCase, logger, fmt.Sprintf("No service account on the instance when one should be set"))
+			e2e.Failure(testCase, logger, "No service account on the instance when one should be set")
 			return
 		}
 		if props.InstanceServiceAccount != "" {
@@ -331,6 +331,12 @@ func VerifyInstance(instance *gcp.InstanceBeta, client daisyCompute.Client,
 		logger.Printf("[%v] Will not set test startup script to instance metadata as it's not defined", instance.Name)
 		return
 	}
+
+	// Store serial logs from test instance in Cloud Logging.
+	if props.InstanceMetadata == nil {
+		props.InstanceMetadata = make(map[string]string)
+	}
+	props.InstanceMetadata["serial-port-enable"] = "true"
 
 	err = instance.StartWithScriptCode(props.VerificationStartupScript, props.InstanceMetadata)
 	if err != nil {
