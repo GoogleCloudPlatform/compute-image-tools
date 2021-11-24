@@ -22,10 +22,10 @@ steps:
     TOOLS_ARR=$(echo "$_TOOLS" | tr ";" "\n")
 
     exit_on_error() {
-      ERR=$1
-      if [[ $ERR != 0 ]]; then
-      echo "Deploy failed with exit code $ERR. Please check the error message, debug and rerun."
-      exit "$ERR"
+      ERR=$$1
+      if [[ $$ERR != 0 ]]; then
+      echo "Deploy failed with exit code $$ERR. Please check the error message, debug and rerun."
+      exit "$$ERR"
       fi
     }
 
@@ -37,15 +37,15 @@ steps:
 
         # Mark current "release" as "prev-release" for rollback.
         crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release prev-release
-        exit_on_error $?
+        exit_on_error $$?
 
         # Copy the new "release" from gcr.io.
         crane copy gcr.io/$_IMAGE_PROJECT/$$_TOOL:release $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release
-        exit_on_error $?
+        exit_on_error $$?
         crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $_WORKFLOW_EXECUTION_ID
-        exit_on_error $?
+        exit_on_error $$?
         crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:release $COMMIT_SHA
-        exit_on_error $?
+        exit_on_error $$?
       done
       echo "----> Deployed all tools for $$_REGION"
     done

@@ -22,10 +22,10 @@ steps:
     TOOLS_ARR=$(echo "$_TOOLS" | tr ";" "\n")
 
     exit_on_error() {
-      ERR=$1
-      if [[ $ERR != 0 ]]; then
-      echo "Rollback failed with exit code $ERR. Please check the error message, debug and rerun."
-      exit "$ERR"
+      ERR=$$1
+      if [[ $$ERR != 0 ]]; then
+      echo "Rollback failed with exit code $$ERR. Please check the error message, debug and rerun."
+      exit "$$ERR"
       fi
     }
 
@@ -36,7 +36,7 @@ steps:
         echo "--> Rollback... $$_TOOL -> $$_REGION"
 
         crane tag $$_REGION-docker.pkg.dev/$_IMAGE_PROJECT/$$_TOOL:prev-release release -q
-        exit_on_error $?
+        exit_on_error $$?
       done
       echo "----> Rollback all tools for $$_REGION done."
     done
