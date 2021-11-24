@@ -139,10 +139,12 @@ func TestSuite(
 func fallbackWhenSSDQuotaExhausted(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 	suffix := path.RandString(5)
+	// We use us-central2-a since in new projects it has low SSD quota (500GB at time of writing).
+	// To verify this assumption, we attempt to make a disk larger than 500GB and expect that to
+	// fail with an error of SSD_TOTAL_GB.
 	zone := "us-central2-a"
 	project := testProjectConfig.TestProjectID
 
-	// Verify that the quota is insufficient to create an SSD disk of size 600GB.
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
 		e2e.Failure(testCase, logger, fmt.Sprintf("Error creating client: %v", err))
