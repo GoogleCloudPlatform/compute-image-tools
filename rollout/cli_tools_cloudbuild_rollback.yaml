@@ -1,4 +1,4 @@
-timeout: 5400s
+timeout: 1800s
 
 steps:
 # Rollback given tools to given locations. Expect 2 vars substitutions, examples:

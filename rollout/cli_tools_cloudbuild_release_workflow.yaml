@@ -1,6 +1,6 @@
 # Simply trigger the workflow to start the rollout schedule.
 
-timeout: 30s
+timeout: 60s
 
 steps:
 - name: 'google/cloud-sdk:alpine'

@@ -1,6 +1,6 @@
 # Tag all the 'release' docker images as 'prev-release' so they can be rollback.
 
-timeout: 300s
+timeout: 1800s
 
 steps:
 - name: 'google/cloud-sdk:alpine'
