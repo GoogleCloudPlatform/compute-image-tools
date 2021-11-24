@@ -20,6 +20,8 @@ substitutions:
 steps:
 # Build daisy.
 - name: 'gcr.io/go-containerregistry/crane:current'
+  args: ['--help']
+- name: 'gcr.io/go-containerregistry/crane:current'
   args: ['tag', 'gcr.io/$_IMAGE_PROJECT/daisy:$_RELEASE', 'gcr.io/$_IMAGE_PROJECT/daisy:$_PREV_RELEASE']
 - name: 'docker'
   dir: 'daisy/cli'
