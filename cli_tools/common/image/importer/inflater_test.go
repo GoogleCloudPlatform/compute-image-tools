@@ -37,11 +37,11 @@ func TestCreateFallbackInflater_File(t *testing.T) {
 	//and uses Daisy inflater as a fallback.
 
 	inflater, err := newInflater(ImageImportRequest{
-		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
-		Subnet:       "projects/subnet/subnet",
-		Network:      "projects/network/network",
-		Zone:         "us-west1-c",
-		ExecutionID:  "1234",
+		Source:      fileSource{gcsPath: "gs://bucket/vmdk"},
+		Subnet:      "projects/subnet/subnet",
+		Network:     "projects/network/network",
+		Zone:        "us-west1-c",
+		ExecutionID: "1234",
 		Tool: daisyutils.Tool{
 			ResourceLabelName: "image-import",
 		},
