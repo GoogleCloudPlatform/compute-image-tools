@@ -91,33 +91,6 @@ periodics:
     - name: compute-image-tools-test-service-account
       secret:
        secretName: compute-image-tools-test-service-account
- - name: ci-daisy-e2e-quota-exceeded
-   interval: 3h
-   agent: kubernetes
-   spec:
-    containers:
-      - image: gcr.io/compute-image-tools-test/test-runner:latest
-        args:
-          - "-out_path=/artifacts/junit.xml"
-          # One project is enough for daisy tests, no test requires a write lock.
-          - "-projects=compute-image-test-pool-006"
-          - "-zone=us-central1-c"
-          - "daisy_integration_tests/daisy_e2e_quota_exceeded.test.gotmpl"
-        env:
-          - name: REPO_OWNER
-            value: GoogleCloudPlatform
-          - name: REPO_NAME
-            value: compute-image-tools
-          - name: ARTIFACTS
-            value: /artifacts
-        volumeMounts:
-          - name: compute-image-tools-test-service-account
-            mountPath: /etc/compute-image-tools-test-service-account
-            readOnly: true
-    volumes:
-    - name: compute-image-tools-test-service-account
-      secret:
-       secretName: compute-image-tools-test-service-account
  - name: ci-daisy-e2e-daily
    interval: 24h
    agent: kubernetes
