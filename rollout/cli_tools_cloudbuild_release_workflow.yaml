@@ -13,6 +13,7 @@ steps:
           \"rolloutPhase\":{$_ROLLOUT_PHASES},
           \"tools\":\"gce_vm_image_import;gce_vm_image_export;gce_onestep_image_import;gce_ovf_import;gce_ovf_export;gce_windows_upgrade\",
           \"tagName\":\"$TAG_NAME\",
-          \"waitPeriod\":\"$_WAIT_PERIOD\"
+          \"waitPeriod\":\"$_WAIT_PERIOD\",
+          \"skipValidation\":\"$_SKIP_VALIDATION\"
         }"'
   env: ['CGO_ENABLED=0']
