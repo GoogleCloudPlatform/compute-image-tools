@@ -30,7 +30,7 @@ Daisy containers built with the beta Compute api
 ## Build from source
 Daisy can be easily built from source with the [Golang SDK](https://golang.org)
 ```shell
-go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy
+go get github.com/GoogleCloudPlatform/compute-image-tools/daisy
 ```
 This will place the Daisy binary in `$GOPATH/bin`.
 
