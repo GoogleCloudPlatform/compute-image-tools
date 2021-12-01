@@ -79,8 +79,8 @@ func TestSuite(
 		e2e.GcloudBetaLatestWrapperLatest,
 	}
 	for _, testType := range testTypes {
-		machineImageImportUbuntu3DisksNetworkSettingsNameTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Ubuntu 3 disks, one data disk larger than 10GB, Network setting (name only)"))
+		machineImageImportDebian3DisksNetworkSettingsNameTestCase := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Debian 3 disks, one data disk larger than 10GB, Network setting (name only)"))
 		machineImageImportWindows2012R2TwoDisksNetworkSettingsPathTestCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Windows 2012 R2 two disks, Network setting (path)"))
 		machineImageImportStorageLocationTestCase := junitxml.NewTestCase(
@@ -88,7 +88,7 @@ func TestSuite(
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, e2e.CLITestType){}
-		testsMap[testType][machineImageImportUbuntu3DisksNetworkSettingsNameTestCase] = runOVFMachineImageImportUbuntu3DisksNetworkSettingsName
+		testsMap[testType][machineImageImportDebian3DisksNetworkSettingsNameTestCase] = runOVFMachineImageImportDebian3DisksNetworkSettingsName
 		testsMap[testType][machineImageImportWindows2012R2TwoDisksNetworkSettingsPathTestCase] = runOVFMachineImageImportWindows2012R2TwoDisksNetworkSettingsPath
 		testsMap[testType][machineImageImportStorageLocationTestCase] = runOVFMachineImageImportCentos74StorageLocation
 	}
@@ -114,7 +114,7 @@ func TestSuite(
 		testProjectConfig, testSuiteName, testsMap)
 }
 
-func runOVFMachineImageImportUbuntu3DisksNetworkSettingsName(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runOVFMachineImageImportDebian3DisksNetworkSettingsName(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	suffix := path.RandString(5)
@@ -122,12 +122,12 @@ func runOVFMachineImageImportUbuntu3DisksNetworkSettingsName(ctx context.Context
 		machineImageName: fmt.Sprintf("test-machine-image-ubuntu-3-disks-%v", suffix),
 		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{
 			VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
-				"scripts/ovf_import_test_ubuntu_3_disks.sh", logger),
+				"scripts/ovf_import_test_3_disks.sh", logger),
 			Zone:                  testProjectConfig.TestZone,
 			ExpectedStartupOutput: "All tests passed!",
 			FailureMatches:        []string{"TestFailed:"},
-			SourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-1604-three-disks", ovaBucket),
-			Os:                    "ubuntu-1604",
+			SourceURI:             fmt.Sprintf("gs://%v/ova/debian-11-three-disks.ova", ovaBucket),
+			Os:                    "debian-11",
 			InstanceMetadata:      skipOSConfigMetadata,
 			MachineType:           "n1-standard-4",
 			Network:               fmt.Sprintf("%v-vpc-1", testProjectConfig.TestProjectID),

@@ -78,8 +78,8 @@ func TestSuite(
 		e2e.GcloudGaLatestWrapperRelease,
 	}
 	for _, testType := range testTypes {
-		instanceImportUbuntu3DisksTestCaseNetworkSettingsName := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Ubuntu 3 disks, one data disk larger than 10GB, network setting (name only)"))
+		instanceImportDebian3DisksTestCaseNetworkSettingsName := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Debian 3 disks, one data disk larger than 10GB, network setting (name only)"))
 		instanceImportWindows2012R2TwoDisksNetworkSettingsPath := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Windows 2012 R2 two disks, network setting (path)"))
 		instanceImportWindows2016 := junitxml.NewTestCase(
@@ -95,7 +95,7 @@ func TestSuite(
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, e2e.CLITestType){}
-		testsMap[testType][instanceImportUbuntu3DisksTestCaseNetworkSettingsName] = runOVFInstanceImportUbuntu3DisksNetworkSettingsName
+		testsMap[testType][instanceImportDebian3DisksTestCaseNetworkSettingsName] = runOVFInstanceImportDebian3DisksNetworkSettingsName
 		testsMap[testType][instanceImportWindows2012R2TwoDisksNetworkSettingsPath] = runOVFInstanceImportWindows2012R2TwoDisksNetworkSettingsPath
 		testsMap[testType][instanceImportWindows2016] = runOVFInstanceImportWindows2016
 		testsMap[testType][instanceImportWindows2008R2FourNICs] = runOVFInstanceImportWindows2008R2FourNICs
@@ -178,7 +178,7 @@ func fallbackWhenSSDQuotaExhausted(ctx context.Context, testCase *junitxml.TestC
 	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
-func runOVFInstanceImportUbuntu3DisksNetworkSettingsName(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runOVFInstanceImportDebian3DisksNetworkSettingsName(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	suffix := path.RandString(5)
@@ -186,12 +186,12 @@ func runOVFInstanceImportUbuntu3DisksNetworkSettingsName(ctx context.Context, te
 		instanceName: fmt.Sprintf("test-instance-ubuntu-3-disks-%v", suffix),
 		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{
 			VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
-				"scripts/ovf_import_test_ubuntu_3_disks.sh", logger),
+				"scripts/ovf_import_test_3_disks.sh", logger),
 			Zone:                  testProjectConfig.TestZone,
 			ExpectedStartupOutput: "All tests passed!",
 			FailureMatches:        []string{"FAILED:", "TestFailed:"},
-			SourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-1604-three-disks", ovaBucket),
-			Os:                    "ubuntu-1604",
+			SourceURI:             fmt.Sprintf("gs://%v/ova/debian-11-three-disks.ova", ovaBucket),
+			Os:                    "debian-11",
 			MachineType:           "n1-standard-4",
 			Network:               fmt.Sprintf("%v-vpc-1", testProjectConfig.TestProjectID),
 			Subnet:                fmt.Sprintf("%v-subnet-1", testProjectConfig.TestProjectID),

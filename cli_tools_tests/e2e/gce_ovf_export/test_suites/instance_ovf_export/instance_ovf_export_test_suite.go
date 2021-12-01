@@ -77,19 +77,19 @@ func TestSuite(
 		e2e.Wrapper,
 	}
 	for _, testType := range testTypes {
-		instanceExportUbuntu3DisksTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceExport] %v", testType, "Ubuntu 3 disks, one data disk larger than 10GB"))
+		instanceExportDebian3DisksTestCase := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][OVFInstanceExport] %v", testType, "Debian 3 disks, one data disk larger than 10GB"))
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, e2e.CLITestType){}
-		testsMap[testType][instanceExportUbuntu3DisksTestCase] = runInstanceOVFExportUbuntu3Disks
+		testsMap[testType][instanceExportDebian3DisksTestCase] = runInstanceOVFExportDebian3Disks
 	}
 
 	e2e.CLITestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
 		testProjectConfig, testSuiteName, testsMap)
 }
 
-func runInstanceOVFExportUbuntu3Disks(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runInstanceOVFExportDebian3Disks(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	buildID := path.RandString(10)
@@ -99,12 +99,11 @@ func runInstanceOVFExportUbuntu3Disks(ctx context.Context, testCase *junitxml.Te
 	props := &instanceOvfExportTestProperties{
 		instanceName: fmt.Sprintf("test-instance-ubuntu-3-disks-%v", buildID),
 		verificationStartupScript: loadScriptContent(
-			"scripts/ovf_import_test_ubuntu_3_disks.sh", logger),
+			"scripts/ovf_import_test_3_disks.sh", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All tests passed!",
 		failureMatches:        []string{"FAILED:", "TestFailed:"},
-		sourceGMI:             "projects/compute-image-test-pool-001/global/machineImages/ubuntu-1604-three-disks-do-not-delete",
-		os:                    "ubuntu-1604",
+		sourceGMI:             "projects/compute-image-test-pool-001/global/machineImages/debian-11-three-disks-do-not-delete",
 		destinationURI:        fmt.Sprintf("gs://%v/%v/", exportBucket, exportPath),
 		exportBucket:          exportBucket,
 		exportPath:            exportPath,
@@ -250,15 +249,18 @@ func verifyExportedOVFUsingOVFImport(
 	verificationInstanceName := fmt.Sprintf("ovf-export-verification-instance--%v", props.buildID)
 	logger.Printf("Verifying exported OVF by importing it via OVF import as `%v`", verificationInstanceName)
 
-	ovfImportError := e2e.RunCliTool(logger, testCase, "gcloud", []string{
+	args := []string{
 		"beta", "compute", "instances", "import",
 		verificationInstanceName,
 		fmt.Sprintf("--source-uri=%v", props.destinationURI),
-		fmt.Sprintf("--os=%v", props.os),
 		fmt.Sprintf("--zone=%v", props.zone),
 		fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
 		"--docker-image-tag=latest",
-	})
+	}
+	if props.os != "" {
+		args = append(args, fmt.Sprintf("--os=%v", props.os))
+	}
+	ovfImportError := e2e.RunCliTool(logger, testCase, "gcloud", args)
 	if ovfImportError != nil {
 		e2e.Failure(testCase, logger, fmt.Sprintf("Failed importing exported OVF as instance: %v", ovfImportError))
 		return false
