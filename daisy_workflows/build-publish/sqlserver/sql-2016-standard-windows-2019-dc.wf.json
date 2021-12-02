@@ -57,7 +57,7 @@
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
           "source_disk": "${install_disk}",
-          "destination": "${gcs_path}/${image_prefix}-v${build_date}/root.tar.gz"
+          "destination": "${gcs_url}"
         }
       }
     }
