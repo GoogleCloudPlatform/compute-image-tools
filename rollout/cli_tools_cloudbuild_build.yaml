@@ -1,0 +1,183 @@
+# Build all the docker images and put them into container registry (gcr.io)
+# Later, these images will be copied to artifacts registry on demand.
+
+timeout: 1800s
+
+options:
+  env:
+  - GO111MODULE=auto
+  - GOPROXY=https://proxy.golang.org
+  volumes:
+  - name: go-pkg
+    path: /go/pkg
+  - name: go-src
+    path: /go/src
+
+substitutions:
+  _RELEASE: 'release'
+  _PREV_RELEASE: 'prev-release'
+
+steps:
+# Build daisy.
+- name: 'golang'
+  dir: 'daisy/cli'
+  args: ['go', 'build', '-o=/workspace/linux/daisy']
+  env: ['CGO_ENABLED=0']
+- name: 'golang'
+  dir: 'daisy/cli'
+  args: ['go', 'build', '-o=/workspace/windows/daisy']
+  env: ['GOOS=windows']
+- name: 'golang'
+  dir: 'daisy/cli'
+  args: ['go', 'build', '-o=/workspace/darwin/daisy']
+  env: ['GOOS=darwin']
+- name: 'gcr.io/kaniko-project/executor:v1.0.0'
+  args:
+  - --destination=gcr.io/$_IMAGE_PROJECT/daisy:$_RELEASE
+  - --destination=gcr.io/$_IMAGE_PROJECT/daisy:$COMMIT_SHA
+  - --destination=gcr.io/$_IMAGE_PROJECT/daisy:$_WORKFLOW_EXECUTION_ID
+  - --context=/workspace
+  - --dockerfile=daisy.Dockerfile
+
+# Build gce_image_publish.
+- name: 'golang'
+  dir: 'cli_tools/gce_image_publish'
+  args: ['go', 'build', '-o=/workspace/linux/gce_image_publish']
+  env: ['CGO_ENABLED=0']
+- name: 'golang'
+  dir: 'cli_tools/gce_image_publish'
+  args: ['go', 'build', '-o=/workspace/windows/gce_image_publish.exe']
+  env: ['GOOS=windows']
+- name: 'golang'
+  dir: 'cli_tools/gce_image_publish'
+  args: ['go', 'build', '-o=/workspace/darwin/gce_image_publish']
+  env: ['GOOS=darwin']
+- name: 'gcr.io/kaniko-project/executor:v1.0.0'
+  args:
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_image_publish:$_RELEASE
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_image_publish:$COMMIT_SHA
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_image_publish:$_WORKFLOW_EXECUTION_ID
+  - --context=/workspace
+  - --dockerfile=gce_image_publish.Dockerfile
+
+# Build gce_export.
+- name: 'golang'
+  dir: 'cli_tools/gce_export'
+  args: ['go', 'build', '-o=/workspace/linux/gce_export']
+  env: ['CGO_ENABLED=0']
+- name: 'golang'
+  dir: 'cli_tools/gce_export'
+  args: ['go', 'build', '-o=/workspace/windows/gce_export']
+  env: ['GOOS=windows']
+- name: 'gcr.io/kaniko-project/executor:v1.0.0'
+  args:
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_export:$_RELEASE
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_export:$COMMIT_SHA
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_export:$_WORKFLOW_EXECUTION_ID
+  - --context=/workspace
+  - --dockerfile=gce_export.Dockerfile
+
+# Build import_precheck.
+- name: 'golang'
+  dir: 'cli_tools/import_precheck'
+  args: ['go', 'build', '-o=/workspace/linux/import_precheck']
+  env: ['CGO_ENABLED=0']
+- name: 'golang'
+  dir: 'cli_tools/import_precheck'
+  args: ['go', 'build', '-o=/workspace/windows/import_precheck.exe']
+  env: ['GOOS=windows']
+
+# Build gce_vm_image_import.
+- name: 'golang'
+  dir: 'cli_tools/gce_vm_image_import'
+  args: ['go', 'build', '-o=/workspace/linux/gce_vm_image_import']
+  env: ['CGO_ENABLED=0']
+- name: 'gcr.io/kaniko-project/executor:v1.1.0'
+  args:
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$_RELEASE
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$COMMIT_SHA
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$_WORKFLOW_EXECUTION_ID
+  - --context=/workspace
+  - --dockerfile=gce_vm_image_import.Dockerfile
+
+# Build gce_onestep_image_import.
+- name: 'golang'
+  dir: 'cli_tools/gce_onestep_image_import'
+  args: ['go', 'build', '-o=/workspace/linux/gce_onestep_image_import']
+  env: ['CGO_ENABLED=0']
+- name: 'gcr.io/kaniko-project/executor:v1.1.0'
+  args:
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_onestep_image_import:$_RELEASE
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_onestep_image_import:$COMMIT_SHA
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_onestep_image_import:$_WORKFLOW_EXECUTION_ID
+  - --context=/workspace
+  - --dockerfile=gce_onestep_image_import.Dockerfile
+
+# Build gce_vm_image_export.
+- name: 'golang'
+  dir: 'cli_tools/gce_vm_image_export'
+  args: ['go', 'build', '-o=/workspace/linux/gce_vm_image_export']
+  env: ['CGO_ENABLED=0']
+- name: 'gcr.io/kaniko-project/executor:v1.1.0'
+  args:
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_vm_image_export:$_RELEASE
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_vm_image_export:$COMMIT_SHA
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_vm_image_export:$_WORKFLOW_EXECUTION_ID
+  - --context=/workspace
+  - --dockerfile=gce_vm_image_export.Dockerfile
+
+# Build gce_ovf_import.
+- name: 'golang'
+  dir: 'cli_tools/gce_ovf_import'
+  args: ['go', 'build', '-o=/workspace/linux/gce_ovf_import']
+  env: ['CGO_ENABLED=0']
+- name: 'gcr.io/kaniko-project/executor:v1.1.0'
+  args:
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_ovf_import:$_RELEASE
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_ovf_import:$COMMIT_SHA
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_ovf_import:$_WORKFLOW_EXECUTION_ID
+  - --context=/workspace
+  - --dockerfile=gce_ovf_import.Dockerfile
+
+# Build gce_ovf_export.
+- name: 'golang'
+  dir: 'cli_tools/gce_ovf_export'
+  args: ['go', 'build', '-o=/workspace/linux/gce_ovf_export']
+  env: ['CGO_ENABLED=0']
+- name: 'gcr.io/kaniko-project/executor:v1.1.0'
+  args:
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_ovf_export:$_RELEASE
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_ovf_export:$COMMIT_SHA
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_ovf_export:$_WORKFLOW_EXECUTION_ID
+  - --context=/workspace
+  - --dockerfile=gce_ovf_export.Dockerfile
+
+# Build gce_windows_upgrade.
+- name: 'golang'
+  dir: 'cli_tools/gce_windows_upgrade'
+  args: ['go', 'build', '-o=/workspace/linux/gce_windows_upgrade']
+  env: ['CGO_ENABLED=0']
+- name: 'gcr.io/kaniko-project/executor:v1.1.0'
+  args:
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_windows_upgrade:$_RELEASE
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_windows_upgrade:$COMMIT_SHA
+  - --destination=gcr.io/$_IMAGE_PROJECT/gce_windows_upgrade:$_WORKFLOW_EXECUTION_ID
+  - --context=/workspace
+  - --dockerfile=gce_windows_upgrade.Dockerfile
+
+# Copy Linux binaries to GCS
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/linux/*', 'gs://$_IMAGE_PROJECT/$_RELEASE/linux/']
+
+# Copy Windows binaries to GCS
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/windows/*', 'gs://$_IMAGE_PROJECT/$_RELEASE/windows/']
+
+# Copy OSX binaries to GCS
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/darwin/*', 'gs://$_IMAGE_PROJECT/$_RELEASE/darwin/']
+
+
+# TODO: Make binaries world-readable.
+#- name: 'gcr.io/cloud-builders/gsutil'
+#  args: ['-m', 'acl', '-r', 'ch', '-u', 'AllUsers:R', 'gs://$_IMAGE_PROJECT/$_RELEASE/*']
