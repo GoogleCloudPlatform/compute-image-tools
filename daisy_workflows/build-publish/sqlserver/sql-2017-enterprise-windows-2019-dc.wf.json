@@ -39,7 +39,7 @@
     "build": {
       "Timeout": "${timeout}",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/sql-2017-enterprise-windows-2019-dc.wf.json",
+        "Path": "${workflow_root}/image_build/sqlserver/sql-2017-enterprise-windows-2019-dc.wf.json",
         "Vars": {
           "build_date": "${TIMESTAMP}",
           "install_disk": "disk-install",
