@@ -42,7 +42,7 @@ func TestDaisyInflater_Inflate_ReadsDiskStatsFromWorker(t *testing.T) {
 	}
 	mockWorker.EXPECT().RunAndReadSerialValues(inflater.vars, targetSizeGBKey,
 		sourceSizeGBKey, importFileFormatKey, diskChecksumKey).DoAndReturn(
-		func (vars map[string]string, keys ...string) (map[string]string, error) {
+		func(vars map[string]string, keys ...string) (map[string]string, error) {
 			// Guarantee that the workflow executes for at least 1ms
 			time.Sleep(time.Millisecond)
 			return map[string]string{
