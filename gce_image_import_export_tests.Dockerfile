@@ -28,7 +28,6 @@ RUN chmod +x /gce_onestep_image_import
 
 # Build test container
 FROM gcr.io/compute-image-tools-test/wrapper-with-gcloud:latest
-RUN gcsfuse
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=0 /gce_image_import_export_test_runner gce_image_import_export_test_runner
