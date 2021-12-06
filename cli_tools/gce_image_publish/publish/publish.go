@@ -118,7 +118,7 @@ var (
 )
 
 // CreatePublish creates a publish object
-func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, path string, varMap map[string]string, imagesCache map[string][]*computeAlpha.Image) (*Publish, error) {
+func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, path string, template string, varMap map[string]string, imagesCache map[string][]*computeAlpha.Image) (*Publish, error) {
 	p := Publish{
 		sourceVersion:  sourceVersion,
 		publishVersion: publishVersion,
@@ -129,12 +129,25 @@ func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, s
 	varMap["source_version"] = p.sourceVersion
 	varMap["publish_version"] = p.publishVersion
 
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %v", path, err)
+	var templateContent string
+	var passedTemplate string
+	if path != "" {
+		b, err := ioutil.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %v", path, err)
+		}
+		templateContent = string(b)
+		passedTemplate = path
+	}
+	if template != "" {
+		templateContent = template
+		passedTemplate = "template JSON passed in function call"
+	}
+	if templateContent == "" {
+		return nil, fmt.Errorf("path: %s, and template: %s: neither passed valid template content", path, template)
 	}
 
-	tmpl, err := publishTemplate.Parse(string(b))
+	tmpl, err := publishTemplate.Parse(templateContent)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %v", path, err)
 	}
@@ -181,7 +194,7 @@ func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, s
 		}
 	}
 
-	fmt.Printf("[%q] Created a publish object successfully from %s\n", p.Name, path)
+	fmt.Printf("[%q] Created a publish object successfully from %s\n", p.Name, passedTemplate)
 	return &p, nil
 }
 
