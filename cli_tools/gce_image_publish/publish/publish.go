@@ -118,7 +118,7 @@ var (
 )
 
 // CreatePublish creates a publish object
-func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, path string, template string, varMap map[string]string, imagesCache map[string][]*computeAlpha.Image) (*Publish, error) {
+func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, path, template string, varMap map[string]string, imagesCache map[string][]*computeAlpha.Image) (*Publish, error) {
 	p := Publish{
 		sourceVersion:  sourceVersion,
 		publishVersion: publishVersion,
