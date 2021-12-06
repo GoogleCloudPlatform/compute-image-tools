@@ -537,7 +537,7 @@ function Install-Packages {
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-driver-gga
   }
 
-  if ($pn -match 'Windows (Web )?Server (2008 R2|2012 R2|2016|2019|Standard|Datacenter)') {
+  if ($pn -match 'Windows (Web )?Server (2008 R2|2012 R2|2016|2019|2022|Standard|Datacenter)') {
     Write-Host 'Installing GCE VSS agent and provider...'
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-vss
   }
