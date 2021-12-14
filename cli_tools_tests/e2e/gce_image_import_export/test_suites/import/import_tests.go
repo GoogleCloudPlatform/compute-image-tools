@@ -418,7 +418,7 @@ func (t *testCase) run(ctx context.Context, junit *junitxml.TestCase, logger *lo
 			t.writeFailure(junit, "Failed post translate test: %v", err)
 		}
 	}
-	junit.Time = time.Now().Sub(start).Seconds()
+	junit.Time = time.Since(start).Seconds()
 }
 
 func (t *testCase) verifyImage(ctx context.Context, junit *junitxml.TestCase, logger *log.Logger, testProjectConfig *testconfig.Project) {

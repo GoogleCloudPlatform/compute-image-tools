@@ -125,7 +125,7 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 				ErrorWhen: pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS,
 				OsRelease: &pb.OsRelease{},
 			},
-			expectErrorToContain: "Worker should not return OsRelease when NumOsFound != 1",
+			expectErrorToContain: "worker should not return OsRelease when NumOsFound != 1",
 		},
 		{
 			caseName: "Fail when OsCount is one and OsRelease is nil",
@@ -136,7 +136,7 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 				OsCount:   1,
 				ErrorWhen: pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS,
 			},
-			expectErrorToContain: "Worker should return OsRelease when OsCount == 1",
+			expectErrorToContain: "worker should return OsRelease when OsCount == 1",
 		},
 		{
 			caseName: "Fail when OsCount > 1 and OsRelease non-nil",
@@ -149,7 +149,7 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 				ErrorWhen: pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS,
 				OsRelease: &pb.OsRelease{},
 			},
-			expectErrorToContain: "Worker should not return OsRelease when NumOsFound != 1",
+			expectErrorToContain: "worker should not return OsRelease when NumOsFound != 1",
 		},
 		{
 			caseName: "Fail when CliFormatted is populated",
@@ -174,7 +174,7 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 					CliFormatted: "ubuntu-1804",
 				},
 			},
-			expectErrorToContain: "Worker should not return CliFormatted",
+			expectErrorToContain: "worker should not return CliFormatted",
 		}, {
 			caseName: "Fail when Distro name is populated",
 			responseFromInspection: &pb.InspectionResults{
@@ -196,7 +196,7 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 					Distro:       "ubuntu",
 				},
 			},
-			expectErrorToContain: "Worker should not return Distro name",
+			expectErrorToContain: "worker should not return Distro name",
 		}, {
 			caseName: "Fail when missing MajorVersion",
 			responseFromInspection: &pb.InspectionResults{
@@ -214,7 +214,7 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 					DistroId:     pb.Distro_UBUNTU,
 				},
 			},
-			expectErrorToContain: "Missing MajorVersion",
+			expectErrorToContain: "missing MajorVersion",
 		}, {
 			caseName: "Fail when missing Architecture",
 			responseFromInspection: &pb.InspectionResults{
@@ -232,7 +232,7 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 					MajorVersion: "10",
 				},
 			},
-			expectErrorToContain: "Missing Architecture",
+			expectErrorToContain: "missing Architecture",
 		}, {
 			caseName: "Fail when missing DistroId",
 			responseFromInspection: &pb.InspectionResults{
@@ -250,7 +250,7 @@ func TestBootInspector_Inspect_InvalidWorkerResponses(t *testing.T) {
 					MajorVersion: "10",
 				},
 			},
-			expectErrorToContain: "Missing DistroId",
+			expectErrorToContain: "missing DistroId",
 		},
 	} {
 		t.Run(tt.caseName, func(t *testing.T) {
