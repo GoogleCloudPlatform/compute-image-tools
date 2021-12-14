@@ -84,7 +84,12 @@ func (p *defaultPlanner) plan(pd persistentDisk) (*processingPlan, error) {
 			}
 		}
 
-		if !requiresUEFI {
+		if requiresUEFI {
+			if !inspectionResults.GetUefiBootable() {
+				p.logger.User("UEFI booting was specified, but we could not detect a UEFI bootloader. " +
+					"Specifying an incorrect boot type can increase load times, or lead to boot failures.")
+			}
+		} else {
 			hybridGPTBootable := inspectionResults.GetUefiBootable() && inspectionResults.GetBiosBootable()
 			if hybridGPTBootable {
 				p.logger.User("The boot disk can boot with either BIOS or a UEFI bootloader. The default setting for booting is BIOS. " +
@@ -95,7 +100,7 @@ func (p *defaultPlanner) plan(pd persistentDisk) (*processingPlan, error) {
 	}
 
 	if osID == "" {
-		return nil, errors.New("Could not detect operating system. Please re-import with the operating system specified. " +
+		return nil, errors.New("could not detect operating system. Please re-import with the operating system specified. " +
 			"For more information, see https://cloud.google.com/compute/docs/import/importing-virtual-disks#bootable")
 	}
 

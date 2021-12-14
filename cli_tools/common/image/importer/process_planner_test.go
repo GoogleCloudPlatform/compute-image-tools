@@ -26,6 +26,7 @@ import (
 	mock_disk "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk/mocks"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
 
@@ -39,6 +40,39 @@ func Test_DefaultPlanner_Plan_SkipInspectionWhenCustomWorkflowExists(t *testing.
 
 	expectedPlan := &processingPlan{translationWorkflowPath: customWorkflow}
 	assert.Equal(t, expectedPlan, actualPlan)
+}
+
+func Test_DefaultPlanner_Plan_LogWarningWithoutErrorWhenUefiIsSpecifiedButNotDetected(t *testing.T) {
+	pd := persistentDisk{uri: "disk/uri"}
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockInspector := mock_disk.NewMockInspector(mockCtrl)
+	inspectionResults := &pb.InspectionResults{
+		OsRelease: &pb.OsRelease{
+			Distro:       "ubuntu",
+			MajorVersion: "16",
+			MinorVersion: "4",
+		},
+		UefiBootable: false,
+	}
+
+	mockInspector.EXPECT().Inspect(pd.uri).Return(inspectionResults, nil)
+
+	mockLogger := mocks.NewMockLogger(mockCtrl)
+	// Preserving the order of the calls to EXPECT() is important otherwise AnyTimes() will catch
+	// all the calls to the mockLogger and the test will fail.
+	mockLogger.EXPECT().User("UEFI booting was specified, but we could not detect a UEFI bootloader. " +
+		"Specifying an incorrect boot type can increase load times, or lead to boot failures.")
+	mockLogger.EXPECT().User(gomock.Any()).AnyTimes()
+
+	processPlanner := newProcessPlanner(ImageImportRequest{
+		UefiCompatible: true,
+		OS:             "ubuntu-1604",
+	}, mockInspector, mockLogger)
+	_, actualError := processPlanner.plan(pd)
+	assert.NoError(t, actualError)
 }
 
 func Test_DefaultPlanner_Plan_InspectionFailures(t *testing.T) {
