@@ -251,6 +251,12 @@ var basicCases = []*testCase{
 		os:                   "sles-sap-15",
 		osConfigNotSupported: true,
 		tip:                  slesOnDemandTip,
+	}, {
+		caseName:             "sles-sap-15-3-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-sap-15-3-unregistered",
+		os:                   "sles-sap-15",
+		osConfigNotSupported: true,
+		tip:                  slesOnDemandTip,
 	},
 
 	// EL
