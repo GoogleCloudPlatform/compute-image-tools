@@ -263,7 +263,9 @@ def DistroSpecific(spec: TranslateSpec):
     else:
       g.write_append(
           '/etc/yum.repos.d/google-cloud.repo', repo_sdk % el_release)
-      yum_install(g, 'google-cloud-sdk')
+      # google-cloud-sdk stopped declaring Python as a dependency
+      # in their RPM starting with version 301.
+      yum_install(g, 'google-cloud-sdk', 'python3')
     yum_install(g, 'google-compute-engine', 'google-osconfig-agent')
 
   logging.info('Updating initramfs')
