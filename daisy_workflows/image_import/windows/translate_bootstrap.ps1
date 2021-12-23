@@ -235,6 +235,20 @@ try {
   Start-Sleep -s 5
   Run-Command reg unload 'HKLM\MountedSoftware'
 
+  # Disable EMS for the first boot of translation.
+  #
+  # Azure and AWS use COM1 for EMS:
+  #   https://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/troubleshooting-sac.html
+  #   https://docs.microsoft.com/en-us/troubleshoot/azure/virtual-machines/serial-console-windows
+  #
+  # The translation scripts that run after bootstrap write to COM1. Translation fails if
+  # the EMS is listening to that port.
+  #
+  # Disabling EMS here is fine, since we re-enable it with in translate.ps1 using COM2, which is
+  # the port used by GCP:
+  #   https://cloud.google.com/compute/docs/troubleshooting/troubleshooting-using-serial-console
+  Run-Command bcdedit /store "${bcd_drive}\boot\bcd" /ems "{default}" off
+
   Write-Output 'TranslateBootstrap: Rewriting boot files.'
   Write-Output 'Translate bootstrap complete.'
 }
