@@ -1,0 +1,58 @@
+{{/*
+  Template to publish windows-server-for-containers images
+  By default this template is setup to publish to the 'gce-image-builder'
+  project, the 'environment' variable can be used to publish to 'test', 'prod',
+  or 'staging'.
+*/}}
+{
+  "Name": "windows-server-2022-dc-core-for-containers-uefi",
+  {{$work_project := `"gce-image-builder"` -}}
+  {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
+  {{$delete_after := `"24h*30*6"` -}}
+  {{if eq .environment "test" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "bct-prod-images",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- else if eq .environment "prod" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "windows-cloud",
+  "ComputeEndpoint": {{$endpoint}},
+  {{- else if eq .environment "staging" -}}
+  "WorkProject": "bct-staging-images",
+  "PublishProject": "bct-staging-images",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
+  "DeleteAfter": {{$delete_after}},
+  {{- else -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": {{$work_project}},
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- end}}
+  {{$time := trimPrefix .publish_version "v"}}
+  "Images": [
+    {
+      {{/* Version here is important because of container incompatibilities */}}
+      "Prefix": "windows-server-2022-dc-core-for-containers",
+      "Family": "windows-2022-core-for-containers",
+      "Description": "Microsoft, Windows Server, 2022 Datacenter Core for Containers, Server Core, x64 built on {{$time}}, supports Shielded VM features",
+      "Licenses": [
+        {{if eq .environment "staging" -}}
+        "projects/bct-staging-functional/global/licenses/windows-for-containers",
+        "projects/bct-staging-functional/global/licenses/windows-server-2022-dc",
+        "projects/bct-staging-functional/global/licenses/windows-server-core"
+        {{- else -}}
+        "projects/windows-cloud/global/licenses/windows-for-containers",
+        "projects/windows-cloud/global/licenses/windows-server-2022-dc",
+        "projects/windows-cloud/global/licenses/windows-server-core"
+        {{- end}}
+      ],
+      "GuestOsFeatures": [
+        "MULTI_IP_SUBNET",
+        "UEFI_COMPATIBLE",
+        "VIRTIO_SCSI_MULTIQUEUE",
+        "WINDOWS"
+      ]
+    }
+  ]
+}
