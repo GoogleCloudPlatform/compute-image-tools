@@ -19,6 +19,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"google.golang.org/api/option"
@@ -55,7 +56,6 @@ const (
 )
 
 func validateAndParseFlags(destinationURI string, sourceImage string, sourceDiskSnapshot string, labels string) (map[string]string, error) {
-
 	if err := validation.ValidateStringFlagNotEmpty(destinationURI, DestinationURIFlagKey); err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func getWorkflowPath(format string, currentExecutablePath string) string {
 	return path.ToWorkingDir(WorkflowDir+ExportAndConvertWorkflow, currentExecutablePath)
 }
 
-func buildDaisyVars(destinationURI string, sourceImage string, sourceDiskSnapshot string, format string, network string,
+func buildDaisyVars(destinationURI string, sourceImage string, sourceDiskSnapshot string, bufferDiskSizeGb int64, format string, network string,
 	subnet string, region string, computeServiceAccount string) map[string]string {
 
 	destinationURI = strings.TrimSpace(destinationURI)
@@ -106,8 +106,11 @@ func buildDaisyVars(destinationURI string, sourceImage string, sourceDiskSnapsho
 	}
 
 	if sourceDiskSnapshot != "" {
-		varMap["source_disk_snapshot"] = param.GetGlobalResourcePath(
-			"snapshots", sourceDiskSnapshot)
+		varMap["source_disk_snapshot"] = sourceDiskSnapshot //param.GetGlobalResourcePath(			"snapshots", sourceDiskSnapshot)
+	}
+
+	if bufferDiskSizeGb > 0 {
+		varMap["export_instance_disk_size"] = strconv.FormatInt(bufferDiskSizeGb, 10)
 	}
 
 	if format != "" {
@@ -166,10 +169,18 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 		return err
 	}
 
-	if err = validateImageExists(computeClient, *project, sourceImage); err != nil {
-		return err
+	var bufferDiskSizeGb int64
+	if sourceImage != "" {
+		if bufferDiskSizeGb, err = validateImageExists(computeClient, *project, sourceImage); err != nil {
+			return err
+		}
+	} else {
+		if bufferDiskSizeGb, err = validateSnapshotExists(computeClient, *project, sourceDiskSnapshot); err != nil {
+			return err
+		}
 	}
-	varMap := buildDaisyVars(destinationURI, sourceImage, sourceDiskSnapshot, format, network, subnet, *region, computeServiceAccount)
+
+	varMap := buildDaisyVars(destinationURI, sourceImage, sourceDiskSnapshot, bufferDiskSizeGb, format, network, subnet, *region, computeServiceAccount)
 
 	workflowProvider := func() (*daisy.Workflow, error) {
 		return daisy.NewFromFile(getWorkflowPath(format, currentExecutablePath))
@@ -216,14 +227,42 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 // interpreting the various permutations of specifying an image and project,
 // and we don't want to copy that here, since this is a convenience method to create
 // user-friendly messages.
-func validateImageExists(computeClient daisyCompute.Client, project string, imageName string) (err error) {
+func validateImageExists(computeClient daisyCompute.Client, project string, imageName string) (diskSizeGb int64, err error) {
+	// try to get image even before validation in case it's a valid URL,
+	// in order to obtain its size
+
 	if err := validation.ValidateImageName(imageName); err != nil {
-		return nil
+		return diskSizeGb, nil
 	}
-	_, err = computeClient.GetImage(project, imageName)
+	image, err := computeClient.GetImage(project, imageName)
 	if err != nil {
 		log.Printf("Error when fetching image %q: %q.", imageName, err)
-		return daisy.Errf("Image %q not found", imageName)
+		return diskSizeGb, daisy.Errf("Image %q not found", imageName)
 	}
-	return nil
+
+	return image.DiskSizeGb, nil
+}
+
+// validateSnapshotExists checks whether snapshotName exists in the specified project.
+//
+// This validates when snapshotName is a valid snapshot name, and skips validation if
+// the snapshotName is a URI, or something that's not recognized as a snapshot.
+// The simplistic validation avoids false negatives; Daisy has robust logic for
+// interpreting the various permutations of specifying a snapshot and project,
+// and we don't want to copy that here, since this is a convenience method to create
+// user-friendly messages.
+func validateSnapshotExists(computeClient daisyCompute.Client, project string, snapshotName string) (diskSizeGb int64, err error) {
+	// try to get snapshot even before validation in case it's a valid URL,
+	// in order to obtain its size
+
+	if err := validation.ValidateSnapshotName(snapshotName); err != nil {
+		return diskSizeGb, nil
+	}
+	snapshot, err := computeClient.GetSnapshot(project, snapshotName)
+	if err != nil {
+		log.Printf("Error when fetching snapshot %q: %q.", snapshotName, err)
+		return diskSizeGb, daisy.Errf("Snapshot %q not found", snapshotName)
+	}
+
+	return snapshot.DiskSizeGb, nil
 }
