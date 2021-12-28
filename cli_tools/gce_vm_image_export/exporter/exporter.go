@@ -106,7 +106,7 @@ func buildDaisyVars(destinationURI string, sourceImage string, sourceDiskSnapsho
 	}
 
 	if sourceDiskSnapshot != "" {
-		varMap["source_disk_snapshot"] = sourceDiskSnapshot //param.GetGlobalResourcePath(			"snapshots", sourceDiskSnapshot)
+		varMap["source_disk_snapshot"] = param.GetGlobalResourcePath("snapshots", sourceDiskSnapshot)
 	}
 
 	if bufferDiskSizeGb > 0 {
