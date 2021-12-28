@@ -142,7 +142,7 @@ func TestBuildDaisyVarsWithSimpleSnapshotName(t *testing.T) {
 	got := buildDaisyVars(
 		ws+destinationURI+ws,
 		ws+""+ws,
-		ws+"aSnapshot"+ws,
+		ws+"global/snapshots/aSnapshot"+ws,
 		0,
 		ws+format+ws,
 		ws+network+ws,
