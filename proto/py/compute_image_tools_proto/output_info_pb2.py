@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=b'Z\004.;pb',
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x11output_info.proto\x1a\rinspect.proto\"\xbe\x03\n\nOutputInfo\x12\x17\n\x0fsources_size_gb\x18\x01 \x03(\x03\x12\x17\n\x0ftargets_size_gb\x18\x02 \x03(\x03\x12\x17\n\x0f\x66\x61ilure_message\x18\x03 \x01(\t\x12,\n$failure_message_without_privacy_info\x18\x04 \x01(\t\x12\x16\n\x0eserial_outputs\x18\x05 \x03(\t\x12\x1a\n\x12import_file_format\x18\x06 \x01(\t\x12 \n\x18\x64\x65tected_sources_size_gb\x18\x07 \x03(\x03\x12\x16\n\x0einflation_type\x18\x08 \x01(\t\x12\x19\n\x11inflation_time_ms\x18\t \x03(\x03\x12 \n\x18shadow_inflation_time_ms\x18\n \x03(\x03\x12 \n\x18shadow_disk_match_result\x18\x0b \x01(\t\x12 \n\x18is_uefi_compatible_image\x18\x0c \x01(\x08\x12\x18\n\x10is_uefi_detected\x18\r \x01(\x08\x12.\n\x12inspection_results\x18\x0e \x01(\x0b\x32\x12.InspectionResultsB\x06Z\x04.;pbb\x06proto3'
+  serialized_pb=b'\n\x11output_info.proto\x1a\rinspect.proto\"\xe1\x03\n\nOutputInfo\x12\x17\n\x0fsources_size_gb\x18\x01 \x03(\x03\x12\x17\n\x0ftargets_size_gb\x18\x02 \x03(\x03\x12\x17\n\x0f\x66\x61ilure_message\x18\x03 \x01(\t\x12,\n$failure_message_without_privacy_info\x18\x04 \x01(\t\x12\x16\n\x0eserial_outputs\x18\x05 \x03(\t\x12\x1a\n\x12import_file_format\x18\x06 \x01(\t\x12 \n\x18\x64\x65tected_sources_size_gb\x18\x07 \x03(\x03\x12\x16\n\x0einflation_type\x18\x08 \x01(\t\x12\x19\n\x11inflation_time_ms\x18\t \x03(\x03\x12 \n\x18shadow_inflation_time_ms\x18\n \x03(\x03\x12 \n\x18shadow_disk_match_result\x18\x0b \x01(\t\x12 \n\x18is_uefi_compatible_image\x18\x0c \x01(\x08\x12\x18\n\x10is_uefi_detected\x18\r \x01(\x08\x12.\n\x12inspection_results\x18\x0e \x01(\x0b\x32\x12.InspectionResults\x12!\n\x19inflation_fallback_reason\x18\x0f \x01(\tB\x06Z\x04.;pbb\x06proto3'
   ,
   dependencies=[inspect__pb2.DESCRIPTOR,])
 
@@ -133,6 +133,13 @@ _OUTPUTINFO = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='inflation_fallback_reason', full_name='OutputInfo.inflation_fallback_reason', index=14,
+      number=15, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -146,7 +153,7 @@ _OUTPUTINFO = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=37,
-  serialized_end=483,
+  serialized_end=518,
 )
 
 _OUTPUTINFO.fields_by_name['inspection_results'].message_type = inspect__pb2._INSPECTIONRESULTS
