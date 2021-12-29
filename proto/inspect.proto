@@ -48,6 +48,8 @@ enum Distro {
   AMAZON = 4003;
   ORACLE = 4004;
   ROCKY = 4005;
+  ARCH = 4006;
+  CLEAR = 4007;
 }
 
 enum Architecture {

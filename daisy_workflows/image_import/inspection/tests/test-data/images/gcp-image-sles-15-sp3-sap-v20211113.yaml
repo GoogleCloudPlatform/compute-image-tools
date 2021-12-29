@@ -1,0 +1,17 @@
+source: GCP image 'sles-15-sp3-sap-v20211113'
+expected:
+  distro: sles-sap
+  major: 15
+  minor: 3
+files:
+  /etc/os-release: |
+    NAME="SLES"
+    VERSION="15-SP3"
+    VERSION_ID="15.3"
+    PRETTY_NAME="SUSE Linux Enterprise Server 15 SP3"
+    ID="sles"
+    ID_LIKE="suse"
+    ANSI_COLOR="0;32"
+    CPE_NAME="cpe:/o:suse:sles:15:sp3"
+    VARIANT_ID="sles-sap"
+  /etc/products.d/SLES_SAP.prod: <?xml version="1.0" encoding="UTF-8"?>
