@@ -11,6 +11,27 @@ import typing_extensions
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor = ...
 
+class _Distro:
+    ValueType = typing.NewType('ValueType', builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+class _DistroEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_Distro.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor = ...
+    DISTRO_UNKNOWN: Distro.ValueType = ...  # 0
+    WINDOWS: Distro.ValueType = ...  # 1000
+    DEBIAN: Distro.ValueType = ...  # 2000
+    UBUNTU: Distro.ValueType = ...  # 2001
+    KALI: Distro.ValueType = ...  # 2002
+    OPENSUSE: Distro.ValueType = ...  # 3000
+    SLES: Distro.ValueType = ...  # 3001
+    SLES_SAP: Distro.ValueType = ...  # 3002
+    FEDORA: Distro.ValueType = ...  # 4000
+    RHEL: Distro.ValueType = ...  # 4001
+    CENTOS: Distro.ValueType = ...  # 4002
+    AMAZON: Distro.ValueType = ...  # 4003
+    ORACLE: Distro.ValueType = ...  # 4004
+    ROCKY: Distro.ValueType = ...  # 4005
+    ARCH: Distro.ValueType = ...  # 5000
+    CLEAR: Distro.ValueType = ...  # 6000
 class Distro(_Distro, metaclass=_DistroEnumTypeWrapper):
     """Distro denotes a product line of operating systems, using the following
     test:
@@ -27,59 +48,40 @@ class Distro(_Distro, metaclass=_DistroEnumTypeWrapper):
          - GCE licensing (such as BYOL)
     """
     pass
-class _Distro:
-    V = typing.NewType('V', builtins.int)
-class _DistroEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_Distro.V], builtins.type):
-    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor = ...
-    DISTRO_UNKNOWN = Distro.V(0)
-    WINDOWS = Distro.V(1000)
-    DEBIAN = Distro.V(2000)
-    UBUNTU = Distro.V(2001)
-    KALI = Distro.V(2002)
-    OPENSUSE = Distro.V(3000)
-    SLES = Distro.V(3001)
-    SLES_SAP = Distro.V(3002)
-    FEDORA = Distro.V(4000)
-    RHEL = Distro.V(4001)
-    CENTOS = Distro.V(4002)
-    AMAZON = Distro.V(4003)
-    ORACLE = Distro.V(4004)
-    ROCKY = Distro.V(4005)
-    ARCH = Distro.V(4006)
-    CLEAR = Distro.V(4007)
 
-DISTRO_UNKNOWN = Distro.V(0)
-WINDOWS = Distro.V(1000)
-DEBIAN = Distro.V(2000)
-UBUNTU = Distro.V(2001)
-KALI = Distro.V(2002)
-OPENSUSE = Distro.V(3000)
-SLES = Distro.V(3001)
-SLES_SAP = Distro.V(3002)
-FEDORA = Distro.V(4000)
-RHEL = Distro.V(4001)
-CENTOS = Distro.V(4002)
-AMAZON = Distro.V(4003)
-ORACLE = Distro.V(4004)
-ROCKY = Distro.V(4005)
-ARCH = Distro.V(4006)
-CLEAR = Distro.V(4007)
+DISTRO_UNKNOWN: Distro.ValueType = ...  # 0
+WINDOWS: Distro.ValueType = ...  # 1000
+DEBIAN: Distro.ValueType = ...  # 2000
+UBUNTU: Distro.ValueType = ...  # 2001
+KALI: Distro.ValueType = ...  # 2002
+OPENSUSE: Distro.ValueType = ...  # 3000
+SLES: Distro.ValueType = ...  # 3001
+SLES_SAP: Distro.ValueType = ...  # 3002
+FEDORA: Distro.ValueType = ...  # 4000
+RHEL: Distro.ValueType = ...  # 4001
+CENTOS: Distro.ValueType = ...  # 4002
+AMAZON: Distro.ValueType = ...  # 4003
+ORACLE: Distro.ValueType = ...  # 4004
+ROCKY: Distro.ValueType = ...  # 4005
+ARCH: Distro.ValueType = ...  # 5000
+CLEAR: Distro.ValueType = ...  # 6000
 global___Distro = Distro
 
 
+class _Architecture:
+    ValueType = typing.NewType('ValueType', builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+class _ArchitectureEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_Architecture.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor = ...
+    ARCHITECTURE_UNKNOWN: Architecture.ValueType = ...  # 0
+    X86: Architecture.ValueType = ...  # 1
+    X64: Architecture.ValueType = ...  # 2
 class Architecture(_Architecture, metaclass=_ArchitectureEnumTypeWrapper):
     pass
-class _Architecture:
-    V = typing.NewType('V', builtins.int)
-class _ArchitectureEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_Architecture.V], builtins.type):
-    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor = ...
-    ARCHITECTURE_UNKNOWN = Architecture.V(0)
-    X86 = Architecture.V(1)
-    X64 = Architecture.V(2)
 
-ARCHITECTURE_UNKNOWN = Architecture.V(0)
-X86 = Architecture.V(1)
-X64 = Architecture.V(2)
+ARCHITECTURE_UNKNOWN: Architecture.ValueType = ...  # 0
+X86: Architecture.ValueType = ...  # 1
+X64: Architecture.ValueType = ...  # 2
 global___Architecture = Architecture
 
 
@@ -120,8 +122,8 @@ class OsRelease(google.protobuf.message.Message):
       - OpenSUSE Tumbleweed: <empty>
     """
 
-    architecture: global___Architecture.V = ...
-    distro_id: global___Distro.V = ...
+    architecture: global___Architecture.ValueType = ...
+    distro_id: global___Distro.ValueType = ...
     """Enumerated representation of the distro. Prefer this for
     programmatic usage.
     """
@@ -132,8 +134,8 @@ class OsRelease(google.protobuf.message.Message):
         distro : typing.Text = ...,
         major_version : typing.Text = ...,
         minor_version : typing.Text = ...,
-        architecture : global___Architecture.V = ...,
-        distro_id : global___Distro.V = ...,
+        architecture : global___Architecture.ValueType = ...,
+        distro_id : global___Distro.ValueType = ...,
         ) -> None: ...
     def ClearField(self, field_name: typing_extensions.Literal["architecture",b"architecture","cli_formatted",b"cli_formatted","distro",b"distro","distro_id",b"distro_id","major_version",b"major_version","minor_version",b"minor_version"]) -> None: ...
 global___OsRelease = OsRelease
@@ -143,29 +145,30 @@ class InspectionResults(google.protobuf.message.Message):
     of the guest image.
     """
     DESCRIPTOR: google.protobuf.descriptor.Descriptor = ...
+    class _ErrorWhen:
+        ValueType = typing.NewType('ValueType', builtins.int)
+        V: typing_extensions.TypeAlias = ValueType
+    class _ErrorWhenEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_ErrorWhen.ValueType], builtins.type):
+        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor = ...
+        NO_ERROR: InspectionResults.ErrorWhen.ValueType = ...  # 0
+        STARTING_WORKER: InspectionResults.ErrorWhen.ValueType = ...  # 100
+        RUNNING_WORKER: InspectionResults.ErrorWhen.ValueType = ...  # 101
+        MOUNTING_GUEST: InspectionResults.ErrorWhen.ValueType = ...  # 200
+        INSPECTING_OS: InspectionResults.ErrorWhen.ValueType = ...  # 201
+        INSPECTING_BOOTLOADER: InspectionResults.ErrorWhen.ValueType = ...  # 202
+        DECODING_WORKER_RESPONSE: InspectionResults.ErrorWhen.ValueType = ...  # 300
+        INTERPRETING_INSPECTION_RESULTS: InspectionResults.ErrorWhen.ValueType = ...  # 301
     class ErrorWhen(_ErrorWhen, metaclass=_ErrorWhenEnumTypeWrapper):
         pass
-    class _ErrorWhen:
-        V = typing.NewType('V', builtins.int)
-    class _ErrorWhenEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_ErrorWhen.V], builtins.type):
-        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor = ...
-        NO_ERROR = InspectionResults.ErrorWhen.V(0)
-        STARTING_WORKER = InspectionResults.ErrorWhen.V(100)
-        RUNNING_WORKER = InspectionResults.ErrorWhen.V(101)
-        MOUNTING_GUEST = InspectionResults.ErrorWhen.V(200)
-        INSPECTING_OS = InspectionResults.ErrorWhen.V(201)
-        INSPECTING_BOOTLOADER = InspectionResults.ErrorWhen.V(202)
-        DECODING_WORKER_RESPONSE = InspectionResults.ErrorWhen.V(300)
-        INTERPRETING_INSPECTION_RESULTS = InspectionResults.ErrorWhen.V(301)
 
-    NO_ERROR = InspectionResults.ErrorWhen.V(0)
-    STARTING_WORKER = InspectionResults.ErrorWhen.V(100)
-    RUNNING_WORKER = InspectionResults.ErrorWhen.V(101)
-    MOUNTING_GUEST = InspectionResults.ErrorWhen.V(200)
-    INSPECTING_OS = InspectionResults.ErrorWhen.V(201)
-    INSPECTING_BOOTLOADER = InspectionResults.ErrorWhen.V(202)
-    DECODING_WORKER_RESPONSE = InspectionResults.ErrorWhen.V(300)
-    INTERPRETING_INSPECTION_RESULTS = InspectionResults.ErrorWhen.V(301)
+    NO_ERROR: InspectionResults.ErrorWhen.ValueType = ...  # 0
+    STARTING_WORKER: InspectionResults.ErrorWhen.ValueType = ...  # 100
+    RUNNING_WORKER: InspectionResults.ErrorWhen.ValueType = ...  # 101
+    MOUNTING_GUEST: InspectionResults.ErrorWhen.ValueType = ...  # 200
+    INSPECTING_OS: InspectionResults.ErrorWhen.ValueType = ...  # 201
+    INSPECTING_BOOTLOADER: InspectionResults.ErrorWhen.ValueType = ...  # 202
+    DECODING_WORKER_RESPONSE: InspectionResults.ErrorWhen.ValueType = ...  # 300
+    INTERPRETING_INSPECTION_RESULTS: InspectionResults.ErrorWhen.ValueType = ...  # 301
 
     OS_RELEASE_FIELD_NUMBER: builtins.int
     BIOS_BOOTABLE_FIELD_NUMBER: builtins.int
@@ -191,7 +194,7 @@ class InspectionResults(google.protobuf.message.Message):
     the root directory ("/") of `os_release`.
     """
 
-    error_when: global___InspectionResults.ErrorWhen.V = ...
+    error_when: global___InspectionResults.ErrorWhen.ValueType = ...
     """If inspection is not successful, when the error occurred.
 
     Success is independent of whether results were found. For example,
@@ -213,7 +216,7 @@ class InspectionResults(google.protobuf.message.Message):
         bios_bootable : builtins.bool = ...,
         uefi_bootable : builtins.bool = ...,
         root_fs : typing.Text = ...,
-        error_when : global___InspectionResults.ErrorWhen.V = ...,
+        error_when : global___InspectionResults.ErrorWhen.ValueType = ...,
         elapsed_time_ms : builtins.int = ...,
         os_count : builtins.int = ...,
         ) -> None: ...
