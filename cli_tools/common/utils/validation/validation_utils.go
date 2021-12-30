@@ -28,22 +28,23 @@ import (
 
 const (
 	rfc1035LabelRegexpStr = "[A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9]"
-	imageNameStr          = "^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$"
+	imageNameStr          = "[a-z]([-a-z0-9]{0,61}[a-z0-9])?"
 	diskSnapshotNameStr   = "^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$"
 
 	// projectID: "The unique, user-assigned ID of the Project. It must be 6 to 30
 	// lowercase letters,  digits, or hyphens. It must start with a letter.
 	// Trailing hyphens are prohibited."
 	// -- https://cloud.google.com/resource-manager/reference/rest/v1/projects
-	projectIDStr = "^(google\\.com\\:)?[a-z][-a-z0-9]{4,28}[a-z0-9]$" //
+	projectIDStr = "(google\\.com\\:)?[a-z][-a-z0-9]{4,28}[a-z0-9]" //
 )
 
 var (
 	rfc1035LabelRegexp     = regexp.MustCompile(rfc1035LabelRegexpStr)
 	fqdnRegexp             = regexp.MustCompile(fmt.Sprintf("^((%v)\\.)+(%v)$", rfc1035LabelRegexpStr, rfc1035LabelRegexpStr))
-	imageNameRegexp        = regexp.MustCompile(imageNameStr)
+	imageNameRegexp        = regexp.MustCompile(fmt.Sprintf("^%v$", imageNameStr))
+	imageUriRegexp         = regexp.MustCompile(fmt.Sprintf("^projects/(%v)/global/images/(%v)$", projectIDStr, imageNameStr))
 	diskSnapshotNameRegexp = regexp.MustCompile(diskSnapshotNameStr)
-	projectIDRegexp        = regexp.MustCompile(projectIDStr)
+	projectIDRegexp        = regexp.MustCompile(fmt.Sprintf("^%v$", projectIDStr))
 )
 
 // ValidateStringFlagNotEmpty returns error with error message stating field must be provided if
@@ -97,6 +98,17 @@ func ValidateImageName(value string) error {
 		return daisy.Errf("Image name `%v` must conform to https://cloud.google.com/compute/docs/reference/rest/v1/images", value)
 	}
 	return nil
+}
+
+// ValidateImageUri validates whether a string is a valid image URI, as defined by
+// <https://cloud.google.com/compute/docs/reference/rest/v1/images> and returns
+// image name and project ID if valid.
+func ValidateImageUri(value string) (project string, imageName string, err error) {
+	if !imageUriRegexp.MatchString(value) {
+		return imageName, project, daisy.Errf("Image URI `%v` must conform to https://cloud.google.com/compute/docs/reference/rest/v1/images", value)
+	}
+	match := imageUriRegexp.FindStringSubmatch(value)
+	return match[1], match[3], nil
 }
 
 // ValidateSnapshotName validates whether a string is a valid disk snapshot name, as defined by
