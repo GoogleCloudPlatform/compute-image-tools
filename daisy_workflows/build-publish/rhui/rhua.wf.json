@@ -1,9 +1,7 @@
 {
   "Name": "build-rhua",
   "DefaultTimeout": "60m",
-  "Project": "gce-image-builder",
   "Zone": "us-central1-b",
-  "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
   "Vars": {
     "build_date": {
       "Value": "${TIMESTAMP}",
@@ -16,10 +14,18 @@
     "gcs_url": {
       "Required": true,
       "Description": "The GCS path for the exported image tarball."
+    },
+    "instance_service_account": {
+      "Required": true,
+      "Description": "Service account that will be used by the created instance"
     }
   },
   "Sources": {
-    "install_rhua.sh": "./install_rhua.sh"
+    "install_rhua.sh": "./install_rhua.sh",
+    "fstab": "./fstab",
+    "answers.yaml": "./answers.yaml",
+    "reponames.txt": "./reponames.txt",
+    "depend-nfs.conf": "./depend-nfs.conf"
   },
   "Steps": {
     "create-disk": {
@@ -39,10 +45,15 @@
           "Disks": [{"Source": "disk-rhua"}],
           "MachineType": "e2-standard-4",
           "Metadata": {
-            "blah": "blahblah"
+            "block-project-ssh-keys": "true"
           },
-          "Scopes": ["maybe", "https://www.googleapis.com/auth/devstorage.read_write"],
-          "StartupScript": "install_rhua.sh"
+          "StartupScript": "install_rhua.sh",
+          "ServiceAccounts": [
+            {
+              "Email": "${instance_service_account}",
+              "Scopes": ["https://www.googleapis.com/auth/cloud-platform"]
+            }
+          ]
         }
       ]
     },
@@ -60,6 +71,11 @@
         }
       ]
     },
+    "cleanup-inst-rhua": {
+      "DeleteResources": {
+        "Instances": ["inst-rhua"]
+      }
+    },
     "export-image": {
       "Timeout": "60m",
       "IncludeWorkflow": {
@@ -72,7 +88,8 @@
     }
   },
   "Dependencies": {
-    "export-image": ["wait-install-rhua"],
+    "export-image": ["cleanup-inst-rhua"],
+    "cleanup-inst-rhua": ["wait-install-rhua"],
     "wait-install-rhua": ["install-rhua"],
     "install-rhua": ["create-disk"]
   }

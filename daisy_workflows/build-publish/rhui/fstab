@@ -1,0 +1,3 @@
+
+# NFS share for RHUA node. This is a region-local DNS entry.
+nfs.rhui.google:/rhui /var/lib/rhui/remote_share nfs rw 0 0
