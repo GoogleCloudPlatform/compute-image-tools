@@ -121,7 +121,7 @@ func TestValidateImageName_ExpectInvalid(t *testing.T) {
 	}
 }
 
-func TestValidateImageUri_ExpectValid(t *testing.T) {
+func TestValidateImageURI_ExpectValid(t *testing.T) {
 	// Allowable name format: https://cloud.google.com/compute/docs/reference/rest/v1/images
 	for _, testCase := range [][]string{
 		{"projects/a-project/global/images/dashes-allowed-inside", "a-project", "dashes-allowed-inside"},
@@ -129,7 +129,7 @@ func TestValidateImageUri_ExpectValid(t *testing.T) {
 		{"projects/long-project-name-less-than-28/global/images/o-----equal-to-max-63-----------------------------------------o", "long-project-name-less-than-28", "o-----equal-to-max-63-----------------------------------------o"},
 	} {
 		t.Run(testCase[0], func(t *testing.T) {
-			project, imageName, err := ValidateImageUri(testCase[0])
+			project, imageName, err := ValidateImageURI(testCase[0])
 			assert.NoError(t, err)
 			assert.Equal(t, testCase[1], project)
 			assert.Equal(t, testCase[2], imageName)
@@ -137,9 +137,9 @@ func TestValidateImageUri_ExpectValid(t *testing.T) {
 	}
 }
 
-func TestValidateImageUri_ExpectInvalid(t *testing.T) {
+func TestValidateImageURI_ExpectInvalid(t *testing.T) {
 	// Allowable name format: https://cloud.google.com/compute/docs/reference/rest/v1/images
-	for _, imageUri := range []string{
+	for _, imageURI := range []string{
 		"not-a-uri",
 		"projects/a-project/global/images/-no-starting-dash",
 		"projects/a-project/global/images/no-ending-dash-",
@@ -154,18 +154,18 @@ func TestValidateImageUri_ExpectInvalid(t *testing.T) {
 		"notgoogle.com:test-project/a-project/global/images/image",
 		"o-----longer-than-max-30------o/a-project/global/images/image",
 	} {
-		t.Run(imageUri, func(t *testing.T) {
-			imageName, project, err := ValidateImageUri(imageUri)
+		t.Run(imageURI, func(t *testing.T) {
+			imageName, project, err := ValidateImageURI(imageURI)
 
 			assert.Empty(t, imageName)
 			assert.Empty(t, project)
 
 			assert.NotNil(t, err)
 			assert.Regexp(t, "Image URI .* must conform to https://cloud.google.com/compute/docs/reference/rest/v1/images", err)
-			assert.Contains(t, err.Error(), imageUri, "Raw error should include image's URI")
+			assert.Contains(t, err.Error(), imageURI, "Raw error should include image's URI")
 			realError := err.(daisy.DError)
 			for _, anonymizedErrs := range realError.AnonymizedErrs() {
-				assert.NotContains(t, anonymizedErrs, imageUri,
+				assert.NotContains(t, anonymizedErrs, imageURI,
 					"Anonymized error should not contain image's name")
 			}
 

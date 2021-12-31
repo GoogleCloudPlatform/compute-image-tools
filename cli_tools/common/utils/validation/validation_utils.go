@@ -42,7 +42,7 @@ var (
 	rfc1035LabelRegexp     = regexp.MustCompile(rfc1035LabelRegexpStr)
 	fqdnRegexp             = regexp.MustCompile(fmt.Sprintf("^((%v)\\.)+(%v)$", rfc1035LabelRegexpStr, rfc1035LabelRegexpStr))
 	imageNameRegexp        = regexp.MustCompile(fmt.Sprintf("^%v$", imageNameStr))
-	imageUriRegexp         = regexp.MustCompile(fmt.Sprintf("^projects/(%v)/global/images/(%v)$", projectIDStr, imageNameStr))
+	imageURIRegexp         = regexp.MustCompile(fmt.Sprintf("^projects/(%v)/global/images/(%v)$", projectIDStr, imageNameStr))
 	diskSnapshotNameRegexp = regexp.MustCompile(diskSnapshotNameStr)
 	projectIDRegexp        = regexp.MustCompile(fmt.Sprintf("^%v$", projectIDStr))
 )
@@ -100,14 +100,14 @@ func ValidateImageName(value string) error {
 	return nil
 }
 
-// ValidateImageUri validates whether a string is a valid image URI, as defined by
+// ValidateImageURI validates whether a string is a valid image URI, as defined by
 // <https://cloud.google.com/compute/docs/reference/rest/v1/images> and returns
 // image name and project ID if valid.
-func ValidateImageUri(value string) (project string, imageName string, err error) {
-	if !imageUriRegexp.MatchString(value) {
+func ValidateImageURI(value string) (project string, imageName string, err error) {
+	if !imageURIRegexp.MatchString(value) {
 		return imageName, project, daisy.Errf("Image URI `%v` must conform to https://cloud.google.com/compute/docs/reference/rest/v1/images", value)
 	}
-	match := imageUriRegexp.FindStringSubmatch(value)
+	match := imageURIRegexp.FindStringSubmatch(value)
 	return match[1], match[3], nil
 }
 
