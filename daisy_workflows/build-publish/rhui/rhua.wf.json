@@ -21,11 +21,8 @@
     }
   },
   "Sources": {
-    "install_rhua.sh": "./install_rhua.sh",
-    "fstab": "./fstab",
-    "answers.yaml": "./answers.yaml",
-    "reponames.txt": "./reponames.txt",
-    "depend-nfs.conf": "./depend-nfs.conf"
+    "rhua_artifacts": "./rhua_artifacts",
+    "install_rhua.sh": "./install_rhua.sh"
   },
   "Steps": {
     "create-disk": {
@@ -33,7 +30,6 @@
         {
           "Name": "disk-rhua",
           "SourceImage": "projects/rhel-cloud/global/images/family/rhel-8",
-          "SizeGb": "50",
           "Type": "pd-ssd"
         }
       ]
@@ -45,7 +41,8 @@
           "Disks": [{"Source": "disk-rhua"}],
           "MachineType": "e2-standard-4",
           "Metadata": {
-            "block-project-ssh-keys": "true"
+            "block-project-ssh-keys": "true",
+            "enable-oslogin": "false"
           },
           "StartupScript": "install_rhua.sh",
           "ServiceAccounts": [
