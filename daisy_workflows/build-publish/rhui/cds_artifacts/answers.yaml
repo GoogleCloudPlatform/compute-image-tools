@@ -1,0 +1,11 @@
+cds_extra_rpms:
+- python3-gunicorn
+- python3-m2crypto
+- rhui-cds-plugin-authorizer
+- rhui-cds-plugin-authorizer-cert
+- rhui-cds-plugin-fetcher
+- rhui-cds-plugin-mirror
+execute_all: true
+remote_fs_mountpoint: /var/lib/rhui/remote_share
+remote_fs_server: nfs.rhui.google:/rhui
+remote_fs_type: nfs

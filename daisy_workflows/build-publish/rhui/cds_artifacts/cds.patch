@@ -1,0 +1,104 @@
+diff -Naur playbooks/cds-register.yml playbooks.new/cds-register.yml
+--- playbooks/cds-register.yml	2021-11-22 09:29:37.000000000 +0000
++++ playbooks.new/cds-register.yml	2022-01-02 08:49:53.281980390 +0000
+@@ -3,7 +3,8 @@
+ 
+ - name: Registering a CDS instance
+   hosts: all
+-  gather_facts: false
++  connection: local
++  gather_facts: true
+   become: true
+ 
+   vars:
+@@ -16,10 +17,6 @@
+ 
+   tasks:
+ 
+-    - name: Include vars defined in Python layer
+-      include_vars:
+-        file: "{{ lookup('env', 'ANSIBLE_VARS_FILE') }}"
+-
+     - name: Install nfs-utils
+       when: 'execute_all and "nfs" in remote_fs_type'
+       yum:
+@@ -45,7 +42,7 @@
+         path: "{{ remote_fs_mountpoint }}"
+         src: "{{ remote_fs_server }}"
+         fstype: "{{ remote_fs_type }}"
+-        state: mounted
++        state: present
+ 
+     - name: Install nginx
+       when: execute_all
+@@ -76,7 +73,7 @@
+     - name: Provide general RHUI configuration
+       when: execute_all
+       ansible.builtin.copy:
+-        src: /etc/rhui/rhui-tools.conf
++        src: "{{ rhui_tools_conf }}"
+         dest: /etc/rhui/rhui-tools.conf
+         owner: root
+         group: root
+@@ -86,7 +83,7 @@
+       when: execute_all
+       ansible.builtin.copy:
+         src: /usr/bin/rhui-services-restart
+-        dest: /usr/bin/rhui-services-restart
++        dest: /usr/bin/rhui-services-restart.bak
+         owner: root
+         group: root
+         mode: '0755'
+@@ -111,7 +108,7 @@
+ 
+     - name: Copy ca.crt
+       ansible.builtin.copy:
+-        src: /etc/pki/rhui/certs/ca.crt
++        src: "{{ user_supplied_ca_crt }}"
+         dest: /etc/pki/rhui/certs/ca.crt
+         owner: root
+         group: root
+@@ -136,28 +133,21 @@
+         state: restarted
+       loop: "{{ gunicorn_services }}"
+ 
+-    - name: Generate SSL certificate private key
+-      community.crypto.openssl_privatekey:
+-        path: "/etc/pki/rhui/certs/{{ inventory_hostname }}.key"
+-
+-    - name: Generate SSL certificate signing request
+-      community.crypto.openssl_csr:
+-        path: "/etc/pki/rhui/certs/{{ inventory_hostname }}.csr"
+-        privatekey_path: "/etc/pki/rhui/certs/{{ inventory_hostname }}.key"
+-        C: US
+-        ST: NC
+-        O: Red Hat Update Infrastructure
+-        CN: "{{ inventory_hostname }}"
+-        subject_alt_name: "{{ haproxies | map(attribute='hostname') | list | union(host_list) | union( [ lb_hostname ] ) | map('regex_replace', '^', 'DNS:') | list }}"
+-
+-    - name: Generate SSL certificate for NginX
+-      community.crypto.x509_certificate:
+-        path: "/etc/pki/rhui/certs/{{ inventory_hostname }}.crt"
+-        csr_path: "/etc/pki/rhui/certs/{{ inventory_hostname }}.csr"
+-        provider: ownca
+-        ownca_path: /etc/pki/rhui/certs/ca.crt
+-        ownca_privatekey_content: "{{ ca_key }}"
+-        ownca_not_after: "+{{ cds_certs_expiration }}d"
++    - name: Copy TLS key
++      ansible.builtin.copy:
++        src: "{{ user_supplied_tls_key }}"
++        dest: /etc/pki/rhui/certs/{{ inventory_hostname }}.key
++        owner: root
++        group: root
++        mode: '0600'
++
++    - name: Copy TLS cert
++      ansible.builtin.copy:
++        src: "{{ user_supplied_tls_crt }}"
++        dest: /etc/pki/rhui/certs/{{ inventory_hostname }}.crt
++        owner: root
++        group: root
++        mode: '0644'
+ 
+     - name: Provide NginX general configuration
+       ansible.builtin.template:
