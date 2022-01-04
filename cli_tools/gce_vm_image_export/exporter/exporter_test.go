@@ -20,6 +20,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	v1 "google.golang.org/api/compute/v1"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
@@ -80,6 +81,7 @@ func TestBuildDaisyVarsWithoutFormatConversion(t *testing.T) {
 		ws+destinationURI+ws,
 		ws+sourceImage+ws,
 		ws+sourceDiskSnapshot+ws,
+		15,
 		ws+format+ws,
 		ws+network+ws,
 		ws+subnet+ws,
@@ -90,7 +92,8 @@ func TestBuildDaisyVarsWithoutFormatConversion(t *testing.T) {
 	assert.Equal(t, "gs://bucket/exported_image", got["destination"])
 	assert.Equal(t, "global/networks/aNetwork", got["export_network"])
 	assert.Equal(t, "regions/aRegion/subnetworks/aSubnet", got["export_subnet"])
-	assert.Equal(t, 4, len(got))
+	assert.Equal(t, "15", got["export_instance_disk_size"])
+	assert.Equal(t, 5, len(got))
 }
 
 func TestBuildDaisyVarsWithFormatConversion(t *testing.T) {
@@ -100,6 +103,7 @@ func TestBuildDaisyVarsWithFormatConversion(t *testing.T) {
 		ws+destinationURI+ws,
 		ws+sourceImage+ws,
 		ws+sourceDiskSnapshot+ws,
+		15,
 		ws+"vmdk"+ws,
 		ws+network+ws,
 		ws+subnet+ws,
@@ -111,7 +115,8 @@ func TestBuildDaisyVarsWithFormatConversion(t *testing.T) {
 	assert.Equal(t, "vmdk", got["format"])
 	assert.Equal(t, "global/networks/aNetwork", got["export_network"])
 	assert.Equal(t, "regions/aRegion/subnetworks/aSubnet", got["export_subnet"])
-	assert.Equal(t, 5, len(got))
+	assert.Equal(t, "15", got["export_instance_disk_size"])
+	assert.Equal(t, 6, len(got))
 }
 
 func TestBuildDaisyVarsWithSimpleImageName(t *testing.T) {
@@ -121,6 +126,7 @@ func TestBuildDaisyVarsWithSimpleImageName(t *testing.T) {
 		ws+destinationURI+ws,
 		ws+"anImage"+ws,
 		ws+""+ws,
+		0,
 		ws+format+ws,
 		ws+network+ws,
 		ws+subnet+ws,
@@ -136,7 +142,8 @@ func TestBuildDaisyVarsWithSimpleSnapshotName(t *testing.T) {
 	got := buildDaisyVars(
 		ws+destinationURI+ws,
 		ws+""+ws,
-		ws+"aSnapshot"+ws,
+		ws+"global/snapshots/aSnapshot"+ws,
+		0,
 		ws+format+ws,
 		ws+network+ws,
 		ws+subnet+ws,
@@ -150,7 +157,7 @@ func TestBuildDaisyVarsWithComputeServiceAccount(t *testing.T) {
 	resetArgs()
 	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000"
 	got := buildDaisyVars(
-		"", "", "", "", "", "", "",
+		"", "", "", 0, "", "", "", "",
 		ws+"account1"+ws)
 
 	assert.Equal(t, "account1", got["compute_service_account"])
@@ -160,7 +167,7 @@ func TestBuildDaisyVarsWithoutComputeServiceAccount(t *testing.T) {
 	resetArgs()
 	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000"
 	got := buildDaisyVars(
-		"", "", "", "", "", "", "",
+		"", "", "", 0, "", "", "", "",
 		ws)
 
 	_, hasVar := got["compute_service_account"]
@@ -171,17 +178,20 @@ func TestValidateImageExists_ReturnsNoError_WhenImageFound(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
-	mockComputeClient.EXPECT().GetImage("project", "image").Return(nil, nil)
-	assert.NoError(t, validateImageExists(mockComputeClient, "project", "image"))
+	mockComputeClient.EXPECT().GetImage("project", "image").Return(&v1.Image{DiskSizeGb: 21}, nil)
+	diskSize, err := validateImageExists(mockComputeClient, "project", "image")
+	assert.NoError(t, err)
+	assert.Equal(t, int64(21), diskSize)
 }
 
-func TestValidateImageExists_SkipsValidation_WhenSourceImageIsURI(t *testing.T) {
+func TestValidateImageExists_SkipsValidation_WhenSourceImageIsValidURI(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
 	// No expectations on the mockComputeClient means the test fails if the mock detects calls.
-	assert.NoError(t, validateImageExists(mockComputeClient,
-		"project", "projects/project/global/image/image-name"))
+	diskSize, err := validateImageExists(mockComputeClient, "project", "projects/project/global/image/image-name")
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), diskSize)
 }
 
 func TestValidateImageExists_ReturnsError_WhenImageNotFound(t *testing.T) {
@@ -189,8 +199,41 @@ func TestValidateImageExists_ReturnsError_WhenImageNotFound(t *testing.T) {
 	defer mockCtrl.Finish()
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
 	mockComputeClient.EXPECT().GetImage("project", "image").Return(nil, errors.New("image not found"))
-	assert.EqualError(t, validateImageExists(mockComputeClient, "project", "image"),
+	diskSize, err := validateImageExists(mockComputeClient, "project", "image")
+	assert.EqualError(t, err,
 		"Image \"image\" not found")
+	assert.Equal(t, int64(0), diskSize)
+}
+
+func TestValidateSnapshotExists_ReturnsNoError_WhenSnapshotFound(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockComputeClient := mocks.NewMockClient(mockCtrl)
+	mockComputeClient.EXPECT().GetSnapshot("project", "snapshot").Return(&v1.Snapshot{DiskSizeGb: 21}, nil)
+	diskSize, err := validateSnapshotExists(mockComputeClient, "project", "snapshot")
+	assert.NoError(t, err)
+	assert.Equal(t, int64(21), diskSize)
+}
+
+func TestValidateSnapshotExists_SkipsValidation_WhenSourceSnapshotIsValidURI(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockComputeClient := mocks.NewMockClient(mockCtrl)
+	// No expectations on the mockComputeClient means the test fails if the mock detects calls.
+	diskSize, err := validateSnapshotExists(mockComputeClient, "project", "projects/project/global/snapshot/snapshot-name")
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), diskSize)
+}
+
+func TestValidateSnapshotExists_ReturnsError_WhenSnapshotNotFound(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockComputeClient := mocks.NewMockClient(mockCtrl)
+	mockComputeClient.EXPECT().GetSnapshot("project", "snapshot").Return(nil, errors.New("snapshot not found"))
+	diskSize, err := validateSnapshotExists(mockComputeClient, "project", "snapshot")
+	assert.EqualError(t, err,
+		"Snapshot \"snapshot\" not found")
+	assert.Equal(t, int64(0), diskSize)
 }
 
 func resetArgs() {

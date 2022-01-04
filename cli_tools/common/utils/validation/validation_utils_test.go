@@ -120,6 +120,41 @@ func TestValidateImageName_ExpectInvalid(t *testing.T) {
 	}
 }
 
+func TestValidateDiskSnapshotName_ExpectValid(t *testing.T) {
+	// Allowable name format: https://cloud.google.com/compute/docs/reference/rest/v1/snapshot
+	for _, snapshotName := range []string{
+		"dashes-allowed-inside",
+		"a", // min length is 1
+		"o-----equal-to-max-63-----------------------------------------o",
+	} {
+		t.Run(snapshotName, func(t *testing.T) {
+			assert.NoError(t, ValidateSnapshotName(snapshotName))
+		})
+	}
+}
+
+func TestValidateDiskSnapshotName_ExpectInvalid(t *testing.T) {
+	// Allowable name format: https://cloud.google.com/compute/docs/reference/rest/v1/snapshots
+	for _, snapshotName := range []string{
+		"-no-starting-dash",
+		"no-ending-dash-",
+		"dont/allow/slashes",
+		"DontAllowCaps",
+		"o-----longer-than-max-63---------------------------------------o",
+	} {
+		t.Run(snapshotName, func(t *testing.T) {
+			err := ValidateSnapshotName(snapshotName)
+			assert.Regexp(t, "Snapshot name .* must conform to https://cloud.google.com/compute/docs/reference/rest/v1/snapshots", err)
+			assert.Contains(t, err.Error(), snapshotName, "Raw error should include snapshot's name")
+			realError := err.(daisy.DError)
+			for _, anonymizedErrs := range realError.AnonymizedErrs() {
+				assert.NotContains(t, anonymizedErrs, snapshotName,
+					"Anonymized error should not contain snapshot's name")
+			}
+		})
+	}
+}
+
 func TestValidateProjectID_ExpectValid(t *testing.T) {
 	for _, projectID := range []string{
 		"abcdef", // equal to min length of 6

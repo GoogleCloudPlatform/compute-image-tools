@@ -112,7 +112,7 @@ func (i *bootInspector) Inspect(reference string) (*pb.InspectionResults, error)
 		return i.assembleErrors(reference, results, pb.InspectionResults_INTERPRETING_INSPECTION_RESULTS, err, startTime)
 	}
 
-	results.ElapsedTimeMs = time.Now().Sub(startTime).Milliseconds()
+	results.ElapsedTimeMs = time.Since(startTime).Milliseconds()
 	i.logger.Metric(&pb.OutputInfo{InspectionResults: results})
 	return results, nil
 }
@@ -126,7 +126,7 @@ func (i *bootInspector) assembleErrors(reference string, results *pb.InspectionR
 	} else {
 		err = fmt.Errorf("failed to inspect %v", reference)
 	}
-	results.ElapsedTimeMs = time.Now().Sub(startTime).Milliseconds()
+	results.ElapsedTimeMs = time.Since(startTime).Milliseconds()
 	return results, err
 }
 
@@ -137,33 +137,33 @@ func (i *bootInspector) validate(results *pb.InspectionResults) error {
 	if results.OsCount != 1 {
 		if results.OsRelease != nil {
 			return fmt.Errorf(
-				"Worker should not return OsRelease when NumOsFound != 1: NumOsFound=%d", results.OsCount)
+				"worker should not return OsRelease when NumOsFound != 1: NumOsFound=%d", results.OsCount)
 		}
 		return nil
 	}
 
 	if results.OsRelease == nil {
-		return errors.New("Worker should return OsRelease when OsCount == 1")
+		return errors.New("worker should return OsRelease when OsCount == 1")
 	}
 
 	if results.OsRelease.CliFormatted != "" {
-		return errors.New("Worker should not return CliFormatted")
+		return errors.New("worker should not return CliFormatted")
 	}
 
 	if results.OsRelease.Distro != "" {
-		return errors.New("Worker should not return Distro name, only DistroId")
+		return errors.New("worker should not return Distro name, only DistroId")
 	}
 
 	if results.OsRelease.MajorVersion == "" {
-		return errors.New("Missing MajorVersion")
+		return errors.New("missing MajorVersion")
 	}
 
 	if results.OsRelease.Architecture == pb.Architecture_ARCHITECTURE_UNKNOWN {
-		return errors.New("Missing Architecture")
+		return errors.New("missing Architecture")
 	}
 
 	if results.OsRelease.DistroId == pb.Distro_DISTRO_UNKNOWN {
-		return errors.New("Missing DistroId")
+		return errors.New("missing DistroId")
 	}
 
 	return nil

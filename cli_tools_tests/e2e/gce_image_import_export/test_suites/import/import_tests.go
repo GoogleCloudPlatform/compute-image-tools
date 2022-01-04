@@ -251,6 +251,12 @@ var basicCases = []*testCase{
 		os:                   "sles-sap-15",
 		osConfigNotSupported: true,
 		tip:                  slesOnDemandTip,
+	}, {
+		caseName:             "sles-sap-15-3-on-demand",
+		source:               "projects/compute-image-tools-test/global/images/sles-sap-15-3-unregistered",
+		os:                   "sles-sap-15",
+		osConfigNotSupported: true,
+		tip:                  slesOnDemandTip,
 	},
 
 	// EL
@@ -329,6 +335,11 @@ var basicCases = []*testCase{
 
 	// Windows
 	{
+		caseName:                "windows-2016-azure",
+		source:                  "projects/compute-image-tools-test/global/images/windows-server-2016-azure",
+		expectLicense:           "https://www.googleapis.com/compute/v1/projects/windows-cloud/global/licenses/windows-server-2016-dc",
+		requiredGuestOsFeatures: []string{"WINDOWS"},
+	}, {
 		caseName:                "windows-2019-uefi",
 		source:                  "projects/compute-image-tools-test/global/images/windows-2019-uefi-nodrivers",
 		expectLicense:           "https://www.googleapis.com/compute/v1/projects/windows-cloud/global/licenses/windows-server-2019-dc",
@@ -418,7 +429,7 @@ func (t *testCase) run(ctx context.Context, junit *junitxml.TestCase, logger *lo
 			t.writeFailure(junit, "Failed post translate test: %v", err)
 		}
 	}
-	junit.Time = time.Now().Sub(start).Seconds()
+	junit.Time = time.Since(start).Seconds()
 }
 
 func (t *testCase) verifyImage(ctx context.Context, junit *junitxml.TestCase, logger *log.Logger, testProjectConfig *testconfig.Project) {

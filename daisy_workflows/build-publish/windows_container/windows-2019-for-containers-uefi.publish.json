@@ -19,8 +19,8 @@
   "PublishProject": "windows-cloud",
   "ComputeEndpoint": {{$endpoint}},
   {{- else if eq .environment "staging" -}}
-  "WorkProject": "gce-staging-images",
-  "PublishProject": "gce-staging-images",
+  "WorkProject": "bct-staging-images",
+  "PublishProject": "bct-staging-images",
   "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
   "DeleteAfter": {{$delete_after}},
   {{- else -}}

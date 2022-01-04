@@ -90,6 +90,10 @@ _LINUX = [
     linux.Fingerprint(inspect_pb2.Distro.ORACLE,
                       aliases=['ol', 'oraclelinux']),
     linux.Fingerprint(inspect_pb2.Distro.UBUNTU),
+    linux.Fingerprint(inspect_pb2.Distro.ARCH,
+                  aliases=['arch', 'archlinux']),
+    linux.Fingerprint(inspect_pb2.Distro.CLEAR,
+                  aliases=['clear', 'clearlinux', 'clear-linux-os']),
 ]
 
 
