@@ -143,7 +143,7 @@ func main() {
 	imagesCache := map[string][]*computeAlpha.Image{}
 	for _, path := range flag.Args() {
 		p, err := publish.CreatePublish(
-			*sourceVersion, *publishVersion, *workProject, *publishProject, *sourceGCS, *sourceProject, *ce, path, "", varMap, imagesCache)
+			*sourceVersion, *publishVersion, *workProject, *publishProject, *sourceGCS, *sourceProject, *ce, path, varMap, imagesCache)
 		if err != nil {
 			loadErr := fmt.Errorf("Loading publish error %s from %q", err, path)
 			fmt.Println(loadErr)

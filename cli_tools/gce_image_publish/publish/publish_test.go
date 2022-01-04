@@ -759,25 +759,45 @@ func TestCreateRollOut(t *testing.T) {
 	}
 }
 
-func TestCreatePublishWithFileAndTemplate(t *testing.T) {
+func TestCreatePublishWithFile(t *testing.T) {
 	tests := []struct {
-		name     string
-		path     string
-		template string
-		wantErr  bool
+		name    string
+		path    string
+		wantErr bool
 	}{
-		{"no valid path", "", "", true},
-		{"pass template", "", "{}", false},
-		{"pass with valid path", "../../../daisy_workflows/build-publish/debian/debian_10.publish.json", "", false},
+		{"no valid path", "", true},
+		{"pass with valid path", "../../../daisy_workflows/build-publish/debian/debian_10.publish.json", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := CreatePublish("", "", "", "", "", "", "", tt.path, tt.template, map[string]string{}, map[string][]*computeAlpha.Image{})
+			_, err := CreatePublish("", "", "", "", "", "", "", tt.path, map[string]string{}, map[string][]*computeAlpha.Image{})
 			if err != nil && !tt.wantErr {
-				t.Errorf("CreatePublish() called with path %s and template %s: got error %v", tt.path, tt.template, err)
+				t.Errorf("CreatePublish() called with path %s: got error %v", tt.path, err)
 			}
 			if tt.wantErr && err == nil {
-				t.Errorf("CreatePublish() called with path %s and template %s: did not get expected error", tt.path, tt.template)
+				t.Errorf("CreatePublish() called with path %s: did not get expected error", tt.path)
+			}
+		})
+	}
+}
+
+func TestCreatePublishWithTemplate(t *testing.T) {
+	tests := []struct {
+		name     string
+		template string
+		wantErr  bool
+	}{
+		{"pass template", "{}", false},
+		{"pass with invalid template", "{", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := CreatePublishWithTemplate("", "", "", "", "", "", "", tt.template, map[string]string{}, map[string][]*computeAlpha.Image{})
+			if err != nil && !tt.wantErr {
+				t.Errorf("CreatePublishWithTemplate() called with template %s: got error %v", tt.template, err)
+			}
+			if tt.wantErr && err == nil {
+				t.Errorf("CreatePublishWithTemplate() called with template %s: did not get expected error", tt.template)
 			}
 		})
 	}
