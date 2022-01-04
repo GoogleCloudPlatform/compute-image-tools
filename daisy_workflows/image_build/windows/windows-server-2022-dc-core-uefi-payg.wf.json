@@ -41,6 +41,14 @@
       "Value": "",
       "Description": "GCS or local filesystem location containing Windows update files."
     },
+    "drivers_bucket": {
+      "Value": "gs://gce-windows-drivers-public/release/win6.3-signed/",
+      "Description": "GCS location containing the GCP Windows driver files."
+    },
+    "install_disk_size": {
+      "Value": "40",
+      "Description": "The size of disk to provision for the image in GB."
+    },
     "workflow_root": {
       "Value": "/workflows",
       "Description": "Root of github workflows, defaults to /workflows in the container."
@@ -53,9 +61,9 @@
         "Path": "./windows-build-uefi.wf.json",
         "Vars": {
           "install_disk": "${install_disk}",
-          "install_disk_size": "40",
+          "install_disk_size": "${install_disk_size}",
           "updates": "${updates}",
-          "drivers_bucket": "gs://gce-windows-drivers-public/release/win6.3-signed/",
+          "drivers_bucket": "${drivers_bucket}",
           "dotnet48": "${dotnet48}",
           "pwsh": "${pwsh}",
           "edition": "Windows Server 2022 SERVERDATACENTERCORE",
