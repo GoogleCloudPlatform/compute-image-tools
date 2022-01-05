@@ -119,6 +119,20 @@ var (
 
 // CreatePublish creates a publish object
 func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, path string, varMap map[string]string, imagesCache map[string][]*computeAlpha.Image) (*Publish, error) {
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %v", path, err)
+	}
+	templateContent := string(b)
+	return createPublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, templateContent, varMap, imagesCache)
+}
+
+// CreatePublishWithTemplate creates a publish object without reading a template file
+func CreatePublishWithTemplate(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, template string, varMap map[string]string, imagesCache map[string][]*computeAlpha.Image) (*Publish, error) {
+	return createPublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, template, varMap, imagesCache)
+}
+
+func createPublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, template string, varMap map[string]string, imagesCache map[string][]*computeAlpha.Image) (*Publish, error) {
 	p := Publish{
 		sourceVersion:  sourceVersion,
 		publishVersion: publishVersion,
@@ -129,27 +143,22 @@ func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, s
 	varMap["source_version"] = p.sourceVersion
 	varMap["publish_version"] = p.publishVersion
 
-	b, err := ioutil.ReadFile(path)
+	tmpl, err := publishTemplate.Parse(template)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %v", path, err)
-	}
-
-	tmpl, err := publishTemplate.Parse(string(b))
-	if err != nil {
-		return nil, fmt.Errorf("%s: %v", path, err)
+		return nil, fmt.Errorf("%s: %v", template, err)
 	}
 
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, varMap); err != nil {
-		return nil, fmt.Errorf("%s: %v", path, err)
+		return nil, fmt.Errorf("%s: %v", template, err)
 	}
 
 	if err := json.Unmarshal(buf.Bytes(), &p); err != nil {
-		return nil, daisy.JSONError(path, buf.Bytes(), err)
+		return nil, daisy.JSONError(template, buf.Bytes(), err)
 	}
 
 	if err := p.SetExpire(); err != nil {
-		return nil, fmt.Errorf("%s: error SetExpire: %v", path, err)
+		return nil, fmt.Errorf("%s: error SetExpire: %v", template, err)
 	}
 
 	if workProject != "" {
@@ -177,11 +186,11 @@ func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, s
 				return nil, err
 			}
 		} else {
-			return nil, fmt.Errorf("%s: WorkProject unspecified", path)
+			return nil, fmt.Errorf("%s\nWorkProject unspecified", template)
 		}
 	}
 
-	fmt.Printf("[%q] Created a publish object successfully from %s\n", p.Name, path)
+	fmt.Printf("[%q] Created a publish object successfully from %s\n", p.Name, template)
 	return &p, nil
 }
 
