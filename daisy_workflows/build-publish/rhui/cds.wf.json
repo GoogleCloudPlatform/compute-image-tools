@@ -29,7 +29,7 @@
       "CreateDisks": [
         {
           "Name": "disk-cds",
-          "SourceImage": "projects/rhel-cloud/global/images/family/rhel-8",
+          "SourceImage": "projects/rhel-byos-cloud/global/images/family/rhel-8",
           "Type": "pd-ssd"
         }
       ]

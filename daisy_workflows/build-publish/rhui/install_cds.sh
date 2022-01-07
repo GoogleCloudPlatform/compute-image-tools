@@ -54,13 +54,6 @@ user_supplied_tls_crt: $tempdir/rhui.crt
 user_supplied_tls_key: $tempdir/rhui.key
 EOF
 
-# Get subscription manager (and deps) from RHUI
-dnf --disablerepo='*' --enablerepo='rhui-rhel-8-for-x86_64-baseos-rhui-rpms' \
-  install -y subscription-manager
-
-# Remove RHUI client config
-rpm -e google-rhui-client-rhel8
-
 # Import enrollment certificate.
 subscription-manager import --certificate=$tempdir/enrollment_cert.pem
 
