@@ -37,8 +37,9 @@ gcloud secrets versions access latest --secret enrollment_cert > \
   $tempdir/enrollment_cert.pem
 gcloud secrets versions access latest --secret rhua_ca_cert > \
   $tempdir/ca.crt
-gcloud secrets versions access latest --secret rhui_tls_cert > \
-  $tempdir/rhui.crt
+# Now provided by daisy workflow.
+#gcloud secrets versions access latest --secret rhui_tls_cert > \
+#  $tempdir/rhui.crt
 gcloud secrets versions access latest --secret rhui_tls_key > \
   $tempdir/rhui.key
 

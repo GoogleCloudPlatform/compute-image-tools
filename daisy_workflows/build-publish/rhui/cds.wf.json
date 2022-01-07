@@ -18,10 +18,15 @@
     "instance_service_account": {
       "Required": true,
       "Description": "Service account that will be used by the created instance"
+    },
+    "tls_cert_path": {
+      "Required": true,
+      "Description": "Path to TLS cert. Must match rhui_tls_key in secret manager."
     }
   },
   "Sources": {
     "cds_artifacts": "./cds_artifacts",
+    "cds_artifacts/rhui.crt": "${tls_cert_path}",
     "install_cds.sh": "./install_cds.sh"
   },
   "Steps": {
@@ -29,7 +34,7 @@
       "CreateDisks": [
         {
           "Name": "disk-cds",
-          "SourceImage": "projects/rhel-byos-cloud/global/images/family/rhel-8",
+          "SourceImage": "projects/rhel-byos-cloud/global/images/family/rhel-8-byos",
           "Type": "pd-ssd"
         }
       ]
