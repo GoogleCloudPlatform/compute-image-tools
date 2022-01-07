@@ -64,13 +64,6 @@ rhui_manager_password: $rhuipassword
 rhui_manager_password_changed: true
 EOF
 
-# Get subscription manager from RHUI
-dnf --disablerepo='*' --enablerepo='rhui-rhel-8-for-x86_64-baseos-rhui-rpms' \
-  install -y subscription-manager
-
-# Remove RHUI config pointing to RHUIv3
-rpm -e google-rhui-client-rhel8
-
 # Import subscription certificate.
 subscription-manager import --certificate=$tempdir/enrollment_cert.pem
 
