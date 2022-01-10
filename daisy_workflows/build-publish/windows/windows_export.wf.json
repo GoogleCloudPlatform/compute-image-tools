@@ -19,7 +19,7 @@
     },
     "disk_export_time_out": {
       "Value": "50m",
-      "Description": "Disk export step time out. Default is 30m."
+      "Description": "Disk export step time out. Default is 50m."
     }
   },
   "Steps": {
