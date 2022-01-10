@@ -71,7 +71,7 @@
           "gcs_url": "${gcs_url}",
           "gcs_internal_url": "${gcs_internal_url}",
           "workflow_root": "${workflow_root}",
-          "disk_export_time_out": "60m"
+          "disk_export_time_out": "50m"
         }
       }
     }
