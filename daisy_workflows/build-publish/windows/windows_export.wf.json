@@ -16,11 +16,15 @@
     "workflow_root": {
       "Required": true,
       "Description": "Root of github workflows."
+    },
+    "disk_export_time_out": {
+      "Value": "30m",
+      "Description": "Disk export step time out. Default is 30m."
     }
   },
   "Steps": {
     "disk-export": {
-      "Timeout": "30m",
+      "Timeout": "${disk_export_time_out}",
       "IncludeWorkflow": {
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
