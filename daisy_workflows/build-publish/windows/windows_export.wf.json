@@ -18,7 +18,7 @@
       "Description": "Root of github workflows."
     },
     "disk_export_time_out": {
-      "Value": "30m",
+      "Value": "50m",
       "Description": "Disk export step time out. Default is 30m."
     }
   },

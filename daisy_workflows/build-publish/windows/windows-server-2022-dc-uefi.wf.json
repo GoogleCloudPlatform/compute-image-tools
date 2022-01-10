@@ -63,7 +63,7 @@
       }
     },
     "windows-export": {
-      "Timeout": "90m",
+      "Timeout": "60m",
       "IncludeWorkflow": {
         "Path": "./windows_export.wf.json",
         "Vars": {
