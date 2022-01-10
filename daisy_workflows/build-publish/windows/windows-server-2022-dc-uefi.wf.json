@@ -70,8 +70,7 @@
           "build_date": "${build_date}",
           "gcs_url": "${gcs_url}",
           "gcs_internal_url": "${gcs_internal_url}",
-          "workflow_root": "${workflow_root}",
-          "disk_export_time_out": "50m"
+          "workflow_root": "${workflow_root}"
         }
       }
     }
