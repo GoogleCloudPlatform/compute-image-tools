@@ -174,7 +174,7 @@ func TestBuildDaisyVarsWithoutComputeServiceAccount(t *testing.T) {
 	assert.False(t, hasVar)
 }
 
-func TestValidateImageExists_ReturnsNoError_WhenImageFound(t *testing.T) {
+func TestValidateImageExists_ReturnsNoError_WhenImageByNameFound(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
@@ -184,17 +184,17 @@ func TestValidateImageExists_ReturnsNoError_WhenImageFound(t *testing.T) {
 	assert.Equal(t, int64(21), diskSize)
 }
 
-func TestValidateImageExists_SkipsValidation_WhenSourceImageIsValidURI(t *testing.T) {
+func TestValidateImageExists_ReturnsNoError_WhenImageByUriFound(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
-	// No expectations on the mockComputeClient means the test fails if the mock detects calls.
-	diskSize, err := validateImageExists(mockComputeClient, "project", "projects/project/global/image/image-name")
+	mockComputeClient.EXPECT().GetImage("another-project", "image-name").Return(&v1.Image{DiskSizeGb: 22}, nil)
+	diskSize, err := validateImageExists(mockComputeClient, "project", "projects/another-project/global/images/image-name")
 	assert.NoError(t, err)
-	assert.Equal(t, int64(0), diskSize)
+	assert.Equal(t, int64(22), diskSize)
 }
 
-func TestValidateImageExists_ReturnsError_WhenImageNotFound(t *testing.T) {
+func TestValidateImageExists_ReturnsError_WhenImageByNameNotFound(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
@@ -202,6 +202,17 @@ func TestValidateImageExists_ReturnsError_WhenImageNotFound(t *testing.T) {
 	diskSize, err := validateImageExists(mockComputeClient, "project", "image")
 	assert.EqualError(t, err,
 		"Image \"image\" not found")
+	assert.Equal(t, int64(0), diskSize)
+}
+
+func TestValidateImageExists_ReturnsError_WhenImageByUriNotFound(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockComputeClient := mocks.NewMockClient(mockCtrl)
+	mockComputeClient.EXPECT().GetImage("another-project", "image-name").Return(nil, errors.New("image not found"))
+	diskSize, err := validateImageExists(mockComputeClient, "project", "projects/another-project/global/images/image-name")
+	assert.EqualError(t, err,
+		"Image \"projects/another-project/global/images/image-name\" not found")
 	assert.Equal(t, int64(0), diskSize)
 }
 

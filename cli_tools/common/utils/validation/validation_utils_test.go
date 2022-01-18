@@ -109,6 +109,7 @@ func TestValidateImageName_ExpectInvalid(t *testing.T) {
 	} {
 		t.Run(imgName, func(t *testing.T) {
 			err := ValidateImageName(imgName)
+			assert.NotNil(t, err)
 			assert.Regexp(t, "Image name .* must conform to https://cloud.google.com/compute/docs/reference/rest/v1/images", err)
 			assert.Contains(t, err.Error(), imgName, "Raw error should include image's name")
 			realError := err.(daisy.DError)
@@ -120,6 +121,57 @@ func TestValidateImageName_ExpectInvalid(t *testing.T) {
 	}
 }
 
+func TestValidateImageURI_ExpectValid(t *testing.T) {
+	// Allowable name format: https://cloud.google.com/compute/docs/reference/rest/v1/images
+	for _, testCase := range [][]string{
+		{"projects/a-project/global/images/dashes-allowed-inside", "a-project", "dashes-allowed-inside"},
+		{"projects/google.com:google-project/global/images/a", "google.com:google-project", "a"},
+		{"projects/long-project-name-less-than-28/global/images/o-----equal-to-max-63-----------------------------------------o", "long-project-name-less-than-28", "o-----equal-to-max-63-----------------------------------------o"},
+	} {
+		t.Run(testCase[0], func(t *testing.T) {
+			project, imageName, err := ValidateImageURI(testCase[0])
+			assert.NoError(t, err)
+			assert.Equal(t, testCase[1], project)
+			assert.Equal(t, testCase[2], imageName)
+		})
+	}
+}
+
+func TestValidateImageURI_ExpectInvalid(t *testing.T) {
+	// Allowable name format: https://cloud.google.com/compute/docs/reference/rest/v1/images
+	for _, imageURI := range []string{
+		"not-a-uri",
+		"projects/a-project/global/images/-no-starting-dash",
+		"projects/a-project/global/images/no-ending-dash-",
+		"projects/a-project/global/images/dont/allow/slashes/in/image/name",
+		"projects/a-project/global/images/DontAllowCaps",
+		"projects/a-project/global/images/o-----longer-than-max-63---------------------------------------o",
+		"abcde/a-project/global/images/image", // shorter than min length of 6
+		"-no-leading-dash/a-project/global/images/image",
+		"no-ending-dash-/a-project/global/images/image",
+		"1-no-leading-numbers/a-project/global/images/image",
+		"DontAllowCaps/a-project/global/images/image",
+		"notgoogle.com:test-project/a-project/global/images/image",
+		"o-----longer-than-max-30------o/a-project/global/images/image",
+	} {
+		t.Run(imageURI, func(t *testing.T) {
+			imageName, project, err := ValidateImageURI(imageURI)
+
+			assert.Empty(t, imageName)
+			assert.Empty(t, project)
+
+			assert.NotNil(t, err)
+			assert.Regexp(t, "Image URI .* must conform to https://cloud.google.com/compute/docs/reference/rest/v1/images", err)
+			assert.Contains(t, err.Error(), imageURI, "Raw error should include image's URI")
+			realError := err.(daisy.DError)
+			for _, anonymizedErrs := range realError.AnonymizedErrs() {
+				assert.NotContains(t, anonymizedErrs, imageURI,
+					"Anonymized error should not contain image's name")
+			}
+
+		})
+	}
+}
 func TestValidateDiskSnapshotName_ExpectValid(t *testing.T) {
 	// Allowable name format: https://cloud.google.com/compute/docs/reference/rest/v1/snapshot
 	for _, snapshotName := range []string{
@@ -144,6 +196,7 @@ func TestValidateDiskSnapshotName_ExpectInvalid(t *testing.T) {
 	} {
 		t.Run(snapshotName, func(t *testing.T) {
 			err := ValidateSnapshotName(snapshotName)
+			assert.NotNil(t, err)
 			assert.Regexp(t, "Snapshot name .* must conform to https://cloud.google.com/compute/docs/reference/rest/v1/snapshots", err)
 			assert.Contains(t, err.Error(), snapshotName, "Raw error should include snapshot's name")
 			realError := err.(daisy.DError)
@@ -182,6 +235,7 @@ func TestValidateProjectID_ExpectInvalid(t *testing.T) {
 	} {
 		t.Run(projectID, func(t *testing.T) {
 			err := ValidateProjectID(projectID)
+			assert.NotNil(t, err)
 			assert.Regexp(t, "projectID .* must conform to https://cloud.google.com/resource-manager/reference/rest/v1/projects", err)
 			assert.Contains(t, err.Error(), projectID, "Raw error should include projectID")
 			realError := err.(daisy.DError)

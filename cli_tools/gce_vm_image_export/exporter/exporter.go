@@ -227,19 +227,23 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 // interpreting the various permutations of specifying an image and project,
 // and we don't want to copy that here, since this is a convenience method to create
 // user-friendly messages.
-func validateImageExists(computeClient daisyCompute.Client, project string, imageName string) (diskSizeGb int64, err error) {
+func validateImageExists(computeClient daisyCompute.Client, project string, imageURI string) (diskSizeGb int64, err error) {
 	// try to get image even before validation in case it's a valid URL,
 	// in order to obtain its size
-
-	if err := validation.ValidateImageName(imageName); err != nil {
-		return diskSizeGb, nil
+	var imageName string
+	if err := validation.ValidateImageName(imageURI); err != nil {
+		if project, imageName, err = validation.ValidateImageURI(imageURI); err != nil {
+			return diskSizeGb, nil
+		}
+	} else {
+		imageName = imageURI
 	}
+	log.Printf("Fetching image %q from project %q.", imageName, project)
 	image, err := computeClient.GetImage(project, imageName)
 	if err != nil {
-		log.Printf("Error when fetching image %q: %q.", imageName, err)
-		return diskSizeGb, daisy.Errf("Image %q not found", imageName)
+		log.Printf("Error when fetching image %q: %q.", imageURI, err)
+		return diskSizeGb, daisy.Errf("Image %q not found", imageURI)
 	}
-
 	return image.DiskSizeGb, nil
 }
 
