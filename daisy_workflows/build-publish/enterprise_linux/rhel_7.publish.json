@@ -36,7 +36,7 @@
   "ComputeEndpoint": {{$endpoint}},
   "DeleteAfter": {{$delete_after}},
   {{- end}}
-  {{$guest_features := `["UEFI_COMPATIBLE"]` -}}
+  {{$guest_features := `["UEFI_COMPATIBLE", "GVNIC"]` -}}
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
