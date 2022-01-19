@@ -289,21 +289,10 @@ type OutputInfo struct {
 	IsUEFICompatibleImage bool `json:"is_uefi_compatible_image,omitempty"`
 	// Indicates whether the image is auto-detected to be UEFI compatible
 	IsUEFIDetected bool `json:"is_uefi_detected,omitempty"`
+	// Inspection results. Ref to the def of `InspectionResults` for details
+	InspectionResults *pb.InspectionResults `json:"inspection_results,omitempty"`
 	// Inflation fallback reason
 	InflationFallbackReason string `json:"inflation_fallback_reason,omitempty"`
-}
-
-// InspectionResults contains metadata determined using automated inspection
-type InspectionResults struct {
-	// BIOSBootable indicates whether the disk is bootable with BIOS.
-	BIOSBootable bool `json:"bios_bootable,omitempty"`
-
-	// UEFIBootable indicates whether the disk is bootable with UEFI.
-	UEFIBootable bool `json:"uefi_bootable,omitempty"`
-
-	// RootFS indicates the file system type of the partition containing
-	// the root directory ("/").
-	RootFS string `json:"root_fs,omitempty"`
 }
 
 func (l *Logger) updateParams(projectPointer *string) {
