@@ -212,10 +212,10 @@ func (u *upgrader) runUpgradeWorkflow() (daisyutils.DaisyWorker, error) {
 func (u *upgrader) handleResult(err error) {
 	if err == nil {
 		fmt.Printf("\nSuccessfully upgraded instance '%v' to '%v'.\n", u.instanceURI, u.TargetOS)
-		// TODO: update the help guide link. b/154838004
 		fmt.Printf("\nPlease verify your application's functionality on the " +
 			"instance, and if you run into any issues, please manually rollback following " +
-			"the instructions in the guide.\n\n")
+			"the instructions in the guide." +
+			"\nFull document: https://cloud.google.com/compute/docs/tutorials/performing-an-automated-in-place-upgrade-windows-server\n\n")
 		if cleanupIntro, err := getCleanupIntroduction(u); err == nil {
 			fmt.Printf(cleanupIntro)
 		}

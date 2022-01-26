@@ -96,7 +96,7 @@ func newInflater(request ImageImportRequest, computeClient daisyCompute.Client, 
 }
 
 func isShadowTestFormat(request ImageImportRequest) bool {
-	// TODO: process VHD/VPC differently
+	// TODO: process VHD/VPC differently. b/216323357
 	return false
 }
 

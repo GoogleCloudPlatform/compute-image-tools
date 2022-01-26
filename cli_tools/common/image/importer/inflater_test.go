@@ -79,7 +79,7 @@ func TestCreateShadowTestInflater_File(t *testing.T) {
 	//Test the creation of a shadow test inflater, which primarily uses Daisy
 	//inflater while API inflater is used only to verify its output against Daisy
 	//inflater
-	//TODO: remove/disable this test once API inflater is the default (fallback mode)
+	//TODO: remove/disable this test once API inflater is the default (fallback mode) b/216323357
 	t.SkipNow()
 
 	inflater, err := newInflater(ImageImportRequest{

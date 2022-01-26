@@ -91,7 +91,7 @@ func CLITestSuite(
 		testsMap[testType][imageImportWithDifferentNetworkParamStylesTestCase] = runImageImportWithDifferentNetworkParamStyles
 		testsMap[testType][imageImportWithSubnetWithoutNetworkSpecifiedTestCase] = runImageImportWithSubnetWithoutNetworkSpecified
 
-		// TODO: recover this test only when shadow test is enabled.
+		// TODO: recover this test only when shadow test is enabled. b/216323357
 		//imageImportShadowDiskCleanedUpWhenMainInflaterFails := junitxml.NewTestCase(
 		//	testSuiteName, fmt.Sprintf("[%v] %v", testType, "Import shadow disk is cleaned up when main inflater fails"))
 		//testsMap[testType][imageImportShadowDiskCleanedUpWhenMainInflaterFails] = runImageImportShadowDiskCleanedUpWhenMainInflaterFails
