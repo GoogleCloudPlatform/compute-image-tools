@@ -22,6 +22,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"google.golang.org/api/compute/v1"
 
@@ -130,10 +131,66 @@ func TestSuite(
 
 	// wrapper only tests
 	testsMap[e2e.Wrapper][junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "Remove temp images when instance creation fails"))] = deleteImagesIfInstanceCreationFails
+	testsMap[e2e.Wrapper][junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "Allow import to work when SSD quota is exhausted"))] = fallbackWhenSSDQuotaExhausted
 
 	e2e.CLITestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
 		testProjectConfig, testSuiteName, testsMap)
+}
+
+// This test expects OVF import will fail (since we pass an unsupported machine type flag).
+// After failure, we verify that the temporary images created prior to translation were removed.
+func deleteImagesIfInstanceCreationFails(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+	buildID := path.RandString(10)
+	client, err := daisyCompute.NewClient(ctx)
+	if err != nil {
+		e2e.Failure(testCase, logger, fmt.Sprintf("Error creating client: %v", err))
+		return
+	}
+
+	props := &ovfInstanceImportTestProperties{
+		instanceName: fmt.Sprintf("verify-images-deleted-%v", buildID),
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{
+			BuildID:        buildID,
+			Zone:           testProjectConfig.TestZone,
+			FailureMatches: []string{"FAILED:", "TestFailed:"},
+			SourceURI:      fmt.Sprintf("gs://%v/ova/debian-11-three-disks.ova", ovaBucket),
+			MachineType:    "not-a-machine-type",
+			Os:             "debian-11",
+		}}
+
+	// While the import is running, verify that the temporary images were created
+	// with the names that we expect. This ensures that we're actually verifying
+	// that the correct temporary images are deleted.
+	detectedImages := map[string]bool{}
+	for i := 1; i < 4; i++ {
+		imgName := fmt.Sprintf("ovf-%s-%d", buildID, i)
+		detectedImages[imgName] = false
+		go func() {
+			for {
+				image, _ := client.GetImage(testProjectConfig.TestProjectID, imgName)
+				if image != nil {
+					detectedImages[imgName] = true
+					return
+				}
+				time.Sleep(10 * time.Second)
+			}
+		}()
+	}
+	e2e.RunTestCommandAssertErrorMessage(cmds[testType], buildTestArgs(props, testProjectConfig)[testType], "not-a-machine-type' was not found", logger, testCase)
+
+	// Check that the expected images were seen during import and that they were deleted.
+	for imgName, detected := range detectedImages {
+		if !detected {
+			e2e.Failure(testCase, logger, fmt.Sprintf("Didn't see expected image %s", imgName))
+		}
+		image, _ := client.GetImage(testProjectConfig.TestProjectID, imgName)
+		if image != nil {
+			e2e.Failure(testCase, logger, fmt.Sprintf("Expected image %s to be removed", imgName))
+		}
+	}
 }
 
 func fallbackWhenSSDQuotaExhausted(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
@@ -183,7 +240,7 @@ func runOVFInstanceImportDebian3DisksNetworkSettingsName(ctx context.Context, te
 
 	suffix := path.RandString(5)
 	props := &ovfInstanceImportTestProperties{
-		instanceName: fmt.Sprintf("test-instance-ubuntu-3-disks-%v", suffix),
+		instanceName: fmt.Sprintf("test-instance-debian-3-disks-%v", suffix),
 		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{
 			VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
 				"scripts/ovf_import_test_3_disks.sh", logger),

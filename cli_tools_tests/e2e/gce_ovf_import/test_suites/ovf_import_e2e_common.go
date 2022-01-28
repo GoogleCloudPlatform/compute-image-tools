@@ -41,6 +41,7 @@ type OvfImportTestProperties struct {
 	FailureMatches            []string
 	VerificationStartupScript string
 	AllowFallbackToPDStandard bool
+	BuildID                   string
 	Zone                      string
 	SourceURI                 string
 	Os                        string
@@ -64,6 +65,10 @@ func BuildArgsMap(props *OvfImportTestProperties, testProjectConfig *testconfig.
 	gcloudBetaArgs, gcloudArgs, wrapperArgs []string) map[e2e.CLITestType][]string {
 
 	project := GetProject(props, testProjectConfig)
+	buildID := props.BuildID
+	if buildID == "" {
+		buildID = path.RandString(10)
+	}
 	gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--project=%v", project))
 	gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--source-uri=%v", props.SourceURI))
 	gcloudBetaArgs = append(gcloudBetaArgs, fmt.Sprintf("--zone=%v", props.Zone))
@@ -75,7 +80,7 @@ func BuildArgsMap(props *OvfImportTestProperties, testProjectConfig *testconfig.
 	wrapperArgs = append(wrapperArgs, fmt.Sprintf("-project=%v", project))
 	wrapperArgs = append(wrapperArgs, fmt.Sprintf("-ovf-gcs-path=%v", props.SourceURI))
 	wrapperArgs = append(wrapperArgs, fmt.Sprintf("-zone=%v", props.Zone))
-	wrapperArgs = append(wrapperArgs, fmt.Sprintf("-build-id=%v", path.RandString(10)))
+	wrapperArgs = append(wrapperArgs, fmt.Sprintf("-build-id=%v", buildID))
 
 	if len(props.Tags) > 0 {
 		tags := strings.Join(props.Tags, ",")

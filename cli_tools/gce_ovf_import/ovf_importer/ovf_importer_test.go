@@ -73,7 +73,7 @@ func TestSetupWorkflow_WithUserSpecifiedMachineType(t *testing.T) {
 			testCase := mockConfiguration{
 				descriptorFilenames: []string{"Ubuntu_for_Horizon71_1_1.0-disk1.vmdk"},
 				fileURIs:            []string{"gs://bucket/folder/ovf/Ubuntu_for_Horizon71_1_1.0-disk1.vmdk"},
-				imageURIs:           []string{"images/uri/boot-disk"},
+				images:              []domain.Image{{URI: "images/uri/boot-disk"}},
 				expectedOS:          params.OsID,
 				expectImportToRun:   true,
 			}
@@ -97,7 +97,7 @@ func TestSetupWorkflow_WithMachineTypeInference(t *testing.T) {
 			testCase := mockConfiguration{
 				descriptorFilenames: []string{"Ubuntu_for_Horizon71_1_1.0-disk1.vmdk"},
 				fileURIs:            []string{"gs://bucket/folder/ovf/Ubuntu_for_Horizon71_1_1.0-disk1.vmdk"},
-				imageURIs:           []string{"images/uri/boot-disk"},
+				images:              []domain.Image{{URI: "images/uri/boot-disk"}},
 				expectedOS:          params.OsID,
 				expectImportToRun:   true,
 			}
@@ -222,7 +222,7 @@ func TestSetUpWork_OSIDs(t *testing.T) {
 			worker, err := setupMocksAndRun(mockCtrl, params, instanceMode.wfPath, descriptor, mockConfiguration{
 				descriptorFilenames: descriptorFilenames,
 				fileURIs:            []string{"gs://bucket/folder/ovf/Ubuntu_for_Horizon71_1_1.0-disk1.vmdk"},
-				imageURIs:           []string{"images/uri/boot-disk"},
+				images:              []domain.Image{{URI: "images/uri/boot-disk"}},
 				expectedOS:          tc.expectedOSID,
 				expectImportToRun:   tc.expectedError == "",
 			})
@@ -304,7 +304,7 @@ func TestBuildDaisyVars_NetworkAndSubnets(t *testing.T) {
 			params := getAllInstanceImportParams()
 			params.Network = tc.network
 			params.Subnet = tc.subnet
-			actualParams := (&OVFImporter{params: params}).buildDaisyVars("", "")
+			actualParams := (&OVFImporter{params: params}).buildDaisyVars(domain.Image{}, "")
 			for _, key := range []string{"network", "subnet"} {
 				if val, found := tc.expectedVars[key]; found {
 					assert.Equal(t, val, actualParams[key])
@@ -428,10 +428,10 @@ func runImportAndVerify(t *testing.T, params *domain.OVFImportParams, mode *impo
 			"gs://bucket/folder/ovf/Ubuntu_for_Horizon71_1_1.0-disk2.vmdk",
 			"gs://bucket/folder/ovf/Ubuntu_for_Horizon71_1_1.0-disk3.vmdk",
 		},
-		imageURIs: []string{
-			"images/uri/boot-disk",
-			"images/uri/data-disk-1",
-			"images/uri/data-disk-2",
+		images: []domain.Image{
+			{URI: "images/uri/boot-disk"},
+			{URI: "images/uri/data-disk-1"},
+			{URI: "images/uri/data-disk-2"},
 		},
 		expectedOS:        params.OsID,
 		expectImportToRun: true,
@@ -482,21 +482,21 @@ func runImportAndVerify(t *testing.T, params *domain.OVFImportParams, mode *impo
 
 		// Boot Disk
 		bootDisk := instance.Disks[0]
-		checkDaisyVariable(t, w, "boot_disk_image_uri", testCase.imageURIs[0], bootDisk.InitializeParams.SourceImage)
+		checkDaisyVariable(t, w, "boot_disk_image_uri", testCase.images[0].URI, bootDisk.InitializeParams.SourceImage)
 		assert.True(t, bootDisk.AutoDelete, "Delete boot disk when instance is deleted.")
 		assert.True(t, bootDisk.Boot, "Boot disk is configured to boot.")
 		assert.Contains(t, cleanup.Images, "${boot_disk_image_uri}", "Delete the boot disk image after instance creation.")
 
 		// Data Disks
 		assert.Len(t, instance.Disks, len(descriptor.Disk.Disks))
-		assert.Len(t, cleanup.Images, len(testCase.imageURIs))
-		for i, diskURI := range testCase.imageURIs[1:] {
+		assert.Len(t, cleanup.Images, len(testCase.images))
+		for i, images := range testCase.images[1:] {
 			dataDisk := instance.Disks[i+1]
-			assert.Equal(t, diskURI, dataDisk.InitializeParams.SourceImage, "Include data disk on final instance.")
+			assert.Equal(t, images.URI, dataDisk.InitializeParams.SourceImage, "Include data disk on final instance.")
 			assert.Regexp(t, "^[a-z].*", dataDisk.InitializeParams.DiskName, "Disk name should start with letter.")
 			assert.True(t, dataDisk.AutoDelete, "Delete the disk when the instance is deleted.")
 			assert.False(t, dataDisk.Boot, "Data disk are not configured to boot.")
-			assert.Contains(t, cleanup.Images, testCase.imageURIs[i+1], "Delete the data disk image after instance creation.")
+			assert.Contains(t, cleanup.Images, testCase.images[i+1].URI, "Delete the data disk image after instance creation.")
 		}
 
 		// Instance
@@ -546,7 +546,7 @@ type mockConfiguration struct {
 	expectImportToRun   bool
 	descriptorFilenames []string
 	fileURIs            []string
-	imageURIs           []string
+	images              []domain.Image
 }
 
 func setupMocksAndRun(mockCtrl *gomock.Controller, params *domain.OVFImportParams, wfPath string, descriptor *ovf.Envelope, mockConfig mockConfiguration) (daisyutils.DaisyWorker, error) {
@@ -567,10 +567,10 @@ func setupMocksAndRun(mockCtrl *gomock.Controller, params *domain.OVFImportParam
 		Return(nil).Times(1)
 	mockMultiDiskImporter := ovfdomainmocks.NewMockMultiImageImporterInterface(mockCtrl)
 	if mockConfig.expectImportToRun {
-		mockMultiDiskImporter.EXPECT().ImportAll(
+		mockMultiDiskImporter.EXPECT().Import(
 			gomock.Any(),
 			&expectedParams,
-			mockConfig.fileURIs).Return(mockConfig.imageURIs, nil)
+			mockConfig.fileURIs).Return(mockConfig.images, nil)
 	}
 	oi := OVFImporter{ctx: context.Background(), workflowPath: wfPath, multiImageImporter: mockMultiDiskImporter,
 		storageClient: mockStorageClient, computeClient: mockComputeClient,

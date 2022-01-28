@@ -16,30 +16,30 @@ import (
 	domain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 )
 
-// MockOvfDescriptorValidatorInterface is a mock of OvfDescriptorValidatorInterface interface
+// MockOvfDescriptorValidatorInterface is a mock of OvfDescriptorValidatorInterface interface.
 type MockOvfDescriptorValidatorInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockOvfDescriptorValidatorInterfaceMockRecorder
 }
 
-// MockOvfDescriptorValidatorInterfaceMockRecorder is the mock recorder for MockOvfDescriptorValidatorInterface
+// MockOvfDescriptorValidatorInterfaceMockRecorder is the mock recorder for MockOvfDescriptorValidatorInterface.
 type MockOvfDescriptorValidatorInterfaceMockRecorder struct {
 	mock *MockOvfDescriptorValidatorInterface
 }
 
-// NewMockOvfDescriptorValidatorInterface creates a new mock instance
+// NewMockOvfDescriptorValidatorInterface creates a new mock instance.
 func NewMockOvfDescriptorValidatorInterface(ctrl *gomock.Controller) *MockOvfDescriptorValidatorInterface {
 	mock := &MockOvfDescriptorValidatorInterface{ctrl: ctrl}
 	mock.recorder = &MockOvfDescriptorValidatorInterfaceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockOvfDescriptorValidatorInterface) EXPECT() *MockOvfDescriptorValidatorInterfaceMockRecorder {
 	return m.recorder
 }
 
-// ValidateOvfPackage mocks base method
+// ValidateOvfPackage mocks base method.
 func (m *MockOvfDescriptorValidatorInterface) ValidateOvfPackage(ovfDescriptor *ovf.Envelope, ovfGcsPath string) (*ovf.Envelope, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateOvfPackage", ovfDescriptor, ovfGcsPath)
@@ -48,36 +48,36 @@ func (m *MockOvfDescriptorValidatorInterface) ValidateOvfPackage(ovfDescriptor *
 	return ret0, ret1
 }
 
-// ValidateOvfPackage indicates an expected call of ValidateOvfPackage
+// ValidateOvfPackage indicates an expected call of ValidateOvfPackage.
 func (mr *MockOvfDescriptorValidatorInterfaceMockRecorder) ValidateOvfPackage(ovfDescriptor, ovfGcsPath interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateOvfPackage", reflect.TypeOf((*MockOvfDescriptorValidatorInterface)(nil).ValidateOvfPackage), ovfDescriptor, ovfGcsPath)
 }
 
-// MockOvfDescriptorLoaderInterface is a mock of OvfDescriptorLoaderInterface interface
+// MockOvfDescriptorLoaderInterface is a mock of OvfDescriptorLoaderInterface interface.
 type MockOvfDescriptorLoaderInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockOvfDescriptorLoaderInterfaceMockRecorder
 }
 
-// MockOvfDescriptorLoaderInterfaceMockRecorder is the mock recorder for MockOvfDescriptorLoaderInterface
+// MockOvfDescriptorLoaderInterfaceMockRecorder is the mock recorder for MockOvfDescriptorLoaderInterface.
 type MockOvfDescriptorLoaderInterfaceMockRecorder struct {
 	mock *MockOvfDescriptorLoaderInterface
 }
 
-// NewMockOvfDescriptorLoaderInterface creates a new mock instance
+// NewMockOvfDescriptorLoaderInterface creates a new mock instance.
 func NewMockOvfDescriptorLoaderInterface(ctrl *gomock.Controller) *MockOvfDescriptorLoaderInterface {
 	mock := &MockOvfDescriptorLoaderInterface{ctrl: ctrl}
 	mock.recorder = &MockOvfDescriptorLoaderInterfaceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockOvfDescriptorLoaderInterface) EXPECT() *MockOvfDescriptorLoaderInterfaceMockRecorder {
 	return m.recorder
 }
 
-// Load mocks base method
+// Load mocks base method.
 func (m *MockOvfDescriptorLoaderInterface) Load(ovfGcsPath string) (*ovf.Envelope, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Load", ovfGcsPath)
@@ -86,36 +86,36 @@ func (m *MockOvfDescriptorLoaderInterface) Load(ovfGcsPath string) (*ovf.Envelop
 	return ret0, ret1
 }
 
-// Load indicates an expected call of Load
+// Load indicates an expected call of Load.
 func (mr *MockOvfDescriptorLoaderInterfaceMockRecorder) Load(ovfGcsPath interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Load", reflect.TypeOf((*MockOvfDescriptorLoaderInterface)(nil).Load), ovfGcsPath)
 }
 
-// MockMachineTypeProviderInterface is a mock of MachineTypeProviderInterface interface
+// MockMachineTypeProviderInterface is a mock of MachineTypeProviderInterface interface.
 type MockMachineTypeProviderInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockMachineTypeProviderInterfaceMockRecorder
 }
 
-// MockMachineTypeProviderInterfaceMockRecorder is the mock recorder for MockMachineTypeProviderInterface
+// MockMachineTypeProviderInterfaceMockRecorder is the mock recorder for MockMachineTypeProviderInterface.
 type MockMachineTypeProviderInterfaceMockRecorder struct {
 	mock *MockMachineTypeProviderInterface
 }
 
-// NewMockMachineTypeProviderInterface creates a new mock instance
+// NewMockMachineTypeProviderInterface creates a new mock instance.
 func NewMockMachineTypeProviderInterface(ctrl *gomock.Controller) *MockMachineTypeProviderInterface {
 	mock := &MockMachineTypeProviderInterface{ctrl: ctrl}
 	mock.recorder = &MockMachineTypeProviderInterfaceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockMachineTypeProviderInterface) EXPECT() *MockMachineTypeProviderInterfaceMockRecorder {
 	return m.recorder
 }
 
-// GetMachineType mocks base method
+// GetMachineType mocks base method.
 func (m *MockMachineTypeProviderInterface) GetMachineType() (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMachineType")
@@ -124,83 +124,118 @@ func (m *MockMachineTypeProviderInterface) GetMachineType() (string, error) {
 	return ret0, ret1
 }
 
-// GetMachineType indicates an expected call of GetMachineType
+// GetMachineType indicates an expected call of GetMachineType.
 func (mr *MockMachineTypeProviderInterfaceMockRecorder) GetMachineType() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMachineType", reflect.TypeOf((*MockMachineTypeProviderInterface)(nil).GetMachineType))
 }
 
-// MockImageImporterInterface is a mock of ImageImporterInterface interface
+// MockImageImporterInterface is a mock of ImageImporterInterface interface.
 type MockImageImporterInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockImageImporterInterfaceMockRecorder
 }
 
-// MockImageImporterInterfaceMockRecorder is the mock recorder for MockImageImporterInterface
+// MockImageImporterInterfaceMockRecorder is the mock recorder for MockImageImporterInterface.
 type MockImageImporterInterfaceMockRecorder struct {
 	mock *MockImageImporterInterface
 }
 
-// NewMockImageImporterInterface creates a new mock instance
+// NewMockImageImporterInterface creates a new mock instance.
 func NewMockImageImporterInterface(ctrl *gomock.Controller) *MockImageImporterInterface {
 	mock := &MockImageImporterInterface{ctrl: ctrl}
 	mock.recorder = &MockImageImporterInterfaceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockImageImporterInterface) EXPECT() *MockImageImporterInterfaceMockRecorder {
 	return m.recorder
 }
 
-// ImportImage mocks base method
+// Import mocks base method.
 func (m *MockImageImporterInterface) Import(arg0 context.Context, arg1 importer.ImageImportRequest, arg2 logging.Logger) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ImportImage", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "Import", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// ImportImage indicates an expected call of ImportImage
-func (mr *MockImageImporterInterfaceMockRecorder) ImportImage(arg0, arg1, arg2 interface{}) *gomock.Call {
+// Import indicates an expected call of Import.
+func (mr *MockImageImporterInterfaceMockRecorder) Import(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportImage", reflect.TypeOf((*MockImageImporterInterface)(nil).Import), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Import", reflect.TypeOf((*MockImageImporterInterface)(nil).Import), arg0, arg1, arg2)
 }
 
-// MockMultiImageImporterInterface is a mock of MultiImageImporterInterface interface
+// MockMultiImageImporterInterface is a mock of MultiImageImporterInterface interface.
 type MockMultiImageImporterInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockMultiImageImporterInterfaceMockRecorder
 }
 
-// MockMultiImageImporterInterfaceMockRecorder is the mock recorder for MockMultiImageImporterInterface
+// MockMultiImageImporterInterfaceMockRecorder is the mock recorder for MockMultiImageImporterInterface.
 type MockMultiImageImporterInterfaceMockRecorder struct {
 	mock *MockMultiImageImporterInterface
 }
 
-// NewMockMultiImageImporterInterface creates a new mock instance
+// NewMockMultiImageImporterInterface creates a new mock instance.
 func NewMockMultiImageImporterInterface(ctrl *gomock.Controller) *MockMultiImageImporterInterface {
 	mock := &MockMultiImageImporterInterface{ctrl: ctrl}
 	mock.recorder = &MockMultiImageImporterInterfaceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockMultiImageImporterInterface) EXPECT() *MockMultiImageImporterInterfaceMockRecorder {
 	return m.recorder
 }
 
-// ImportAll mocks base method
-func (m *MockMultiImageImporterInterface) Import(ctx context.Context, params *domain.OVFImportParams, fileURIs []string) ([]string, error) {
+// Import mocks base method.
+func (m *MockMultiImageImporterInterface) Import(ctx context.Context, params *domain.OVFImportParams, fileURIs []string) ([]domain.Image, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ImportAll", ctx, params, fileURIs)
-	ret0, _ := ret[0].([]string)
+	ret := m.ctrl.Call(m, "Import", ctx, params, fileURIs)
+	ret0, _ := ret[0].([]domain.Image)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ImportAll indicates an expected call of ImportAll
-func (mr *MockMultiImageImporterInterfaceMockRecorder) ImportAll(ctx, params, fileURIs interface{}) *gomock.Call {
+// Import indicates an expected call of Import.
+func (mr *MockMultiImageImporterInterfaceMockRecorder) Import(ctx, params, fileURIs interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportAll", reflect.TypeOf((*MockMultiImageImporterInterface)(nil).Import), ctx, params, fileURIs)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Import", reflect.TypeOf((*MockMultiImageImporterInterface)(nil).Import), ctx, params, fileURIs)
+}
+
+// MockImageDeleter is a mock of ImageDeleter interface.
+type MockImageDeleter struct {
+	ctrl     *gomock.Controller
+	recorder *MockImageDeleterMockRecorder
+}
+
+// MockImageDeleterMockRecorder is the mock recorder for MockImageDeleter.
+type MockImageDeleterMockRecorder struct {
+	mock *MockImageDeleter
+}
+
+// NewMockImageDeleter creates a new mock instance.
+func NewMockImageDeleter(ctrl *gomock.Controller) *MockImageDeleter {
+	mock := &MockImageDeleter{ctrl: ctrl}
+	mock.recorder = &MockImageDeleterMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockImageDeleter) EXPECT() *MockImageDeleterMockRecorder {
+	return m.recorder
+}
+
+// DeleteImagesIfExist mocks base method.
+func (m *MockImageDeleter) DeleteImagesIfExist(images []domain.Image) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "DeleteImagesIfExist", images)
+}
+
+// DeleteImagesIfExist indicates an expected call of DeleteImagesIfExist.
+func (mr *MockImageDeleterMockRecorder) DeleteImagesIfExist(images interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteImagesIfExist", reflect.TypeOf((*MockImageDeleter)(nil).DeleteImagesIfExist), images)
 }

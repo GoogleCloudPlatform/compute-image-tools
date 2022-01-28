@@ -43,7 +43,7 @@ type multiImageImporter struct {
 	executor *requestExecutor
 }
 
-func (m *multiImageImporter) Import(ctx context.Context, params *ovfdomain.OVFImportParams, fileURIs []string) (imageURIs []string, err error) {
+func (m *multiImageImporter) Import(ctx context.Context, params *ovfdomain.OVFImportParams, fileURIs []string) (images []ovfdomain.Image, err error) {
 	var requests []importer.ImageImportRequest
 	if requests, err = m.builder.buildRequests(params, fileURIs); err != nil {
 		return nil, err
