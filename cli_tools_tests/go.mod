@@ -4,11 +4,11 @@ go 1.13
 
 require (
 	cloud.google.com/go/storage v1.14.0
-	github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0
-	github.com/GoogleCloudPlatform/compute-image-tools/common v0.0.0
-	github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0
-	github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils v0.0.0
-	github.com/GoogleCloudPlatform/compute-image-tools/proto/go v0.0.0
+	github.com/GoogleCloudPlatform/compute-image-tools/cli_tools latest
+	github.com/GoogleCloudPlatform/compute-image-tools/common latest
+	github.com/GoogleCloudPlatform/compute-image-tools/daisy latest
+	github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils latest
+	github.com/GoogleCloudPlatform/compute-image-tools/proto/go latest
 	github.com/aws/aws-sdk-go v1.37.5
 	github.com/golang/protobuf v1.5.1
 	github.com/google/go-cmp v0.5.5
