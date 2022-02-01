@@ -47,7 +47,7 @@
         {{if (or (eq .environment "staging") (eq .environment "oslogin-staging")) -}}
         "projects/bct-staging-functional/global/licenses/centos-stream"
         {{- else -}}
-        "projects/centos-cloud/global/licenses/centos-stream"
+        "projects/centos-cloud/global/licenses/centos-stream-9"
         {{- end}}
       ],
       "GuestOsFeatures": {{$guest_features}}

@@ -41,7 +41,7 @@
           "Name": "centos-stream-9-v${build_date}",
           "SourceDisk": "${install_disk}",
           "Licenses": [
-            "projects/centos-cloud/global/licenses/centos-stream"
+            "projects/centos-cloud/global/licenses/centos-stream-9"
           ],
           "Description": "CentOS, CentOS, Stream 9, x86_64 built on ${build_date}",
           "Family": "centos-stream-9",
