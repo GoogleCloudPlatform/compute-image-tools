@@ -1,5 +1,5 @@
 {
-  "Name": "fedora-33",
+  "Name": "fedora-35",
   {{if eq .environment "oslogin-staging" -}}
   "WorkProject": "oslogin-staging-project",
   "PublishProject": "oslogin-staging-project",
@@ -12,9 +12,9 @@
   "DeleteAfter": "24h*30*6",
   "Images": [
     {
-      "Prefix": "fedora-33",
-      "Family": "fedora-33",
-      "Description": "Fedora 33",
+      "Prefix": "fedora-35",
+      "Family": "fedora-35",
+      "Description": "Fedora 35",
       "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE"]
     }
   ]

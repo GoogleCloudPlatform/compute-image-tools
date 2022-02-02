@@ -1,5 +1,5 @@
 {
-  "Name": "fedora-33-export",
+  "Name": "fedora-35-export",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -22,7 +22,7 @@
       "CreateDisks": [
         {
           "Name": "disk-image",
-          "SourceImage": "projects/fedora-cloud/global/images/family/fedora-cloud-33",
+          "SourceImage": "projects/fedora-cloud/global/images/family/fedora-cloud-35",
           "Type": "pd-ssd"
         }
       ]
