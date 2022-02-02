@@ -11,9 +11,10 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	ovf "github.com/vmware/govmomi/ovf"
 
+	domain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	importer "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer"
 	logging "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	domain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
+	domain0 "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 )
 
 // MockOvfDescriptorValidatorInterface is a mock of OvfDescriptorValidatorInterface interface.
@@ -191,7 +192,7 @@ func (m *MockMultiImageImporterInterface) EXPECT() *MockMultiImageImporterInterf
 }
 
 // Import mocks base method.
-func (m *MockMultiImageImporterInterface) Import(ctx context.Context, params *domain.OVFImportParams, fileURIs []string) ([]domain.Image, error) {
+func (m *MockMultiImageImporterInterface) Import(ctx context.Context, params *domain0.OVFImportParams, fileURIs []string) ([]domain.Image, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Import", ctx, params, fileURIs)
 	ret0, _ := ret[0].([]domain.Image)
@@ -203,39 +204,4 @@ func (m *MockMultiImageImporterInterface) Import(ctx context.Context, params *do
 func (mr *MockMultiImageImporterInterfaceMockRecorder) Import(ctx, params, fileURIs interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Import", reflect.TypeOf((*MockMultiImageImporterInterface)(nil).Import), ctx, params, fileURIs)
-}
-
-// MockImageDeleter is a mock of ImageDeleter interface.
-type MockImageDeleter struct {
-	ctrl     *gomock.Controller
-	recorder *MockImageDeleterMockRecorder
-}
-
-// MockImageDeleterMockRecorder is the mock recorder for MockImageDeleter.
-type MockImageDeleterMockRecorder struct {
-	mock *MockImageDeleter
-}
-
-// NewMockImageDeleter creates a new mock instance.
-func NewMockImageDeleter(ctrl *gomock.Controller) *MockImageDeleter {
-	mock := &MockImageDeleter{ctrl: ctrl}
-	mock.recorder = &MockImageDeleterMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockImageDeleter) EXPECT() *MockImageDeleterMockRecorder {
-	return m.recorder
-}
-
-// DeleteImagesIfExist mocks base method.
-func (m *MockImageDeleter) DeleteImagesIfExist(images []domain.Image) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "DeleteImagesIfExist", images)
-}
-
-// DeleteImagesIfExist indicates an expected call of DeleteImagesIfExist.
-func (mr *MockImageDeleterMockRecorder) DeleteImagesIfExist(images interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteImagesIfExist", reflect.TypeOf((*MockImageDeleter)(nil).DeleteImagesIfExist), images)
 }

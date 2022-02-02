@@ -19,6 +19,7 @@ import (
 
 	"github.com/vmware/govmomi/ovf"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 )
@@ -53,10 +54,5 @@ type ImageImporterInterface interface {
 // If an import fails, all running imports will be cancelled, and images from finished imports
 // will be deleted.
 type MultiImageImporterInterface interface {
-	Import(ctx context.Context, params *OVFImportParams, fileURIs []string) (images []Image, err error)
-}
-
-// ImageDeleter checks whether images exist. If so, it deletes them.
-type ImageDeleter interface {
-	DeleteImagesIfExist(images []Image)
+	Import(ctx context.Context, params *OVFImportParams, fileURIs []string) (images []domain.Image, err error)
 }

@@ -21,6 +21,8 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	ovfdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
@@ -38,7 +40,7 @@ type requestExecutor struct {
 // all requests are finished. If a request fails, all requests are stopped.
 //
 // On success, returns the URIs of the imported images, in the same order as requests.
-func (r *requestExecutor) executeRequests(parentContext context.Context, requests []importer.ImageImportRequest) (images []ovfdomain.Image, err error) {
+func (r *requestExecutor) executeRequests(parentContext context.Context, requests []importer.ImageImportRequest) (images []domain.Image, err error) {
 	group, ctx := errgroup.WithContext(parentContext)
 	// Check whether any of the proposed image names exist, and exit if so. Pre-checking to
 	// avoid deleting the pre-existing image during cleanup.
@@ -53,7 +55,7 @@ func (r *requestExecutor) executeRequests(parentContext context.Context, request
 	}
 	for _, request := range requests {
 		req := request
-		images = append(images, ovfdomain.NewImage(request.Project, request.ImageName))
+		images = append(images, image.NewImage(request.Project, request.ImageName))
 		logPrefix := fmt.Sprintf("[import-%s]", req.DaisyLogLinePrefix)
 		group.Go(func() error {
 			return r.singleImporter.Import(ctx, req, r.logger.NewLogger(logPrefix))

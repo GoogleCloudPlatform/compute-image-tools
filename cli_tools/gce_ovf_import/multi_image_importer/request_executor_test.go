@@ -23,9 +23,10 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 	ovfdomainmocks "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain/mocks"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 )
@@ -60,8 +61,8 @@ func TestExecuteRequests_HappyCase(t *testing.T) {
 	})
 	assert.NoError(t, actualError)
 	assert.Equal(t, []domain.Image{
-		{Project: "project123", ImageName: "img-1", URI: "projects/project123/global/images/img-1"},
-		{Project: "project123", ImageName: "img-2", URI: "projects/project123/global/images/img-2"}},
+		image.NewImage("project123", "img-1"),
+		image.NewImage("project123", "img-2")},
 		imageURIs)
 }
 

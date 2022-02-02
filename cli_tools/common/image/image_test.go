@@ -10,22 +10,19 @@
 //  distributed under the License is distributed on an "AS IS" BASIS,
 //  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //  See the License for the specific language governing permissions and
-//  limitations under the License.
+//  limitations under the License
 
-package domain
+package image
 
-import "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
+import (
+	"testing"
 
-// Image holds the project, name, and URI of a GCP disk image.
-type Image struct {
-	Project, ImageName, URI string
-}
+	"github.com/stretchr/testify/assert"
+)
 
-// NewImage constructs an Image instance.
-func NewImage(Project, ImageName string) Image {
-	return Image{
-		Project:   Project,
-		ImageName: ImageName,
-		URI:       param.GetImageResourcePath(Project, ImageName),
-	}
+func TestNewImage(t *testing.T) {
+	img := NewImage("project-id", "img-name")
+	assert.Equal(t, "project-id", img.GetProject())
+	assert.Equal(t, "img-name", img.GetImageName())
+	assert.Equal(t, "projects/project-id/global/images/img-name", img.GetURI())
 }

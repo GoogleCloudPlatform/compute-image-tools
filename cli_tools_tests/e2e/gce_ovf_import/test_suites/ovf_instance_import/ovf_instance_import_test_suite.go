@@ -164,6 +164,12 @@ func deleteImagesIfInstanceCreationFails(ctx context.Context, testCase *junitxml
 	// While the import is running, verify that the temporary images were created
 	// with the names that we expect. This ensures that we're actually verifying
 	// that the correct temporary images are deleted.
+	//
+	// `i` represents the index of the image, as used by OVF import. The
+	// boot disk is assigned `1`, and subsequent data disks start at `2`.
+	//
+	// One goroutine is started per image, and it polls for the temporary image that
+	// we're expecting to see. Once seen, it quits.
 	detectedImages := map[string]bool{}
 	for i := 1; i < 4; i++ {
 		imgName := fmt.Sprintf("ovf-%s-%d", buildID, i)

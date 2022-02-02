@@ -28,6 +28,7 @@ import (
 	"google.golang.org/api/option"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image"
 	computeutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
@@ -75,7 +76,7 @@ type OVFImporter struct {
 	multiImageImporter  ovfdomain.MultiImageImporterInterface
 	tarGcsExtractor     domain.TarGcsExtractorInterface
 	ovfDescriptorLoader ovfdomain.OvfDescriptorLoaderInterface
-	imageDeleter        ovfdomain.ImageDeleter
+	imageDeleter        domain.ImageDeleter
 	Logger              logging.Logger
 	gcsPathToClean      string
 	workflowPath        string
@@ -84,7 +85,7 @@ type OVFImporter struct {
 	paramValidator      *ParamValidatorAndPopulator
 
 	// Populated when disk file import finishes.
-	images []ovfdomain.Image
+	images []domain.Image
 
 	// Populated after reading OVF file descriptor.
 	machineTypeString string
@@ -109,7 +110,7 @@ func NewOVFImporter(params *ovfdomain.OVFImportParams, logger logging.ToolLogger
 		storageClient:       storageClient,
 		computeClient:       computeClient,
 		multiImageImporter:  multiimageimporter.NewMultiImageImporter(params.WorkflowDir, computeClient, storageClient, logger),
-		imageDeleter:        ovfgceutils.NewImageDeleter(computeClient, logger),
+		imageDeleter:        image.NewImageDeleter(computeClient, logger),
 		tarGcsExtractor:     tarGcsExtractor,
 		workflowPath:        workingDirOVFImportWorkflow,
 		ovfDescriptorLoader: ovfutils.NewOvfDescriptorLoader(storageClient),
@@ -136,9 +137,9 @@ func getImportWorkflowPath(params *ovfdomain.OVFImportParams) (workflow string) 
 	return path.Join(params.WorkflowDir, workflow)
 }
 
-func (oi *OVFImporter) buildDaisyVars(bootDiskImage ovfdomain.Image, machineType string) map[string]string {
+func (oi *OVFImporter) buildDaisyVars(bootDiskImage domain.Image, machineType string) map[string]string {
 	varMap := map[string]string{}
-	varMap["boot_disk_image_uri"] = bootDiskImage.URI
+	varMap["boot_disk_image_uri"] = bootDiskImage.GetURI()
 	if oi.params.IsInstanceImport() {
 		varMap["instance_name"] = oi.params.InstanceNames
 	} else {
@@ -349,7 +350,7 @@ func (oi *OVFImporter) createWorkflowForFinalInstance() (workflow *daisy.Workflo
 	var dataDiskURIs []string
 	// Start at 1 since the first disk is the boot disk.
 	for i := 1; i < len(oi.images); i++ {
-		dataDiskURIs = append(dataDiskURIs, oi.images[i].URI)
+		dataDiskURIs = append(dataDiskURIs, oi.images[i].GetURI())
 	}
 	daisyovfutils.CreateDisksOnInstance(
 		workflow.Steps[createInstanceStepName].CreateInstances.Instances[0],
