@@ -99,7 +99,7 @@ def main():
 
     # Change boot args.
     args = ' '.join([
-      'text', 'ks=hd:LABEL=INSTALLER:/%s' % ks_cfg,
+      'inst.text', 'inst.ks=hd:LABEL=INSTALLER:/%s' % ks_cfg,
       'console=ttyS0,38400n8', 'inst.gpt', 'loglevel=debug'
     ])
 

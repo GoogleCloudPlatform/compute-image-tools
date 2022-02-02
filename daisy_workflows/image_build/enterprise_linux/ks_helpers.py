@@ -188,6 +188,11 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap):
       or release.startswith('almalinux-8')
       or release.startswith('rocky-linux-8')):
     major = 8
+  if (release.startswith('rhel-9')
+      or release.startswith('centos-stream-9')
+      or release.startswith('almalinux-9')
+      or release.startswith('rocky-linux-9')):
+    major = 9
   el_version = f'el{major}'
 
   # Options and packages.
@@ -274,11 +279,10 @@ def BuildReposPost(repo_version, google_cloud_repo):
   """
 
   # Build a list of repos that will be returned. All images will get the
-  # compute repo. EL7 images get the cloud SDK repo. The unstable, and staging
-  # repos can be added to either by setting the google_cloud_repo value.
+  # compute and SDK repo. The unstable, and staging repos can be added to
+  # either by setting the google_cloud_repo value.
   repolist = ['stable']
-  if repo_version == 'el7' or repo_version == 'el8':
-    repolist.append('sdk')
+  repolist.append('sdk')
   if google_cloud_repo == 'unstable':
     repolist.append('unstable')
   if google_cloud_repo == 'staging':
