@@ -23,6 +23,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	ovfdomainmocks "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain/mocks"
@@ -43,8 +45,8 @@ func TestExecuteRequests_HappyCase(t *testing.T) {
 	mockCompute.EXPECT().GetImage(defaultProject, dataRequest.ImageName).Return(nil, errors.New("image not found"))
 
 	mockSingleImporter := ovfdomainmocks.NewMockImageImporterInterface(ctrl)
-	mockSingleImporter.EXPECT().ImportImage(gomock.Any(), bootRequest, gomock.Any()).Return(nil)
-	mockSingleImporter.EXPECT().ImportImage(gomock.Any(), dataRequest, gomock.Any()).Return(nil)
+	mockSingleImporter.EXPECT().Import(gomock.Any(), bootRequest, gomock.Any()).Return(nil)
+	mockSingleImporter.EXPECT().Import(gomock.Any(), dataRequest, gomock.Any()).Return(nil)
 
 	mockLogger := mocks.NewMockToolLogger(ctrl)
 	mockLogger.EXPECT().NewLogger("[import-img-1]").Return(logging.NewToolLogger("test"))
@@ -58,7 +60,10 @@ func TestExecuteRequests_HappyCase(t *testing.T) {
 		bootRequest, dataRequest,
 	})
 	assert.NoError(t, actualError)
-	assert.Equal(t, imageURIs, []string{"projects/project123/global/images/img-1", "projects/project123/global/images/img-2"})
+	assert.Equal(t, []domain.Image{
+		image.NewImage("project123", "img-1"),
+		image.NewImage("project123", "img-2")},
+		imageURIs)
 }
 
 func TestExecuteRequests_DontImport_IfBootImageAlreadyExists(t *testing.T) {
@@ -94,77 +99,11 @@ func TestExecuteRequests_DontImport_IfDataImageAlreadyExists(t *testing.T) {
 	assert.EqualError(t, actualError, "Intermediate image img-2 already exists. Re-run import.")
 }
 
-func TestExecuteRequests_PerformCleanup_IfAnyImportFails(t *testing.T) {
-	importFailedError := errors.New("Error failed")
-	bootRequest := makeRequest("img-1")
-	dataRequest := makeRequest("img-2")
-
-	ctrl := gomock.NewController(t)
-	mockCompute := mocks.NewMockClient(ctrl)
-	// Prior to import, no images exist.
-	mockCompute.EXPECT().GetImage(defaultProject, bootRequest.ImageName).Return(nil, errors.New("image not found"))
-	mockCompute.EXPECT().GetImage(defaultProject, dataRequest.ImageName).Return(nil, errors.New("image not found"))
-
-	// Both images are created.
-	mockCompute.EXPECT().GetImage(defaultProject, bootRequest.ImageName).Return(nil, nil)
-	mockCompute.EXPECT().GetImage(defaultProject, dataRequest.ImageName).Return(nil, nil)
-
-	// Expect they're both deleted.
-	mockCompute.EXPECT().DeleteImage(defaultProject, bootRequest.ImageName).Return(nil)
-	mockCompute.EXPECT().DeleteImage(defaultProject, dataRequest.ImageName).Return(nil)
-
-	mockSingleImporter := ovfdomainmocks.NewMockImageImporterInterface(ctrl)
-	mockSingleImporter.EXPECT().ImportImage(gomock.Any(), bootRequest, gomock.Any()).Return(nil)
-	mockSingleImporter.EXPECT().ImportImage(gomock.Any(), dataRequest, gomock.Any()).Return(importFailedError)
-
-	_, actualError := (&requestExecutor{
-		computeClient:  mockCompute,
-		singleImporter: mockSingleImporter,
-		logger:         logging.NewToolLogger("test"),
-	}).executeRequests(context.Background(), []importer.ImageImportRequest{
-		bootRequest, dataRequest,
-	})
-	assert.Equal(t, importFailedError, actualError)
-}
-
 func TestExecuteRequests_ReturnError_WhenTimeoutExceeded(t *testing.T) {
 	request := makeRequest("img-1")
 	request.Timeout = 0
 	_, actualError := (&requestExecutor{}).executeRequests(context.Background(), []importer.ImageImportRequest{request})
 	assert.EqualError(t, actualError, "Timeout exceeded")
-}
-
-func TestExecuteRequests_LogsMessage_IfCleanupFails(t *testing.T) {
-	importFailedError := errors.New("Error failed")
-	bootRequest := makeRequest("img-1")
-
-	ctrl := gomock.NewController(t)
-	mockCompute := mocks.NewMockClient(ctrl)
-	// Prior to import, the image doesn't exist.
-	mockCompute.EXPECT().GetImage(defaultProject, bootRequest.ImageName).Return(nil, errors.New("image not found"))
-
-	// Image is created during import.
-	mockCompute.EXPECT().GetImage(defaultProject, bootRequest.ImageName).Return(nil, nil)
-
-	// Image fails to delete
-	mockCompute.EXPECT().DeleteImage(defaultProject, bootRequest.ImageName).Return(errors.New("Failed to delete disk"))
-
-	mockSingleImporter := ovfdomainmocks.NewMockImageImporterInterface(ctrl)
-	mockSingleImporter.EXPECT().ImportImage(gomock.Any(), bootRequest, gomock.Any()).Return(importFailedError)
-
-	mockLogger := mocks.NewMockToolLogger(ctrl)
-	mockLogger.EXPECT().NewLogger("[import-img-1]").Return(logging.NewToolLogger("test"))
-	mockLogger.EXPECT().User("Failed to delete \"projects/project123/global/images/img-1\". Manual deletion required.")
-	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
-
-	_, actualError := (&requestExecutor{
-		computeClient:  mockCompute,
-		singleImporter: mockSingleImporter,
-		logger:         mockLogger,
-	}).executeRequests(context.Background(), []importer.ImageImportRequest{
-		bootRequest,
-	})
-	assert.Equal(t, importFailedError, actualError)
 }
 
 func makeRequest(imageName string) importer.ImageImportRequest {

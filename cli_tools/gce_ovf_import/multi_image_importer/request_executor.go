@@ -21,9 +21,10 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	ovfdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
@@ -36,11 +37,10 @@ type requestExecutor struct {
 }
 
 // executeRequests performs multiple image import requests in parallel, and blocks until
-// all requests are finished. If a request fails, all requests are stopped, and finished
-// images are deleted.
+// all requests are finished. If a request fails, all requests are stopped.
 //
 // On success, returns the URIs of the imported images, in the same order as requests.
-func (r *requestExecutor) executeRequests(parentContext context.Context, requests []importer.ImageImportRequest) (imageURIs []string, err error) {
+func (r *requestExecutor) executeRequests(parentContext context.Context, requests []importer.ImageImportRequest) (images []domain.Image, err error) {
 	group, ctx := errgroup.WithContext(parentContext)
 	// Check whether any of the proposed image names exist, and exit if so. Pre-checking to
 	// avoid deleting the pre-existing image during cleanup.
@@ -50,34 +50,16 @@ func (r *requestExecutor) executeRequests(parentContext context.Context, request
 		}
 
 		if _, err := r.computeClient.GetImage(request.Project, request.ImageName); err == nil {
-			return imageURIs, daisy.Errf("Intermediate image %s already exists. Re-run import.", request.ImageName)
+			return images, daisy.Errf("Intermediate image %s already exists. Re-run import.", request.ImageName)
 		}
 	}
 	for _, request := range requests {
 		req := request
-		imageURIs = append(imageURIs, param.GetImageResourcePath(request.Project, request.ImageName))
+		images = append(images, image.NewImage(request.Project, request.ImageName))
 		logPrefix := fmt.Sprintf("[import-%s]", req.DaisyLogLinePrefix)
 		group.Go(func() error {
 			return r.singleImporter.Import(ctx, req, r.logger.NewLogger(logPrefix))
 		})
 	}
-	err = group.Wait()
-	if err != nil {
-		r.deleteImagesIfExist(requests)
-	}
-	return imageURIs, err
-}
-
-func (r *requestExecutor) deleteImagesIfExist(requests []importer.ImageImportRequest) {
-	for _, request := range requests {
-		if _, err := r.computeClient.GetImage(request.Project, request.ImageName); err == nil {
-			r.logger.Debug("Found image " + request.ImageName)
-			if err = r.computeClient.DeleteImage(request.Project, request.ImageName); err != nil {
-				r.logger.User(fmt.Sprintf("Failed to delete %q. Manual deletion required.",
-					param.GetImageResourcePath(request.Project, request.ImageName)))
-			} else {
-				r.logger.Debug("Deleted image " + request.ImageName)
-			}
-		}
-	}
+	return images, group.Wait()
 }

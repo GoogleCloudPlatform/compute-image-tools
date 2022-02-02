@@ -112,3 +112,15 @@ type ResourceLocationRetrieverInterface interface {
 type HTTPClientInterface interface {
 	Get(url string) (resp *http.Response, err error)
 }
+
+// ImageDeleter checks whether images exist. If so, it deletes them.
+type ImageDeleter interface {
+	DeleteImagesIfExist(images []Image)
+}
+
+// Image holds the project, name, and URI of a GCP disk image.
+type Image interface {
+	GetProject() string
+	GetImageName() string
+	GetURI() string
+}
