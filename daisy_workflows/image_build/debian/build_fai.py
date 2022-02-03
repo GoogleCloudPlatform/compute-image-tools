@@ -31,6 +31,7 @@ import urllib.request
 
 import utils
 
+
 # The 3.7 version of shutil.copytree doesn't support skipping existing
 # directories. This code is simplified shutil.copytree from 3.9
 def mycopytree(src, dst):
@@ -38,19 +39,18 @@ def mycopytree(src, dst):
         entries = list(itr)
     os.makedirs(dst, exist_ok=True)
     for srcentry in entries:
-        srcname = os.path.join(src, srcentry.name)
         dstname = os.path.join(dst, srcentry.name)
-        srcobj = srcentry
         if srcentry.is_dir():
-            mycopytree(srcobj, dstname)
+            mycopytree(srcentry, dstname)
         else:
-            shutil.copy2(srcobj, dstname)
+            shutil.copy2(srcentry, dstname)
     return dst
 
 
 def main():
   # Get Parameters.
-  build_date = utils.GetMetadataAttribute('build_date', raise_on_not_found=True)
+  build_date = utils.GetMetadataAttribute(
+      'build_date', raise_on_not_found=True)
   debian_cloud_images_version = utils.GetMetadataAttribute(
       'debian_cloud_images_version', raise_on_not_found=True)
   debian_version = utils.GetMetadataAttribute(
