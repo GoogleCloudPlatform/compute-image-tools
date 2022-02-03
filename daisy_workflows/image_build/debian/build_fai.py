@@ -24,6 +24,7 @@ image_dest: The Cloud Storage destination for the resultant image.
 """
 
 import logging
+import platform
 import os
 import shutil
 import tarfile
@@ -81,20 +82,33 @@ def main():
     tar.extractall()
   logging.info('Downloaded and extracted %s.', url)
 
-  # Copy our classes to the FAI config space
   work_dir = url_params['filename']
   config_space = os.getcwd() + work_dir + '/config_space/'
-  mycopytree('/files/fai_config', config_space)
+
+  # We are going to replace this with our variant
+  os.remove(config_space + 'class/BULLSEYE.var')
 
   # Remove failing test method for now.
   os.remove(config_space + 'hooks/tests.CLOUD')
 
+  # Copy our classes to the FAI config space
+  mycopytree('/files/fai_config', config_space)
+
   # Config fai-tool
-  fai_classes = ['DEBIAN', 'CLOUD', 'GCE', 'GCE_SDK', 'AMD64',
-                 'GRUB_CLOUD_AMD64', 'LINUX_IMAGE_CLOUD', 'GCE_SPECIFIC',
-                 'GCE_CLEAN']
+  # Base classes
+  fai_classes = ['DEBIAN', 'CLOUD', 'GCE', 'GCE_SDK', 'LINUX_IMAGE_CLOUD',
+                 'GCE_SPECIFIC', 'GCE_CLEAN']
+
+  # Arch-specific classes
+  if platform.machine() == 'aarch64':
+    fai_classes += ['ARM64', 'GRUB_EFI_ARM64', 'BACKPORTS_LINUX',
+                    'GCE_SPECIFIC_ARM']
+  else:
+    fai_classes += ['AMD64', 'GRUB_CLOUD_AMD64', 'GCE_SPECIFIC']
+
+  # Version-specific classes
   if debian_version == 'buster':
-    fai_classes += ['BUSTER', 'BACKPORTS']
+    fai_classes += ['BUSTER']
   elif debian_version == 'bullseye':
     fai_classes += ['BULLSEYE']
   elif debian_version == 'sid':
