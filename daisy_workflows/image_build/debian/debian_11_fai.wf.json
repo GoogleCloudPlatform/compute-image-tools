@@ -28,7 +28,6 @@
           "build_date": "${build_date}",
           "debian_cloud_images_version": "${debian_cloud_images_version}",
           "debian_version": "${debian_version}",
-          "builder_source_image": "projects/compute-image-tools/global/images/family/debian-10-worker",
           "google_cloud_repo": "${google_cloud_repo}"
         }
       }
