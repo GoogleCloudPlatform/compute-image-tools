@@ -202,10 +202,12 @@ func (l *Logger) getOutputInfo(loggable Loggable, err error) *OutputInfo {
 		o.IsUEFIDetected = loggable.GetValueAsBool(isUEFIDetected)
 		o.InflationFallbackReason = loggable.GetValue(inflationFallbackReason)
 
-		// TODO: ideally we suppose to set o.InspectionResults. Will modify after proto is adjusted.
+		// TODO: ideally we suppose to set only o.InspectionResults. Remove after
+		// the dependency is eliminated.
 		if l.Params.ImageImportParams != nil {
 			l.Params.ImageImportParams.InspectionResults = loggable.GetInspectionResults()
 		}
+		o.InspectionResults = loggable.GetInspectionResults()
 	}
 
 	if err != nil {

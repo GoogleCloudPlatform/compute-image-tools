@@ -25,6 +25,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
 
 var (
@@ -76,6 +78,18 @@ func TestLogSuccess(t *testing.T) {
 		traceLogs: []string{
 			"serial-log1", "serial-log2",
 		},
+		inspectionResults: &pb.InspectionResults{
+			OsCount:      1,
+			UefiBootable: true,
+			OsRelease: &pb.OsRelease{
+				Architecture: pb.Architecture_X64,
+				CliFormatted: "ubuntu-2004",
+				Distro:       "ubuntu",
+				MajorVersion: "20",
+				MinorVersion: "04",
+				DistroId:     pb.Distro_UBUNTU,
+			},
+		},
 	}
 
 	e, r := logger.logSuccess(w)
@@ -87,13 +101,31 @@ func TestLogSuccess(t *testing.T) {
 		t.Errorf("Unexpected Status %v, expect: %v", e.Status, statusSuccess)
 	}
 
-	expected := OutputInfo{
-		SourcesSizeGb:    []int64{3, 2, 1},
-		TargetsSizeGb:    []int64{5},
-		ImportFileFormat: "vmdk",
-		SerialOutputs:    nil, // don't send serial output on success
+	expectedInspectionResults := pb.InspectionResults{
+		OsCount:      1,
+		UefiBootable: true,
+		OsRelease: &pb.OsRelease{
+			Architecture: pb.Architecture_X64,
+			CliFormatted: "ubuntu-2004",
+			Distro:       "ubuntu",
+			MajorVersion: "20",
+			MinorVersion: "04",
+			DistroId:     pb.Distro_UBUNTU,
+		},
 	}
-	assert.Equal(t, expected, *e.OutputInfo)
+
+	expectedOutputInfo := OutputInfo{
+		SourcesSizeGb:     []int64{3, 2, 1},
+		TargetsSizeGb:     []int64{5},
+		ImportFileFormat:  "vmdk",
+		SerialOutputs:     nil, // don't send serial output on success
+		InspectionResults: &expectedInspectionResults,
+	}
+
+	assert.Equal(t, &expectedInspectionResults,
+		e.InputParams.ImageImportParams.InspectionResults)
+	assert.Equal(t, expectedOutputInfo, *e.OutputInfo)
+
 	if e.ElapsedTimeMs < 20 {
 		t.Errorf("Unexpected ElapsedTimeMs %v < %v", e.ElapsedTimeMs, 20)
 	}
