@@ -5,21 +5,15 @@
     "build_date": {"Value": "${DATE}", "Description": "Build datestamp used to version the image."},
     "debian_cloud_images_version": {"Required": true, "Description": "The debian-cloud-images scripts git commit ID or branch to use."},
     "debian_version": {"Required": true, "Description": "The FAI tool debian version to be requested."},
-    "builder_source_image": {"Required": true, "Description": "The image used to run fai-tool."},
+    "builder_source_image": {
+      "Value": "projects/compute-image-tools/global/images/family/debian-10-worker",
+      "Description": "The image used to run fai-tool."
+    },
     "google_cloud_repo": {"Value": "stable", "Description": "The Google Cloud Repo branch to use."}
   },
   "Sources": {
     "build_files/build.py": "./build_fai.py",
-    "build_files/fai_config/packages/GCE_SPECIFIC": "./fai_config/packages/GCE_SPECIFIC",
-    "build_files/fai_config/scripts/10-gce-clean": "./fai_config/scripts/10-gce-clean",
-    "build_files/fai_config/scripts/12-sshd": "./fai_config/scripts/12-sshd",
-    "build_files/fai_config/sources/file_modes": "./fai_config/sources/file_modes",
-    "build_files/fai_config/sources/GCE_SPECIFIC": "./fai_config/sources/GCE_SPECIFIC",
-    "build_files/fai_config/sources/GCE_STAGING": "./fai_config/sources/GCE_STAGING",
-    "build_files/fai_config/sources/GCE_UNSTABLE": "./fai_config/sources/GCE_UNSTABLE",
-    "build_files/fai_config/sources/repository.GCE_SPECIFIC": "./fai_config/sources/repository.GCE_SPECIFIC",
-    "build_files/fai_config/sources/repository.GCE_STAGING": "./fai_config/sources/repository.GCE_STAGING",
-    "build_files/fai_config/sources/repository.GCE_UNSTABLE": "./fai_config/sources/repository.GCE_UNSTABLE",
+    "build_files/fai_config": "./fai_config/",
     "build_files/utils": "../../linux_common/utils",
     "startup_script": "../../linux_common/bootstrap.sh"
   },

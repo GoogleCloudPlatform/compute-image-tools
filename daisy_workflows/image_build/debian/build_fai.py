@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2018 Google Inc. All Rights Reserved.
+# Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,20 +21,30 @@ debian_cloud_images_version: The debian-cloud-images scripts git commit ID
 to use.
 debian_version: The FAI tool debian version to be requested.
 image_dest: The Cloud Storage destination for the resultant image.
-google_cloud_repo: The repository branch to use for packages.cloud.google.com.
 """
 
 import logging
 import os
+import shutil
 import tarfile
 import urllib.request
 
 import utils
 
 
-def CopyToConfigSpace(src, dst, config_space):
-  """Copies source files to config space destination."""
-  return utils.Execute(['cp', src, config_space + dst])
+# The 3.7 version of shutil.copytree doesn't support skipping existing
+# directories. This code is simplified shutil.copytree from 3.9
+def mycopytree(src, dst):
+    with os.scandir(src) as itr:
+        entries = list(itr)
+    os.makedirs(dst, exist_ok=True)
+    for srcentry in entries:
+        dstname = os.path.join(dst, srcentry.name)
+        if srcentry.is_dir():
+            mycopytree(srcentry, dstname)
+        else:
+            shutil.copy2(srcentry, dstname)
+    return dst
 
 
 def main():
@@ -45,8 +55,6 @@ def main():
       'debian_cloud_images_version', raise_on_not_found=True)
   debian_version = utils.GetMetadataAttribute(
       'debian_version', raise_on_not_found=True)
-  google_cloud_repo = utils.GetMetadataAttribute(
-      'google_cloud_repo', raise_on_not_found=True)
   outs_path = utils.GetMetadataAttribute('daisy-outs-path',
                                          raise_on_not_found=True)
 
@@ -66,112 +74,52 @@ def main():
 
   url = ('https://salsa.debian.org/cloud-team/'
          '%(project)s/-/archive/%(version)s/%(filename)s.tar.gz' % url_params)
-  logging.info('Downloading %(project)s at version %(version)s' % url_params)
+
+  logging.info('Downloading %(project)s at version %(version)s', url_params)
   urllib.request.urlretrieve(url, 'fci.tar.gz')
   with tarfile.open('fci.tar.gz') as tar:
     tar.extractall()
-  logging.info('Downloaded and extracted %s.' % url)
+  logging.info('Downloaded and extracted %s.', url)
 
-  # Config fai-tool
+  # Copy our classes to the FAI config space
   work_dir = url_params['filename']
-  fai_classes = ['DEBIAN', 'CLOUD', 'GCE', 'GCE_SDK', 'AMD64',
-                 'GRUB_CLOUD_AMD64', 'LINUX_IMAGE_CLOUD']
-  if debian_version == 'buster':
-    fai_classes += ['BUSTER', 'BACKPORTS']
-  elif debian_version == "bullseye":
-    fai_classes += ['BULLSEYE']
-  elif debian_version == 'sid':
-    fai_classes += ['SID']
-  image_size = '10G'
-  disk_name = 'disk.raw'
   config_space = os.getcwd() + work_dir + '/config_space/'
-  apt_sources_base = 'files/etc/apt/sources.list.d/'
-
-  # Copy GCE_SPECIFIC fai classes.
-  CopyToConfigSpace('/files/fai_config/packages/GCE_SPECIFIC',
-                    'package_config/GCE_SPECIFIC',
-                    config_space)
-  os.mkdir(config_space + apt_sources_base + 'google-cloud.list')
-  CopyToConfigSpace('/files/fai_config/sources/GCE_SPECIFIC',
-                    apt_sources_base + 'google-cloud.list/GCE_SPECIFIC',
-                    config_space)
-  CopyToConfigSpace('/files/fai_config/sources/file_modes',
-                    apt_sources_base + '/google-cloud.list/file_modes',
-                    config_space)
-  CopyToConfigSpace('/files/fai_config/sources/repository.GCE_SPECIFIC',
-                    'hooks/repository.GCE_SPECIFIC',
-                    config_space)
-  # SSHD config for GCE.
-  os.mkdir(config_space + 'scripts/GCE_SPECIFIC')
-  CopyToConfigSpace('/files/fai_config/scripts/12-sshd',
-                    'scripts/GCE_SPECIFIC/12-sshd',
-                    config_space)
-  os.chmod(config_space + 'scripts/GCE_SPECIFIC/12-sshd', 0o755)
-  fai_classes += ['GCE_SPECIFIC']
-
-  # GCE staging package repo.
-  if google_cloud_repo == 'staging' or google_cloud_repo == 'unstable':
-    os.mkdir(
-        config_space + apt_sources_base + 'google-cloud-staging.list')
-    CopyToConfigSpace(
-        '/files/fai_config/sources/GCE_STAGING',
-        apt_sources_base + 'google-cloud-staging.list/GCE_STAGING',
-        config_space)
-    CopyToConfigSpace(
-        '/files/fai_config/sources/file_modes',
-        apt_sources_base + 'google-cloud-staging.list/file_modes',
-        config_space)
-    CopyToConfigSpace('/files/fai_config/sources/repository.GCE_STAGING',
-                      'hooks/repository.GCE_STAGING',
-                      config_space)
-    fai_classes += ['GCE_STAGING']
-
-  # GCE unstable package repo.
-  if google_cloud_repo == 'unstable':
-    os.mkdir(
-        config_space + apt_sources_base + 'google-cloud-unstable.list')
-    CopyToConfigSpace(
-        '/files/fai_config/sources/GCE_UNSTABLE',
-        apt_sources_base + 'google-cloud-unstable.list/GCE_UNSTABLE',
-        config_space)
-    CopyToConfigSpace(
-        '/files/fai_config/sources/file_modes',
-        apt_sources_base + 'google-cloud-unstable.list/file_modes',
-        config_space)
-    CopyToConfigSpace('/files/fai_config/sources/file_modes',
-                      'hooks/repository.GCE_UNSTABLE',
-                      config_space)
-    fai_classes += ['GCE_UNSTABLE']
-
-  # Cleanup class for GCE.
-  os.mkdir(config_space + 'scripts/GCE_CLEAN')
-  CopyToConfigSpace('/files/fai_config/scripts/10-gce-clean',
-                    'scripts/GCE_CLEAN/10-gce-clean',
-                    config_space)
-  os.chmod(config_space + 'scripts/GCE_CLEAN/10-gce-clean', 0o755)
-  fai_classes += ['GCE_CLEAN']
+  mycopytree('/files/fai_config', config_space)
 
   # Remove failing test method for now.
   os.remove(config_space + 'hooks/tests.CLOUD')
+
+  # Config fai-tool
+  fai_classes = ['DEBIAN', 'CLOUD', 'GCE', 'GCE_SDK', 'AMD64',
+                 'GRUB_CLOUD_AMD64', 'LINUX_IMAGE_CLOUD', 'GCE_SPECIFIC',
+                 'GCE_CLEAN']
+  if debian_version == 'buster':
+    fai_classes += ['BUSTER', 'BACKPORTS']
+  elif debian_version == 'bullseye':
+    fai_classes += ['BULLSEYE']
+  elif debian_version == 'sid':
+    fai_classes += ['SID']
+
+  image_size = '10G'
+  disk_name = 'disk.raw'
 
   # Run fai-tool.
   cmd = ['fai-diskimage', '--verbose', '--hostname', 'debian', '--class',
          ','.join(fai_classes), '--size', image_size, '--cspace',
          config_space, disk_name]
-  logging.info('Starting build in %s with params: %s' % (
-      work_dir, ' '.join(cmd)))
+  logging.info('Starting build in %s with params: %s', work_dir, ' '.join(cmd))
   utils.Execute(cmd, cwd=work_dir, capture_output=True)
 
   # Packs a gzipped tar file with disk.raw inside
   disk_tar_gz = 'debian-{}-{}.tar.gz'.format(debian_version, build_date)
-  logging.info('Compressing it into tarball %s' % disk_tar_gz)
+  logging.info('Compressing it into tarball %s', disk_tar_gz)
   tar = tarfile.open(disk_tar_gz, 'w:gz')
   tar.add('%s/disk.raw' % work_dir, arcname='disk.raw')
   tar.close()
 
   # Upload tar.
   image_dest = os.path.join(outs_path, 'root.tar.gz')
-  logging.info('Saving %s to %s' % (disk_tar_gz, image_dest))
+  logging.info('Saving %s to %s', disk_tar_gz, image_dest)
   utils.UploadFile(disk_tar_gz, image_dest)
 
 
@@ -180,4 +128,4 @@ if __name__ == '__main__':
     main()
     logging.success('Debian build was successful!')
   except Exception as e:
-    logging.error('Debian build failed: %s' % e)
+    logging.error('Debian build failed: %s', e)
