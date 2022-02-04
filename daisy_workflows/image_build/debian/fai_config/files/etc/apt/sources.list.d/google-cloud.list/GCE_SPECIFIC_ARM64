@@ -1,1 +1,0 @@
-deb http://packages.cloud.google.com/apt google-compute-engine-{%release%}-stable main

@@ -97,14 +97,14 @@ def main():
 
   # Config fai-tool
   # Base classes
-  fai_classes = ['DEBIAN', 'CLOUD', 'GCE', 'GCE_SDK', 'LINUX_IMAGE_CLOUD', 'GCE_CLEAN']
+  fai_classes = ['DEBIAN', 'CLOUD', 'GCE', 'GCE_SDK', 'LINUX_IMAGE_CLOUD',
+                 'GCE_SPECIFIC', 'GCE_CLEAN']
 
   # Arch-specific classes
   if platform.machine() == 'aarch64':
-    fai_classes += ['ARM64', 'GRUB_EFI_ARM64', 'BACKPORTS_LINUX',
-                    'GCE_SPECIFIC_ARM64']
+    fai_classes += ['ARM64', 'GRUB_EFI_ARM64', 'BACKPORTS_LINUX']
   else:
-    fai_classes += ['AMD64', 'GRUB_CLOUD_AMD64', 'GCE_SPECIFIC']
+    fai_classes += ['AMD64', 'GRUB_CLOUD_AMD64']
 
   # Version-specific classes
   if debian_version == 'buster':

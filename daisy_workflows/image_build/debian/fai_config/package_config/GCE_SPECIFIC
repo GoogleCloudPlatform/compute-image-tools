@@ -10,16 +10,25 @@ man
 net-tools
 vim
 
+# GCE disk expansion package.
+gce-disk-expand
+
+PACKAGES install AMD64
 # Secure Boot
 shim-signed
 grub-efi-amd64-signed
 
-# GCE disk expansion package.
-gce-disk-expand
-
 # GCE OS Config Agent
 google-osconfig-agent
+
+PACKAGES install ARM64
+grub-efi-arm64
 
 # Use gce-disk-expand instead.
 PACKAGES remove
 cloud-initramfs-growroot
+
+# No secure boot on ARM, yet.
+PACKAGES remove ARM64
+grub-efi-arm64-signed
+shim-signed
