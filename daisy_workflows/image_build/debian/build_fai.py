@@ -27,6 +27,7 @@ import logging
 import platform
 import os
 import shutil
+import subprocess
 import tarfile
 import urllib.request
 
@@ -83,7 +84,7 @@ def main():
   logging.info('Downloaded and extracted %s.', url)
 
   work_dir = url_params['filename']
-  config_space = os.getcwd() + work_dir + '/config_space/'
+  config_space = os.getcwd() + '/' + work_dir + '/config_space/'
 
   # We are going to replace this with our variant
   os.remove(config_space + 'class/BULLSEYE.var')
@@ -96,13 +97,12 @@ def main():
 
   # Config fai-tool
   # Base classes
-  fai_classes = ['DEBIAN', 'CLOUD', 'GCE', 'GCE_SDK', 'LINUX_IMAGE_CLOUD',
-                 'GCE_SPECIFIC', 'GCE_CLEAN']
+  fai_classes = ['DEBIAN', 'CLOUD', 'GCE', 'GCE_SDK', 'LINUX_IMAGE_CLOUD', 'GCE_CLEAN']
 
   # Arch-specific classes
   if platform.machine() == 'aarch64':
     fai_classes += ['ARM64', 'GRUB_EFI_ARM64', 'BACKPORTS_LINUX',
-                    'GCE_SPECIFIC_ARM']
+                    'GCE_SPECIFIC_ARM64']
   else:
     fai_classes += ['AMD64', 'GRUB_CLOUD_AMD64', 'GCE_SPECIFIC']
 
@@ -122,13 +122,21 @@ def main():
          ','.join(fai_classes), '--size', image_size, '--cspace',
          config_space, disk_name]
   logging.info('Starting build in %s with params: %s', work_dir, ' '.join(cmd))
-  utils.Execute(cmd, cwd=work_dir, capture_output=True)
+  returncode, output = utils.Execute(
+      cmd, cwd=work_dir, capture_output=True, raise_errors=False)
+
+  # Verbose printing to console for debugging.
+  for line in output.splitlines():
+    print(line)
+
+  if returncode != 0:
+    raise subprocess.CalledProcessError(returncode, cmd)
 
   # Packs a gzipped tar file with disk.raw inside
   disk_tar_gz = 'debian-{}-{}.tar.gz'.format(debian_version, build_date)
   logging.info('Compressing it into tarball %s', disk_tar_gz)
   tar = tarfile.open(disk_tar_gz, 'w:gz')
-  tar.add('%s/disk.raw' % work_dir, arcname='disk.raw')
+  tar.add('%s/%s' % (work_dir, disk_name), arcname=disk_name)
   tar.close()
 
   # Upload tar.

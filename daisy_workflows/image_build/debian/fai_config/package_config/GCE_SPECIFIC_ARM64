@@ -1,6 +1,7 @@
 PACKAGES install
 # To avoid entropy issues when intances boot.
 haveged
+python3
 
 # Used by the bootstrap script.
 curl
