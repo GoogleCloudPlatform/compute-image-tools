@@ -1,8 +1,8 @@
 {
-  "Name": "debian-10",
-  "Project": "gce-image-builder",
-  "Zone": "us-central1-b",
-  "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
+  "Name": "debian-11-arm",
+  "Project": "bct-staging-vmx",
+  "Zone": "us-central1-in1",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
   "Vars": {
     "build_date": {
       "Value": "${TIMESTAMP}",
@@ -25,7 +25,7 @@
     "build": {
       "TimeOut": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/debian/debian_10_fai.wf.json",
+        "Path": "${workflow_root}/image_build/debian/debian_11_arm.wf.json",
         "Vars": {
           "build_date": "${build_date}"
         }
@@ -34,8 +34,8 @@
     "create-disk": {
       "CreateDisks": [
         {
-          "Name": "disk-debian-10",
-          "SourceImage": "debian-10-v${build_date}",
+          "Name": "disk-debian-11",
+          "SourceImage": "debian-11-arm-v${build_date}",
           "SizeGb": "10",
           "Type": "pd-ssd"
         }
@@ -44,14 +44,14 @@
     "copy-to-destination": {
       "CopyGCSObjects": [
         {
-          "Source": "${OUTSPATH}/root.tar.gz",
+          "Source": "${OUTSPATH}/root-repack.tar.gz",
           "Destination": "${gcs_url}"
         }
       ]
     },
     "cleanup-image": {
       "DeleteResources": {
-        "Images": ["debian-10-v${build_date}"]
+        "Images": ["debian-11-arm-v${build_date}"]
       }
     }
   },

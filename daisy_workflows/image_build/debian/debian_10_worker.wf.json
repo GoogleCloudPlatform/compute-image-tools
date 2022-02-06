@@ -4,10 +4,6 @@
     "build_date": {
       "Value": "${DATE}",
       "Description": "Build datestamp used to version the image."
-    },
-    "google_cloud_repo": {
-      "Value": "stable",
-      "Description": "The Google Cloud Repo branch to use."
     }
   },
   "Sources": {
@@ -19,8 +15,7 @@
       "IncludeWorkflow": {
         "Path": "./debian_10_fai.wf.json",
         "Vars": {
-          "build_date": "${build_date}",
-          "google_cloud_repo": "${google_cloud_repo}"
+          "build_date": "${build_date}"
         }
       }
     },

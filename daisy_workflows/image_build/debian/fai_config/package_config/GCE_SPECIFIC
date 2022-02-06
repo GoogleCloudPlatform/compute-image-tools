@@ -22,6 +22,10 @@ grub-efi-amd64-signed
 google-osconfig-agent
 
 PACKAGES install ARM64
+# SDK needs python installed
+python3
+
+# Unsigned grub
 grub-efi-arm64
 
 # Use gce-disk-expand instead.

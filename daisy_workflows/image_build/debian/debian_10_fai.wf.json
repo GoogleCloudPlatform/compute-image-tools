@@ -2,18 +2,6 @@
   "Name": "build-debian-10-fai",
   "Vars": {
     "build_date": {"Value": "${DATE}", "Description": "Build datestamp used to version the image."},
-    "debian_cloud_images_version": {
-      "Value": "69783f7417aefb332d5d7250ba242adeca444131",
-      "Description": "The debian-cloud-images scripts git commit ID or branch to use."
-    },
-    "debian_version": {
-      "Value": "buster",
-      "Description": "The FAI tool debian version to be requested."
-    },
-    "google_cloud_repo": {
-      "Value": "stable",
-      "Description": "The Google Cloud Repo branch to use."
-    },
     "publish_project": {
       "Value": "${PROJECT}",
       "Description": "A project to publish the resulting image to."
@@ -26,9 +14,7 @@
         "Path": "./debian_fai.wf.json",
         "Vars": {
           "build_date": "${build_date}",
-          "debian_cloud_images_version": "${debian_cloud_images_version}",
-          "debian_version": "${debian_version}",
-          "google_cloud_repo": "${google_cloud_repo}"
+          "debian_version": "buster"
         }
       }
     },
