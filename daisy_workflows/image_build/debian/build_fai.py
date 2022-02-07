@@ -24,8 +24,8 @@ image_dest: The Cloud Storage destination for the resultant image.
 """
 
 import logging
-import platform
 import os
+import platform
 import shutil
 import subprocess
 import tarfile
