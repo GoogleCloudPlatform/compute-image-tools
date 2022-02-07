@@ -20,7 +20,7 @@
           "build_date": "${build_date}",
           "debian_version": "bullseye",
           "builder_machine_type": "t2a-standard-2",
-          "builder_source_image": "projects/bct-staging-images/global/images/family/debian-arm"
+          "builder_source_image": "projects/compute-image-tools/global/images/family/debian-10-worker-arm"
         }
       }
     },
@@ -28,7 +28,7 @@
       "CreateDisks": [
         {
           "Name": "disk-repack",
-          "SourceImage": "projects/bct-staging-images/global/images/family/debian-10-worker",
+          "SourceImage": "projects/compute-image-tools/global/images/family/debian-10-worker",
           "SizeGb": "50",
           "Type": "pd-ssd"
         }
