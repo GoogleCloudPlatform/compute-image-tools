@@ -35,7 +35,6 @@
           "MachineType": "${builder_machine_type}",
           "Metadata": {
             "build_date": "${build_date}",
-            "debian_cloud_images_version": "69783f7417aefb332d5d7250ba242adeca444131",
             "debian_version": "${debian_version}",
             "files_gcs_dir": "${SOURCESPATH}/build_files",
             "debian_install_google_api_python_client": "yes",
