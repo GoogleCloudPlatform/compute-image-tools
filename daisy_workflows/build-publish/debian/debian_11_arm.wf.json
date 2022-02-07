@@ -1,7 +1,7 @@
 {
   "Name": "debian-11-arm",
   "Project": "gce-image-builder",
-  "Zone": "us-central1-in1",
+  "Zone": "us-central1-b",
   "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
   "Vars": {
     "build_date": {
