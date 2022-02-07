@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"path"
 	"regexp"
+	"strings"
 
 	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	computeBeta "google.golang.org/api/compute/v0.beta"
@@ -430,7 +431,7 @@ func (ib *ImageBase) validate(ctx context.Context, ii ImageInterface, licenses [
 		errs = addErrs(errs, err)
 
 		// Check if this image object is created by this workflow, otherwise check if object exists.
-		if !strIn(path.Join(sBkt, sObj), s.w.objects.created) {
+		if !strIn(path.Join(sBkt, sObj), s.w.objects.created) && !strings.HasPrefix(sObj, s.w.outsPath) {
 			if _, err := s.w.StorageClient.Bucket(sBkt).Object(sObj).Attrs(ctx); err != nil {
 				errs = addErrs(errs, Errf("error reading object %s/%s: %v", sBkt, sObj, err))
 			}
