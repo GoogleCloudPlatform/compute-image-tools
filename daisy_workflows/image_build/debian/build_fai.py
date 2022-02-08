@@ -89,6 +89,10 @@ def main():
   # Remove failing test method for now.
   os.remove(config_space + 'hooks/tests.CLOUD')
 
+  # Set scripts executable (daisy doesn't preserve this)
+  os.chmod(config_space + 'scripts/GCE_CLEAN/10-gce-clean', 0o755)
+  os.chmod(config_space + 'scripts/GCE_SPECIFIC/12-sshd', 0o755)
+
   # Config fai-tool
   fai_classes = ['DEBIAN', 'CLOUD', 'GCE', 'GCE_SDK', 'AMD64',
                  'GRUB_CLOUD_AMD64', 'LINUX_IMAGE_CLOUD', 'GCE_SPECIFIC',
