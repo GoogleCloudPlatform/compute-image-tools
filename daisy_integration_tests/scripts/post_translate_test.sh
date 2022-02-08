@@ -171,39 +171,59 @@ function check_cloud_init {
 # Check package installs. Using iputils to ensure
 # ping is available for the check_metadata_connectivity test.
 function check_package_install {
-  # Apt
-  if [[ -d /etc/apt ]]; then
-    status "Checking if apt can install a package."
-    for i in $(seq 1 20) ; do
+
+  # The loop ensures that we allow the package manager to become
+  # available; some systems perform updates on boot, which locks
+  # the package manager.
+  for i in $(seq 1 20); do
+    # Apt
+    if [[ -d /etc/apt ]]; then
+      status "Checking if apt can install a package."
       apt-get update && apt-get install --reinstall iputils-ping && return 0
-      status "Waiting until apt is available."
-      sleep $((i**2))
-    done
-    fail "apt-get cannot install iputils-ping."
-  fi
+    fi
 
-  # Yum
-  if [[ -d /etc/yum ]]; then
-    status "Checking if yum can install a package."
-    if rpm -q iputils; then
-      yum -y update iputils
-    else
-      yum -y install iputils
+    # Yum
+    if [[ -d /etc/yum ]]; then
+      status "Checking if yum can install a package."
+      if rpm -q iputils; then
+        yum -y update iputils
+      else
+        yum -y install iputils
+      fi
+      yum -y reinstall iputils && return 0
     fi
-    yum -y reinstall iputils
-    if [[ $? -ne 0 ]]; then
-      fail "yum cannot install iputils."
-    fi
-  fi
 
-  # Zypper
-  if [[ -d /etc/zypp ]]; then
-    status "Checking if zypper can install a package."
-    zypper install -f -y iputils
-    if [[ $? -ne 0 ]]; then
-      fail "zypper cannot install iputils."
+    # Zypper
+    if [[ -d /etc/zypp ]]; then
+      status "Checking if zypper can install a package."
+      zypper install -f -y iputils && return 0
     fi
-  fi
+
+    status "Waiting for package manager to be available"
+    sleep $((i ** 2))
+  done
+  fail "cannot install iputils."
+}
+
+# password_is_locked returns 0 if the user's password is locked,
+# or 1 if it's unlocked. It's considered locked if /etc/shadow
+# contains a hash of `*`, which means that the password is
+# unusable by the system; the `*` technique is sometimes used
+# as an idiom for locking the password.
+function password_is_locked {
+  local user=$1
+  # Looping mitigates a race with the guest agent which adds users
+  # at startup. The race occurs if `passwd` knows about the user,
+  # but `/etc/shadow` hasn't been updated yet.
+  for i in {1..5}; do
+    if passwd -S "$user" | grep -qP "$user LK?"; then
+      return 0
+    elif grep -q "$user:\*:" /etc/shadow; then
+      return 0
+    fi
+    sleep $((i ** 2))
+  done
+  return 1
 }
 
 # Check that the root account and all non-system accounts have their password locked.
@@ -229,8 +249,7 @@ function check_package_install {
 #  8. Re-import the image as a data disk.
 function check_passwords_locked {
   for user in root $(awk -F: '($1 != "nobody") && ($3 >= 1000){print $1}' /etc/passwd); do
-    passwd -S "$user"
-    if passwd -S "$user" | grep -qP "$user LK?"; then
+    if password_is_locked "$user"; then
       status "<$user> password locked"
     else
       fail "<$user> password not locked"

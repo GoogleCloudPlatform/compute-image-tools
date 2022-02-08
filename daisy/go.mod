@@ -7,7 +7,6 @@ require (
 	cloud.google.com/go/logging v1.0.0
 	cloud.google.com/go/storage v1.14.0
 	github.com/davecgh/go-spew v1.1.1
-	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.5.1
 	github.com/google/uuid v1.1.2
 	github.com/kylelemons/godebug v1.1.0
