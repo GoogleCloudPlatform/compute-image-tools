@@ -9,8 +9,8 @@
       "Description": "Build datestamp used to version the image."
     },
     "google_cloud_repo": {
-      "Value": "staging",
-      "Description": "The Google Cloud Repo branch to use."
+      "Value": "DEPRECATED",
+      "Description": "DEPRECATED. Included to ease transition of our pipelines, but not used."
     },
     "workflow_root": {
       "Value": "/workflows",
@@ -27,8 +27,7 @@
       "IncludeWorkflow": {
         "Path": "${workflow_root}/image_build/debian/debian_9.wf.json",
         "Vars": {
-          "build_date": "${build_date}",
-          "google_cloud_repo": "${google_cloud_repo}"
+          "build_date": "${build_date}"
         }
       }
     },

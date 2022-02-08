@@ -25,7 +25,9 @@ image_dest: The Cloud Storage destination for the resultant image.
 
 import logging
 import os
+import platform
 import shutil
+import subprocess
 import tarfile
 import urllib.request
 
@@ -51,8 +53,7 @@ def main():
   # Get Parameters.
   build_date = utils.GetMetadataAttribute(
       'build_date', raise_on_not_found=True)
-  debian_cloud_images_version = utils.GetMetadataAttribute(
-      'debian_cloud_images_version', raise_on_not_found=True)
+  debian_cloud_images_version = '69783f7417aefb332d5d7250ba242adeca444131'
   debian_version = utils.GetMetadataAttribute(
       'debian_version', raise_on_not_found=True)
   outs_path = utils.GetMetadataAttribute('daisy-outs-path',
@@ -81,24 +82,36 @@ def main():
     tar.extractall()
   logging.info('Downloaded and extracted %s.', url)
 
-  # Copy our classes to the FAI config space
   work_dir = url_params['filename']
-  config_space = os.getcwd() + work_dir + '/config_space/'
-  mycopytree('/files/fai_config', config_space)
+  config_space = os.getcwd() + '/' + work_dir + '/config_space/'
+
+  # We are going to replace this with our variant
+  os.remove(config_space + 'class/BULLSEYE.var')
 
   # Remove failing test method for now.
   os.remove(config_space + 'hooks/tests.CLOUD')
+
+  # Copy our classes to the FAI config space
+  mycopytree('/files/fai_config', config_space)
 
   # Set scripts executable (daisy doesn't preserve this)
   os.chmod(config_space + 'scripts/GCE_CLEAN/10-gce-clean', 0o755)
   os.chmod(config_space + 'scripts/GCE_SPECIFIC/12-sshd', 0o755)
 
   # Config fai-tool
-  fai_classes = ['DEBIAN', 'CLOUD', 'GCE', 'GCE_SDK', 'AMD64',
-                 'GRUB_CLOUD_AMD64', 'LINUX_IMAGE_CLOUD', 'GCE_SPECIFIC',
-                 'GCE_CLEAN']
+  # Base classes
+  fai_classes = ['DEBIAN', 'CLOUD', 'GCE', 'GCE_SDK', 'LINUX_IMAGE_CLOUD',
+                 'GCE_SPECIFIC', 'GCE_CLEAN']
+
+  # Arch-specific classes
+  if platform.machine() == 'aarch64':
+    fai_classes += ['ARM64', 'GRUB_EFI_ARM64', 'BACKPORTS_LINUX']
+  else:
+    fai_classes += ['AMD64', 'GRUB_CLOUD_AMD64']
+
+  # Version-specific classes
   if debian_version == 'buster':
-    fai_classes += ['BUSTER', 'BACKPORTS']
+    fai_classes += ['BUSTER']
   elif debian_version == 'bullseye':
     fai_classes += ['BULLSEYE']
   elif debian_version == 'sid':
@@ -112,13 +125,21 @@ def main():
          ','.join(fai_classes), '--size', image_size, '--cspace',
          config_space, disk_name]
   logging.info('Starting build in %s with params: %s', work_dir, ' '.join(cmd))
-  utils.Execute(cmd, cwd=work_dir, capture_output=True)
+  returncode, output = utils.Execute(
+      cmd, cwd=work_dir, capture_output=True, raise_errors=False)
+
+  # Verbose printing to console for debugging.
+  for line in output.splitlines():
+    print(line)
+
+  if returncode != 0:
+    raise subprocess.CalledProcessError(returncode, cmd)
 
   # Packs a gzipped tar file with disk.raw inside
   disk_tar_gz = 'debian-{}-{}.tar.gz'.format(debian_version, build_date)
   logging.info('Compressing it into tarball %s', disk_tar_gz)
   tar = tarfile.open(disk_tar_gz, 'w:gz')
-  tar.add('%s/disk.raw' % work_dir, arcname='disk.raw')
+  tar.add('%s/%s' % (work_dir, disk_name), arcname=disk_name)
   tar.close()
 
   # Upload tar.

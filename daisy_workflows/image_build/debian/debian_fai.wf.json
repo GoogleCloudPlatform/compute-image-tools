@@ -2,14 +2,13 @@
   "Name": "build-debian-fai",
   "DefaultTimeout": "60m",
   "Vars": {
-    "build_date": {"Value": "${DATE}", "Description": "Build datestamp used to version the image."},
-    "debian_cloud_images_version": {"Required": true, "Description": "The debian-cloud-images scripts git commit ID or branch to use."},
-    "debian_version": {"Required": true, "Description": "The FAI tool debian version to be requested."},
+    "build_date": {"Value": "${DATE}", "Description": "Image version. Defaults to today's date."},
+    "debian_version": {"Required": true, "Description": "Debian version to build."},
+    "builder_machine_type": {"Value": "e2-standard-4", "Description": "Machine type for builder instance."},
     "builder_source_image": {
       "Value": "projects/compute-image-tools/global/images/family/debian-10-worker",
-      "Description": "The image used to run fai-tool."
-    },
-    "google_cloud_repo": {"Value": "stable", "Description": "The Google Cloud Repo branch to use."}
+      "Description": "Base image for builder instance."
+    }
   },
   "Sources": {
     "build_files/build.py": "./build_fai.py",
@@ -33,14 +32,12 @@
         {
           "Name": "inst-builder",
           "Disks": [{"Source": "disk-builder"}],
-          "MachineType": "e2-standard-4",
+          "MachineType": "${builder_machine_type}",
           "Metadata": {
             "build_date": "${build_date}",
-            "debian_cloud_images_version": "${debian_cloud_images_version}",
             "debian_version": "${debian_version}",
-            "debian_install_google_api_python_client": "yes",
             "files_gcs_dir": "${SOURCESPATH}/build_files",
-            "google_cloud_repo": "${google_cloud_repo}",
+            "debian_install_google_api_python_client": "yes",
             "script": "build.py",
             "script_prints_status": "no",
             "prefix": "Build"

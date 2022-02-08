@@ -1,0 +1,3 @@
+release=bullseye
+FAI_DEBOOTSTRAP="$release $apt_cdn/debian/"
+CLASS_BUILD="BULLSEYE"
