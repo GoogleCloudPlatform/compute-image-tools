@@ -41,7 +41,7 @@
     {
       "Prefix": "debian-11-bullseye-arm",
       "Family": "debian-11-arm",
-      "Description": "Debian, Debian GNU/Linux, 11 (bullseye), arm64 built on {{$time}}, supports Shielded VM features",
+      "Description": "Debian, Debian GNU/Linux, 11 (bullseye), arm64 built on {{$time}}",
       "Licenses": [
         {{if (or (eq .environment "staging") (eq .environment "oslogin-staging")) -}}
         "projects/bct-staging-functional/global/licenses/debian-11-bullseye"
