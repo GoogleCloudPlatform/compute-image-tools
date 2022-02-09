@@ -17,21 +17,15 @@
     "startup_script": "../../linux_common/bootstrap.sh"
   },
   "Steps": {
-    "setup": {
-      "CreateDisks": [
-        {
-          "Name": "disk-builder",
-          "SourceImage": "${builder_source_image}",
-          "SizeGb": "50",
-          "Type": "pd-ssd"
-        }
-      ]
-    },
     "run": {
       "CreateInstances": [
         {
           "Name": "inst-builder",
-          "Disks": [{"Source": "disk-builder"}],
+          "InitializeParams": {
+            "SourceImage": "${builder_source_image}",
+            "DiskType": "pd-ssd",
+            "SizeGb": "50"
+          },
           "MachineType": "${builder_machine_type}",
           "Metadata": {
             "build_date": "${build_date}",
@@ -64,7 +58,6 @@
     }
   },
   "Dependencies": {
-    "run": ["setup"],
     "wait": ["run"]
   }
 }
