@@ -411,8 +411,8 @@ func TestNewFromFile(t *testing.T) {
 					},
 					{
 						Instance: compute.Instance{
-							Name:        "postinstallBeta",
-							MachineType: "${machine_type}",
+							Name:               "postinstallBeta",
+							MachineType:        "${machine_type}",
 							SourceMachineImage: "source-machine-image",
 						},
 					},
