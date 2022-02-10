@@ -13,7 +13,6 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/kylelemons/godebug v1.1.0
 	github.com/stretchr/testify v1.7.0
-	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	golang.org/x/sys v0.0.0-20220209214540-3681064d5158 // indirect
 	google.golang.org/api v0.68.0
