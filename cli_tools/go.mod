@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	cloud.google.com/go/compute v1.2.0
-	cloud.google.com/go/iam v0.1.1 // indirect
+	cloud.google.com/go/logging v1.2.0 // indirect
 	cloud.google.com/go/storage v1.14.0
 	cos.googlesource.com/cos/tools.git v0.0.0-20210104210903-4b3bc7d49b79 // indirect
 	github.com/GoogleCloudPlatform/compute-image-tools/common v0.0.0-20220201175241-7409375050b9
@@ -38,3 +38,7 @@ require (
 )
 
 replace github.com/GoogleCloudPlatform/compute-image-tools/proto/go => ../proto/go
+
+replace github.com/GoogleCloudPlatform/compute-image-tools/daisy => ../daisy
+
+replace github.com/GoogleCloudPlatform/compute-image-tools/common => ../common
