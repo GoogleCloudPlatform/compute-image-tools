@@ -413,6 +413,7 @@ func TestNewFromFile(t *testing.T) {
 						Instance: compute.Instance{
 							Name:        "postinstallBeta",
 							MachineType: "${machine_type}",
+							SourceMachineImage: "source-machine-image",
 						},
 					},
 				},
@@ -523,7 +524,7 @@ func TestNewFromFile(t *testing.T) {
 		"create-machine-image": {
 			name: "create-machine-image",
 			CreateMachineImages: &CreateMachineImages{
-				{MachineImage: computeBeta.MachineImage{
+				{MachineImage: compute.MachineImage{
 					Name:             "machine-image-from-instance",
 					SourceInstance:   "source-instance",
 					StorageLocations: []string{"eu", "us-west2"},

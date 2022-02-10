@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"os"
 
-	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
@@ -59,7 +58,7 @@ func populatePrepareSteps(u *upgrader, w *daisy.Workflow) error {
 		}
 		stepBackupMachineImage.CreateMachineImages = &daisy.CreateMachineImages{
 			&daisy.MachineImage{
-				MachineImage: computeBeta.MachineImage{
+				MachineImage: compute.MachineImage{
 					Name:           u.machineImageBackupName,
 					SourceInstance: u.instanceURI,
 				},

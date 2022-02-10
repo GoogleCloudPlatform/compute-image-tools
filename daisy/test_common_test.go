@@ -33,7 +33,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	emptypb "github.com/golang/protobuf/ptypes/empty"
 	godebugDiff "github.com/kylelemons/godebug/diff"
-	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
@@ -289,11 +288,11 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 		}
 		return nil
 	}
-	c.ListMachineImagesFn = func(p string, opts ...daisyCompute.ListCallOption) ([]*computeBeta.MachineImage, error) {
+	c.ListMachineImagesFn = func(p string, opts ...daisyCompute.ListCallOption) ([]*compute.MachineImage, error) {
 		if p != testProject {
 			return nil, errors.New("bad project: " + p)
 		}
-		return []*computeBeta.MachineImage{{Name: testMachineImage}}, nil
+		return []*compute.MachineImage{{Name: testMachineImage}}, nil
 	}
 
 	return c, err

@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"testing"
 
-	computeBeta "google.golang.org/api/compute/v0.beta"
+	"google.golang.org/api/compute/v1"
 )
 
 func TestMachineImagePopulate(t *testing.T) {
@@ -64,8 +64,8 @@ func TestMachineImagesValidate(t *testing.T) {
 		mi        *MachineImage
 		shouldErr bool
 	}{
-		{"simple case success", &MachineImage{MachineImage: computeBeta.MachineImage{Name: "i1", SourceInstance: "si"}}, false},
-		{"no source instance case failure", &MachineImage{MachineImage: computeBeta.MachineImage{Name: "i2"}}, true},
+		{"simple case success", &MachineImage{MachineImage: compute.MachineImage{Name: "i1", SourceInstance: "si"}}, false},
+		{"no source instance case failure", &MachineImage{MachineImage: compute.MachineImage{Name: "i2"}}, true},
 	}
 
 	for _, tt := range tests {

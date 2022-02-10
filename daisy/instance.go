@@ -209,10 +209,12 @@ func (i *Instance) setMetadata(md map[string]string) {
 }
 
 func (i *Instance) getSourceMachineImage() string {
-	return ""
+	return i.Instance.SourceMachineImage
 }
 
-func (i *Instance) setSourceMachineImage(machineImage string) {}
+func (i *Instance) setSourceMachineImage(machineImage string) {
+	i.SourceMachineImage = machineImage
+}
 
 func (i *Instance) register(name string, s *Step, ir *instanceRegistry, errs DError) {
 	// Register disk attachments.

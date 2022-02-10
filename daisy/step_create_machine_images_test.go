@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	computeBeta "google.golang.org/api/compute/v0.beta"
+	"google.golang.org/api/compute/v1"
 )
 
 func TestCreateMachineImagesRunSuccess(t *testing.T) {
@@ -29,14 +29,14 @@ func TestCreateMachineImagesRunSuccess(t *testing.T) {
 	s := &Step{w: w}
 	createCalled := false
 
-	w.ComputeClient.(*daisyCompute.TestClient).CreateMachineImageFn = func(p string, i *computeBeta.MachineImage) error {
+	w.ComputeClient.(*daisyCompute.TestClient).CreateMachineImageFn = func(p string, i *compute.MachineImage) error {
 		i.SelfLink = "insertedLink"
 		createCalled = true
 		return nil
 	}
 	w.instances.m = map[string]*Resource{"si": {link: "iLink"}}
 
-	mi0 := &MachineImage{Resource: Resource{daisyName: "mi0"}, MachineImage: computeBeta.MachineImage{Name: "realMI0", SourceInstance: "si"}}
+	mi0 := &MachineImage{Resource: Resource{daisyName: "mi0"}, MachineImage: compute.MachineImage{Name: "realMI0", SourceInstance: "si"}}
 	cmi := &CreateMachineImages{mi0}
 	if err := cmi.run(ctx, s); err != nil {
 		t.Errorf("unexpected error running CreateMachineImages.run(): %v", err)
@@ -55,7 +55,7 @@ func TestCreateMachineImagesRunSuccessOnOverwrite(t *testing.T) {
 	deleteCalled := false
 
 	w.instances.m = map[string]*Resource{}
-	w.ComputeClient.(*daisyCompute.TestClient).CreateMachineImageFn = func(p string, i *computeBeta.MachineImage) error {
+	w.ComputeClient.(*daisyCompute.TestClient).CreateMachineImageFn = func(p string, i *compute.MachineImage) error {
 		i.SelfLink = "insertedLink"
 		createCalled = true
 		return nil
@@ -65,7 +65,7 @@ func TestCreateMachineImagesRunSuccessOnOverwrite(t *testing.T) {
 		return nil
 	}
 	cmi := &CreateMachineImages{
-		{OverWrite: true, Resource: Resource{daisyName: "mi0"}, MachineImage: computeBeta.MachineImage{Name: "realMI0", SourceInstance: "si"}},
+		{OverWrite: true, Resource: Resource{daisyName: "mi0"}, MachineImage: compute.MachineImage{Name: "realMI0", SourceInstance: "si"}},
 	}
 	if err := cmi.run(ctx, s); err != nil {
 		t.Errorf("unexpected error running CreateMachineImages.run(): %v", err)
@@ -84,13 +84,13 @@ func TestCreateMachineImagesRunFailureOnComputeCreateError(t *testing.T) {
 	s := &Step{w: w}
 	w.instances.m = map[string]*Resource{}
 	createErr := Errf("client error")
-	w.ComputeClient.(*daisyCompute.TestClient).CreateMachineImageFn = func(p string, i *computeBeta.MachineImage) error {
+	w.ComputeClient.(*daisyCompute.TestClient).CreateMachineImageFn = func(p string, i *compute.MachineImage) error {
 		i.SelfLink = "insertedLink"
 		return createErr
 	}
 
 	cmi := &CreateMachineImages{
-		{Resource: Resource{daisyName: "mi0"}, MachineImage: computeBeta.MachineImage{Name: "realMI0", SourceInstance: "si"}},
+		{Resource: Resource{daisyName: "mi0"}, MachineImage: compute.MachineImage{Name: "realMI0", SourceInstance: "si"}},
 	}
 	if err := cmi.run(ctx, s); err != createErr {
 		t.Errorf("CreateInstances.run() should have return compute client error: %v != %v", err, createErr)
@@ -104,7 +104,7 @@ func TestCreateMachineImagesRunFailureOnComputeDeleteOnOverwriteError(t *testing
 
 	w.instances.m = map[string]*Resource{}
 	deleteErr := Errf("client error")
-	w.ComputeClient.(*daisyCompute.TestClient).CreateMachineImageFn = func(p string, i *computeBeta.MachineImage) error {
+	w.ComputeClient.(*daisyCompute.TestClient).CreateMachineImageFn = func(p string, i *compute.MachineImage) error {
 		i.SelfLink = "insertedLink"
 		return nil
 	}
@@ -112,7 +112,7 @@ func TestCreateMachineImagesRunFailureOnComputeDeleteOnOverwriteError(t *testing
 		return deleteErr
 	}
 	cmi := &CreateMachineImages{
-		{OverWrite: true, Resource: Resource{daisyName: "mi0"}, MachineImage: computeBeta.MachineImage{Name: "realMI0", SourceInstance: "si"}},
+		{OverWrite: true, Resource: Resource{daisyName: "mi0"}, MachineImage: compute.MachineImage{Name: "realMI0", SourceInstance: "si"}},
 	}
 	expectedErrorMessage := fmt.Sprintf("error deleting existing machine image: %v", deleteErr)
 	if err := cmi.run(ctx, s); fmt.Sprintf("%v", err) != expectedErrorMessage {
