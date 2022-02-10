@@ -1614,7 +1614,7 @@ func (c *client) CreateMachineImage(project string, mi *compute.MachineImage) er
 	return nil
 }
 
-// GetMachineImage gets a GCE Machine Image。
+// GetMachineImage gets a GCE Machine Image.
 func (c *client) GetMachineImage(project, name string) (*compute.MachineImage, error) {
 	i, err := c.raw.MachineImages.Get(project, name).Do()
 	if shouldRetryWithWait(c.hc.Transport, err, 2) {
