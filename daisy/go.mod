@@ -3,8 +3,7 @@ module github.com/GoogleCloudPlatform/compute-image-tools/daisy
 go 1.13
 
 require (
-	cloud.google.com/go v0.100.2
-	cloud.google.com/go/compute v1.2.0 // indirect
+	cloud.google.com/go/compute v1.2.0
 	cloud.google.com/go/iam v0.1.1 // indirect
 	cloud.google.com/go/logging v1.0.0
 	cloud.google.com/go/storage v1.14.0
@@ -14,7 +13,6 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/kylelemons/godebug v1.1.0
 	github.com/stretchr/testify v1.7.0
-	golang.org/x/exp v0.0.0-20200228211341-fcea875c7e85 // indirect
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	golang.org/x/sys v0.0.0-20220209214540-3681064d5158 // indirect
