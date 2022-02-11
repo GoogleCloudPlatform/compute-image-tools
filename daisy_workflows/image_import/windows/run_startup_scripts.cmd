@@ -18,13 +18,25 @@ ping 127.0.0.1 -n 60
 
 echo "Translate: Starting image translate..." > COM1:
 
-REM Restart the system in 5 minutes. Translate.ps1 will cancel this restart when it starts.
-REM This is to address initial boot issues, mostly on 2008R2, where the network interface is not yet usable.
-echo "Scheduling restart in 5 minutes. Translate.ps1 will cancel this restart." > COM1:
-shutdown /r /t 300
+for /f "tokens=4-5 delims=. " %%i in ('ver') do set version_number=%%i.%%j
+echo "Windows Version Number: %version_number%" > COM1:
 
-echo "Running network.ps1 to reconfigure network to DHCP if needed and log DNS and connectivity tests." > COM1:
-PowerShell.exe -NoProfile -NoLogo -ExecutionPolicy Unrestricted -File "%ProgramFiles%\Google\Compute Engine\metadata_scripts\network.ps1" > COM1:
+set has_network_interface_api=1
+if %version_number% == "6.0" ( set has_network_interface_api=0 )
+if %version_number% == "6.1" ( set has_network_interface_api=0 )
+
+if %has_network_interface_api% EQU 0 (
+  REM Restart the system in 10 minutes. Translate.ps1 will cancel this restart when it starts.
+  REM This is to address initial boot issues, mostly on 2008R2, where the network interface is not yet usable.
+
+  echo "Scheduling restart in 10 minutes. Translate.ps1 will cancel this restart." > COM1:
+  shutdown /r /t 600
+)
+
+if %has_network_interface_api% EQU 1 (
+  echo "Running network.ps1 to reconfigure network to DHCP if needed and log DNS and connectivity tests." > COM1:
+  PowerShell.exe -NoProfile -NoLogo -ExecutionPolicy Unrestricted -File "%ProgramFiles%\Google\Compute Engine\metadata_scripts\network.ps1" > COM1:
+)
 
 echo "Translate: Opening firewall ports for GCE metadata server." > COM1:
 REM Enable inbound communication from the metadata server.
@@ -33,14 +45,16 @@ netsh advfirewall firewall add rule name="Allow incoming from GCE metadata serve
 REM Enable outbound communication to the metadata server.
 netsh advfirewall firewall add rule name="Allow outgoing to GCE metadata server" protocol=ANY remoteip=169.254.169.254 dir=out action=allow
 
-echo "Translate: Network configuration for Windows 2008 R2/Windows 7" > COM1:
-REM This is needed for 2008R2 networking to work, this will fail on post 2008R2 but that's fine.
-for /f "tokens=2 delims=:" %%a in (
-  'ipconfig ^| find "Gateway"'
-) do (
-  netsh interface ipv4 set dnsservers "Local Area Connection" static address=%%a primary
-  netsh interface ipv4 set dnsservers "Local Area Connection 2" static address=%%a primary
-  netsh interface ipv4 set dnsservers "Local Area Connection 3" static address=%%a primary
+if %has_network_interface_api% EQU 0 (
+  echo "Translate: Network configuration for Windows 2008 R2/Windows 7" > COM1:
+  REM This is needed for 2008R2 networking to work
+  for /f "tokens=2 delims=:" %%a in (
+    'ipconfig ^| find "Gateway"'
+  ) do (
+    netsh interface ipv4 set dnsservers "Local Area Connection" static address=%%a primary
+    netsh interface ipv4 set dnsservers "Local Area Connection 2" static address=%%a primary
+    netsh interface ipv4 set dnsservers "Local Area Connection 3" static address=%%a primary
+  )
 )
 
 echo "Translate: Setting timezone" > COM1:
