@@ -128,7 +128,7 @@ func TestCreates(t *testing.T) {
 	im := &compute.Image{Name: testImage}
 	imAlpha := &computeAlpha.Image{Name: testImageAlpha}
 	imBeta := &computeBeta.Image{Name: testImageBeta}
-	mi := &computeBeta.MachineImage{Name: testMachineImage, SourceInstance: testInstance}
+	mi := &compute.MachineImage{Name: testMachineImage, SourceInstance: testInstance}
 	in := &compute.Instance{Name: testInstance}
 	inAlpha := &computeAlpha.Instance{Name: testInstanceAlpha}
 	inBeta := &computeBeta.Instance{Name: testInstanceBeta}
@@ -194,7 +194,7 @@ func TestCreates(t *testing.T) {
 			func() error { return c.CreateMachineImage(testProject, mi) },
 			fmt.Sprintf("/%s/global/machineImages/%s?alt=json&prettyPrint=false", testProject, testMachineImage),
 			fmt.Sprintf("/%s/global/machineImages?alt=json&prettyPrint=false", testProject),
-			&computeBeta.MachineImage{Name: testMachineImage, SourceInstance: testInstance},
+			&compute.MachineImage{Name: testMachineImage, SourceInstance: testInstance},
 			mi,
 		},
 		{

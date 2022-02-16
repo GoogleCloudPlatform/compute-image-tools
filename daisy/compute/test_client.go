@@ -108,16 +108,16 @@ type TestClient struct {
 	ResizeDiskFn                func(project, zone, disk string, drr *compute.DisksResizeRequest) error
 	SetInstanceMetadataFn       func(project, zone, name string, md *compute.Metadata) error
 	SetCommonInstanceMetadataFn func(project string, md *compute.Metadata) error
+	ListMachineImagesFn         func(project string, opts ...ListCallOption) ([]*compute.MachineImage, error)
+	DeleteMachineImageFn        func(project, name string) error
+	CreateMachineImageFn        func(project string, i *compute.MachineImage) error
+	GetMachineImageFn           func(project, name string) (*compute.MachineImage, error)
 	RetryFn                     func(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
 
 	// Alpha API calls
 	CreateInstanceAlphaFn func(project, zone string, i *computeAlpha.Instance) error
 
 	// Beta API calls
-	ListMachineImagesFn  func(project string, opts ...ListCallOption) ([]*computeBeta.MachineImage, error)
-	DeleteMachineImageFn func(project, name string) error
-	CreateMachineImageFn func(project string, i *computeBeta.MachineImage) error
-	GetMachineImageFn    func(project, name string) (*computeBeta.MachineImage, error)
 	CreateInstanceBetaFn func(project, zone string, i *computeBeta.Instance) error
 
 	zoneOperationsWaitFn   func(project, zone, name string) error
@@ -630,7 +630,7 @@ func (c *TestClient) globalOperationsWait(project, name string) error {
 }
 
 // ListMachineImages uses the override method ListMachineImagesFn or the real implementation.
-func (c *TestClient) ListMachineImages(project string, opts ...ListCallOption) ([]*computeBeta.MachineImage, error) {
+func (c *TestClient) ListMachineImages(project string, opts ...ListCallOption) ([]*compute.MachineImage, error) {
 	if c.ListMachineImagesFn != nil {
 		return c.ListMachineImagesFn(project, opts...)
 	}
@@ -646,7 +646,7 @@ func (c *TestClient) DeleteMachineImage(project, name string) error {
 }
 
 // CreateMachineImage uses the override method CreateMachineImageFn or the real implementation.
-func (c *TestClient) CreateMachineImage(project string, mi *computeBeta.MachineImage) error {
+func (c *TestClient) CreateMachineImage(project string, mi *compute.MachineImage) error {
 	if c.CreateMachineImageFn != nil {
 		return c.CreateMachineImageFn(project, mi)
 	}
@@ -654,7 +654,7 @@ func (c *TestClient) CreateMachineImage(project string, mi *computeBeta.MachineI
 }
 
 // GetMachineImage uses the override method GetMachineImageFn or the real implementation.
-func (c *TestClient) GetMachineImage(project, name string) (*computeBeta.MachineImage, error) {
+func (c *TestClient) GetMachineImage(project, name string) (*compute.MachineImage, error) {
 	if c.GetMachineImageFn != nil {
 		return c.GetMachineImageFn(project, name)
 	}

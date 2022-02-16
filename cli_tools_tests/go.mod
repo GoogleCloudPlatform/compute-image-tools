@@ -10,12 +10,12 @@ require (
 	github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils v0.0.0
 	github.com/GoogleCloudPlatform/compute-image-tools/proto/go v0.0.0
 	github.com/aws/aws-sdk-go v1.37.5
-	github.com/golang/protobuf v1.5.1
-	github.com/google/go-cmp v0.5.5
+	github.com/golang/protobuf v1.5.2
+	github.com/google/go-cmp v0.5.7
 	github.com/google/uuid v1.2.0
 	github.com/stretchr/testify v1.7.0
-	google.golang.org/api v0.44.0
-	google.golang.org/protobuf v1.26.0
+	google.golang.org/api v0.66.0
+	google.golang.org/protobuf v1.27.1
 )
 
 replace github.com/GoogleCloudPlatform/compute-image-tools/common => ../common

@@ -188,7 +188,7 @@ func CreateInstanceBetaObject(ctx context.Context, project string, zone string, 
 }
 
 // CreateMachineImageObject creates a machine image object
-func CreateMachineImageObject(ctx context.Context, project string, name string) (*apiBeta.MachineImage, error) {
+func CreateMachineImageObject(ctx context.Context, project string, name string) (*api.MachineImage, error) {
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
 		return nil, err

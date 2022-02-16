@@ -22,7 +22,7 @@ import (
 	"regexp"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	computeBeta "google.golang.org/api/compute/v0.beta"
+	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
 
@@ -40,7 +40,7 @@ func (w *Workflow) machineImageExists(project, machineImage string) (bool, DErro
 
 // MachineImage is used to create a GCE machine image.
 type MachineImage struct {
-	computeBeta.MachineImage
+	compute.MachineImage
 	Resource
 
 	// Should an existing machine image of the same name be deleted.
