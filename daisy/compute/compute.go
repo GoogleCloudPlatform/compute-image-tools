@@ -109,12 +109,10 @@ type Client interface {
 	SetInstanceMetadata(project, zone, name string, md *compute.Metadata) error
 	SetCommonInstanceMetadata(project string, md *compute.Metadata) error
 	SetDiskAutoDelete(project, zone, instance string, autoDelete bool, deviceName string) error
-
-	// Beta API calls
-	ListMachineImages(project string, opts ...ListCallOption) ([]*computeBeta.MachineImage, error)
+	ListMachineImages(project string, opts ...ListCallOption) ([]*compute.MachineImage, error)
 	DeleteMachineImage(project, name string) error
-	CreateMachineImage(project string, i *computeBeta.MachineImage) error
-	GetMachineImage(project, name string) (*computeBeta.MachineImage, error)
+	CreateMachineImage(project string, i *compute.MachineImage) error
+	GetMachineImage(project, name string) (*compute.MachineImage, error)
 
 	Retry(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
 	RetryBeta(f func(opts ...googleapi.CallOption) (*computeBeta.Operation, error), opts ...googleapi.CallOption) (op *computeBeta.Operation, err error)
@@ -142,6 +140,8 @@ func (o OrderBy) listCallOptionApply(i interface{}) interface{} {
 	case *computeAlpha.MachineImagesListCall:
 		return c.OrderBy(string(o))
 	case *computeBeta.MachineImagesListCall:
+		return c.OrderBy(string(o))
+	case *compute.MachineImagesListCall:
 		return c.OrderBy(string(o))
 	case *compute.MachineTypesListCall:
 		return c.OrderBy(string(o))
@@ -181,6 +181,8 @@ func (o Filter) listCallOptionApply(i interface{}) interface{} {
 	case *computeAlpha.MachineImagesListCall:
 		return c.Filter(string(o))
 	case *computeBeta.MachineImagesListCall:
+		return c.Filter(string(o))
+	case *compute.MachineImagesListCall:
 		return c.Filter(string(o))
 	case *compute.MachineTypesListCall:
 		return c.Filter(string(o))
@@ -1558,12 +1560,12 @@ func (c *client) GetGuestAttributes(project, zone, name, queryPath, variableKey 
 }
 
 // ListMachineImages gets a list of GCE Machine Images.
-func (c *client) ListMachineImages(project string, opts ...ListCallOption) ([]*computeBeta.MachineImage, error) {
-	var is []*computeBeta.MachineImage
+func (c *client) ListMachineImages(project string, opts ...ListCallOption) ([]*compute.MachineImage, error) {
+	var is []*compute.MachineImage
 	var pt string
-	call := c.rawBeta.MachineImages.List(project)
+	call := c.raw.MachineImages.List(project)
 	for _, opt := range opts {
-		call = opt.listCallOptionApply(call).(*computeBeta.MachineImagesListCall)
+		call = opt.listCallOptionApply(call).(*compute.MachineImagesListCall)
 	}
 	for il, err := call.PageToken(pt).Do(); ; il, err = call.PageToken(pt).Do() {
 		if shouldRetryWithWait(c.hc.Transport, err, 2) {
@@ -1583,7 +1585,7 @@ func (c *client) ListMachineImages(project string, opts ...ListCallOption) ([]*c
 
 // DeleteMachineImage deletes a GCE machine image.
 func (c *client) DeleteMachineImage(project, name string) error {
-	op, err := c.RetryBeta(c.rawBeta.MachineImages.Delete(project, name).Do)
+	op, err := c.Retry(c.raw.MachineImages.Delete(project, name).Do)
 	if err != nil {
 		return err
 	}
@@ -1591,11 +1593,11 @@ func (c *client) DeleteMachineImage(project, name string) error {
 	return c.i.globalOperationsWait(project, op.Name)
 }
 
-// CreateMachineImage creates a GCE machine image using Beta API.
+// CreateMachineImage creates a GCE machine image.
 // sourceInstance must be specified, which is the url (full or partial) to the
 // source instance
-func (c *client) CreateMachineImage(project string, mi *computeBeta.MachineImage) error {
-	op, err := c.RetryBeta(c.rawBeta.MachineImages.Insert(project, mi).Do)
+func (c *client) CreateMachineImage(project string, mi *compute.MachineImage) error {
+	op, err := c.Retry(c.raw.MachineImages.Insert(project, mi).Do)
 	if err != nil {
 		return err
 	}
@@ -1604,7 +1606,7 @@ func (c *client) CreateMachineImage(project string, mi *computeBeta.MachineImage
 		return err
 	}
 
-	var createdMachineImage *computeBeta.MachineImage
+	var createdMachineImage *compute.MachineImage
 	if createdMachineImage, err = c.i.GetMachineImage(project, mi.Name); err != nil {
 		return err
 	}
@@ -1612,11 +1614,11 @@ func (c *client) CreateMachineImage(project string, mi *computeBeta.MachineImage
 	return nil
 }
 
-// GetMachineImage gets a GCE Machine Image using Beta API
-func (c *client) GetMachineImage(project, name string) (*computeBeta.MachineImage, error) {
-	i, err := c.rawBeta.MachineImages.Get(project, name).Do()
+// GetMachineImage gets a GCE Machine Image.
+func (c *client) GetMachineImage(project, name string) (*compute.MachineImage, error) {
+	i, err := c.raw.MachineImages.Get(project, name).Do()
 	if shouldRetryWithWait(c.hc.Transport, err, 2) {
-		return c.rawBeta.MachineImages.Get(project, name).Do()
+		return c.raw.MachineImages.Get(project, name).Do()
 	}
 	return i, err
 }

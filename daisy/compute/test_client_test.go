@@ -19,7 +19,6 @@ import (
 	"net/http"
 	"testing"
 
-	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
@@ -93,7 +92,7 @@ func TestTestClient(t *testing.T) {
 		{"region operation wait", func() { c.regionOperationsWait("a", "b", "c") }, "/projects/a/regions/b/operations/c/wait?alt=json&prettyPrint=false"},
 		{"global operation wait", func() { c.globalOperationsWait("a", "b") }, "/projects/a/global/operations/b/wait?alt=json&prettyPrint=false"},
 		{"get guest attributes", func() { c.GetGuestAttributes("a", "b", "c", "d", "e") }, "/projects/a/zones/b/instances/c/getGuestAttributes?alt=json&prettyPrint=false&queryPath=d&variableKey=e"},
-		{"create machine image", func() { c.CreateMachineImage("a", &computeBeta.MachineImage{}) }, "/projects/a/global/machineImages?alt=json&prettyPrint=false"},
+		{"create machine image", func() { c.CreateMachineImage("a", &compute.MachineImage{}) }, "/projects/a/global/machineImages?alt=json&prettyPrint=false"},
 		{"get machine image", func() { c.GetMachineImage("a", "b") }, "/projects/a/global/machineImages/b?alt=json&prettyPrint=false"},
 		{"list machine images", func() { c.ListMachineImages("a", listOpts...) }, "/projects/a/global/machineImages?alt=json&filter=foo&orderBy=foo&pageToken=&prettyPrint=false"},
 		{"delete machine image", func() { c.DeleteMachineImage("a", "b") }, "/projects/a/global/machineImages/b?alt=json&prettyPrint=false"},
@@ -211,9 +210,9 @@ func TestTestClient(t *testing.T) {
 	c.regionOperationsWaitFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	c.globalOperationsWaitFn = func(_, _ string) error { fakeCalled = true; return nil }
 	c.GetGuestAttributesFn = func(_, _, _, _, _ string) (*compute.GuestAttributes, error) { fakeCalled = true; return nil, nil }
-	c.CreateMachineImageFn = func(_ string, _ *computeBeta.MachineImage) error { fakeCalled = true; return nil }
-	c.GetMachineImageFn = func(_, _ string) (*computeBeta.MachineImage, error) { fakeCalled = true; return nil, nil }
-	c.ListMachineImagesFn = func(_ string, _ ...ListCallOption) ([]*computeBeta.MachineImage, error) {
+	c.CreateMachineImageFn = func(_ string, _ *compute.MachineImage) error { fakeCalled = true; return nil }
+	c.GetMachineImageFn = func(_, _ string) (*compute.MachineImage, error) { fakeCalled = true; return nil, nil }
+	c.ListMachineImagesFn = func(_ string, _ ...ListCallOption) ([]*compute.MachineImage, error) {
 		fakeCalled = true
 		return nil, nil
 	}

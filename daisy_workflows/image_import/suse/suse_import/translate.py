@@ -28,6 +28,7 @@ import guestfs
 from on_demand import migrate
 import utils
 from utils import configs, diskutils
+from utils.guestfsprocess import run
 
 
 class _Tarball:
@@ -43,21 +44,6 @@ class _Tarball:
     self.sha256 = sha256
 
 
-class _Package:
-  """A Zypper package to be installed.
-
-  Attributes:
-      name: Zypper's name for the package.
-      gce: Is the package specific to GCP? When set to true, this
-           package will only be installed if when `install_gce_packages`
-           is also true.
-  """
-
-  def __init__(self, name: str, gce: bool):
-    self.name = name
-    self.gce = gce
-
-
 class _SuseRelease:
   """Describes packages and products required for a particular SUSE release.
 
@@ -70,16 +56,20 @@ class _SuseRelease:
       cloud_product: The SCC product required to access cloud-related packages.
       on_demand_rpms: Tarball of RPMs to use when converting to
           on-demand licensing.
+      gce_packages: List of packages required to install
+          the GCE environment.
   """
 
   def __init__(self, product: str, major: str, minor: str = None,
                cloud_product: str = '',
-               on_demand_rpms: _Tarball = None):
+               on_demand_rpms: _Tarball = None,
+               gce_packages: typing.List[str] = None):
     self.name = product
     self.major = major
     self.minor = minor
     self.cloud_product = cloud_product
     self.on_demand_rpms = on_demand_rpms
+    self.gce_packages = gce_packages
 
   def __repr__(self):
     if self.minor:
@@ -88,18 +78,23 @@ class _SuseRelease:
       return '{}-{}'.format(self.name, self.major)
 
 
-_packages = [
-    _Package('google-compute-engine-init', gce=True),
-    _Package('google-compute-engine-oslogin', gce=True),
-    # google-compute-engine-init configures rsyslog to show its
-    # daemon logs (including the output of startup scripts)
-    # to the serial console's output.
-    _Package('rsyslog', gce=True)
-]
-
 _on_demand_rpm_pattern = (
     'https://storage.googleapis.com/compute-image-tools/linux_import_tools/'
     'sles/{timestamp}/late_instance_offline_update_gce_SLE{major}.tar.gz')
+
+# Packages for the GCE environment that are available in SLES's repo
+# (OpenSUSE still has the older google-compute-engine-init environment).
+#
+# rsyslog is required by the guest environment to print to the serial console.
+# It's not expressed as an RPM dependency, since the official images always
+# include it.
+_sles_gce_packages = [
+  'google-guest-agent',
+  'google-guest-configs',
+  'google-guest-oslogin',
+  'google-osconfig-agent',
+  'rsyslog'
+]
 
 # Release versions supported by this importer. The flavor, major, and minor
 # attributes are evaluated as regex patterns against the detected OS's name
@@ -109,6 +104,11 @@ _releases = [
         product='opensuse',
         major='15',
         minor='1|2',
+        gce_packages=[
+          'google-compute-engine-init',
+          'google-compute-engine-oslogin',
+          'rsyslog'
+        ]
     ),
     _SuseRelease(
         product='sles',
@@ -118,7 +118,8 @@ _releases = [
         on_demand_rpms=_Tarball(
             _on_demand_rpm_pattern.format(major=15, timestamp=1599058662),
             '156e43507d4c74c532b2f03286f47a2b609d32521be3e96dbc8fbad0b2976231'
-        )
+        ),
+        gce_packages=_sles_gce_packages
     ),
     _SuseRelease(
         product='sles',
@@ -128,7 +129,8 @@ _releases = [
         on_demand_rpms=_Tarball(
             _on_demand_rpm_pattern.format(major=15, timestamp=1599058662),
             '156e43507d4c74c532b2f03286f47a2b609d32521be3e96dbc8fbad0b2976231'
-        )
+        ),
+        gce_packages=_sles_gce_packages
     ),
     _SuseRelease(
         product='sles',
@@ -138,7 +140,8 @@ _releases = [
         on_demand_rpms=_Tarball(
             _on_demand_rpm_pattern.format(major=12, timestamp=1599058662),
             '9431afed6aaa7b79d68050c38cd8d2cbfebe9d03ea80b66c5f246cc99fb58491'
-        )
+        ),
+        gce_packages=_sles_gce_packages
     ),
 ]
 
@@ -175,7 +178,8 @@ def _get_release(g: guestfs.GuestFS) -> _SuseRelease:
       major=major,
       minor=minor,
       cloud_product=matched.cloud_product.format(major=major, minor=minor),
-      on_demand_rpms=matched.on_demand_rpms
+      on_demand_rpms=matched.on_demand_rpms,
+      gce_packages=matched.gce_packages
   )
 
 
@@ -258,17 +262,6 @@ def _install_product(g: guestfs.GuestFS, release: _SuseRelease):
           g, release.cloud_product, e)
 
 
-def _packages_to_install(include_gce_packages: bool) -> typing.List[str]:
-  """Returns the list of package names to install given the user's
-  preference of whether to include GCE-specific packages."""
-  to_install = []
-  for pkg in _packages:
-    if pkg.gce and not include_gce_packages:
-      continue
-    to_install.append(pkg.name)
-  return to_install
-
-
 @utils.RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
 def _install_packages(g: guestfs.GuestFS, pkgs: typing.List[str]):
   if not pkgs:
@@ -329,22 +322,27 @@ def translate():
   g = diskutils.MountDisk('/dev/sdb')
   release = _get_release(g)
 
+  pkgs = release.gce_packages if include_gce_packages else []
+
   if subscription_model == 'gce':
     logging.info('Converting to on-demand')
     migrate.migrate(
         g=g, tar_url=release.on_demand_rpms.url,
         tar_sha256=release.on_demand_rpms.sha256,
         cloud_product=release.cloud_product,
-        post_convert_packages=_packages_to_install(include_gce_packages)
+        post_convert_packages=pkgs
     )
   else:
     _install_product(g, release)
     _refresh_zypper(g)
-    _install_packages(g, _packages_to_install(include_gce_packages))
+    _install_packages(g, pkgs)
   _install_virtio_drivers(g)
   if include_gce_packages:
     logging.info('Enabling google services.')
-    g.sh('systemctl enable /usr/lib/systemd/system/google-*')
+    for unit in g.ls('/usr/lib/systemd/system/'):
+      if unit.startswith('google-'):
+        run(g, ['systemctl', 'enable', '/usr/lib/systemd/system/' + unit],
+            raiseOnError=True)
 
   _reset_network(g)
   _update_grub(g)

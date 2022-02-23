@@ -280,7 +280,7 @@ func (mr *MockClientMockRecorder) CreateInstanceBeta(arg0, arg1, arg2 interface{
 }
 
 // CreateMachineImage mocks base method
-func (m *MockClient) CreateMachineImage(arg0 string, arg1 *v0_beta.MachineImage) error {
+func (m *MockClient) CreateMachineImage(arg0 string, arg1 *v1.MachineImage) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateMachineImage", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -742,10 +742,10 @@ func (mr *MockClientMockRecorder) GetLicense(arg0, arg1 interface{}) *gomock.Cal
 }
 
 // GetMachineImage mocks base method
-func (m *MockClient) GetMachineImage(arg0, arg1 string) (*v0_beta.MachineImage, error) {
+func (m *MockClient) GetMachineImage(arg0, arg1 string) (*v1.MachineImage, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMachineImage", arg0, arg1)
-	ret0, _ := ret[0].(*v0_beta.MachineImage)
+	ret0, _ := ret[0].(*v1.MachineImage)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1047,14 +1047,14 @@ func (mr *MockClientMockRecorder) ListLicenses(arg0 interface{}, arg1 ...interfa
 }
 
 // ListMachineImages mocks base method
-func (m *MockClient) ListMachineImages(arg0 string, arg1 ...compute.ListCallOption) ([]*v0_beta.MachineImage, error) {
+func (m *MockClient) ListMachineImages(arg0 string, arg1 ...compute.ListCallOption) ([]*v1.MachineImage, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
 	for _, a := range arg1 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ListMachineImages", varargs...)
-	ret0, _ := ret[0].([]*v0_beta.MachineImage)
+	ret0, _ := ret[0].([]*v1.MachineImage)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
