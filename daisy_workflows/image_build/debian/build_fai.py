@@ -138,7 +138,7 @@ def main():
   # Packs a gzipped tar file with disk.raw inside
   disk_tar_gz = 'debian-{}-{}.tar.gz'.format(debian_version, build_date)
   logging.info('Compressing it into tarball %s', disk_tar_gz)
-  tar = tarfile.open(disk_tar_gz, 'w:gz')
+  tar = tarfile.open(disk_tar_gz, 'w:gz', format=tarfile.GNU_FORMAT)
   tar.add('%s/%s' % (work_dir, disk_name), arcname=disk_name)
   tar.close()
 
