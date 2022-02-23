@@ -23,9 +23,9 @@ import (
 	"testing"
 	"time"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pbtesting"
 )

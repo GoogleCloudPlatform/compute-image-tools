@@ -23,13 +23,13 @@ import (
 	"strings"
 	"sync"
 
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"google.golang.org/api/googleapi"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e"
 	"github.com/GoogleCloudPlatform/compute-image-tools/common/gcp"
-	computeApi "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 )
@@ -380,7 +380,7 @@ func runImageImportShadowDiskCleanedUpWhenMainInflaterFails(ctx context.Context,
 	// Try get shadow disk.
 	shadowDiskName := "shadow-disk-" + suffix
 	logger.Printf("Verifying shadow disk cleanup...")
-	client, err := computeApi.NewClient(ctx)
+	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
 		e2e.Failure(testCase, logger, fmt.Sprintf("Failed to create compute API client: %v", err))
 		return

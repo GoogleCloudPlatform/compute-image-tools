@@ -27,8 +27,7 @@ fi
 
 RET=0
 
-TARGETS=("daisy"
-         "cli_tools")
+TARGETS=("cli_tools")
 for TARGET in "${TARGETS[@]}"; do
   echo "Running tests on ${TARGET}"
   cd /${REPO_PATH}/${TARGET}

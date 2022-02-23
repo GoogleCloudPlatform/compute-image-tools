@@ -17,16 +17,17 @@ package multiimageimporter
 import (
 	"context"
 
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	ovfdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
-	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 // NewMultiImageImporter constructs an implementation of MultiImageImporterInterface that can
 // import disk files from GCS.
-func NewMultiImageImporter(workflowDir string, computeClient daisycompute.Client,
+func NewMultiImageImporter(workflowDir string, computeClient daisyCompute.Client,
 	storageClient domain.StorageClientInterface, logger logging.ToolLogger) ovfdomain.MultiImageImporterInterface {
 	return &multiImageImporter{
 		builder: &requestBuilder{workflowDir, importer.NewSourceFactory(storageClient)},
@@ -53,7 +54,7 @@ func (m *multiImageImporter) Import(ctx context.Context, params *ovfdomain.OVFIm
 
 // importAdapter exposes a simplified interface for image import to facilitate testing.
 type importAdapter struct {
-	computeClient daisycompute.Client
+	computeClient daisyCompute.Client
 	storageClient domain.StorageClientInterface
 }
 

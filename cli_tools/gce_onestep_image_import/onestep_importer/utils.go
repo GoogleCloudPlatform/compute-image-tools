@@ -24,10 +24,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dustin/go-humanize"
+
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	"github.com/dustin/go-humanize"
 )
 
 // runCmd executes the named program with given arguments.

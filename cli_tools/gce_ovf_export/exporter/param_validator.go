@@ -17,13 +17,14 @@ package ovfexporter
 import (
 	"strings"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	computeutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 type ovfExportParamValidatorImpl struct {
@@ -32,7 +33,7 @@ type ovfExportParamValidatorImpl struct {
 }
 
 // NewOvfExportParamValidator creates a new OVF export params validator
-func NewOvfExportParamValidator(computeClient daisycompute.Client) ovfexportdomain.OvfExportParamValidator {
+func NewOvfExportParamValidator(computeClient daisyCompute.Client) ovfexportdomain.OvfExportParamValidator {
 	return &ovfExportParamValidatorImpl{
 		validReleaseTracks: []string{ovfexportdomain.GA, ovfexportdomain.Beta, ovfexportdomain.Alpha},
 		zoneValidator:      &computeutils.ZoneValidator{ComputeClient: computeClient},

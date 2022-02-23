@@ -21,9 +21,10 @@ import (
 	"io"
 	"path"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // TarGcsExtractor is responsible for extracting TAR archives from GCS to GCS

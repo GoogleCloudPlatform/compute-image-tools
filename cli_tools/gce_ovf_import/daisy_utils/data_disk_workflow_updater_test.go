@@ -17,12 +17,12 @@ package daisyovfutils
 import (
 	"testing"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	ovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 func TestAddDiskImportSteps(t *testing.T) {

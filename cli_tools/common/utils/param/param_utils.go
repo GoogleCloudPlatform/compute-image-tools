@@ -20,14 +20,14 @@ import (
 	"regexp"
 	"strings"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"google.golang.org/api/option"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 // GetProjectID gets project id from flag if exists; otherwise, try to retrieve from GCE metadata.
@@ -124,13 +124,13 @@ func PopulateRegion(region *string, zone string) error {
 }
 
 // CreateComputeClient creates a new compute client
-func CreateComputeClient(ctx *context.Context, oauth string, ce string) (compute.Client, error) {
+func CreateComputeClient(ctx *context.Context, oauth string, ce string) (daisyCompute.Client, error) {
 	computeOptions := []option.ClientOption{option.WithCredentialsFile(oauth)}
 	if ce != "" {
 		computeOptions = append(computeOptions, option.WithEndpoint(ce))
 	}
 
-	computeClient, err := compute.NewClient(*ctx, computeOptions...)
+	computeClient, err := daisyCompute.NewClient(*ctx, computeOptions...)
 	if err != nil {
 		return nil, daisy.Errf("failed to create compute client: %v", err)
 	}

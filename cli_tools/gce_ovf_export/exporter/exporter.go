@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"strings"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
 
@@ -28,9 +30,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
 
@@ -43,7 +43,7 @@ const (
 // OVFExporter is responsible for exporting GCE VMs/GMIs to OVF/OVA
 type OVFExporter struct {
 	storageClient          domain.StorageClientInterface
-	computeClient          daisycompute.Client
+	computeClient          daisyCompute.Client
 	mgce                   domain.MetadataGCEInterface
 	bucketIteratorCreator  domain.BucketIteratorCreatorInterface
 	Logger                 logging.Logger
@@ -122,13 +122,13 @@ func validateAndPopulateParams(params *ovfexportdomain.OVFExportArgs,
 
 // creates a new Daisy Compute client
 //TODO: consolidate with ovf_importer.createComputeClient
-func createComputeClient(ctx *context.Context, params *ovfexportdomain.OVFExportArgs) (daisycompute.Client, error) {
+func createComputeClient(ctx *context.Context, params *ovfexportdomain.OVFExportArgs) (daisyCompute.Client, error) {
 	computeOptions := []option.ClientOption{option.WithCredentialsFile(params.Oauth)}
 	if params.Ce != "" {
 		computeOptions = append(computeOptions, option.WithEndpoint(params.Ce))
 	}
 
-	computeClient, err := daisycompute.NewClient(*ctx, computeOptions...)
+	computeClient, err := daisyCompute.NewClient(*ctx, computeOptions...)
 	if err != nil {
 		return nil, err
 	}

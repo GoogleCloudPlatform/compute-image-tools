@@ -35,7 +35,7 @@ For example, to update the mock for `daisy.Logger`:
 ```bash
 cd cli_tools/mocks
 mockgen -package mocks -mock_names Logger=MockDaisyLogger \
-  github.com/GoogleCloudPlatform/compute-image-tools/daisy Logger  > mock_daisy_logger.go
+  github.com/GoogleCloudPlatform/compute-daisy Logger  > mock_daisy_logger.go
 ```
 
 Tips:

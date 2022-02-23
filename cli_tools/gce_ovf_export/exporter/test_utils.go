@@ -26,7 +26,7 @@ import (
 	"sync"
 
 	"cloud.google.com/go/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	"google.golang.org/api/option"
 )
 

@@ -18,9 +18,8 @@ import (
 	"strings"
 	"testing"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 func TestValidateOneOfStringFlagNotEmpty(t *testing.T) {

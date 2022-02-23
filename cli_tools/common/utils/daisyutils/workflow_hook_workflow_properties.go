@@ -14,9 +14,7 @@
 
 package daisyutils
 
-import (
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-)
+import daisy "github.com/GoogleCloudPlatform/compute-daisy"
 
 // ApplyEnvToWorkflow is a WorkflowHook that applies user-customizable values
 // to the top-level parent workflow.

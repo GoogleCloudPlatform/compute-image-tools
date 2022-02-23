@@ -29,11 +29,11 @@ import (
 	"sync"
 	"time"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	"github.com/google/uuid"
 	"github.com/minio/highwayhash"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
 

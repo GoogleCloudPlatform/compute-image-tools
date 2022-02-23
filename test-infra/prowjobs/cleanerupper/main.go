@@ -27,7 +27,7 @@ import (
 
 	osconfigV1alpha "cloud.google.com/go/osconfig/apiv1alpha"
 	osconfig "cloud.google.com/go/osconfig/apiv1beta"
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 

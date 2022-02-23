@@ -29,8 +29,7 @@ GOFMT_RET=0
 GOLINT_RET=0
 GOVET_RET=0
 
-TARGETS=("daisy"
-         "cli_tools"
+TARGETS=("cli_tools"
          "test-infra/prowjobs/cleanerupper"
          "test-infra/prowjobs/wrapper"
          "cli_tools_tests/e2e/gce_image_import_export"
