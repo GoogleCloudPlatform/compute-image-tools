@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	"github.com/kylelemons/godebug/pretty"
 	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	"google.golang.org/api/compute/v1"

@@ -15,8 +15,9 @@
 package importer
 
 import (
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 // processor represents the second (and final) phase of import. For bootable

@@ -20,8 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -32,8 +31,8 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/common/runtime"
-	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
 
@@ -57,7 +56,7 @@ func createEnvironment() daisyutils.EnvironmentSettings {
 func TestInspectDisk(t *testing.T) {
 	t.Parallel()
 
-	client, err := daisycompute.NewClient(context.Background())
+	client, err := daisyCompute.NewClient(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -371,7 +370,7 @@ func TestInspectDisk_NoOSResults_WhenDiskEmpty(t *testing.T) {
 func TestInspectDisk_SupportsNoExternalIP(t *testing.T) {
 	t.Parallel()
 
-	client, err := daisycompute.NewClient(context.Background())
+	client, err := daisyCompute.NewClient(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -421,7 +420,7 @@ func TestInspectionDisk_SupportsNonDefaultNetwork(t *testing.T) {
 
 	project := "compute-image-test-custom-vpc"
 	zone := "us-central1-a"
-	client, err := daisycompute.NewClient(context.Background())
+	client, err := daisyCompute.NewClient(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -476,7 +475,7 @@ func TestInspectionDisk_SupportsNonDefaultNetwork(t *testing.T) {
 	}
 }
 
-func createDisk(t *testing.T, client daisycompute.Client, env daisyutils.EnvironmentSettings, srcImage string) string {
+func createDisk(t *testing.T, client daisyCompute.Client, env daisyutils.EnvironmentSettings, srcImage string) string {
 	name := "d" + uuid.New().String()
 	err := client.CreateDisk(env.Project, env.Zone, &compute.Disk{
 		Name:        name,
@@ -490,7 +489,7 @@ func createDisk(t *testing.T, client daisycompute.Client, env daisyutils.Environ
 	return diskURI
 }
 
-func deleteDisk(t *testing.T, client daisycompute.Client, env daisyutils.EnvironmentSettings, diskURI string) {
+func deleteDisk(t *testing.T, client daisyCompute.Client, env daisyutils.EnvironmentSettings, diskURI string) {
 	name := diskURI[strings.LastIndex(diskURI, "/")+1:]
 	err := client.DeleteDisk(env.Project, env.Zone, name)
 	if err != nil {
@@ -513,8 +512,8 @@ func assertInspectionSucceeds(t *testing.T, image string, env daisyutils.Environ
 	}
 }
 
-func makeClientAndInspector(t *testing.T, env daisyutils.EnvironmentSettings) (daisycompute.Client, disk.Inspector) {
-	client, err := daisycompute.NewClient(context.Background())
+func makeClientAndInspector(t *testing.T, env daisyutils.EnvironmentSettings) (daisyCompute.Client, disk.Inspector) {
+	client, err := daisyCompute.NewClient(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}

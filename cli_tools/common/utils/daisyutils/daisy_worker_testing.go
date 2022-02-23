@@ -14,9 +14,7 @@
 
 package daisyutils
 
-import (
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-)
+import daisy "github.com/GoogleCloudPlatform/compute-daisy"
 
 // CheckWorkflow allows a test to check the fields on the daisy workflow associated with a DaisyWorker.
 func CheckWorkflow(worker DaisyWorker, check func(wf *daisy.Workflow, workflowCreationError error)) {

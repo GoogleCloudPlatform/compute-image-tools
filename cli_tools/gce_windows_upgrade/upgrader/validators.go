@@ -19,14 +19,14 @@ import (
 	"regexp"
 	"strings"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"google.golang.org/api/compute/v1"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 const (

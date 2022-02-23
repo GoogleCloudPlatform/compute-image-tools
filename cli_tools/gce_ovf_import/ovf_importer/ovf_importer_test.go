@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"testing"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/vmware/govmomi/ovf"
@@ -34,7 +35,6 @@ import (
 	ovfdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 	ovfdomainmocks "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain/mocks"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // importTarget hold data specific to either instances or machine images.

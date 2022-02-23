@@ -24,8 +24,9 @@ import (
 	"sort"
 	"strings"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+
 	stringutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 const (

@@ -19,11 +19,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/vmware/govmomi/ovf"
+
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
-	"github.com/vmware/govmomi/ovf"
 )
 
 const (

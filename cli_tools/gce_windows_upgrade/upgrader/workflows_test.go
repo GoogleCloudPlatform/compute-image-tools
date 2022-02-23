@@ -19,8 +19,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 func init() {

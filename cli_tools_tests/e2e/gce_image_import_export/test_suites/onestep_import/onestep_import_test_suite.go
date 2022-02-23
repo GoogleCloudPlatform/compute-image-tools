@@ -22,13 +22,13 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/common/logging"
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/common/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
+	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 )
 
 const (

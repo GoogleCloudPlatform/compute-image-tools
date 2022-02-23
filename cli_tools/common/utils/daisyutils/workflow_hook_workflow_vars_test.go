@@ -17,9 +17,8 @@ package daisyutils
 import (
 	"testing"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 func Test_ApplyEnvToWorkers_SetsNetworkAndAccounts(t *testing.T) {

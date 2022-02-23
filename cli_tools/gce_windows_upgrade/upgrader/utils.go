@@ -19,9 +19,10 @@ import (
 	"strings"
 	"text/template"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/collections"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 const (

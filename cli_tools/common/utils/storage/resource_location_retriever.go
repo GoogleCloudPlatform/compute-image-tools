@@ -18,10 +18,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"google.golang.org/api/compute/v1"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 )
 
 type multiRegion struct {
@@ -48,11 +49,11 @@ var (
 // ResourceLocationRetriever is responsible for retrieving GCE zone to run import in
 type ResourceLocationRetriever struct {
 	Mgce              domain.MetadataGCEInterface
-	ComputeGCEService daisycompute.Client
+	ComputeGCEService daisyCompute.Client
 }
 
 // NewResourceLocationRetriever creates a ResourceLocationRetriever
-func NewResourceLocationRetriever(aMgce domain.MetadataGCEInterface, cs daisycompute.Client) *ResourceLocationRetriever {
+func NewResourceLocationRetriever(aMgce domain.MetadataGCEInterface, cs daisyCompute.Client) *ResourceLocationRetriever {
 	return &ResourceLocationRetriever{Mgce: aMgce, ComputeGCEService: cs}
 }
 

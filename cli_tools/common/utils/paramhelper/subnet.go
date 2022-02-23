@@ -17,7 +17,7 @@ package paramhelper
 import (
 	"strings"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 )
 
 // SubnetResource contains the name, project, and region of a compute.Subnetwork resource.

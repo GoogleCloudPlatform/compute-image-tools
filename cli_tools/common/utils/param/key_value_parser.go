@@ -17,7 +17,7 @@ package param
 import (
 	"strings"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 )
 
 // ParseKeyValues parses a comma-separated list of [key=value] pairs.

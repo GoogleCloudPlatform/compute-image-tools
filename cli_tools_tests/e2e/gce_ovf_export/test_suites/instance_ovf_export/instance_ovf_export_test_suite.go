@@ -26,12 +26,12 @@ import (
 	"sync"
 	"time"
 
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e"
 	"github.com/GoogleCloudPlatform/compute-image-tools/common/gcp"
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 )

@@ -21,9 +21,8 @@ package mocks
 import (
 	reflect "reflect"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	gomock "github.com/golang/mock/gomock"
-
-	daisy "github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // MockDaisyLogger is a mock of Logger interface.

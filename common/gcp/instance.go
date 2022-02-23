@@ -23,7 +23,7 @@ import (
 	apiBeta "google.golang.org/api/compute/v0.beta"
 	api "google.golang.org/api/compute/v1"
 
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 )
 
 // Instance is a compute instance.

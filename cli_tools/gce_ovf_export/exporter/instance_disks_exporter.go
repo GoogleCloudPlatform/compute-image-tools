@@ -20,6 +20,8 @@ import (
 	"strconv"
 	"strings"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"google.golang.org/api/compute/v1"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
@@ -27,14 +29,12 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	stringutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 )
 
 type instanceDisksExporterImpl struct {
 	worker           daisyutils.DaisyWorker
-	computeClient    daisycompute.Client
+	computeClient    daisyCompute.Client
 	storageClient    domain.StorageClientInterface
 	exportedDisks    []*ovfexportdomain.ExportedDisk
 	logger           logging.Logger
@@ -42,7 +42,7 @@ type instanceDisksExporterImpl struct {
 }
 
 // NewInstanceDisksExporter creates a new instance disk exporter
-func NewInstanceDisksExporter(computeClient daisycompute.Client, storageClient domain.StorageClientInterface, logger logging.Logger) ovfexportdomain.InstanceDisksExporter {
+func NewInstanceDisksExporter(computeClient daisyCompute.Client, storageClient domain.StorageClientInterface, logger logging.Logger) ovfexportdomain.InstanceDisksExporter {
 	return &instanceDisksExporterImpl{
 		computeClient: computeClient,
 		storageClient: storageClient,

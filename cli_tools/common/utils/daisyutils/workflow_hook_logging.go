@@ -14,9 +14,7 @@
 
 package daisyutils
 
-import (
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-)
+import daisy "github.com/GoogleCloudPlatform/compute-daisy"
 
 // ConfigureDaisyLogging is a WorkflowHook that configures Daisy's
 // logging settings using the user's logging preferences, specified in EnvironmentSettings.

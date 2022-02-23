@@ -12,13 +12,14 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-//+build !test
+//go:build !test
+// +build !test
 
 package compute
 
 import (
 	"cloud.google.com/go/compute/metadata"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 )
 
 // MetadataGCE implements MetadataGCEInterface

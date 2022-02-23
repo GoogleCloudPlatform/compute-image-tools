@@ -26,11 +26,9 @@ if [ ! -z "${PULL_NUMBER}" ]; then
 fi
 
 GOBUILD_OUT=0
-LINUX_TARGETS=("daisy/cli"
-               "cli_tools/gce_export"
+LINUX_TARGETS=("cli_tools/gce_export"
                "cli_tools/gce_image_publish" 
                "cli_tools/import_precheck"
-               "daisy/daisy_test_runner"
                "cli_tools_tests/e2e/gce_image_import_export"
                "cli_tools_tests/e2e/gce_ovf_import")
 for TARGET in "${LINUX_TARGETS[@]}"; do
@@ -44,8 +42,7 @@ for TARGET in "${LINUX_TARGETS[@]}"; do
   fi
 done
 
-WINDOWS_TARGETS=("daisy/cli"
-                 "cli_tools/gce_export"
+WINDOWS_TARGETS=("cli_tools/gce_export"
                  "cli_tools/import_precheck")
 for TARGET in "${WINDOWS_TARGETS[@]}"; do
   echo "Building ${TARGET} for Linux"

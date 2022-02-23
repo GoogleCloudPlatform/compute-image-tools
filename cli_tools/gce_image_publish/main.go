@@ -17,7 +17,6 @@ package main
 
 import (
 	"context"
-
 	"flag"
 	"fmt"
 	"os"
@@ -27,9 +26,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_image_publish/publish"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	computeAlpha "google.golang.org/api/compute/v0.alpha"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_image_publish/publish"
 )
 
 var (

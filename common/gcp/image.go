@@ -17,15 +17,14 @@ package gcp
 import (
 	"context"
 
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	api "google.golang.org/api/compute/v1"
-
-	computeApi "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 // Image is a compute image.
 type Image struct {
 	*api.Image
-	Client  computeApi.Client
+	Client  daisyCompute.Client
 	Project string
 }
 
@@ -36,7 +35,7 @@ func (i *Image) Cleanup() error {
 
 // CreateImageObject creates an image object to be operated by API client
 func CreateImageObject(ctx context.Context, project string, name string) (*Image, error) {
-	client, err := computeApi.NewClient(ctx)
+	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
 		return nil, err
 	}

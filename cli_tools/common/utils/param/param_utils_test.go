@@ -21,9 +21,10 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 func TestGetRegion(t *testing.T) {

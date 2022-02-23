@@ -14,25 +14,6 @@ substitutions:
   _RELEASE: 'latest'
 
 steps:
-# Build daisy.
-- name: 'golang'
-  dir: 'daisy/cli'
-  args: ['go', 'build', '-o=/workspace/linux/daisy']
-  env: ['CGO_ENABLED=0']
-- name: 'golang'
-  dir: 'daisy/cli'
-  args: ['go', 'build', '-o=/workspace/windows/daisy']
-  env: ['GOOS=windows']
-- name: 'golang'
-  dir: 'daisy/cli'
-  args: ['go', 'build', '-o=/workspace/darwin/daisy']
-  env: ['GOOS=darwin']
-- name: 'gcr.io/kaniko-project/executor:v1.0.0'
-  args:
-  - --destination=gcr.io/$PROJECT_ID/daisy:$_RELEASE
-  - --destination=gcr.io/$PROJECT_ID/daisy:$COMMIT_SHA
-  - --context=/workspace
-  - --dockerfile=daisy.Dockerfile
 
 # Build gce_image_publish.
 - name: 'golang'

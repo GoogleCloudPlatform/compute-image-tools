@@ -20,7 +20,7 @@ import (
 	"io"
 	"log"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 )
 
 // AsDaisyLogger returns a daisy.Logger that writes to a log.Logger.

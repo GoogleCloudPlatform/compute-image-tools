@@ -15,7 +15,7 @@
 package daisyutils
 
 import (
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 )
 
 // ResourceLabeler is responsible for labelling GCE resources (instances, disks and images) with

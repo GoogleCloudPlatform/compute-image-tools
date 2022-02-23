@@ -17,9 +17,8 @@ package importer
 import (
 	"log"
 
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"google.golang.org/api/compute/v1"
-
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 type dataDiskProcessor struct {

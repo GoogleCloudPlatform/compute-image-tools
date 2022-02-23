@@ -20,12 +20,13 @@ import (
 	"testing"
 
 	"cloud.google.com/go/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
+
+	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 )
 
 func TestDiskExporter_HappyPath(t *testing.T) {

@@ -13,8 +13,6 @@ to the publicly readable GCS bucket, `compute-image-tools-test`.
 
 Links:
 * Prow dashboard http://35.244.198.104/
-* Testgrid dashboard for periodic Daisy e2e tests
-https://k8s-testgrid.appspot.com/google-gce-compute-image-tools#ci-daisy-e2e
 * Gubenator dashboard https://k8s-gubernator.appspot.com/
 
 ## Layout of test-infra/
@@ -25,7 +23,6 @@ https://k8s-testgrid.appspot.com/google-gce-compute-image-tools#ci-daisy-e2e
 | `prow/config.yaml` | Configuration describing Prow events and the associated Prow job containers. |
 | `prow/plugins.yaml` | Configuration for Prow plugins. |
 | `prowjobs/` | Prow job containers. |
-| `prowjobs/daisy-e2e/` | Runs workflows in `daisy_workflows` against the latest (master:HEAD) Daisy binary. |
 | `prowjobs/gce-image-import-export-tests/` | Runs image importer/exporter tests against the latest (master:HEAD) Image Importer/Exporter binary. |
 | `prowjobs/gce-ovf-import-tests/` | Runs OVF importer tests against the latest (master:HEAD) OVF Importer binary. |
 | `prowjobs/gocheck/` | Runs `go fmt`, `golint`, `go vet` against Go code in the repo. |
@@ -44,18 +41,6 @@ The wrapper binary is wraps the container entry point. It handles logging to
 the GCS bucket we use for Gubenator. The wrapper logs start, finish, and build
 logs. It also uploads all artifacts found in the artifacts directory.
 The artifacts directory is set with the environment variable `${ARTIFACTS}`.
-
-## Prow job: test-runner
-
-test-runner runs the latest daisy_test_runner binary against the test
-template.
-
-## Prow job: daisy-e2e
-
-daisy-e2e invokes our latest Daisy binary against the
-`compute-image-tools-test` GCP project. It runs the workflows matching
-`daisy_worklows/e2e_tests/*.wf.json`.
-Each matching workflow is run as a test case.
 
 ## Prow job: gce-image-import-export-tests
 
