@@ -39,8 +39,8 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Prefix": "debian-11-bullseye-arm",
-      "Family": "debian-11-arm",
+      "Prefix": "debian-11-bullseye-arm64",
+      "Family": "debian-11-arm64",
       "Description": "Debian, Debian GNU/Linux, 11 (bullseye), arm64 built on {{$time}}",
       "Licenses": [
         {{if (or (eq .environment "staging") (eq .environment "oslogin-staging")) -}}

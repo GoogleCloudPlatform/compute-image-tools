@@ -1,5 +1,5 @@
 {
-  "Name": "build-debian-11-arm",
+  "Name": "build-debian-11-arm64",
   "Vars": {
     "build_date": {"Value": "${DATE}", "Description": "Build datestamp used to version the image."},
     "publish_project": {
@@ -16,7 +16,7 @@
           "build_date": "${build_date}",
           "debian_version": "bullseye",
           "builder_machine_type": "t2a-standard-2",
-          "builder_source_image": "projects/compute-image-tools/global/images/family/debian-10-worker-arm"
+          "builder_source_image": "projects/compute-image-tools/global/images/family/debian-10-worker-arm64"
         }
       }
     },
@@ -31,12 +31,12 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "debian-11-arm-v${build_date}",
+          "Name": "debian-11-arm64-v${build_date}",
           "RawDisk": {
             "Source": "${OUTSPATH}/root.tar.gz"
           },
           "Description": "Debian, Debian GNU/Linux, 11 (bullseye), arm64 built on ${build_date}, supports Shielded VM features",
-          "Family": "debian-11-arm",
+          "Family": "debian-11-arm64",
           "Project": "${publish_project}",
           "NoCleanup": true,
           "ExactName": true,
