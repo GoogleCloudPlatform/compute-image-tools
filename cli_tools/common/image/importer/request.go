@@ -19,6 +19,8 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/api/compute/v1"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 )
@@ -72,37 +74,38 @@ func (args *ImageImportRequest) checkRequiredArguments() error {
 //
 // Tags define validations; see validation.ValidateStruct for more info.
 type ImageImportRequest struct {
-	ExecutionID           string `name:"execution_id" validate:"required"`
-	CloudLogsDisabled     bool
-	ComputeEndpoint       string
-	ComputeServiceAccount string
-	WorkflowDir           string `name:"workflow_dir" validate:"required"`
-	CustomWorkflow        string
-	DataDisk              bool
-	DaisyLogLinePrefix    string
-	Description           string
-	Family                string
-	GcsLogsDisabled       bool
-	ImageName             string `name:"image_name" validate:"required,gce_disk_image_name"`
-	Inspect               bool
-	Labels                map[string]string
-	Network               string
-	NoExternalIP          bool
-	NoGuestEnvironment    bool
-	Oauth                 string
-	BYOL                  bool
-	OS                    string
-	Project               string `name:"project" validate:"required"`
-	ScratchBucketGcsPath  string `name:"scratch_bucket_gcs_path" validate:"required"`
-	Source                Source `name:"source" validate:"required"`
-	StdoutLogsDisabled    bool
-	StorageLocation       string
-	Subnet                string
-	SysprepWindows        bool
-	Tool                  daisyutils.Tool `name:"tool" validate:"required"`
-	Timeout               time.Duration   `name:"timeout" validate:"required"`
-	UefiCompatible        bool
-	Zone                  string `name:"zone" validate:"required"`
+	ExecutionID                   string `name:"execution_id" validate:"required"`
+	CloudLogsDisabled             bool
+	ComputeEndpoint               string
+	ComputeServiceAccount         string
+	WorkflowDir                   string `name:"workflow_dir" validate:"required"`
+	CustomWorkflow                string
+	DataDisk                      bool
+	DaisyLogLinePrefix            string
+	Description                   string
+	Family                        string
+	GcsLogsDisabled               bool
+	ImageName                     string `name:"image_name" validate:"required,gce_disk_image_name"`
+	Inspect                       bool
+	Labels                        map[string]string
+	Network                       string
+	NoExternalIP                  bool
+	NoGuestEnvironment            bool
+	Oauth                         string
+	BYOL                          bool
+	OS                            string
+	Project                       string `name:"project" validate:"required"`
+	ScratchBucketGcsPath          string `name:"scratch_bucket_gcs_path" validate:"required"`
+	Source                        Source `name:"source" validate:"required"`
+	StdoutLogsDisabled            bool
+	StorageLocation               string
+	Subnet                        string
+	SysprepWindows                bool
+	Tool                          daisyutils.Tool `name:"tool" validate:"required"`
+	Timeout                       time.Duration   `name:"timeout" validate:"required"`
+	UefiCompatible                bool
+	Zone                          string `name:"zone" validate:"required"`
+	TanslationWorkerAttachedDisks []*compute.AttachedDisk
 }
 
 // FixBYOLAndOSArguments fixes the user's arguments for the --os and --byol flags

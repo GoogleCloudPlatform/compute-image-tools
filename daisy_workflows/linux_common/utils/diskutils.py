@@ -23,6 +23,7 @@ try:
 except ImportError:
   AptGetInstall(['python3-guestfs'])
   import guestfs
+import utils
 
 _STATUS_PREFIX = 'TranslateStatus: '
 
@@ -37,7 +38,19 @@ def log_key_value(key, value):
   print(_STATUS_PREFIX + "<serial-output key:'%s' value:'%s'>" % (key, value))
 
 
-def MountDisk(disk) -> guestfs.GuestFS:
+def get_physical_drives():
+  rc, output = utils.Execute(['lsblk', '--noheadings', '--output=NAME', '--paths', '--list', '--nodeps', '-e7'], capture_output=True)
+  disks = []
+  if rc == 0:
+    disks = output.split('\n')
+    disks.remove('')
+  else:
+    disks = ['/dev/sdb']
+
+  return disks
+
+
+def MountDisk(disks) -> guestfs.GuestFS:
   # All new Python code should pass python_return_dict=True
   # to the constructor.  It indicates that your program wants
   # to receive Python dicts for methods in the API that return
@@ -53,7 +66,8 @@ def MountDisk(disk) -> guestfs.GuestFS:
   g.set_network(True)
 
   # Attach the disk image to libguestfs.
-  g.add_drive_opts(disk)
+  for disk in disks:
+    g.add_drive_opts(disk)
 
   # Run the libguestfs back-end.
   g.launch()

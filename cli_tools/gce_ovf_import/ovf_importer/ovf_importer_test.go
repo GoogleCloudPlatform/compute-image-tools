@@ -19,6 +19,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"strings"
 	"testing"
 
 	daisy "github.com/GoogleCloudPlatform/compute-daisy"
@@ -29,6 +31,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image"
+	imagemocks "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer/mocks"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
@@ -132,7 +135,7 @@ func TestDiskImport_ErrorUnpackingOVA(t *testing.T) {
 	oi := OVFImporter{workflowPath: instanceMode.wfPath,
 		tarGcsExtractor: mockMockTarGcsExtractorInterface, Logger: logging.NewToolLogger("test"),
 		params: params}
-	err := oi.importDiskFilesToImages()
+	err := oi.importDisksVMDKFiles()
 	assert.Equal(t, expectedError, err)
 }
 
@@ -155,7 +158,7 @@ func TestDiskImport_ErrorLoadingDescriptor(t *testing.T) {
 	oi := OVFImporter{workflowPath: instanceMode.wfPath,
 		ovfDescriptorLoader: mockOvfDescriptorLoader,
 		Logger:              logging.NewToolLogger("test"), params: params}
-	err := oi.importDiskFilesToImages()
+	err := oi.importDisksVMDKFiles()
 
 	assert.Equal(t, expectedError, err)
 	assert.Equal(t, "", oi.gcsPathToClean)
@@ -431,12 +434,14 @@ func runImportAndVerify(t *testing.T, params *ovfdomain.OVFImportParams, mode *i
 			"gs://bucket/folder/ovf/Ubuntu_for_Horizon71_1_1.0-disk3.vmdk",
 		},
 		images: []domain.Image{
-			image.NewImage("project", "boot-disk"),
-			image.NewImage("project", "data-disk-1"),
-			image.NewImage("project", "data-disk-2"),
+			image.NewImage("project-name", "machineimage1-boot-image"),
 		},
 		expectedOS:        params.OsID,
 		expectImportToRun: true,
+	}
+
+	if mode == instanceMode {
+		testCase.images[0] = image.NewImage("project-name", "instance1-boot-image")
 	}
 
 	descriptor := createOVFDescriptor(testCase.descriptorFilenames)
@@ -488,17 +493,13 @@ func runImportAndVerify(t *testing.T, params *ovfdomain.OVFImportParams, mode *i
 		assert.True(t, bootDisk.AutoDelete, "Delete boot disk when instance is deleted.")
 		assert.True(t, bootDisk.Boot, "Boot disk is configured to boot.")
 		assert.Contains(t, cleanup.Images, "${boot_disk_image_uri}", "Delete the boot disk image after instance creation.")
+		assert.Len(t, cleanup.Images, len(testCase.images))
 
 		// Data Disks
 		assert.Len(t, instance.Disks, len(descriptor.Disk.Disks))
-		assert.Len(t, cleanup.Images, len(testCase.images))
-		for i, images := range testCase.images[1:] {
-			dataDisk := instance.Disks[i+1]
-			assert.Equal(t, images.GetURI(), dataDisk.InitializeParams.SourceImage, "Include data disk on final instance.")
-			assert.Regexp(t, "^[a-z].*", dataDisk.InitializeParams.DiskName, "Disk name should start with letter.")
-			assert.True(t, dataDisk.AutoDelete, "Delete the disk when the instance is deleted.")
-			assert.False(t, dataDisk.Boot, "Data disk are not configured to boot.")
-			assert.Contains(t, cleanup.Images, testCase.images[i+1].GetURI(), "Delete the data disk image after instance creation.")
+		for _, disk := range instance.Disks[1:] {
+			assert.True(t, disk.AutoDelete, "Delete the disk when the instance is deleted.")
+			assert.False(t, disk.Boot, "Data disk are not configured to boot.")
 		}
 
 		// Instance
@@ -552,11 +553,25 @@ type mockConfiguration struct {
 }
 
 func setupMocksAndRun(mockCtrl *gomock.Controller, params *ovfdomain.OVFImportParams, wfPath string, descriptor *ovf.Envelope, mockConfig mockConfiguration) (daisyutils.DaisyWorker, error) {
+	params.InstanceNames = strings.ToLower(strings.TrimSpace(params.InstanceNames))
+	params.MachineImageName = strings.ToLower(strings.TrimSpace(params.MachineImageName))
 	expectedParams := *params
 	expectedParams.OsID = mockConfig.expectedOS
 	expectedParams.Deadline = params.Deadline.Add(-1 * instanceConstructionTime)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
+	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
+
+	mockComputeClient.EXPECT().CreateDisk(*params.Project, params.Zone, gomock.Any()).Return(nil).AnyTimes()
+
+	var imageName string
+	if params.InstanceNames == "" {
+		imageName = params.MachineImageName
+	} else {
+		imageName = params.InstanceNames
+	}
+	imageName += "-boot-image"
+
 	if params.MachineType == "" {
 		mockComputeClient.EXPECT().ListMachineTypes(*params.Project, params.Zone).Return(machineTypes, nil)
 	}
@@ -567,18 +582,22 @@ func setupMocksAndRun(mockCtrl *gomock.Controller, params *ovfdomain.OVFImportPa
 	mockMockTarGcsExtractorInterface.EXPECT().ExtractTarToGcs(
 		params.OvfOvaGcsPath, params.ScratchBucketGcsPath+"/ovf").
 		Return(nil).Times(1)
-	mockMultiDiskImporter := ovfdomainmocks.NewMockMultiImageImporterInterface(mockCtrl)
-	if mockConfig.expectImportToRun {
-		mockMultiDiskImporter.EXPECT().Import(
-			gomock.Any(),
-			&expectedParams,
-			mockConfig.fileURIs).Return(mockConfig.images, nil)
-	}
-	oi := OVFImporter{ctx: context.Background(), workflowPath: wfPath, multiImageImporter: mockMultiDiskImporter,
+
+	mockImporter := imagemocks.NewMockImporter(mockCtrl)
+
+	oi := OVFImporter{ctx: context.Background(), workflowPath: wfPath,
 		storageClient: mockStorageClient, computeClient: mockComputeClient,
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
-		Logger: logging.NewToolLogger("test"), params: params}
-	err := oi.importDiskFilesToImages()
+		imageImporter: mockImporter,
+		Logger:        logging.NewToolLogger("test"), params: params}
+
+	if mockConfig.expectImportToRun {
+		mockImporter.EXPECT().Run(oi.ctx)
+		mockStorageObject.EXPECT().NewReader().Return(ioutil.NopCloser(strings.NewReader("file content")), nil)
+		mockStorageClient.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return(mockStorageObject)
+	}
+
+	err := oi.importDisksVMDKFiles()
 	if err != nil {
 		return nil, err
 	}

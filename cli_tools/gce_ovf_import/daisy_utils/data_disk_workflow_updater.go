@@ -20,6 +20,7 @@ import (
 	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	"google.golang.org/api/compute/v1"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	ovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 )
 
@@ -34,10 +35,21 @@ func CreateDisksOnInstance(instance *daisy.Instance, instanceName string, imageU
 		instance.Disks = append(instance.Disks,
 			&compute.AttachedDisk{
 				InitializeParams: &compute.AttachedDiskInitializeParams{
-					DiskName:    generateDataDiskName(instanceName, i+1),
+					DiskName:    GenerateDataDiskName(instanceName, i+1),
 					SourceImage: imageURI,
 					DiskType:    "pd-ssd",
 				},
+				AutoDelete: true,
+			})
+	}
+}
+
+// AppendDisksToInstance append disks to the instance based on the referenced already existed disks.
+func AppendDisksToInstance(instance *daisy.Instance, disks []domain.Disk) {
+	for _, disk := range disks {
+		instance.Disks = append(instance.Disks,
+			&compute.AttachedDisk{
+				Source:     disk.GetURI(),
 				AutoDelete: true,
 			})
 	}
@@ -56,7 +68,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 	for i, dataDiskInfo := range dataDiskInfos {
 		dataDiskIndex := i + 1
 		dataDiskFilePath := dataDiskInfo.FilePath
-		diskNames = append(diskNames, generateDataDiskName(w.Vars["instance_name"].Value, dataDiskIndex))
+		diskNames = append(diskNames, GenerateDataDiskName(w.Vars["instance_name"].Value, dataDiskIndex))
 
 		setupDataDiskStepName := fmt.Sprintf("setup-data-disk-%v", dataDiskIndex)
 		diskImporterDiskName := fmt.Sprintf("disk-importer-%v-%v", dataDiskIndex, w.ID())
@@ -179,7 +191,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 	}
 }
 
-func generateDataDiskName(instanceName string, dataDiskIndex int) string {
+func GenerateDataDiskName(instanceName string, dataDiskIndex int) string {
 	diskSuffix := fmt.Sprintf("-%v", dataDiskIndex)
 	if len(instanceName)+len(diskSuffix) > 63 {
 		instanceNameRunes := []rune(instanceName)

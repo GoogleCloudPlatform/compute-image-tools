@@ -21,6 +21,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	ovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 )
@@ -153,6 +155,28 @@ func TestCreateDisksOnInstance(t *testing.T) {
 		assert.Equal(t, expectedDiskName, dataDisk.InitializeParams.DiskName)
 		assert.Equal(t, expectedSourceURI, dataDisk.InitializeParams.SourceImage)
 		assert.Equal(t, "pd-ssd", dataDisk.InitializeParams.DiskType)
+	}
+}
+
+func TestAppendDisksToInstance(t *testing.T) {
+	wfPath := "../../../daisy_workflows/ovf_import/create_instance.wf.json"
+	wf, err := daisy.NewFromFile(wfPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	disks := []domain.Disk{
+		disk.NewDisk("project", "zone", "disk-name1"),
+		disk.NewDisk("project", "zone", "disk-name2"),
+	}
+	createInstanceStep := wf.Steps["create-instance"].CreateInstances.Instances[0]
+	AppendDisksToInstance(createInstanceStep, disks)
+	for i, disk := range disks {
+		// Offset by one since template includes the bootdisk as the first element in disk lists.
+		dataDiskIndex := i + 1
+		dataDisk := createInstanceStep.Disks[dataDiskIndex]
+		expectedSourceURI := disk.GetURI()
+		assert.True(t, dataDisk.AutoDelete)
+		assert.Equal(t, expectedSourceURI, dataDisk.Source)
 	}
 }
 
