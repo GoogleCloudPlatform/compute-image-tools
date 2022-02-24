@@ -43,7 +43,7 @@
     "copy-to-destination": {
       "CopyGCSObjects": [
         {
-          "Source": "${OUTSPATH}/root-repack.tar.gz",
+          "Source": "${OUTSPATH}/root.tar.gz",
           "Destination": "${gcs_url}"
         }
       ]
