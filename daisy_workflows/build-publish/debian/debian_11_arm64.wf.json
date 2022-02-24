@@ -1,5 +1,5 @@
 {
-  "Name": "debian-11-arm",
+  "Name": "debian-11-arm64",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "Vars": {
@@ -24,7 +24,7 @@
     "build": {
       "TimeOut": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/debian/debian_11_arm.wf.json",
+        "Path": "${workflow_root}/image_build/debian/debian_11_arm64.wf.json",
         "Vars": {
           "build_date": "${build_date}"
         }
@@ -34,7 +34,7 @@
       "CreateDisks": [
         {
           "Name": "disk-debian-11",
-          "SourceImage": "debian-11-arm-v${build_date}",
+          "SourceImage": "debian-11-arm64-v${build_date}",
           "SizeGb": "10",
           "Type": "pd-ssd"
         }
@@ -50,7 +50,7 @@
     },
     "cleanup-image": {
       "DeleteResources": {
-        "Images": ["debian-11-arm-v${build_date}"]
+        "Images": ["debian-11-arm64-v${build_date}"]
       }
     }
   },
