@@ -15,3 +15,6 @@ rhua:
   rhua_hostname: rhua
   rhua_mount_options: rw
   user: root
+  cephfs_username: null
+  cephfs_secretkey: null
+  cephfs_name: null
