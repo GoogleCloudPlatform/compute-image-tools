@@ -22,8 +22,8 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/exporter"
+	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
+	ovfexporter "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/exporter"
 )
 
 func createInstanceExportInputParams(args ovfexportdomain.OVFExportArgs) service.InputParams {
