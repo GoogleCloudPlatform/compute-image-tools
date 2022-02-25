@@ -7,7 +7,8 @@ For most users, run the following in the same directory as your `go.mod` file:
 ```bash
 old=github.com/GoogleCloudPlatform/compute-image-tools/daisy
 new=github.com/GoogleCloudPlatform/compute-daisy
-grep -rl "$old" . --exclude-dir=.git | xargs sed -i "s|$old|$new|g"
+find . -path ./.git -prune -o -name "*.go" \
+  -exec sed -i"" "s|$old|$new|g" {} +
 go get "$new"
 go mod tidy
 ```
