@@ -192,6 +192,11 @@ function Configure-Network {
 }
 
 function Configure-Power {
+  # The following function blocks some Windows 10 imports, so skip it.
+  if ($script:pn -like '*Windows 10*') {
+    Write-Output 'Skipping Configure-Power for Windows 10'
+    return
+  }
   if (-not (Get-Command Get-CimInstance -ErrorAction SilentlyContinue)) {
     return
   }
@@ -356,10 +361,6 @@ try {
   else {
     # Since 32-bit GooGet packages are not provided via repository, the only option is to install them from a local source.
     Install-32bitPackages
-    # The following function will halt a 32-bit Windows 10 version 1909 import, so skip it.
-    if ($script:pn -notlike '*Windows 10*') {
-      Configure-Power
-    }
   }
 
   # Only needed and applicable to 2008R2.
