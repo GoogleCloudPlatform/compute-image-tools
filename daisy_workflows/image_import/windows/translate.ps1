@@ -359,6 +359,7 @@ try {
     Install-Packages
   }
   else {
+    Configure-Power
     # Since 32-bit GooGet packages are not provided via repository, the only option is to install them from a local source.
     Install-32bitPackages
   }
