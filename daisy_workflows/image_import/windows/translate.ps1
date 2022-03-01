@@ -192,11 +192,6 @@ function Configure-Network {
 }
 
 function Configure-Power {
-  # The following function blocks some Windows 10 imports, so skip it.
-  if ($script:pn -like '*Windows 10*') {
-    Write-Output 'Skipping Configure-Power for Windows 10'
-    return
-  }
   if (-not (Get-Command Get-CimInstance -ErrorAction SilentlyContinue)) {
     return
   }
@@ -205,11 +200,18 @@ function Configure-Power {
   # off its monitor, it will respond to power button pushes by turning it back
   # on instead of shutting down as GCE expects.  We fix this by switching the
   # "Turn off display after" setting to 0 for all power configurations.
-  Get-CimInstance -Namespace 'root\cimv2\power' -ClassName Win32_PowerSettingDataIndex -ErrorAction SilentlyContinue | ForEach-Object {
-    $power_setting = $_ | Get-CimAssociatedInstance -ResultClassName 'Win32_PowerSetting' -OperationTimeoutSec 10 -ErrorAction SilentlyContinue
-    if ($power_setting -and $power_setting.ElementName -eq 'Turn off display after') {
-      Write-Output ('Changing power setting ' + $_.InstanceID)
-      $_ | Set-CimInstance -Property @{SettingIndexValue = 0}
+  $pplan = Get-CimInstance `
+                -Namespace 'root\cimv2\power' `
+                -ClassName Win32_PowerSetting `
+                -ErrorAction SilentlyContinue `
+                | where {$_.ElementName -eq 'Turn off display after'}
+
+  $pplan | ForEach-Object {
+    $_ | Get-CimAssociatedInstance -ResultClassName Win32_PowerSettingDataIndex | ForEach-Object {
+      if ($_.SettingIndexValue -ne 0) {
+        Write-Output ('Changing power setting ' + $_.InstanceID)
+        $_ | Set-CimInstance -Property @{SettingIndexValue = 0}
+      }
     }
   }
 }
@@ -354,12 +356,11 @@ try {
     }
   }
 
+  Configure-Power
   if ($script:is_x86.ToLower() -ne 'true') {
-    Configure-Power
     Install-Packages
   }
   else {
-    Configure-Power
     # Since 32-bit GooGet packages are not provided via repository, the only option is to install them from a local source.
     Install-32bitPackages
   }

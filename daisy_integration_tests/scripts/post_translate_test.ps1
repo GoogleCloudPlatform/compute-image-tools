@@ -42,6 +42,23 @@ function Check-Hiberation {
   }
 }
 
+function Check-Power-Settings {
+  $pplan = Get-CimInstance `
+                -Namespace 'root\cimv2\power' `
+                -ClassName Win32_PowerSetting `
+                -ErrorAction SilentlyContinue `
+                | where {$_.ElementName -eq 'Turn off display after'}
+
+  $pplan | ForEach-Object {
+    $_ | Get-CimAssociatedInstance -ResultClassName Win32_PowerSettingDataIndex | ForEach-Object {
+      $powerOffSeconds=$_.SettingIndexValue
+      if ($powerOffSeconds -ne 0) {
+        throw "Turn off display: expected=0, actual=$powerOffSeconds"
+      }
+    }
+  }
+}
+
 function Check-MetadataAccessibility {
   @('metadata', 'metadata.google.internal') | ForEach-Object {
     if (-not (Test-Connection $_ -Count 1)) {
@@ -125,6 +142,8 @@ try {
   Check-OSConfigAgent
   Write-Output 'Test: Check-Hiberation'
   Check-Hiberation
+  Write-Output 'Test: Check-Power-Settings'
+  Check-Power-Settings
   if ($byol.ToLower() -eq 'true') {
     Write-Output 'Test: Check-SkipActivation'
     Check-SkipActivation
