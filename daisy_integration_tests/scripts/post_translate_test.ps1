@@ -43,14 +43,20 @@ function Check-Hiberation {
 }
 
 function Check-Power-Settings {
-  $pplan = Get-CimInstance `
-                -Namespace 'root\cimv2\power' `
-                -ClassName Win32_PowerSetting `
-                -ErrorAction SilentlyContinue `
-                | where {$_.ElementName -eq 'Turn off display after'}
+  try {
+    $pplan = Get-WMIObject `
+                  -Namespace 'root\cimv2\power' `
+                  -Class Win32_PowerSetting `
+                  -ErrorAction SilentlyContinue `
+                  | where {$_.ElementName -eq 'Turn off display after'}
+  } catch {
+    Write-Output "Get-WMIObject Win32_PowerSetting failed: " + $_
+    return
+  }
+
 
   $pplan | ForEach-Object {
-    $_ | Get-CimAssociatedInstance -ResultClassName Win32_PowerSettingDataIndex | ForEach-Object {
+    $_.GetRelated('Win32_PowerSettingDataIndex') | ForEach-Object {
       $powerOffSeconds=$_.SettingIndexValue
       if ($powerOffSeconds -ne 0) {
         throw "Turn off display: expected=0, actual=$powerOffSeconds"

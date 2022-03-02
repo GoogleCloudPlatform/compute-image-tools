@@ -192,25 +192,28 @@ function Configure-Network {
 }
 
 function Configure-Power {
-  if (-not (Get-Command Get-CimInstance -ErrorAction SilentlyContinue)) {
-    return
-  }
-
   # Change power configuration to never turn off monitor.  If Windows turns
   # off its monitor, it will respond to power button pushes by turning it back
   # on instead of shutting down as GCE expects.  We fix this by switching the
   # "Turn off display after" setting to 0 for all power configurations.
-  $pplan = Get-CimInstance `
-                -Namespace 'root\cimv2\power' `
-                -ClassName Win32_PowerSetting `
-                -ErrorAction SilentlyContinue `
-                | where {$_.ElementName -eq 'Turn off display after'}
+  #
+  # Use WMI since Cim fails on Windows 7 and 2008r2.
+  try {
+    $pplan = Get-WMIObject `
+                  -Namespace 'root\cimv2\power' `
+                  -Class Win32_PowerSetting `
+                  -ErrorAction SilentlyContinue `
+                  | where {$_.ElementName -eq 'Turn off display after'}
+  } catch {
+    Write-Output "Skipping Configure-Power; Get-WMIObject Win32_PowerSetting failed: " + $_
+    return
+  }
 
   $pplan | ForEach-Object {
-    $_ | Get-CimAssociatedInstance -ResultClassName Win32_PowerSettingDataIndex | ForEach-Object {
+    $_.GetRelated('Win32_PowerSettingDataIndex') | ForEach-Object {
       if ($_.SettingIndexValue -ne 0) {
-        Write-Output ('Changing power setting ' + $_.InstanceID)
-        $_ | Set-CimInstance -Property @{SettingIndexValue = 0}
+        Write-Output ('Disabling "turn off display after"; current value: ' + $_.SettingIndexValue)
+        $_ | Set-WmiInstance -Arguments @{SettingIndexValue = 0}
       }
     }
   }
