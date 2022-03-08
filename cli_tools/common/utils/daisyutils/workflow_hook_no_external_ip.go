@@ -15,10 +15,9 @@
 package daisyutils
 
 import (
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
-
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // RemoveExternalIPHook is a WorkflowHook that updates CreateInstances in a

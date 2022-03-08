@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"github.com/vmware/govmomi/ovf"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
@@ -40,8 +42,6 @@ import (
 	ovfgceutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/gce_utils"
 	multiimageimporter "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/multi_image_importer"
 	ovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 const (
@@ -72,7 +72,7 @@ var (
 type OVFImporter struct {
 	ctx                 context.Context
 	storageClient       domain.StorageClientInterface
-	computeClient       daisycompute.Client
+	computeClient       daisyCompute.Client
 	multiImageImporter  ovfdomain.MultiImageImporterInterface
 	tarGcsExtractor     domain.TarGcsExtractorInterface
 	ovfDescriptorLoader ovfdomain.OvfDescriptorLoaderInterface
@@ -238,13 +238,13 @@ func toWorkingDir(dir string, params *ovfdomain.OVFImportParams) string {
 }
 
 // creates a new Daisy Compute client
-func createComputeClient(ctx *context.Context, params *ovfdomain.OVFImportParams) (daisycompute.Client, error) {
+func createComputeClient(ctx *context.Context, params *ovfdomain.OVFImportParams) (daisyCompute.Client, error) {
 	computeOptions := []option.ClientOption{option.WithCredentialsFile(params.Oauth)}
 	if params.Ce != "" {
 		computeOptions = append(computeOptions, option.WithEndpoint(params.Ce))
 	}
 
-	computeClient, err := daisycompute.NewClient(*ctx, computeOptions...)
+	computeClient, err := daisyCompute.NewClient(*ctx, computeOptions...)
 	if err != nil {
 		return nil, err
 	}

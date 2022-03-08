@@ -21,14 +21,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"google.golang.org/api/googleapi"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
 
@@ -40,7 +40,7 @@ type Importer interface {
 }
 
 // NewImporter constructs an Importer instance.
-func NewImporter(request ImageImportRequest, computeClient compute.Client, storageClient domain.StorageClientInterface, logger logging.Logger) (Importer, error) {
+func NewImporter(request ImageImportRequest, computeClient daisyCompute.Client, storageClient domain.StorageClientInterface, logger logging.Logger) (Importer, error) {
 	if err := request.validate(); err != nil {
 		return nil, err
 	}

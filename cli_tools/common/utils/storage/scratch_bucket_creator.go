@@ -20,10 +20,12 @@ import (
 	"strings"
 
 	"cloud.google.com/go/storage"
+	"google.golang.org/api/iterator"
+
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	"google.golang.org/api/iterator"
 )
 
 const (

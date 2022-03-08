@@ -17,10 +17,10 @@ package daisyovfutils
 import (
 	"fmt"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	"google.golang.org/api/compute/v1"
 
 	ovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 const (

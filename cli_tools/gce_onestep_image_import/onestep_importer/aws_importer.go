@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -43,7 +44,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 const (

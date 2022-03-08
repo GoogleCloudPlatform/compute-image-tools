@@ -17,11 +17,10 @@ package daisyutils
 import (
 	"testing"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	"github.com/stretchr/testify/assert"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
-
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 func Test_RemoveExternalIPModifier(t *testing.T) {

@@ -22,12 +22,12 @@ import (
 	"path"
 	"time"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 )
 

@@ -19,7 +19,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 )
 
 const (

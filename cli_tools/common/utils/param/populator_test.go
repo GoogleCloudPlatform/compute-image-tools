@@ -24,8 +24,9 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 func TestPopulator_PopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(t *testing.T) {

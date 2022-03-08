@@ -20,11 +20,11 @@ import (
 	"net/http"
 	"strings"
 
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 const (

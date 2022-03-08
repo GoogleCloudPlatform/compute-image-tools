@@ -4,11 +4,10 @@ go 1.13
 
 require (
 	cloud.google.com/go/compute v1.2.0
-	cloud.google.com/go/logging v1.2.0 // indirect
 	cloud.google.com/go/storage v1.14.0
 	cos.googlesource.com/cos/tools.git v0.0.0-20210104210903-4b3bc7d49b79 // indirect
+	github.com/GoogleCloudPlatform/compute-daisy v0.0.0-20220223233810-60345cd7065c
 	github.com/GoogleCloudPlatform/compute-image-tools/common v0.0.0-20220201175241-7409375050b9
-	github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200406182414-bf9021434372
 	github.com/GoogleCloudPlatform/compute-image-tools/mocks v0.0.0-20200416045929-22b14b6b7c19
 	github.com/GoogleCloudPlatform/compute-image-tools/proto/go v0.0.0-20220126184140-b288db61775e
 	github.com/GoogleCloudPlatform/osconfig v0.0.0-20210202205636-8f5a30e8969f
@@ -27,18 +26,16 @@ require (
 	github.com/kylelemons/godebug v1.1.0
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/minio/highwayhash v1.0.1
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/vmware/govmomi v0.24.0
 	go.chromium.org/luci v0.0.0-20210204234011-34a994fe5aec // indirect
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
-	google.golang.org/api v0.66.0
+	golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27
+	google.golang.org/api v0.67.0
 	google.golang.org/protobuf v1.27.1
 )
 
 replace github.com/GoogleCloudPlatform/compute-image-tools/proto/go => ../proto/go
-
-replace github.com/GoogleCloudPlatform/compute-image-tools/daisy => ../daisy
 
 replace github.com/GoogleCloudPlatform/compute-image-tools/common => ../common

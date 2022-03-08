@@ -17,11 +17,12 @@ package ovfgceutils
 import (
 	"sort"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"github.com/vmware/govmomi/ovf"
 	"google.golang.org/api/compute/v1"
+
+	ovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 )
 
 // MachineTypeProvider is responsible for providing GCE machine type based virtual appliance
@@ -29,7 +30,7 @@ import (
 type MachineTypeProvider struct {
 	OvfDescriptor *ovf.Envelope
 	MachineType   string
-	ComputeClient daisycompute.Client
+	ComputeClient daisyCompute.Client
 	Project       string
 	Zone          string
 }

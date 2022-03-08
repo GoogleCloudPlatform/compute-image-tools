@@ -20,14 +20,15 @@ import (
 	"strconv"
 	"strings"
 
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
+	"google.golang.org/api/compute/v1"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	ovfexportdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/exporter/ovf"
 	ovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
-	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
-	"google.golang.org/api/compute/v1"
 )
 
 //TODO: merge with OVF import ovf_utils.go
@@ -43,14 +44,14 @@ const (
 )
 
 type ovfDescriptorGeneratorImpl struct {
-	computeClient daisycompute.Client
+	computeClient daisyCompute.Client
 	storageClient domain.StorageClientInterface
 	Project       string
 	Zone          string
 }
 
 // NewOvfDescriptorGenerator creates a new OvfDescriptorGenerator
-func NewOvfDescriptorGenerator(computeClient daisycompute.Client, storageClient domain.StorageClientInterface,
+func NewOvfDescriptorGenerator(computeClient daisyCompute.Client, storageClient domain.StorageClientInterface,
 	project string, zone string) ovfexportdomain.OvfDescriptorGenerator {
 	return &ovfDescriptorGeneratorImpl{
 		computeClient: computeClient,

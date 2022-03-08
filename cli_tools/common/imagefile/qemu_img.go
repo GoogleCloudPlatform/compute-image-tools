@@ -25,10 +25,11 @@ import (
 	"os/exec"
 	"strings"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/files"
 	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/shell"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // FormatUnknown means that qemu-img could not determine the file's format.

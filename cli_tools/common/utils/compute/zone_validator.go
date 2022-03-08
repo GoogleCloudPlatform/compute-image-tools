@@ -15,15 +15,15 @@
 package compute
 
 import (
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"google.golang.org/api/googleapi"
 )
 
 // ZoneValidator is responsible for validating zone name corresponds to a valid zone in a given
 // project
 type ZoneValidator struct {
-	ComputeClient daisycompute.Client
+	ComputeClient daisyCompute.Client
 }
 
 // ZoneValid validates zone is valid in the given project

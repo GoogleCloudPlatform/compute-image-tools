@@ -17,7 +17,7 @@ package daisyutils
 import (
 	"regexp"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 )
 
 var (

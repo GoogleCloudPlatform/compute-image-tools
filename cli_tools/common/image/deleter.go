@@ -17,18 +17,19 @@ package image
 import (
 	"fmt"
 
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 // NewImageDeleter creates an ImageDeleter.
-func NewImageDeleter(computeClient daisycompute.Client, logger logging.Logger) domain.ImageDeleter {
+func NewImageDeleter(computeClient daisyCompute.Client, logger logging.Logger) domain.ImageDeleter {
 	return &imageDeleter{computeClient: computeClient, logger: logger}
 }
 
 type imageDeleter struct {
-	computeClient daisycompute.Client
+	computeClient daisyCompute.Client
 	logger        logging.Logger
 }
 

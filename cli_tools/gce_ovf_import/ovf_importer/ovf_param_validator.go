@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	"google.golang.org/api/iterator"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
@@ -33,7 +34,6 @@ import (
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	ovfdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 const (

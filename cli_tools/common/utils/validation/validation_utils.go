@@ -21,9 +21,8 @@ import (
 	"regexp"
 	"strings"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	"github.com/go-playground/validator/v10"
-
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 const (

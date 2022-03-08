@@ -24,6 +24,7 @@ import (
 	"sync"
 	"time"
 
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"google.golang.org/api/compute/v1"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
@@ -31,7 +32,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e"
 	ovfimporttestsuite "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e/gce_ovf_import/test_suites"
 	"github.com/GoogleCloudPlatform/compute-image-tools/common/gcp"
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 )

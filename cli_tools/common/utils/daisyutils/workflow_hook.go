@@ -14,9 +14,7 @@
 
 package daisyutils
 
-import (
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-)
+import daisy "github.com/GoogleCloudPlatform/compute-daisy"
 
 // To rebuild the mock, run `go generate ./...`
 //go:generate go run github.com/golang/mock/mockgen -package mocks -source $GOFILE -destination ../../../mocks/mock_workflow_hook.go

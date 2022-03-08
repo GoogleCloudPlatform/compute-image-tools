@@ -7,9 +7,8 @@ package mocks
 import (
 	reflect "reflect"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	gomock "github.com/golang/mock/gomock"
-
-	daisy "github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // MockWorkflowPreHook is a mock of WorkflowPreHook interface.

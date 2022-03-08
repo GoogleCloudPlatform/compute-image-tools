@@ -19,6 +19,8 @@ import (
 	"sync"
 	"time"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 
@@ -26,8 +28,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 func isCausedByUnsupportedFormat(err error) bool {

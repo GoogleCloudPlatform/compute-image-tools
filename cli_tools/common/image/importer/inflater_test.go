@@ -19,8 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
-	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
@@ -29,7 +28,8 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
+	"github.com/GoogleCloudPlatform/compute-image-tools/proto/go/pb"
 )
 
 func TestCreateFallbackInflater_File(t *testing.T) {

@@ -19,6 +19,8 @@ import (
 	"errors"
 	"fmt"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
@@ -26,13 +28,11 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	ovfdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 type requestExecutor struct {
 	singleImporter ovfdomain.ImageImporterInterface
-	computeClient  daisycompute.Client
+	computeClient  daisyCompute.Client
 	logger         logging.ToolLogger
 }
 

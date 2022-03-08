@@ -17,8 +17,9 @@ package daisyutils
 import (
 	"strings"
 
+	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // FallbackToPDStandard detects if a workflow fails due to insufficient SSD

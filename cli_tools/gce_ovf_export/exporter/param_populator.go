@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"github.com/GoogleCloudPlatform/compute-daisy/compute"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
