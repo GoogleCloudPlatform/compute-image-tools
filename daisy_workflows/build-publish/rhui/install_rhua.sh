@@ -99,6 +99,13 @@ rhui-manager --noninteractive --user admin --password "$password" cert upload \
 rhui-manager --noninteractive --user admin --password "$password" repo \
   add_by_repo --repo_ids $(paste -sd "," "${tempdir}/reponames.txt")
 
+# Install health checks.
+install -D -t /opt/google-rhui-infra $tempdir/health_check.py
+for unit in rhui-health-check.{service,timer}; do
+  install -m 664 -t /etc/systemd/system $tempdir/$unit
+  systemctl enable $unit
+done
+
 # Add NFS dependency to pulp units
 # We do this instead of patching the Ansible templates, as we need the
 # services up to run the above rhui-manager commands and the modification

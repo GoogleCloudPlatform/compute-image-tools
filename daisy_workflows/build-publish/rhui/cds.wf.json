@@ -27,6 +27,7 @@
   "Sources": {
     "cds_artifacts": "./cds_artifacts",
     "cds_artifacts/rhui.crt": "${tls_cert_path}",
+    "cds_artifacts/health_check.py": "./health_check.py",
     "install_cds.sh": "./install_cds.sh"
   },
   "Steps": {
