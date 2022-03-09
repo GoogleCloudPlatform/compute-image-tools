@@ -32,10 +32,6 @@
       "Required": true,
       "Description": "The GCS url that the image raw file exported to."
     },
-    "gcs_internal_url": {
-      "Required": true,
-      "Description": "The GCS url that the exported image is saved to for internal use."
-    },
     "google_cloud_repo": {
       "Value": "stable",
       "Description": "The Google Cloud Repo branch to use."
@@ -69,7 +65,6 @@
         "Vars": {
           "build_date": "${build_date}",
           "gcs_url": "${gcs_url}",
-          "gcs_internal_url": "${gcs_internal_url}",
           "workflow_root": "${workflow_root}"
         }
       }

@@ -9,10 +9,6 @@
       "Required": true,
       "Description": "The GCS url of where to save the images."
     },
-    "gcs_internal_url": {
-      "Required": true,
-      "Description": "The GCS url of where to save the internal image."
-    },
     "workflow_root": {
       "Required": true,
       "Description": "Root of github workflows."
@@ -32,19 +28,6 @@
           "destination": "${gcs_url}"
         }
       }
-    },
-    "internal-copy": {
-      "CopyGCSObjects": [
-        {
-          "Source": "${gcs_url}",
-          "Destination": "${gcs_internal_url}"
-        }
-      ]
     }
-  },
-  "Dependencies": {
-    "internal-copy": [
-      "disk-export"
-    ]
   }
 }
