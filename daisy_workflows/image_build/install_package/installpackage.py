@@ -65,9 +65,6 @@ def main():
   distribution = get_distro_from_image(image)
   if distribution == 'debian':
     util = 'apt-get'
-    # Enable ARM installation supporting for debian
-    run('apt-get install -y qemu qemu-user-static binfmt-support')
-    run('update-binfmts --enable qemu-arm')
   elif distribution == 'enterprise_linux':
     util = 'yum'
   else:

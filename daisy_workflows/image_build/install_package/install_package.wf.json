@@ -17,6 +17,14 @@
     "dest_project": {
       "Value": "${PROJECT}",
       "Description": "dest project"
+    },
+    "worker_image": {
+      "Value": "projects/compute-image-tools/global/images/family/debian-10-worker",
+      "Description": "worker image"
+    },
+    "machine_type": {
+      "Value": "e2-medium",
+      "Description": "machine type"
     }
   },
   "Sources": {
@@ -29,7 +37,7 @@
       "CreateDisks": [
         {
           "Name": "disk-worker",
-          "SourceImage": "projects/compute-image-tools/global/images/family/debian-10-worker",
+          "SourceImage": "${worker_image}",
           "Type": "pd-ssd"
         },
         {
@@ -44,7 +52,7 @@
         {
           "Name": "inst-worker",
           "Disks": [{"Source": "disk-worker"},{"Source": "source-disk"}],
-          "MachineType": "e2-medium",
+          "MachineType": "${machine_type}",
           "Metadata": {
             "files_gcs_dir": "${SOURCESPATH}/work",
             "prefix": "InstallPackage",
@@ -52,6 +60,7 @@
             "gcs_package_path": "${gcs_package_path}",
             "image": "${source_image}"
           },
+          "NoCleanup": true,
           "StartupScript": "startup_script"
         }
       ]
