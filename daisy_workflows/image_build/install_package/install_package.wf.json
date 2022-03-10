@@ -60,7 +60,6 @@
             "gcs_package_path": "${gcs_package_path}",
             "image": "${source_image}"
           },
-          "NoCleanup": true,
           "StartupScript": "startup_script"
         }
       ]
