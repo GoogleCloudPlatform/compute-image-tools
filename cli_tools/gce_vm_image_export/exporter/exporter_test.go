@@ -92,7 +92,7 @@ func TestBuildDaisyVarsWithoutFormatConversion(t *testing.T) {
 	assert.Equal(t, "gs://bucket/exported_image", got["destination"])
 	assert.Equal(t, "global/networks/aNetwork", got["export_network"])
 	assert.Equal(t, "regions/aRegion/subnetworks/aSubnet", got["export_subnet"])
-	assert.Equal(t, "15", got["export_instance_disk_size"])
+	assert.Equal(t, "16", got["export_instance_disk_size"])
 	assert.Equal(t, 5, len(got))
 }
 
@@ -103,7 +103,7 @@ func TestBuildDaisyVarsWithFormatConversion(t *testing.T) {
 		ws+destinationURI+ws,
 		ws+sourceImage+ws,
 		ws+sourceDiskSnapshot+ws,
-		15,
+		5000,
 		ws+"vmdk"+ws,
 		ws+network+ws,
 		ws+subnet+ws,
@@ -115,7 +115,7 @@ func TestBuildDaisyVarsWithFormatConversion(t *testing.T) {
 	assert.Equal(t, "vmdk", got["format"])
 	assert.Equal(t, "global/networks/aNetwork", got["export_network"])
 	assert.Equal(t, "regions/aRegion/subnetworks/aSubnet", got["export_subnet"])
-	assert.Equal(t, "15", got["export_instance_disk_size"])
+	assert.Equal(t, "5250", got["export_instance_disk_size"])
 	assert.Equal(t, 6, len(got))
 }
 

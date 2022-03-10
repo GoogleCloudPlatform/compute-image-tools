@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	cloud.google.com/go/compute v1.2.0
+	cloud.google.com/go/logging v1.4.0
 	cloud.google.com/go/storage v1.14.0
 	cos.googlesource.com/cos/tools.git v0.0.0-20210104210903-4b3bc7d49b79 // indirect
 	github.com/GoogleCloudPlatform/compute-daisy v0.0.0-20220223233810-60345cd7065c
@@ -33,6 +34,7 @@ require (
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27
 	google.golang.org/api v0.67.0
+	google.golang.org/genproto v0.0.0-20220207164111-0872dc986b00
 	google.golang.org/protobuf v1.27.1
 )
 

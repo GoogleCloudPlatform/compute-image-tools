@@ -18,6 +18,7 @@ package exporter
 import (
 	"context"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -84,7 +85,7 @@ func getWorkflowPath(format string, currentExecutablePath string) string {
 	return path.ToWorkingDir(WorkflowDir+ExportAndConvertWorkflow, currentExecutablePath)
 }
 
-func buildDaisyVars(destinationURI string, sourceImage string, sourceDiskSnapshot string, bufferDiskSizeGb int64, format string, network string,
+func buildDaisyVars(destinationURI string, sourceImage string, sourceDiskSnapshot string, imageDiskSizeGb int64, format string, network string,
 	subnet string, region string, computeServiceAccount string) map[string]string {
 
 	destinationURI = strings.TrimSpace(destinationURI)
@@ -109,7 +110,9 @@ func buildDaisyVars(destinationURI string, sourceImage string, sourceDiskSnapsho
 		varMap["source_disk_snapshot"] = param.GetGlobalResourcePath("snapshots", sourceDiskSnapshot)
 	}
 
-	if bufferDiskSizeGb > 0 {
+	if imageDiskSizeGb > 0 {
+		//add 5% for the buffer disk for disk file format/file system overhead if image contains truly random data
+		bufferDiskSizeGb := int64(math.Ceil(float64(imageDiskSizeGb) * 1.05))
 		varMap["export_instance_disk_size"] = strconv.FormatInt(bufferDiskSizeGb, 10)
 	}
 
@@ -169,18 +172,18 @@ func Run(clientID string, destinationURI string, sourceImage string, sourceDiskS
 		return err
 	}
 
-	var bufferDiskSizeGb int64
+	var imageDiskSizeGb int64
 	if sourceImage != "" {
-		if bufferDiskSizeGb, err = validateImageExists(computeClient, *project, sourceImage); err != nil {
+		if imageDiskSizeGb, err = validateImageExists(computeClient, *project, sourceImage); err != nil {
 			return err
 		}
 	} else {
-		if bufferDiskSizeGb, err = validateSnapshotExists(computeClient, *project, sourceDiskSnapshot); err != nil {
+		if imageDiskSizeGb, err = validateSnapshotExists(computeClient, *project, sourceDiskSnapshot); err != nil {
 			return err
 		}
 	}
 
-	varMap := buildDaisyVars(destinationURI, sourceImage, sourceDiskSnapshot, bufferDiskSizeGb, format, network, subnet, *region, computeServiceAccount)
+	varMap := buildDaisyVars(destinationURI, sourceImage, sourceDiskSnapshot, imageDiskSizeGb, format, network, subnet, *region, computeServiceAccount)
 
 	workflowProvider := func() (*daisy.Workflow, error) {
 		return daisy.NewFromFile(getWorkflowPath(format, currentExecutablePath))
