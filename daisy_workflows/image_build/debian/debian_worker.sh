@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2020 Google Inc. All Rights Reserved.
+# Copyright 2022 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Builds a Debian 10 based image for import, export, and build tasks. Preloads
+# Builds a Debian based image for import, export, and build tasks. Preloads
 # dependencies and binaries for these workflows.
 
 # Setup GCS Fuse Repo. It's not ready for debian-11 (bullseye), so skip it.
