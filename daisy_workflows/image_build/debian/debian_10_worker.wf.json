@@ -7,7 +7,7 @@
     }
   },
   "Sources": {
-      "debian_10_worker.sh": "./debian_10_worker.sh"
+      "debian_worker.sh": "./debian_worker.sh"
   },
   "Steps": {
     "build-debian-10": {
@@ -34,7 +34,7 @@
           "Name": "inst-worker",
           "Disks": [{"Source": "disk-worker"}],
           "MachineType": "e2-standard-4",
-          "StartupScript": "debian_10_worker.sh",
+          "StartupScript": "debian_worker.sh",
           "MetaData": {
             "block-project-ssh-keys": "TRUE"
           }

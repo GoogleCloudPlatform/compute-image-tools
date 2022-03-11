@@ -7,7 +7,7 @@
     }
   },
   "Sources": {
-      "debian_11_worker_arm64.sh": "./debian_11_worker_arm64.sh"
+      "debian_worker.sh": "./debian_worker.sh"
   },
   "Steps": {
     "build-debian-11-arm64": {
@@ -34,7 +34,7 @@
           "Name": "inst-worker",
           "Disks": [{"Source": "disk-worker"}],
           "MachineType": "t2a-standard-4",
-          "StartupScript": "debian_11_worker_arm64.sh",
+          "StartupScript": "debian_worker.sh",
           "MetaData": {
             "block-project-ssh-keys": "TRUE"
           }
