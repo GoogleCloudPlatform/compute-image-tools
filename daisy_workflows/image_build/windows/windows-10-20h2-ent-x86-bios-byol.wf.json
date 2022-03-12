@@ -46,6 +46,15 @@
       "Description": "Root of github workflows, defaults to /workflows in the container."
     }
   },
+  "Sources": {
+    "components/googet.exe": "gs://win-32bit-files/googet/googet.exe",
+    "components/google-compute-engine-windows-x86.x86_32.4.6.0@1.goo": "gs://win-32bit-files/googet/google-compute-engine-windows-x86.x86_32.4.6.0@1.goo",
+    "components/google-compute-engine-powershell.noarch.1.1.1@4.goo": "gs://win-32bit-files/googet/google-compute-engine-powershell.noarch.1.1.1@4.goo",
+    "components/certgen-x86.x86_32.1.0.0@2.goo": "gs://win-32bit-files/googet/certgen-x86.x86_32.1.0.0@2.goo",
+    "components/google-compute-engine-metadata-scripts-x86.x86_32.4.2.1@1.goo": "gs://win-32bit-files/googet/google-compute-engine-metadata-scripts-x86.x86_32.4.2.1@1.goo",
+    "components/google-compute-engine-sysprep.noarch.3.10.1@1.goo": "gs://win-32bit-files/googet/google-compute-engine-sysprep.noarch.3.10.1@1.goo",
+    "components/googet-x86.x86_32.2.16.3@1.goo": "gs://win-32bit-files/googet/googet-x86.x86_32.2.16.3@1.goo"
+  },
   "Steps": {
     "windows-build": {
       "Timeout": "4h",
@@ -55,13 +64,14 @@
           "install_disk": "${install_disk}",
           "install_disk_size": "50",
           "updates": "${updates}",
-          "drivers_bucket": "gs://gce-windows-drivers-public/release/win6.3/",
+          "drivers_bucket": "gs://gce-windows-drivers-public/release/win10-32bit/",
           "dotnet48": "${dotnet48}",
           "pwsh": "${pwsh}",
           "edition": "Windows 10 ENTERPRISE",
           "media": "${media}",
           "cloud_sdk": "${cloudsdk}",
           "google_cloud_repo": "${google_cloud_repo}",
+          "x86_build": "true",
           "workflow_root": "${workflow_root}"
         }
       }
