@@ -84,7 +84,7 @@ func NewDaisyInflater(request ImageImportRequest, fileMetadata imagefile.Metadat
 }
 
 func newDaisyInflater(request ImageImportRequest, fileMetadata imagefile.Metadata, logger logging.Logger) (*daisyInflater, error) {
-	diskName := getDiskName(request.ExecutionID)
+	diskName := getDiskName(request)
 	var wfPath string
 	var vars map[string]string
 	var inflationDiskIndex int

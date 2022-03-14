@@ -15,6 +15,7 @@
 package daisyovfutils
 
 import (
+	"fmt"
 	"testing"
 
 	daisy "github.com/GoogleCloudPlatform/compute-daisy"
@@ -164,9 +165,14 @@ func TestAppendDisksToInstance(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	disks := []domain.Disk{
-		disk.NewDisk("project", "zone", "disk-name1"),
-		disk.NewDisk("project", "zone", "disk-name2"),
+
+	disks := []domain.Disk{}
+
+	for i := 0; i < 2; i++ {
+		diskName := fmt.Sprintf("disk-name%d", i+1)
+		disk, err := disk.NewDisk("project", "zone", diskName)
+		assert.NoError(t, err)
+		disks = append(disks, disk)
 	}
 	createInstanceStep := wf.Steps["create-instance"].CreateInstances.Instances[0]
 	AppendDisksToInstance(createInstanceStep, disks)

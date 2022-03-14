@@ -15,15 +15,28 @@
 package disk
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewDisk(t *testing.T) {
-	img := NewDisk("project-id", "test-zone", "disk-name")
-	assert.Equal(t, "project-id", img.GetProject())
-	assert.Equal(t, "test-zone", img.GetZone())
-	assert.Equal(t, "disk-name", img.GetDiskName())
-	assert.Equal(t, "projects/project-id/zones/test-zone/disks/disk-name", img.GetURI())
+	disk, err := NewDisk("project-id", "test-zone", "disk-name")
+	assert.NoError(t, err)
+	assert.Equal(t, "project-id", disk.GetProject())
+	assert.Equal(t, "test-zone", disk.GetZone())
+	assert.Equal(t, "disk-name", disk.GetDiskName())
+	assert.Equal(t, "projects/project-id/zones/test-zone/disks/disk-name", disk.GetURI())
+}
+
+func TestNewDisk_Error(t *testing.T) {
+	_, err := NewDisk("", "test-zone", "disk-name")
+	assert.Error(t, err, errors.New("Error creating new disk: project, zone or diskName cannot be empty"))
+
+	_, err = NewDisk("project-id", "", "disk-name")
+	assert.Error(t, err, errors.New("Error creating new disk: project, zone or diskName cannot be empty"))
+
+	_, err = NewDisk("project-id", "test-zone", "")
+	assert.Error(t, err, errors.New("Error creating new disk: project, zone or diskName cannot be empty"))
 }

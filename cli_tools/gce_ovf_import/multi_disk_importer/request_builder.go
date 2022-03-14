@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package multiimageimporter
+package multidiskimporter
 
 import (
 	"fmt"
@@ -20,6 +20,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	daisyovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/daisy_utils"
 	ovfdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 )
 
@@ -28,30 +29,29 @@ type requestBuilder struct {
 	sourceFactory importer.SourceFactory
 }
 
-// buildRequests constructs a list of ImageImportRequests based on the user's
+// buildRequests constructs a list of requests to import data disks based on the user's
 // invocation parameters and the files referenced in the OVF descriptor.
 func (r *requestBuilder) buildRequests(params *ovfdomain.OVFImportParams, fileURIs []string) (requests []importer.ImageImportRequest, err error) {
-	for i, fileURI := range fileURIs {
+	for i, dataDiskURI := range fileURIs {
 		var source importer.Source
-		if source, err = r.sourceFactory.Init(fileURI, ""); err != nil {
+		if source, err = r.sourceFactory.Init(dataDiskURI, ""); err != nil {
 			return nil, err
 		}
-		imageName := fmt.Sprintf("ovf-%s-%d", params.BuildID, i+1)
+		dataDiskPrefix := getDisksPrefixName(params)
+		diskName := daisyovfutils.GenerateDataDiskName(dataDiskPrefix, i)
 		request := importer.ImageImportRequest{
-			ExecutionID:           imageName,
+			ExecutionID:           diskName,
 			CloudLogsDisabled:     params.CloudLogsDisabled,
 			ComputeEndpoint:       params.Ce,
 			ComputeServiceAccount: params.ComputeServiceAccount,
 			WorkflowDir:           r.workflowDir,
 			DaisyLogLinePrefix:    fmt.Sprintf("disk-%d", i+1),
 			GcsLogsDisabled:       params.GcsLogsDisabled,
-			ImageName:             imageName,
 			Network:               params.Network,
 			NoExternalIP:          params.NoExternalIP,
-			NoGuestEnvironment:    params.NoGuestEnvironment,
 			Oauth:                 params.Oauth,
 			Project:               *params.Project,
-			ScratchBucketGcsPath:  path.JoinURL(params.ScratchBucketGcsPath, imageName),
+			ScratchBucketGcsPath:  path.JoinURL(params.ScratchBucketGcsPath, diskName),
 			Source:                source,
 			StdoutLogsDisabled:    params.StdoutLogsDisabled,
 			Subnet:                params.Subnet,
@@ -59,16 +59,19 @@ func (r *requestBuilder) buildRequests(params *ovfdomain.OVFImportParams, fileUR
 			Tool:                  params.GetTool(),
 			UefiCompatible:        params.UefiCompatible,
 			Zone:                  params.Zone,
-		}
-		bootable := i == 0
-		if bootable {
-			request.OS = params.OsID
-			request.BYOL = params.BYOL
-			importer.FixBYOLAndOSArguments(&request.OS, &request.BYOL)
-		} else {
-			request.DataDisk = true
+			OS:                    params.OsID,
+			DataDisk:              true,
+			DiskName:              diskName,
 		}
 		requests = append(requests, request)
 	}
 	return requests, nil
+}
+
+func getDisksPrefixName(params *ovfdomain.OVFImportParams) string {
+	if params.IsInstanceImport() {
+		return params.InstanceNames
+	} else {
+		return params.MachineImageName
+	}
 }

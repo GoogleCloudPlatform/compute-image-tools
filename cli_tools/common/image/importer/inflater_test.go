@@ -36,7 +36,7 @@ func TestCreateFallbackInflater_File(t *testing.T) {
 	//Test the creation of a fallback inflater, which primarily uses API inflater
 	//and uses Daisy inflater as a fallback.
 
-	inflater, err := newInflater(ImageImportRequest{
+	inflater, err := NewInflater(ImageImportRequest{
 		Source:      fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:      "projects/subnet/subnet",
 		Network:     "projects/network/network",
@@ -82,7 +82,7 @@ func TestCreateShadowTestInflater_File(t *testing.T) {
 	//TODO: remove/disable this test once API inflater is the default (fallback mode) b/216323357
 	t.SkipNow()
 
-	inflater, err := newInflater(ImageImportRequest{
+	inflater, err := NewInflater(ImageImportRequest{
 		Source:      fileSource{gcsPath: "gs://bucket/vmdk"},
 		Subnet:      "projects/subnet/subnet",
 		Network:     "projects/network/network",
@@ -121,8 +121,36 @@ func TestCreateShadowTestInflater_File(t *testing.T) {
 		&compute.GuestOsFeature{Type: "UEFI_COMPATIBLE"})
 }
 
+func TestInflaterGetDiskName_UseRequestDiskName(t *testing.T) {
+	//Test request DiskName field (if exist) as the Inflater Disk name
+	diskName := "new-disk"
+	zone := "us-west1-c"
+	inflater, err := NewInflater(ImageImportRequest{
+		Source:      fileSource{gcsPath: "gs://bucket/vmdk"},
+		Zone:        zone,
+		ExecutionID: "1234",
+		Tool: daisyutils.Tool{
+			ResourceLabelName: "image-import",
+		},
+		DiskName:    diskName,
+		WorkflowDir: daisyWorkflows,
+	}, nil, &storage.Client{}, mockInspector{
+		t:                 t,
+		expectedReference: "gs://bucket/vmdk",
+		errorToReturn:     nil,
+		metaToReturn:      imagefile.Metadata{},
+	}, logging.NewToolLogger("test"))
+	assert.NoError(t, err)
+	facade, ok := inflater.(*inflaterFacade)
+	assert.True(t, ok)
+
+	daisyInflater, ok := facade.daisyInflater.(*daisyInflater)
+	assert.True(t, ok)
+	assert.Equal(t, fmt.Sprintf("zones/%s/disks/%s", zone, diskName), daisyInflater.inflatedDiskURI)
+}
+
 func TestCreateInflater_Image(t *testing.T) {
-	inflater, err := newInflater(ImageImportRequest{
+	inflater, err := NewInflater(ImageImportRequest{
 		Source:      imageSource{uri: "projects/test/uri/image"},
 		Zone:        "us-west1-b",
 		ExecutionID: "1234",

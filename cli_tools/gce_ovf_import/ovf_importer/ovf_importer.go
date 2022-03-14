@@ -30,7 +30,6 @@ import (
 	"google.golang.org/api/option"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/deleter"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer"
@@ -43,7 +42,7 @@ import (
 	daisyovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/daisy_utils"
 	ovfdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 	ovfgceutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/gce_utils"
-	multiimageimporter "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/multi_image_importer"
+	multidiskimporter "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/multi_disk_importer"
 	ovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 )
 
@@ -76,7 +75,7 @@ type OVFImporter struct {
 	ctx                 context.Context
 	storageClient       domain.StorageClientInterface
 	computeClient       daisyCompute.Client
-	multiImageImporter  ovfdomain.MultiImageImporterInterface
+	multiDiskImporter   ovfdomain.MultiDiskImporterInterface
 	imageImporter       importer.Importer
 	tarGcsExtractor     domain.TarGcsExtractorInterface
 	ovfDescriptorLoader ovfdomain.OvfDescriptorLoaderInterface
@@ -116,7 +115,7 @@ func NewOVFImporter(params *ovfdomain.OVFImportParams, logger logging.ToolLogger
 		ctx:                 ctx,
 		storageClient:       storageClient,
 		computeClient:       computeClient,
-		multiImageImporter:  multiimageimporter.NewMultiImageImporter(params.WorkflowDir, computeClient, storageClient, logger),
+		multiDiskImporter:   multidiskimporter.NewMultiDiskImporter(params.WorkflowDir, computeClient, storageClient, logger),
 		imageImporter:       nil,
 		resourceDeleter:     deleter.NewResourceDeleter(computeClient, logger),
 		tarGcsExtractor:     tarGcsExtractor,
@@ -299,6 +298,8 @@ func (oi *OVFImporter) getMachineType(
 	return machineTypeProvider.GetMachineType()
 }
 
+// this function is mainly responsible for importing all the Disks files into GCP
+// it creates disks for all data disks files, and import the boot disk file as disk image
 func (oi *OVFImporter) importDisksVMDKFiles() error {
 	oi.imageLocation = oi.params.Region
 
@@ -322,6 +323,7 @@ func (oi *OVFImporter) importDisksVMDKFiles() error {
 	}
 
 	oi.params.OsID = osIDValue
+	oi.params.Deadline = oi.params.Deadline.Add(-1 * instanceConstructionTime)
 
 	oi.machineTypeString, err = oi.getMachineType(ovfDescriptor, *oi.params.Project, oi.params.Zone)
 	if err != nil {
@@ -337,14 +339,18 @@ func (oi *OVFImporter) importDisksVMDKFiles() error {
 		disksNamesPrefix = oi.params.MachineImageName
 	}
 
-	// create data disks for each data disk vmdk file
 	if len(diskInfos) > 1 {
-		if err = oi.createDisksFromVmdkFiles(diskInfos[1:], disksNamesPrefix); err != nil {
+		var dataDiskURIs []string
+		for _, info := range diskInfos[1:] {
+			dataDiskURIs = append(dataDiskURIs, info.FilePath)
+		}
+		disks, err := oi.multiDiskImporter.Import(oi.ctx, oi.params, dataDiskURIs)
+		if err != nil {
 			return err
 		}
+		oi.disks = disks
 	}
 
-	// Import boot disk image with attached disks
 	if len(diskInfos) > 0 {
 		if err = oi.importBootDiskImage(diskInfos[0], disksNamesPrefix); err != nil {
 			return err
@@ -355,49 +361,11 @@ func (oi *OVFImporter) importDisksVMDKFiles() error {
 }
 
 func (oi *OVFImporter) importBootDiskImage(bootDiskInfos ovfutils.DiskInfo, disksNamesPrefix string) error {
-	// Import boot disk image with attached disks
 
 	oi.Logger.User(fmt.Sprint("Importing boot Disk Image ..."))
 
-	// create attached disks objects from the created data disks
-	var attachedDisks []*compute.AttachedDisk
-	for _, disk := range oi.disks {
-		attachedDisks = append(attachedDisks, &compute.AttachedDisk{Source: disk.GetURI()})
-	}
-
-	bootDiskFilePath := bootDiskInfos.FilePath
-	bootDiskFilePathSource, err := importer.NewSourceFactory(oi.storageClient).Init(bootDiskFilePath, "")
-	if err != nil {
-		return err
-	}
-
 	imageName := fmt.Sprintf("%s-%s", disksNamesPrefix, "boot-image")
-	request := importer.ImageImportRequest{
-		ExecutionID:                   imageName,
-		CloudLogsDisabled:             oi.params.CloudLogsDisabled,
-		ComputeEndpoint:               oi.params.Ce,
-		ComputeServiceAccount:         oi.params.ComputeServiceAccount,
-		WorkflowDir:                   oi.params.WorkflowDir,
-		GcsLogsDisabled:               oi.params.GcsLogsDisabled,
-		ImageName:                     imageName,
-		Network:                       oi.params.Network,
-		NoExternalIP:                  oi.params.NoExternalIP,
-		NoGuestEnvironment:            oi.params.NoGuestEnvironment,
-		Oauth:                         oi.params.Oauth,
-		Project:                       *oi.params.Project,
-		ScratchBucketGcsPath:          pathutils.JoinURL(oi.params.ScratchBucketGcsPath, imageName),
-		Source:                        bootDiskFilePathSource,
-		StdoutLogsDisabled:            oi.params.StdoutLogsDisabled,
-		Subnet:                        oi.params.Subnet,
-		Timeout:                       oi.params.Deadline.Sub(time.Now()),
-		Tool:                          oi.params.GetTool(),
-		UefiCompatible:                oi.params.UefiCompatible,
-		Zone:                          oi.params.Zone,
-		TanslationWorkerAttachedDisks: attachedDisks,
-	}
-	request.OS = oi.params.OsID
-	request.BYOL = oi.params.BYOL
-	importer.FixBYOLAndOSArguments(&request.OS, &request.BYOL)
+	request, err := oi.buildBootDiskImageImportRequest(imageName, bootDiskInfos.FilePath)
 
 	if oi.imageImporter == nil {
 		oi.imageImporter, err = importer.NewImporter(request, oi.computeClient, oi.storageClient, oi.Logger)
@@ -412,36 +380,6 @@ func (oi *OVFImporter) importBootDiskImage(bootDiskInfos ovfutils.DiskInfo, disk
 	}
 
 	oi.images = []domain.Image{image.NewImage(request.Project, request.ImageName)}
-
-	return nil
-}
-
-func (oi *OVFImporter) createDisksFromVmdkFiles(diskInfos []ovfutils.DiskInfo, dataDiskPrefix string) error {
-	// create disk for each vmdk file
-
-	params := *oi.params
-
-	var disks []domain.Disk
-	for i, info := range diskInfos {
-		dataDiskURI := info.FilePath
-		diskName := daisyovfutils.GenerateDataDiskName(dataDiskPrefix, i)
-		diskType := fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", *params.Project, params.Zone)
-		cd := compute.Disk{
-			Name:                diskName,
-			SourceStorageObject: dataDiskURI,
-			Type:                diskType,
-		}
-		err := oi.computeClient.CreateDisk(*params.Project, params.Zone, &cd)
-		if err != nil {
-			return err
-		}
-
-		disks = append(disks, disk.NewDisk(*params.Project, params.Zone, diskName))
-	}
-
-	oi.Logger.User(fmt.Sprintf(" %d Data Disk/s are created successfully.", len(diskInfos)))
-
-	oi.disks = disks
 
 	return nil
 }
@@ -542,21 +480,6 @@ func (oi *OVFImporter) CleanUp() {
 	}
 }
 
-func (oi *OVFImporter) importDisks(osID string, diskInfos *[]ovfutils.DiskInfo) error {
-	var dataDiskURIs []string
-	for _, info := range *diskInfos {
-		dataDiskURIs = append(dataDiskURIs, info.FilePath)
-	}
-	params := *oi.params
-	params.OsID = osID
-	params.Deadline = params.Deadline.Add(-1 * instanceConstructionTime)
-	imageURIs, err := oi.multiImageImporter.Import(oi.ctx, &params, dataDiskURIs)
-	if err == nil {
-		oi.images = imageURIs
-	}
-	return err
-}
-
 // getOsIDValue determines the osID to use when importing the boot disk.
 func (oi *OVFImporter) getOsIDValue(descriptor *ovf.Envelope) (osIDValue string, err error) {
 	userOS := oi.params.OsID
@@ -591,4 +514,42 @@ func (oi *OVFImporter) getOsIDValue(descriptor *ovf.Envelope) (osIDValue string,
 				osIDValue))
 	}
 	return osIDValue, nil
+}
+
+func (oi *OVFImporter) buildBootDiskImageImportRequest(imageName string, bootDiskFilePath string) (request importer.ImageImportRequest, err error) {
+	bootDiskFilePathSource, err := importer.NewSourceFactory(oi.storageClient).Init(bootDiskFilePath, "")
+
+	if err != nil {
+		return request, err
+	}
+
+	request = importer.ImageImportRequest{
+		ExecutionID:           imageName,
+		CloudLogsDisabled:     oi.params.CloudLogsDisabled,
+		ComputeEndpoint:       oi.params.Ce,
+		ComputeServiceAccount: oi.params.ComputeServiceAccount,
+		WorkflowDir:           oi.params.WorkflowDir,
+		GcsLogsDisabled:       oi.params.GcsLogsDisabled,
+		ImageName:             imageName,
+		Network:               oi.params.Network,
+		NoExternalIP:          oi.params.NoExternalIP,
+		NoGuestEnvironment:    oi.params.NoGuestEnvironment,
+		Oauth:                 oi.params.Oauth,
+		Project:               *oi.params.Project,
+		ScratchBucketGcsPath:  pathutils.JoinURL(oi.params.ScratchBucketGcsPath, imageName),
+		Source:                bootDiskFilePathSource,
+		StdoutLogsDisabled:    oi.params.StdoutLogsDisabled,
+		Subnet:                oi.params.Subnet,
+		Timeout:               oi.params.Deadline.Sub(time.Now()),
+		Tool:                  oi.params.GetTool(),
+		UefiCompatible:        oi.params.UefiCompatible,
+		Zone:                  oi.params.Zone,
+		CreatedDataDisks:      oi.disks,
+	}
+
+	request.OS = oi.params.OsID
+	request.BYOL = oi.params.BYOL
+	importer.FixBYOLAndOSArguments(&request.OS, &request.BYOL)
+
+	return request, err
 }

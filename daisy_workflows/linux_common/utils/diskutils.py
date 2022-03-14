@@ -17,13 +17,14 @@
 
 import logging
 
+import utils
+
 from .common import AptGetInstall
 try:
   import guestfs
 except ImportError:
   AptGetInstall(['python3-guestfs'])
   import guestfs
-import utils
 
 _STATUS_PREFIX = 'TranslateStatus: '
 
@@ -39,7 +40,8 @@ def log_key_value(key, value):
 
 
 def get_physical_drives():
-  rc, output = utils.Execute(['lsblk', '--noheadings', '--output=NAME', '--paths', '--list', '--nodeps', '-e7'], capture_output=True)
+  rc, output = utils.Execute(['lsblk', '--noheadings', '--output=NAME', 
+                  '--paths', '--list', '--nodeps', '-e7'], capture_output=True)
   disks = []
   if rc == 0:
     disks = output.split('\n')

@@ -72,19 +72,7 @@ func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger 
 			request.Project, request.Zone, request.ScratchBucketGcsPath, request.Oauth, request.Timeout.String(),
 			request.ComputeEndpoint, request.GcsLogsDisabled, request.CloudLogsDisabled, request.StdoutLogsDisabled)
 
-		if !strings.Contains(strings.ToLower(wfPath), "windows") {
-			var disks *[]*compute.AttachedDisk
-			if wf.Steps["translate-disk"] != nil {
-				disks = &wf.Steps["translate-disk"].IncludeWorkflow.Workflow.Steps["translate-disk-inst"].CreateInstances.Instances[0].Disks
-			} else if (wf.Steps["translate-disk-inst"]) != nil {
-				// case translation wf that doesn't include another workflow (e.g. opensuse_15)
-				disks = &wf.Steps["translate-disk-inst"].CreateInstances.Instances[0].Disks
-			}
-
-			for _, dataAttachedDisk := range request.TanslationWorkerAttachedDisks {
-				*disks = append(*disks, dataAttachedDisk)
-			}
-		}
+		updateWorkflowWithCreatedDataDisks(wfPath, wf, request)
 
 		return wf, err
 	}
@@ -102,6 +90,25 @@ func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger 
 		vars:       vars,
 	}
 	return diskProcessor
+}
+
+// This function is to attach the created data disks into the translation worker instance, to handle if part
+// of the OS data (e.g. /var) is mounted onto one of the data disks
+// currently it is supported for Linux only.
+func updateWorkflowWithCreatedDataDisks(wfPath string, wf *daisy.Workflow, request ImageImportRequest) {
+	if !strings.Contains(strings.ToLower(wfPath), "windows") {
+		var disks *[]*compute.AttachedDisk
+		if wf.Steps["translate-disk"] != nil {
+			disks = &wf.Steps["translate-disk"].IncludeWorkflow.Workflow.Steps["translate-disk-inst"].CreateInstances.Instances[0].Disks
+		} else if wf.Steps["translate-disk-inst"] != nil {
+			// case translation wf that doesn't include another workflow (e.g. opensuse_15)
+			disks = &wf.Steps["translate-disk-inst"].CreateInstances.Instances[0].Disks
+		}
+
+		for _, dataDisk := range request.CreatedDataDisks {
+			*disks = append(*disks, &compute.AttachedDisk{Source: dataDisk.GetURI()})
+		}
+	}
 }
 
 func createResourceLabeler(request ImageImportRequest) *daisyutils.ResourceLabeler {

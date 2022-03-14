@@ -15,42 +15,48 @@
 package disk
 
 import (
+	"errors"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 )
 
 type defaultDisk struct {
-	Project, Zone, DiskName, URI string
+	project, zone, diskName, uri string
 }
 
-// NewDisk constructs an Disk,
-// but rather a convenience object for passing the disk's project, disk name, disk zone,
+// NewDisk constructs a convenience object for passing the disk's project, disk name, disk zone,
 // and URI.
-func NewDisk(project, zone, diskName string) domain.Disk {
-	return &defaultDisk{
-		Project:  project,
-		DiskName: diskName,
-		Zone:     zone,
-		URI:      daisyutils.GetDiskURI(project, zone, diskName),
+func NewDisk(project, zone, diskName string) (disk domain.Disk, err error) {
+	if project == "" || zone == "" || diskName == "" {
+		return disk, errors.New("Error creating new disk: project, zone or diskName cannot be empty")
 	}
+
+	disk = &defaultDisk{
+		project:  project,
+		diskName: diskName,
+		zone:     zone,
+		uri:      daisyutils.GetDiskURI(project, zone, diskName),
+	}
+	return disk, nil
 }
 
 // GetProject returns the project for the disk.
 func (d *defaultDisk) GetProject() string {
-	return d.Project
+	return d.project
 }
 
 // GetZoneName returns the disk's zone.
 func (d *defaultDisk) GetZone() string {
-	return d.Zone
+	return d.zone
 }
 
 // GetDiskName returns the disk's name.
 func (d *defaultDisk) GetDiskName() string {
-	return d.DiskName
+	return d.diskName
 }
 
 // GetURI returns the global GCP URI for the image.
 func (d *defaultDisk) GetURI() string {
-	return d.URI
+	return d.uri
 }

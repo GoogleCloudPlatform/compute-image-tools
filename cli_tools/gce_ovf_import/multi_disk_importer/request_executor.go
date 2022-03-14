@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package multiimageimporter
+package multidiskimporter
 
 import (
 	"context"
@@ -23,43 +23,49 @@ import (
 	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	ovfdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 )
 
 type requestExecutor struct {
-	singleImporter ovfdomain.ImageImporterInterface
-	computeClient  daisyCompute.Client
-	logger         logging.ToolLogger
+	singleDiskImporter ovfdomain.DiskImporterInterface
+	computeClient      daisyCompute.Client
+	logger             logging.ToolLogger
 }
 
-// executeRequests performs multiple image import requests in parallel, and blocks until
-// all requests are finished. If a request fails, all requests are stopped.
+// executeRequests create multiple disks in parallel, and blocks until
+// all disks are created. If a disk creation fails, all requests are stopped.
 //
-// On success, returns the URIs of the imported images, in the same order as requests.
-func (r *requestExecutor) executeRequests(parentContext context.Context, requests []importer.ImageImportRequest) (images []domain.Image, err error) {
+// On success, returns the URIs of the imported disks, in the same order as requests.
+func (r *requestExecutor) executeRequests(parentContext context.Context, requests []importer.ImageImportRequest) (disks []domain.Disk, err error) {
 	group, ctx := errgroup.WithContext(parentContext)
-	// Check whether any of the proposed image names exist, and exit if so. Pre-checking to
-	// avoid deleting the pre-existing image during cleanup.
+	// Check whether any of the proposed disk names exist, and exit if so. Pre-checking to
+	// avoid deleting the pre-existing disks during cleanup.
 	for _, request := range requests {
 		if request.Timeout <= 0 {
 			return nil, errors.New("Timeout exceeded")
 		}
-
-		if _, err := r.computeClient.GetImage(request.Project, request.ImageName); err == nil {
-			return images, daisy.Errf("Intermediate image %s already exists. Re-run import.", request.ImageName)
+		if _, err := r.computeClient.GetDisk(request.Project, request.Zone, request.DiskName); err == nil {
+			return disks, daisy.Errf("Intermediate disk %s already exists. Re-run create-disk.", request.DiskName)
 		}
 	}
+
 	for _, request := range requests {
 		req := request
-		images = append(images, image.NewImage(request.Project, request.ImageName))
+		disk, err := disk.NewDisk(req.Project, req.Zone, req.DiskName)
+		if err != nil {
+			return nil, err
+		}
+
+		disks = append(disks, disk)
 		logPrefix := fmt.Sprintf("[import-%s]", req.DaisyLogLinePrefix)
+
 		group.Go(func() error {
-			return r.singleImporter.Import(ctx, req, r.logger.NewLogger(logPrefix))
+			return r.singleDiskImporter.Import(ctx, req, r.logger.NewLogger(logPrefix))
 		})
 	}
-	return images, group.Wait()
+	return disks, group.Wait()
 }

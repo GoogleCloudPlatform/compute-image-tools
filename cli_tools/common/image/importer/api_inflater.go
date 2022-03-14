@@ -84,7 +84,7 @@ func (inflater *apiInflater) Inflate() (persistentDisk, inflationInfo, error) {
 
 	ctx := context.Background()
 	startTime := time.Now()
-	diskName := getDiskName(inflater.request.ExecutionID)
+	diskName := getDiskName(inflater.request)
 
 	cd, err := inflater.createDisk(diskName)
 	if err != nil {

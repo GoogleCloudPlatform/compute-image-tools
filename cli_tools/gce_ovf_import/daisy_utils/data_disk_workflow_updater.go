@@ -44,7 +44,7 @@ func CreateDisksOnInstance(instance *daisy.Instance, instanceName string, imageU
 	}
 }
 
-// AppendDisksToInstance append disks to the instance based on the referenced already existed disks.
+// AppendDisksToInstance appends disks to the instance.
 func AppendDisksToInstance(instance *daisy.Instance, disks []domain.Disk) {
 	for _, disk := range disks {
 		instance.Disks = append(instance.Disks,

@@ -45,7 +45,7 @@ func NewImporter(request ImageImportRequest, computeClient daisyCompute.Client, 
 		return nil, err
 	}
 
-	inflater, err := newInflater(request, computeClient, storageClient, imagefile.NewGCSInspector(), logger)
+	inflater, err := NewInflater(request, computeClient, storageClient, imagefile.NewGCSInspector(), logger)
 	if err != nil {
 		return nil, err
 	}

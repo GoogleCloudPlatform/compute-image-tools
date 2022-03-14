@@ -25,6 +25,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestResourceDeleter_DeletesOnlyFoundImages(t *testing.T) {
@@ -65,8 +66,11 @@ func TestResourceDeleter_LogsMessage_IfDeleteImagesFails(t *testing.T) {
 func TestResourceDeleter_DeletesOnlyFoundDisks(t *testing.T) {
 	project := "project"
 	zone := "zone"
-	diskThatExists := disk.NewDisk(project, zone, "disk-1")
-	diskThatDoesntExist := disk.NewDisk(project, zone, "disk-2")
+	diskThatExists, err1 := disk.NewDisk(project, zone, "disk-1")
+	diskThatDoesntExist, err2 := disk.NewDisk(project, zone, "disk-2")
+
+	assert.NoError(t, err1)
+	assert.NoError(t, err2)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -82,8 +86,11 @@ func TestResourceDeleter_DeletesOnlyFoundDisks(t *testing.T) {
 func TestResourceDeleter_LogsMessage_IfDeleteDisksFails(t *testing.T) {
 	project := "project"
 	zone := "zone"
-	diskThatDeletes := disk.NewDisk(project, zone, "disk-that-deletes")
-	diskThatFailsToDelete := disk.NewDisk(project, zone, "disk-that-fails-to-delete")
+	diskThatDeletes, err1 := disk.NewDisk(project, zone, "disk-that-deletes")
+	diskThatFailsToDelete, err2 := disk.NewDisk(project, zone, "disk-that-fails-to-delete")
+
+	assert.NoError(t, err1)
+	assert.NoError(t, err2)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
