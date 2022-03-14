@@ -16,13 +16,6 @@
 # Builds a Debian based image for import, export, and build tasks. Preloads
 # dependencies and binaries for these workflows.
 
-# Setup GCS Fuse Repo. It's not ready for debian-11 (bullseye), so skip it.
-DEBIAN_RELEASE_NAME=$(lsb_release -c -s)
-if [[ "${DEBIAN_RELEASE_NAME}" != "bullseye" ]]; then
-  GCSFUSE_REPO="gcsfuse-$DEBIAN_RELEASE_NAME"
-  sudo echo "deb http://packages.cloud.google.com/apt ${GCSFUSE_REPO} main" | sudo tee /etc/apt/sources.list.d/gcsfuse.list
-fi
-
 echo "BuildStatus: Updating package cache."
 apt -y update
 if [[ $? -ne 0 ]]; then
@@ -47,11 +40,6 @@ rsync
 tinyproxy
 qemu-utils
 "
-
-if [[ "$DEBIAN_RELEASE_NAME" != "bullseye" ]]; then
-  APT_PACKAGES="gcsfuse
-  $APT_PACKAGES"
-fi
 
 PIP3_PACKAGES="google-api-python-client google-cloud-storage"
 
