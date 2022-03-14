@@ -40,7 +40,7 @@ def log_key_value(key, value):
 
 
 def get_physical_drives():
-  rc, output = utils.Execute(['lsblk', '--noheadings', '--output=NAME', 
+  rc, output = utils.Execute(['lsblk', '--noheadings', '--output=NAME',
                   '--paths', '--list', '--nodeps', '-e7'], capture_output=True)
   disks = []
   if rc == 0:

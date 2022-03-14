@@ -71,7 +71,6 @@ func (r *requestBuilder) buildRequests(params *ovfdomain.OVFImportParams, fileUR
 func getDisksPrefixName(params *ovfdomain.OVFImportParams) string {
 	if params.IsInstanceImport() {
 		return params.InstanceNames
-	} else {
-		return params.MachineImageName
 	}
+	return params.MachineImageName
 }

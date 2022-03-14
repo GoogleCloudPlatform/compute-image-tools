@@ -96,7 +96,7 @@ func TestSuite(
 		testsMap[testType][machineImageImportWindows2012R2TwoDisksNetworkSettingsPathTestCase] = runOVFMachineImageImportWindows2012R2TwoDisksNetworkSettingsPath
 		testsMap[testType][machineImageImportStorageLocationTestCase] = runOVFMachineImageImportCentos74StorageLocation
 		testsMap[testType][machineImageImportDebian10WithBootDiskSpanMultiplePhysicalDisks] = runOVFMachineImageImportDebian10WithBootDiskSpanMultiplePhysicalDisks
-		testsMap[testType][machineImageImportUbuntu18WithBootDiskSpanMultiplePhysicalDisksWithLVM] = OVFMachineImageImportUbuntu18WithBootDiskSpanMultiplePhysicalDisksWithLVM
+		testsMap[testType][machineImageImportUbuntu18WithBootDiskSpanMultiplePhysicalDisksWithLVM] = runOVFMachineImageImportUbuntu18WithBootDiskSpanMultiplePhysicalDisksWithLVM
 	}
 
 	// gcloud only tests
@@ -209,7 +209,7 @@ func runOVFMachineImageImportDebian10WithBootDiskSpanMultiplePhysicalDisks(ctx c
 	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
-func OVFMachineImageImportUbuntu18WithBootDiskSpanMultiplePhysicalDisksWithLVM(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runOVFMachineImageImportUbuntu18WithBootDiskSpanMultiplePhysicalDisksWithLVM(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	suffix := path.RandString(5)

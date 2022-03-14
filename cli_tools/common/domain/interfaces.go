@@ -126,6 +126,7 @@ type Image interface {
 	GetURI() string
 }
 
+// Disk holds the project, name, zone and URI of a PD.
 type Disk interface {
 	GetProject() string
 	GetDiskName() string

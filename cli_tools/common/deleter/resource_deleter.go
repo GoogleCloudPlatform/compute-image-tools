@@ -22,7 +22,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 )
 
-// NewImageDeleter creates an ImageDeleter.
+// NewResourceDeleter creates a Recource Deleter object.
 func NewResourceDeleter(computeClient daisyCompute.Client, logger logging.Logger) domain.ResourceDeleter {
 	return &resourceDeleter{computeClient: computeClient, logger: logger}
 }

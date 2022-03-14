@@ -191,6 +191,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 	}
 }
 
+// GenerateDataDiskName generates a disk name based on a specific prefix and disk index
 func GenerateDataDiskName(instanceName string, dataDiskIndex int) string {
 	diskSuffix := fmt.Sprintf("-%v", dataDiskIndex)
 	if len(instanceName)+len(diskSuffix) > 63 {

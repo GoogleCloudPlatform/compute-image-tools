@@ -48,6 +48,8 @@ type inflationInfo struct {
 	inflationType string
 }
 
+// NewInflater returns an Inflater object that uses either PD API or Daisy workflow to create a 1:1 data copy
+// of disk file into GCP disk
 func NewInflater(request ImageImportRequest, computeClient daisyCompute.Client, storageClient domain.StorageClientInterface,
 	inspector imagefile.Inspector, logger logging.Logger) (Inflater, error) {
 
