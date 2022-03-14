@@ -1,5 +1,5 @@
 {
-  "Name": "build-debian-10-worker",
+  "Name": "build-debian-11-worker-arm64",
   "Vars": {
     "build_date": {
       "Value": "${DATE}",
@@ -10,10 +10,10 @@
       "debian_worker.sh": "./debian_worker.sh"
   },
   "Steps": {
-    "build-debian-10": {
+    "build-debian-11-arm64": {
       "Timeout": "60m",
       "IncludeWorkflow": {
-        "Path": "./debian_10_fai.wf.json",
+        "Path": "./debian_11_arm64.wf.json",
         "Vars": {
           "build_date": "${build_date}"
         }
@@ -23,7 +23,7 @@
       "CreateDisks": [
         {
           "Name": "disk-worker",
-          "SourceImage": "debian-10-v${build_date}",
+          "SourceImage": "debian-11-arm64-v${build_date}",
           "Type": "pd-ssd"
         }
       ]
@@ -33,7 +33,7 @@
         {
           "Name": "inst-worker",
           "Disks": [{"Source": "disk-worker"}],
-          "MachineType": "e2-standard-4",
+          "MachineType": "t2a-standard-4",
           "StartupScript": "debian_worker.sh",
           "MetaData": {
             "block-project-ssh-keys": "TRUE"
@@ -58,7 +58,7 @@
     "cleanup-resources": {
       "DeleteResources": {
         "Instances": ["inst-worker"],
-        "Images": ["debian-10-v${build_date}"]
+        "Images": ["debian-11-arm64-v${build_date}"]
       }
     },
     "export-image": {
@@ -66,13 +66,13 @@
         "Path": "../../export/disk_export.wf.json",
         "Vars": {
           "source_disk": "disk-worker",
-          "destination": "${OUTSPATH}/debian-10-worker-v${build_date}/root.tar.gz"
+          "destination": "${OUTSPATH}/debian-11-worker-arm64-v${build_date}/root.tar.gz"
         }
       }
     }
   },
   "Dependencies": {
-    "create-worker-disk": ["build-debian-10"],
+    "create-worker-disk": ["build-debian-11-arm64"],
     "create-worker-instance": ["create-worker-disk"],
     "wait-for-stop": ["create-worker-instance"],
     "cleanup-resources": ["wait-for-stop"],

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2020 Google Inc. All Rights Reserved.
+# Copyright 2022 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,12 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Builds a Debian 10 based image for import, export, and build tasks. Preloads
+# Builds a Debian based image for import, export, and build tasks. Preloads
 # dependencies and binaries for these workflows.
-
-# Setup GCS Fuse Repo
-GCSFUSE_REPO="gcsfuse-$(lsb_release -c -s)"
-echo "deb http://packages.cloud.google.com/apt ${GCSFUSE_REPO} main" | tee /etc/apt/sources.list.d/gcsfuse.list
 
 echo "BuildStatus: Updating package cache."
 apt -y update
@@ -34,7 +30,6 @@ fi
 APT_PACKAGES="
 debootstrap
 dosfstools
-gcsfuse
 kpartx
 libguestfs-tools
 parted
