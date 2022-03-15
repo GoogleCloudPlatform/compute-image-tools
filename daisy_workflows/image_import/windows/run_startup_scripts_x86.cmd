@@ -16,12 +16,32 @@ REM limitations under the License.
 REM Give the network time to initialize.
 ping 127.0.0.1 -n 60
 
-echo "Translate: Starting image translate..." > COM1:
+REM Specify a location in the registry to store temporary data that must be persistant between system restarts. See the comment about scheduling below for details.
+set image_import_reg_path="HKEY_LOCAL_MACHINE\SOFTWARE\GCEImportProcess"
 
-REM Restart the system in 5 minutes. Translate.ps1 will cancel this restart when it starts.
+for /f "tokens=3" %%a in ('reg query %image_import_reg_path% /v StartupScriptAttempt') do set startup_script_attempt=%%a
+if %ERRORLEVEL% EQU 0 (
+  reg delete %image_import_reg_path% /v StartupScriptAttempt /f
+) else (
+  set startup_script_attempt=0
+)
+set /a startup_script_attempt=%startup_script_attempt% + 1
+reg add %image_import_reg_path% /v StartupScriptAttempt /t REG_DWORD /d %startup_script_attempt%
+
+if %startup_script_attempt% EQU 1 (
+  echo "Translate: Starting image translate..." > COM1:
+) else (
+  echo "Translate: Starting image translate (attempt %startup_script_attempt%)..." > COM1:
+)
+
+REM Schedule the system restart. Translate.ps1 will cancel this restart when it starts.
 REM This is to address initial boot issues, mostly on 2008R2, where the network interface is not yet usable.
-echo "Scheduling restart in 5 minutes. Translate.ps1 will cancel this restart." > COM1:
-shutdown /r /t 300
+REM To avoid being stuck in a boot loop, limit the reboots count to 2.
+set /a script_timeout_m=%startup_script_attempt% * 5
+set /a script_timeout_s=%script_timeout_m% * 60
+if %startup_script_attempt% LEQ 2 (
+  echo "Scheduling restart in %script_timeout_m% minutes. Translate.ps1 will cancel this restart." > COM1: & shutdown /r /t %script_timeout_s%
+)
 
 echo "Running network.ps1 to reconfigure network to DHCP if needed and log DNS and connectivity tests." > COM1:
 PowerShell.exe -NoProfile -NoLogo -ExecutionPolicy Unrestricted -File "%ProgramFiles%\Google\Compute Engine\metadata_scripts\network.ps1" > COM1:
@@ -51,3 +71,6 @@ echo "Translate: Installing GooGet." > COM1:
 C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -noconfirm install C:\ProgramData\GooGet\components\googet-x86.x86_32.2.16.3@1.goo
 echo "Translate: Installing metadata scripts runner." > COM1:
 start cmd /c "C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -noconfirm install C:\ProgramData\GooGet\components\google-compute-engine-metadata-scripts-x86.x86_32.4.2.1@1.goo > COM1: && C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -noconfirm verify -reinstall C:\ProgramData\GooGet\components\google-compute-engine-metadata-scripts-x86.x86_32.4.2.1@1.goo > COM1: && schtasks /run /tn GCEStartup > COM1:"
+
+REM Remove temporary data.
+reg delete %image_import_reg_path% /f
