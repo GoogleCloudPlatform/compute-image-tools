@@ -1,5 +1,6 @@
 {
   "Name": "image-install-package",
+  "Zone": "us-central1-a",
   "DefaultTimeout": "30m",
   "Vars": {
     "source_image": {
