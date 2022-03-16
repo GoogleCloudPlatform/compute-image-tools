@@ -5,12 +5,8 @@
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
   "Vars": {
     "build_date": {
-      "Value": "${DATE}w",
+      "Value": "${DATE}",
       "Description": "Build datestamp used to version the image."
-    },
-    "google_cloud_repo": {
-      "Value": "DEPRECATED",
-      "Description": "DEPRECATED. Included to ease transition of our pipelines, but not used."
     },
     "workflow_root": {
       "Value": "/workflows",
