@@ -16,10 +16,9 @@ package multidiskimporter
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"strings"
 
-	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"golang.org/x/sync/errgroup"
 
@@ -42,30 +41,30 @@ type requestExecutor struct {
 // On success, returns the URIs of the imported disks, in the same order as requests.
 func (r *requestExecutor) executeRequests(parentContext context.Context, requests []importer.ImageImportRequest) (disks []domain.Disk, err error) {
 	group, ctx := errgroup.WithContext(parentContext)
-	// Check whether any of the proposed disk names exist, and exit if so. Pre-checking to
-	// avoid deleting the pre-existing disks during cleanup.
-	for _, request := range requests {
-		if request.Timeout <= 0 {
-			return nil, errors.New("Timeout exceeded")
-		}
-		if _, err := r.computeClient.GetDisk(request.Project, request.Zone, request.DiskName); err == nil {
-			return disks, daisy.Errf("Intermediate disk %s already exists. Re-run create-disk.", request.DiskName)
-		}
-	}
+	disks = make([]domain.Disk, len(requests))
 
-	for _, request := range requests {
+	for i, request := range requests {
 		req := request
-		disk, err := disk.NewDisk(req.Project, req.Zone, req.DiskName)
-		if err != nil {
-			return nil, err
-		}
-
-		disks = append(disks, disk)
-		logPrefix := fmt.Sprintf("[import-%s]", req.DaisyLogLinePrefix)
-
+		diskIdx := i
+		logPrefix := fmt.Sprintf("[import-disk-%d]", i+1)
 		group.Go(func() error {
-			return r.singleDiskImporter.Import(ctx, req, r.logger.NewLogger(logPrefix))
+			diskURI, err := r.singleDiskImporter.Import(ctx, req, r.logger.NewLogger(logPrefix))
+			if err != nil {
+				return err
+			}
+			disk, err := disk.NewDisk(req.Project, req.Zone, getDiskNameFromURI(diskURI))
+			if err != nil {
+				return err
+			}
+			disks[diskIdx] = disk
+			return nil
 		})
 	}
 	return disks, group.Wait()
+}
+
+func getDiskNameFromURI(URI string) string {
+	SplittedDiskURI := strings.Split(URI, "/")
+	diskName := SplittedDiskURI[len(SplittedDiskURI)-1]
+	return diskName
 }

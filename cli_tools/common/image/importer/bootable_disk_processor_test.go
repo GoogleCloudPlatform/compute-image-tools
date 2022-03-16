@@ -27,7 +27,6 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
@@ -253,13 +252,12 @@ func TestBootableDiskProcessor_SupportsCancel(t *testing.T) {
 
 func TestBootableDiskProcessor_AttachDataDisksWithLinux(t *testing.T) {
 	args := defaultImportArgs()
-	args.CreatedDataDisks = []domain.Disk{}
 
 	for i := 0; i < 3; i++ {
 		diskName := fmt.Sprintf("disk-%d", i+1)
 		disk, err := disk.NewDisk(args.Project, args.Zone, diskName)
 		assert.NoError(t, err)
-		args.CreatedDataDisks = append(args.CreatedDataDisks, disk)
+		args.DataDisks = append(args.DataDisks, disk)
 	}
 
 	processor := newBootableDiskProcessor(args, ubuntu1804workflow, logging.NewToolLogger(t.Name()),
@@ -271,20 +269,19 @@ func TestBootableDiskProcessor_AttachDataDisksWithLinux(t *testing.T) {
 		disks := wf.Steps["translate-disk"].IncludeWorkflow.Workflow.Steps["translate-disk-inst"].CreateInstances.Instances[0].Disks
 		assert.Equal(t, len(disks), 5)
 		for i, disk := range disks[2:] {
-			assert.Equal(t, disk.Source, args.CreatedDataDisks[i].GetURI())
+			assert.Equal(t, disk.Source, args.DataDisks[i].GetURI())
 		}
 	})
 }
 
 func TestBootableDiskProcessor_AttachDataDisksWithWindows(t *testing.T) {
 	args := defaultImportArgs()
-	args.CreatedDataDisks = []domain.Disk{}
 
 	for i := 0; i < 3; i++ {
 		diskName := fmt.Sprintf("disk-%d", i+1)
 		disk, err := disk.NewDisk(args.Project, args.Zone, diskName)
 		assert.NoError(t, err)
-		args.CreatedDataDisks = append(args.CreatedDataDisks, disk)
+		args.DataDisks = append(args.DataDisks, disk)
 	}
 
 	processor := newBootableDiskProcessor(args, windows2019workflow, logging.NewToolLogger(t.Name()),
@@ -301,13 +298,11 @@ func TestBootableDiskProcessor_AttachDataDisksWithWindows(t *testing.T) {
 func TestBootableDiskProcessor_AttachDataDisksWithoutInternalWorkflow(t *testing.T) {
 	args := defaultImportArgs()
 
-	args.CreatedDataDisks = []domain.Disk{}
-
 	for i := 0; i < 3; i++ {
 		diskName := fmt.Sprintf("disk-%d", i+1)
 		disk, err := disk.NewDisk(args.Project, args.Zone, diskName)
 		assert.NoError(t, err)
-		args.CreatedDataDisks = append(args.CreatedDataDisks, disk)
+		args.DataDisks = append(args.DataDisks, disk)
 	}
 
 	processor := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()),
@@ -319,7 +314,7 @@ func TestBootableDiskProcessor_AttachDataDisksWithoutInternalWorkflow(t *testing
 		disks := wf.Steps["translate-disk-inst"].CreateInstances.Instances[0].Disks
 		assert.Equal(t, len(disks), 5)
 		for i, disk := range disks[2:] {
-			assert.Equal(t, disk.Source, args.CreatedDataDisks[i].GetURI())
+			assert.Equal(t, disk.Source, args.DataDisks[i].GetURI())
 		}
 	})
 }

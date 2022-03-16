@@ -8,13 +8,12 @@ import (
 	context "context"
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
-	ovf "github.com/vmware/govmomi/ovf"
-
 	domain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	importer "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer"
 	logging "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	domain0 "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
+	gomock "github.com/golang/mock/gomock"
+	ovf "github.com/vmware/govmomi/ovf"
 )
 
 // MockOvfDescriptorValidatorInterface is a mock of OvfDescriptorValidatorInterface interface.
@@ -155,11 +154,12 @@ func (m *MockDiskImporterInterface) EXPECT() *MockDiskImporterInterfaceMockRecor
 }
 
 // Import mocks base method.
-func (m *MockDiskImporterInterface) Import(arg0 context.Context, arg1 importer.ImageImportRequest, arg2 logging.Logger) error {
+func (m *MockDiskImporterInterface) Import(arg0 context.Context, arg1 importer.ImageImportRequest, arg2 logging.Logger) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Import", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Import indicates an expected call of Import.

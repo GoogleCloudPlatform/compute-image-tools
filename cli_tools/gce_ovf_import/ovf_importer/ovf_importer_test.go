@@ -215,7 +215,7 @@ func TestBootDiskImageImport_buildBootDiskImageImportRequest(t *testing.T) {
 	assert.Equal(t, request.Tool, params.GetTool())
 	assert.Equal(t, request.UefiCompatible, params.UefiCompatible)
 	assert.Equal(t, request.Zone, params.Zone)
-	assert.Equal(t, request.CreatedDataDisks, oi.disks)
+	assert.Equal(t, request.DataDisks, oi.disks)
 	assert.True(t, request.BYOL)
 }
 

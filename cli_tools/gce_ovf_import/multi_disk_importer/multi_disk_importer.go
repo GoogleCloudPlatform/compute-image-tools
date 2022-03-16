@@ -59,13 +59,14 @@ type importAdapter struct {
 	storageClient domain.StorageClientInterface
 }
 
-func (adapter *importAdapter) Import(ctx context.Context, request importer.ImageImportRequest, logger logging.Logger) error {
+func (adapter *importAdapter) Import(ctx context.Context, request importer.ImageImportRequest, logger logging.Logger) (string, error) {
 	inflater, err := importer.NewInflater(request, adapter.computeClient, adapter.storageClient, imagefile.NewGCSInspector(), logger)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	_, _, err = inflater.Inflate()
+	pd, _, err := inflater.Inflate()
+	diskURI := importer.GetDiskURI(pd)
 
-	return err
+	return diskURI, err
 }

@@ -26,7 +26,6 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer"
 	imagemocks "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer/mocks"
-	daisyovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/daisy_utils"
 	ovfdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 )
 
@@ -50,17 +49,14 @@ func TestBuildRequests_InitsFields(t *testing.T) {
 	disk1Request := requests[0]
 	disk2Request := requests[1]
 
-	assert.Equal(t, disk1Request.DiskName, daisyovfutils.GenerateDataDiskName(params.InstanceNames, 0))
-	assert.Equal(t, disk2Request.DiskName, daisyovfutils.GenerateDataDiskName(params.InstanceNames, 1))
-
 	assert.Equal(t, fileURIs[0], disk1Request.Source.Path())
 	assert.Equal(t, fileURIs[1], disk2Request.Source.Path())
 
 	assert.True(t, disk1Request.DataDisk)
 	assert.True(t, disk2Request.DataDisk)
 
-	assert.Equal(t, fmt.Sprintf("%s/%s", params.ScratchBucketGcsPath, disk1Request.DiskName), disk1Request.ScratchBucketGcsPath)
-	assert.Equal(t, fmt.Sprintf("%s/%s", params.ScratchBucketGcsPath, disk2Request.DiskName), disk2Request.ScratchBucketGcsPath)
+	assert.Equal(t, fmt.Sprintf("%s/disk-%s", params.ScratchBucketGcsPath, disk1Request.ImageName), disk1Request.ScratchBucketGcsPath)
+	assert.Equal(t, fmt.Sprintf("%s/disk-%s", params.ScratchBucketGcsPath, disk2Request.ImageName), disk2Request.ScratchBucketGcsPath)
 
 	assert.Equal(t, "disk-1", disk1Request.DaisyLogLinePrefix)
 	assert.Equal(t, "disk-2", disk2Request.DaisyLogLinePrefix)

@@ -145,7 +145,7 @@ func (facade *inflaterFacade) Inflate() (persistentDisk, inflationInfo, error) {
 			}
 
 			// If checksum mismatches , delete the corrupted disk.
-			err = facade.computeClient.DeleteDisk(facade.request.Project, facade.request.Zone, getDiskName(facade.request))
+			err = facade.computeClient.DeleteDisk(facade.request.Project, facade.request.Zone, getDiskName(facade.request.ExecutionID))
 			if err != nil {
 				return pd, ii, daisy.Errf("Tried to delete the disk after checksum mismatch is detected, but failed on: %v", err)
 			}
@@ -308,11 +308,13 @@ func (facade *shadowTestInflaterFacade) compareWithShadowInflater(mainPd, shadow
 	return result
 }
 
-func getDiskName(request ImageImportRequest) string {
-	if len(request.DiskName) > 0 {
-		return request.DiskName
-	}
-	return fmt.Sprintf("disk-%v", request.ExecutionID)
+func getDiskName(executionID string) string {
+	return fmt.Sprintf("disk-%v", executionID)
+}
+
+// GetDiskURI return the URI of a PD disk
+func GetDiskURI(pd persistentDisk) string {
+	return pd.uri
 }
 
 // isChecksumMatch verifies whether checksum matches, excluded useless characters.

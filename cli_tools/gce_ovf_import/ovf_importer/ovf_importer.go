@@ -544,11 +544,11 @@ func (oi *OVFImporter) buildBootDiskImageImportRequest(imageName string, bootDis
 		Tool:                  oi.params.GetTool(),
 		UefiCompatible:        oi.params.UefiCompatible,
 		Zone:                  oi.params.Zone,
-		CreatedDataDisks:      oi.disks,
+		DataDisks:             oi.disks,
+		OS:                    oi.params.OsID,
+		BYOL:                  oi.params.BYOL,
 	}
 
-	request.OS = oi.params.OsID
-	request.BYOL = oi.params.BYOL
 	importer.FixBYOLAndOSArguments(&request.OS, &request.BYOL)
 
 	return request, err

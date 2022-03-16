@@ -72,7 +72,7 @@ func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger 
 			request.Project, request.Zone, request.ScratchBucketGcsPath, request.Oauth, request.Timeout.String(),
 			request.ComputeEndpoint, request.GcsLogsDisabled, request.CloudLogsDisabled, request.StdoutLogsDisabled)
 
-		updateWorkflowWithCreatedDataDisks(wfPath, wf, request)
+		updateWorkflowWithDataDisks(wfPath, wf, request)
 
 		return wf, err
 	}
@@ -95,7 +95,7 @@ func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger 
 // This function is to attach the created data disks into the translation worker instance, to handle if part
 // of the OS data (e.g. /var) is mounted onto one of the data disks
 // currently it is supported for Linux only.
-func updateWorkflowWithCreatedDataDisks(wfPath string, wf *daisy.Workflow, request ImageImportRequest) {
+func updateWorkflowWithDataDisks(wfPath string, wf *daisy.Workflow, request ImageImportRequest) {
 	if !strings.Contains(strings.ToLower(wfPath), "windows") {
 		var disks *[]*compute.AttachedDisk
 		if wf.Steps["translate-disk"] != nil {
@@ -105,7 +105,7 @@ func updateWorkflowWithCreatedDataDisks(wfPath string, wf *daisy.Workflow, reque
 			disks = &wf.Steps["translate-disk-inst"].CreateInstances.Instances[0].Disks
 		}
 
-		for _, dataDisk := range request.CreatedDataDisks {
+		for _, dataDisk := range request.DataDisks {
 			*disks = append(*disks, &compute.AttachedDisk{Source: dataDisk.GetURI()})
 		}
 	}

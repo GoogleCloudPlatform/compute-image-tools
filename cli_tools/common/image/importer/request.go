@@ -104,8 +104,7 @@ type ImageImportRequest struct {
 	Timeout               time.Duration   `name:"timeout" validate:"required"`
 	UefiCompatible        bool
 	Zone                  string `name:"zone" validate:"required"`
-	DiskName              string
-	CreatedDataDisks      []domain.Disk
+	DataDisks             []domain.Disk
 }
 
 // FixBYOLAndOSArguments fixes the user's arguments for the --os and --byol flags

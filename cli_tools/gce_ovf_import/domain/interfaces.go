@@ -44,7 +44,7 @@ type MachineTypeProviderInterface interface {
 
 // DiskImporterInterface imports a GCE PD from a virtual disk file (e.g. vmdk).
 type DiskImporterInterface interface {
-	Import(context.Context, importer.ImageImportRequest, logging.Logger) error
+	Import(context.Context, importer.ImageImportRequest, logging.Logger) (string, error)
 }
 
 // MultiDiskImporterInterface imports multiple disks files simultaneously, returning

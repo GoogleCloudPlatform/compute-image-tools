@@ -16,7 +16,6 @@ package multidiskimporter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -37,94 +36,50 @@ const (
 )
 
 func TestExecuteRequests_HappyCase(t *testing.T) {
-	disk1Name := "disk-1"
-	disk2Name := "disk-2"
-	dataRequest1 := makeRequest(disk1Name)
-	dataRequest2 := makeRequest(disk2Name)
+	var requests []importer.ImageImportRequest
+	var dataDisks []domain.Disk
+	for i := 0; i < 2; i++ {
+		imgName := fmt.Sprintf("img-name-%d", i+1)
+		requests = append(requests, makeRequest(imgName))
+		diskName := fmt.Sprintf("disk-%s", requests[i].ExecutionID)
+		dataDisk, err := disk.NewDisk(requests[i].Project, requests[i].Zone, diskName)
+
+		assert.NoError(t, err)
+
+		dataDisks = append(dataDisks, dataDisk)
+	}
 
 	ctrl := gomock.NewController(t)
 	mockCompute := mocks.NewMockClient(ctrl)
-	mockCompute.EXPECT().GetDisk(defaultProject, dataRequest1.Zone, disk1Name).Return(nil, errors.New("disk not found"))
-	mockCompute.EXPECT().GetDisk(defaultProject, dataRequest2.Zone, disk2Name).Return(nil, errors.New("disk not found"))
 
 	mockSingleImporter := ovfdomainmocks.NewMockDiskImporterInterface(ctrl)
-	mockSingleImporter.EXPECT().Import(gomock.Any(), dataRequest1, gomock.Any()).Return(nil)
-	mockSingleImporter.EXPECT().Import(gomock.Any(), dataRequest2, gomock.Any()).Return(nil)
+	mockSingleImporter.EXPECT().Import(gomock.Any(), requests[0], gomock.Any()).Return(dataDisks[0].GetURI(), nil)
+	mockSingleImporter.EXPECT().Import(gomock.Any(), requests[1], gomock.Any()).Return(dataDisks[1].GetURI(), nil)
 
 	mockLogger := mocks.NewMockToolLogger(ctrl)
 	mockLogger.EXPECT().NewLogger("[import-disk-1]").Return(logging.NewToolLogger("test"))
 	mockLogger.EXPECT().NewLogger("[import-disk-2]").Return(logging.NewToolLogger("test"))
 
-	DiskURIs, actualError := (&requestExecutor{
+	actualDisks, actualError := (&requestExecutor{
 		computeClient:      mockCompute,
 		singleDiskImporter: mockSingleImporter,
 		logger:             mockLogger,
 	}).executeRequests(context.Background(), []importer.ImageImportRequest{
-		dataRequest1, dataRequest2,
+		requests[0], requests[1],
 	})
 	assert.NoError(t, actualError)
 
-	disk1, err1 := disk.NewDisk(defaultProject, dataRequest1.Zone, disk1Name)
-	disk2, err2 := disk.NewDisk(defaultProject, dataRequest2.Zone, disk2Name)
-	assert.NoError(t, err1)
-	assert.NoError(t, err2)
-
-	assert.Equal(t, []domain.Disk{disk1, disk2}, DiskURIs)
+	assert.Equal(t, len(dataDisks), len(actualDisks))
+	assert.Equal(t, dataDisks, actualDisks)
 }
 
-func TestExecuteRequests_DontImport_IfTheFirstDiskIsAlreadyExists(t *testing.T) {
-	disk1Name := "disk-1"
-	disk2Name := "disk-2"
-	dataRequest1 := makeRequest(disk1Name)
-	dataRequest2 := makeRequest(disk2Name)
-
-	ctrl := gomock.NewController(t)
-	mockCompute := mocks.NewMockClient(ctrl)
-	mockCompute.EXPECT().GetDisk(defaultProject, dataRequest1.Zone, disk1Name).Return(nil, nil)
-
-	_, actualError := (&requestExecutor{
-		computeClient: mockCompute,
-	}).executeRequests(context.Background(), []importer.ImageImportRequest{
-		dataRequest1, dataRequest2,
-	})
-	assert.EqualError(t, actualError, fmt.Sprintf("Intermediate disk %s already exists. Re-run create-disk.", disk1Name))
-}
-
-func TestExecuteRequests_DontImport_IfTheSecondDiskIsAlreadyExists(t *testing.T) {
-	disk1Name := "disk-1"
-	disk2Name := "disk-2"
-	dataRequest1 := makeRequest(disk1Name)
-	dataRequest2 := makeRequest(disk2Name)
-
-	ctrl := gomock.NewController(t)
-	mockCompute := mocks.NewMockClient(ctrl)
-	mockCompute.EXPECT().GetDisk(defaultProject, dataRequest1.Zone, disk1Name).Return(nil, errors.New("disk not found"))
-	mockCompute.EXPECT().GetDisk(defaultProject, dataRequest2.Zone, disk2Name).Return(nil, nil)
-
-	_, actualError := (&requestExecutor{
-		computeClient: mockCompute,
-	}).executeRequests(context.Background(), []importer.ImageImportRequest{
-		dataRequest1, dataRequest2,
-	})
-	assert.EqualError(t, actualError, fmt.Sprintf("Intermediate disk %s already exists. Re-run create-disk.", disk2Name))
-}
-
-func TestExecuteRequests_ReturnError_WhenTimeoutExceeded(t *testing.T) {
-	disk1Name := "disk-1"
-	request := makeRequest(disk1Name)
-
-	request.Timeout = 0
-	_, actualError := (&requestExecutor{}).executeRequests(context.Background(), []importer.ImageImportRequest{request})
-	assert.EqualError(t, actualError, "Timeout exceeded")
-}
-
-func makeRequest(diskName string) importer.ImageImportRequest {
+func makeRequest(imgName string) importer.ImageImportRequest {
 	return importer.ImageImportRequest{
-		ExecutionID:        diskName,
+		ExecutionID:        imgName,
 		Project:            defaultProject,
-		DaisyLogLinePrefix: diskName,
+		DaisyLogLinePrefix: imgName,
 		Timeout:            time.Hour,
 		Zone:               defaultZone,
-		DiskName:           diskName,
+		ImageName:          imgName,
 	}
 }

@@ -37,10 +37,11 @@ func (r *requestBuilder) buildRequests(params *ovfdomain.OVFImportParams, fileUR
 		if source, err = r.sourceFactory.Init(dataDiskURI, ""); err != nil {
 			return nil, err
 		}
-		dataDiskPrefix := getDisksPrefixName(params)
-		diskName := daisyovfutils.GenerateDataDiskName(dataDiskPrefix, i)
+		imageNamePrefix := getDisksPrefixName(params)
+		imageName := daisyovfutils.GenerateDataDiskName(imageNamePrefix, i+1)
 		request := importer.ImageImportRequest{
-			ExecutionID:           diskName,
+			ExecutionID:           imageName,
+			ImageName:             imageName,
 			CloudLogsDisabled:     params.CloudLogsDisabled,
 			ComputeEndpoint:       params.Ce,
 			ComputeServiceAccount: params.ComputeServiceAccount,
@@ -51,17 +52,16 @@ func (r *requestBuilder) buildRequests(params *ovfdomain.OVFImportParams, fileUR
 			NoExternalIP:          params.NoExternalIP,
 			Oauth:                 params.Oauth,
 			Project:               *params.Project,
-			ScratchBucketGcsPath:  path.JoinURL(params.ScratchBucketGcsPath, diskName),
+			ScratchBucketGcsPath:  path.JoinURL(params.ScratchBucketGcsPath, fmt.Sprintf("disk-%s", imageName)),
 			Source:                source,
 			StdoutLogsDisabled:    params.StdoutLogsDisabled,
 			Subnet:                params.Subnet,
+			NoGuestEnvironment:    params.NoGuestEnvironment,
 			Timeout:               params.Deadline.Sub(time.Now()),
 			Tool:                  params.GetTool(),
 			UefiCompatible:        params.UefiCompatible,
 			Zone:                  params.Zone,
-			OS:                    params.OsID,
 			DataDisk:              true,
-			DiskName:              diskName,
 		}
 		requests = append(requests, request)
 	}
