@@ -1,16 +1,12 @@
 {
-  "Name": "build-debian-10-worker",
+  "Name": "build-debian-11-worker-arm64",
   "Project": "gce-image-builder",
-  "Zone": "us-central1-b",
+  "Zone": "us-central1-a",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
   "Vars": {
     "build_date": {
       "Value": "${DATE}",
       "Description": "Build datestamp used to version the image."
-    },
-    "google_cloud_repo": {
-      "Value": "DEPRECATED",
-      "Description": "DEPRECATED. Included to ease transition of our pipelines, but not used."
     },
     "workflow_root": {
       "Value": "/workflows",
@@ -22,10 +18,10 @@
     }
   },
   "Steps": {
-    "build-debian-10-worker": {
+    "build-debian-11-worker-arm64": {
       "Timeout": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/debian/debian_10_worker.wf.json",
+        "Path": "${workflow_root}/image_build/debian/debian_11_worker_arm64.wf.json",
         "Vars": {
           "build_date": "${build_date}"
         }
@@ -34,13 +30,13 @@
     "copy-to-destination": {
       "CopyGCSObjects": [
         {
-          "Source": "${OUTSPATH}/debian-10-worker-v${build_date}/root.tar.gz",
+          "Source": "${OUTSPATH}/debian-11-worker-arm64-v${build_date}/root.tar.gz",
           "Destination": "${gcs_url}"
         }
       ]
     }
   },
   "Dependencies": {
-    "copy-to-destination": ["build-debian-10-worker"]
+    "copy-to-destination": ["build-debian-11-worker-arm64"]
   }
 }
