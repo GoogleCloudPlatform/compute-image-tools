@@ -15,7 +15,7 @@ FROM gcr.io/$PROJECT_ID/wrapper:latest
 
 FROM golang
 
-RUN go get -u golang.org/x/lint/golint
+RUN go install golang.org/x/lint/golint@latest
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 ENV GO111MODULE on
 
