@@ -24,7 +24,7 @@ RUN apt-get update && apt-get -y install libssl-dev && \
     rm -rf /var/cache/apt/archives
 
 # Go test junit xml output
-RUN go get -u github.com/jstemmer/go-junit-report
+RUN go install github.com/jstemmer/go-junit-report@latest
 ENV GO111MODULE on
 
 COPY --from=0 /wrapper wrapper
