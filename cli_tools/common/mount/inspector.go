@@ -66,7 +66,7 @@ func (mi *defaultMountInspector) Inspect(dir string) (mountInfo InspectionResult
 
 // getDeviceForMount returns the path of the block device that is mounted for dir.
 func (mi *defaultMountInspector) getDeviceForMount(dir string) (string, error) {
-	stdout, err := mi.shellExecutor.Exec("getDeviceForMount", "--noheadings", "--output=SOURCE", dir)
+	stdout, err := mi.shellExecutor.Exec("findmnt", "--noheadings", "--output=SOURCE", dir)
 	if err != nil {
 		return "", err
 	}

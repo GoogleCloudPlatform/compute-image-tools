@@ -73,7 +73,7 @@ func TestMountInspector_Inspect_PropagatesErrorFromFindMnt(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockShell := mocks.NewMockShellExecutor(mockCtrl)
-	mockShell.EXPECT().Exec("getDeviceForMount", "--noheadings",
+	mockShell.EXPECT().Exec("findmnt", "--noheadings",
 		"--output=SOURCE", "/").Return("", errors.New("[getDeviceForMount] not executable"))
 
 	mountInspector := &defaultMountInspector{mockShell}
@@ -86,7 +86,7 @@ func TestMountInspector_Inspect_PropagatesErrorFromGettingDeviceType(t *testing.
 	defer mockCtrl.Finish()
 
 	mockShell := mocks.NewMockShellExecutor(mockCtrl)
-	mockShell.EXPECT().Exec("getDeviceForMount", "--noheadings",
+	mockShell.EXPECT().Exec("findmnt", "--noheadings",
 		"--output=SOURCE", "/").Return("/dev/mapper/vg-device", nil)
 	mockShell.EXPECT().Exec("lsblk", "--noheadings",
 		"--output=TYPE", "/dev/mapper/vg-device").Return("", errors.New("[lsblk] not executable"))
@@ -140,6 +140,6 @@ func setupPhysicalDisks(mockShell *mocks.MockShellExecutor, deviceMap map[string
 }
 
 func setupRootMount(mockShell *mocks.MockShellExecutor, mointPoint string, mointPointType string) {
-	mockShell.EXPECT().Exec("getDeviceForMount", "--noheadings", "--output=SOURCE", "/").Return(mointPoint, nil)
+	mockShell.EXPECT().Exec("findmnt", "--noheadings", "--output=SOURCE", "/").Return(mointPoint, nil)
 	mockShell.EXPECT().Exec("lsblk", "--noheadings", "--output=TYPE", mointPoint).Return(mointPointType, nil)
 }
