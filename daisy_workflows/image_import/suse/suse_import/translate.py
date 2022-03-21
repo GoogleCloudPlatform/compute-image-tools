@@ -324,7 +324,7 @@ def translate():
   # remove the boot disk of the worker instance
   attached_disks.remove('/dev/sda')
 
-  g = diskutils.MountDisk(attached_disks)
+  g = diskutils.MountDisks(attached_disks)
   release = _get_release(g)
 
   pkgs = release.gce_packages if include_gce_packages else []

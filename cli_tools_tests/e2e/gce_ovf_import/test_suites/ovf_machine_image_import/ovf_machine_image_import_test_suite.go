@@ -221,7 +221,7 @@ func runOVFMachineImageImportUbuntu18WithBootDiskSpanMultiplePhysicalDisksWithLV
 			Zone:                  "us-west1-c",
 			ExpectedStartupOutput: "All tests passed!",
 			FailureMatches:        []string{"FAILED:", "TestFailed:"},
-			SourceURI:             fmt.Sprintf("gs://%v/ova/lvm-ubuntu-18-boot-disk-spans", ovaBucket),
+			SourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-18-boot-disk-spans-with-lvm", ovaBucket),
 			Os:                    "ubuntu-1804",
 			MachineType:           "n1-standard-4",
 		}}

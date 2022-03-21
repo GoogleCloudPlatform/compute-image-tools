@@ -47,12 +47,14 @@ def get_physical_drives():
     disks = output.split('\n')
     disks.remove('')
   else:
-    disks = ['/dev/sdb']
+    logging.info('Warning: Failed to excute \'lsblk\' cmd, '
+                 'Continuing anyway assuming that there are only two disks.')
+    disks = ['/dev/sda', '/dev/sdb']
 
   return disks
 
 
-def MountDisk(disks) -> guestfs.GuestFS:
+def MountDisks(disks) -> guestfs.GuestFS:
   # All new Python code should pass python_return_dict=True
   # to the constructor.  It indicates that your program wants
   # to receive Python dicts for methods in the API that return

@@ -300,7 +300,7 @@ func (oi *OVFImporter) getMachineType(
 
 // this function is mainly responsible for importing all the Disks files into GCP
 // it creates disks for all data disks files, and import the boot disk file as disk image
-func (oi *OVFImporter) importDisksVMDKFiles() error {
+func (oi *OVFImporter) importDisksFiles() error {
 	oi.imageLocation = oi.params.Region
 
 	ovfGcsPath, shouldCleanup, err := oi.getOvfGcsPath(oi.params.ScratchBucketGcsPath)
@@ -423,7 +423,7 @@ func (oi *OVFImporter) Import() error {
 	if err := oi.paramValidator.ValidateAndPopulate(oi.params); err != nil {
 		return err
 	}
-	if err := oi.importDisksVMDKFiles(); err != nil {
+	if err := oi.importDisksFiles(); err != nil {
 		oi.resourceDeleter.DeleteImagesIfExist(oi.images)
 		oi.resourceDeleter.DeleteDisksIfExist(oi.disks)
 		return err

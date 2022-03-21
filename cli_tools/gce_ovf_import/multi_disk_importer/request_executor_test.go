@@ -57,8 +57,8 @@ func TestExecuteRequests_HappyCase(t *testing.T) {
 	mockSingleImporter.EXPECT().Import(gomock.Any(), requests[1], gomock.Any()).Return(dataDisks[1].GetURI(), nil)
 
 	mockLogger := mocks.NewMockToolLogger(ctrl)
-	mockLogger.EXPECT().NewLogger("[import-disk-1]").Return(logging.NewToolLogger("test"))
-	mockLogger.EXPECT().NewLogger("[import-disk-2]").Return(logging.NewToolLogger("test"))
+	mockLogger.EXPECT().NewLogger("[import-img-name-1]").Return(logging.NewToolLogger("test"))
+	mockLogger.EXPECT().NewLogger("[import-img-name-2]").Return(logging.NewToolLogger("test"))
 
 	actualDisks, actualError := (&requestExecutor{
 		computeClient:      mockCompute,

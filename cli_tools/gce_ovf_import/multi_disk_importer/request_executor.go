@@ -46,7 +46,7 @@ func (r *requestExecutor) executeRequests(parentContext context.Context, request
 	for i, request := range requests {
 		req := request
 		diskIdx := i
-		logPrefix := fmt.Sprintf("[import-disk-%d]", i+1)
+		logPrefix := fmt.Sprintf("[import-%s]", req.DaisyLogLinePrefix)
 		group.Go(func() error {
 			diskURI, err := r.singleDiskImporter.Import(ctx, req, r.logger.NewLogger(logPrefix))
 			if err != nil {

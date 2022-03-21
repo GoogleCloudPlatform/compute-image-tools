@@ -408,7 +408,7 @@ def main():
   # remove the boot disk of the worker instance
   attached_disks.remove('/dev/sda')
 
-  g = diskutils.MountDisk(attached_disks)
+  g = diskutils.MountDisks(attached_disks)
   run_translate(g)
   utils.CommonRoutines(g)
   cleanup(g)

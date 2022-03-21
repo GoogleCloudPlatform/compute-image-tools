@@ -31,8 +31,8 @@ type requestBuilder struct {
 
 // buildRequests constructs a list of requests to import data disks based on the user's
 // invocation parameters and the files referenced in the OVF descriptor.
-func (r *requestBuilder) buildRequests(params *ovfdomain.OVFImportParams, fileURIs []string) (requests []importer.ImageImportRequest, err error) {
-	for i, dataDiskURI := range fileURIs {
+func (r *requestBuilder) buildRequests(params *ovfdomain.OVFImportParams, dataDiskURIs []string) (requests []importer.ImageImportRequest, err error) {
+	for i, dataDiskURI := range dataDiskURIs {
 		var source importer.Source
 		if source, err = r.sourceFactory.Init(dataDiskURI, ""); err != nil {
 			return nil, err

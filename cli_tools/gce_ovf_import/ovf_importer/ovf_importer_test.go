@@ -136,7 +136,7 @@ func TestDiskImport_ErrorUnpackingOVA(t *testing.T) {
 	oi := OVFImporter{workflowPath: instanceMode.wfPath,
 		tarGcsExtractor: mockMockTarGcsExtractorInterface, Logger: logging.NewToolLogger("test"),
 		params: params}
-	err := oi.importDisksVMDKFiles()
+	err := oi.importDisksFiles()
 	assert.Equal(t, expectedError, err)
 }
 
@@ -159,7 +159,7 @@ func TestDiskImport_ErrorLoadingDescriptor(t *testing.T) {
 	oi := OVFImporter{workflowPath: instanceMode.wfPath,
 		ovfDescriptorLoader: mockOvfDescriptorLoader,
 		Logger:              logging.NewToolLogger("test"), params: params}
-	err := oi.importDisksVMDKFiles()
+	err := oi.importDisksFiles()
 
 	assert.Equal(t, expectedError, err)
 	assert.Equal(t, "", oi.gcsPathToClean)
@@ -667,7 +667,7 @@ func setupMocksAndRun(mockCtrl *gomock.Controller, params *ovfdomain.OVFImportPa
 		}
 	}
 
-	err := oi.importDisksVMDKFiles()
+	err := oi.importDisksFiles()
 	if err != nil {
 		return nil, err
 	}

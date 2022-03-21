@@ -45,9 +45,9 @@ type multiDiskImporter struct {
 	executor *requestExecutor
 }
 
-func (m *multiDiskImporter) Import(ctx context.Context, params *ovfdomain.OVFImportParams, fileURIs []string) (disks []domain.Disk, err error) {
+func (m *multiDiskImporter) Import(ctx context.Context, params *ovfdomain.OVFImportParams, dataDiskURIs []string) (disks []domain.Disk, err error) {
 	var requests []importer.ImageImportRequest
-	if requests, err = m.builder.buildRequests(params, fileURIs); err != nil {
+	if requests, err = m.builder.buildRequests(params, dataDiskURIs); err != nil {
 		return nil, err
 	}
 	return m.executor.executeRequests(ctx, requests)
