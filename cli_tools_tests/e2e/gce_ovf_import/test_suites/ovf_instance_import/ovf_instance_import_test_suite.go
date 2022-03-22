@@ -188,7 +188,7 @@ func deleteResourcesIfInstanceCreationFails(ctx context.Context, testCase *junit
 
 	// check if data disks are deleted
 	for i := 0; i < 2; i++ {
-		diskName := daisyovfutils.GenerateDataDiskName(props.instanceName, i)
+		diskName := daisyovfutils.GenerateDataDiskName(props.instanceName, i+1)
 		disk, _ := client.GetDisk(testProjectConfig.TestProjectID, testProjectConfig.TestZone, diskName)
 		if disk != nil {
 			e2e.Failure(testCase, logger, fmt.Sprintf("Expected disk %s to be removed", diskName))
