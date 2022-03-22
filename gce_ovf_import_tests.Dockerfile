@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+ARG PROJECT_ID=compute-image-tools-test
 FROM golang:alpine
 
 RUN apk add --no-cache git
@@ -26,12 +27,10 @@ RUN cd /build/cli_tools/gce_ovf_import && CGO_ENABLED=0 go build -o /gce_ovf_imp
 RUN chmod +x /gce_ovf_import
 
 # Build test container
-FROM gcr.io/compute-image-tools-test/wrapper-with-gcloud:latest
-ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
-COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+FROM gcr.io/$PROJECT_ID/e2e-test-base:latest
 COPY --from=0 /gce_ovf_import_test_runner gce_ovf_import_test_runner
 COPY --from=0 /gce_ovf_import gce_ovf_import
 COPY /cli_tools_tests/e2e/gce_ovf_import/scripts/ /scripts/
 COPY /daisy_integration_tests/scripts/ /daisy_integration_tests/scripts/
 COPY /daisy_workflows/ /daisy_workflows/
-ENTRYPOINT ["./wrapper", "./gce_ovf_import_test_runner"]
+ENTRYPOINT ["./gce_ovf_import_test_runner"]

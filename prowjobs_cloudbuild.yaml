@@ -11,32 +11,13 @@ options:
     path: /go/src
 
 steps:
-- id: cleanerupper
+- id: e2e-test-base
   name: 'gcr.io/kaniko-project/executor:v0.22.0'
   args:
-  - --destination=gcr.io/$PROJECT_ID/cleanerupper:latest
-  - --destination=gcr.io/$PROJECT_ID/cleanerupper:$COMMIT_SHA
-  - --context=/workspace/test-infra/prowjobs/cleanerupper
-  - --cache=true
-  - --cache-ttl=24h
-- id: wrapper
-  name: 'gcr.io/kaniko-project/executor:v0.22.0'
-  args:
-  - --destination=gcr.io/$PROJECT_ID/wrapper:latest
-  - --destination=gcr.io/$PROJECT_ID/wrapper:$COMMIT_SHA
-  - --context=/workspace/test-infra/prowjobs/wrapper
-  - --cache=true
-  - --cache-ttl=24h
-- id: wrapper-with-gcloud
-  name: 'gcr.io/kaniko-project/executor:v0.22.0'
-  args:
-  - --destination=gcr.io/$PROJECT_ID/wrapper-with-gcloud:latest
-  - --destination=gcr.io/$PROJECT_ID/wrapper-with-gcloud:$COMMIT_SHA
-  - --context=/workspace/test-infra/prowjobs/wrapper
-  - --dockerfile=withgcloud.Dockerfile
-  - --build-arg=PROJECT_ID=$PROJECT_ID
-  - --cache=true
-  - --cache-ttl=24h
+  - --destination=gcr.io/$PROJECT_ID/e2e-test-base:latest
+  - --destination=gcr.io/$PROJECT_ID/e2e-test-base:$COMMIT_SHA
+  - --context=/workspace
+  - --dockerfile=e2e_test_base.Dockerfile
 - id: gce-image-import-export-tests
   name: 'gcr.io/kaniko-project/executor:v0.22.0'
   args:

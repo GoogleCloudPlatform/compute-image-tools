@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM gcr.io/$PROJECT_ID/wrapper:latest
-
 FROM google/cloud-sdk:debian_component_based
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -q -y qemu-utils gnupg ca-certificates
@@ -23,5 +21,4 @@ COPY gcsfuse-apt-key.gpg .
 RUN apt-key add gcsfuse-apt-key.gpg
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -q -y gcsfuse
 
-COPY --from=0 wrapper wrapper
 RUN gcloud components update --quiet
