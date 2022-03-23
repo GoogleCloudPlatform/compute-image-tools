@@ -8,7 +8,6 @@
 */}}
 {
   "Name": "windows-install-media",
-  "SourceGCSPath": "gs://gce-image-archive/windows-install-media",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$delete_after := `"24h*30*6"` -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}

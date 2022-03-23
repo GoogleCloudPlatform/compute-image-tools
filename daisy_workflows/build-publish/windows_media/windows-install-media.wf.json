@@ -2,24 +2,33 @@
   "Name": "windows-install-media",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
-  "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
   "Vars": {
+    "workflow_root": {
+      "Value": "/workflows",
+      "Description": "Root of github workflows, defaults to /workflows in the container."
+    },
+    "gcs_url": {
+      "Required": true,
+      "Description": "The GCS path that image raw file exported to."
+    },
+    "gcs_resource_path": "gs://gce-image-build-resources/windows",
     "media_disk": "media-disk",
-    "build_date": "${TIMESTAMP}",
     "image_prefix": "windows-install-media",
-    "gcs_path": {"Value": "gs://gce-image-archive/windows-install-media", "Description": "GCS path to export image to"},
-    "workflow_root": {"Value": "/workflows", "Description": "Root of github workflows, defaults to /workflows in the container."}
+    "iso_name_2022": "SW_DVD9_Win_Server_STD_CORE_2022__64Bit_English_DC_STD_MLF_X22-74290.ISO",
+    "iso_name_2019": "SW_DVD9_Win_Server_STD_CORE_2019_1809.1_64Bit_English_DC_STD_MLF_X22-02970.ISO",
+    "iso_name_2016": "SW_DVD9_Win_Server_STD_CORE_2016_64Bit_English_-4_DC_STD_MLF_X21-70526.ISO",
+    "iso_name_2012r2": "SW_DVD9_Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English_-4_MLF_X19-82891.ISO"
   },
   "Sources": {
     "prepare_install_media.ps1": "./prepare_install_media.ps1",
     "components": "./components/",
-    "iso/Win_Server_STD_CORE_2022_64Bit_English.iso": "gs://gce-image-build-resources/windows/iso/SW_DVD9_Win_Server_STD_CORE_2022__64Bit_English_DC_STD_MLF_X22-74290.ISO",
-    "updates/Win_Server_STD_CORE_2019_1809.1_64Bit_English/": "gs://gce-image-build-resources/windows/updates_2019/",
-    "iso/Win_Server_STD_CORE_2019_1809.1_64Bit_English.iso": "gs://gce-image-build-resources/windows/iso/SW_DVD9_Win_Server_STD_CORE_2019_1809.1_64Bit_English_DC_STD_MLF_X22-02970.ISO",
-    "updates/Win_Server_STD_CORE_2016_64Bit_English/": "gs://gce-image-build-resources/windows/updates_2016/",
-    "iso/Win_Server_STD_CORE_2016_64Bit_English.iso": "gs://gce-image-build-resources/windows/iso/SW_DVD9_Win_Server_STD_CORE_2016_64Bit_English_-4_DC_STD_MLF_X21-70526.ISO",
-    "updates/Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English/": "gs://gce-image-build-resources/windows/updates_2012r2/",
-    "iso/Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English.iso": "gs://gce-image-build-resources/windows/iso/SW_DVD9_Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English_-4_MLF_X19-82891.ISO"
+    "iso/Win_Server_STD_CORE_2022_64Bit_English.iso": "${gcs_resource_path}/iso/${iso_name_2022}",
+    "updates/Win_Server_STD_CORE_2019_1809.1_64Bit_English/": "${gcs_resource_path}/updates_2019/",
+    "iso/Win_Server_STD_CORE_2019_1809.1_64Bit_English.iso": "${gcs_resource_path}/iso/${iso_name_2019}",
+    "updates/Win_Server_STD_CORE_2016_64Bit_English/": "${gcs_resource_path}/updates_2016/",
+    "iso/Win_Server_STD_CORE_2016_64Bit_English.iso": "${gcs_resource_path}/iso/${iso_name_2016}",
+    "updates/Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English/": "${gcs_resource_path}/updates_2012r2/",
+    "iso/Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English.iso": "${gcs_resource_path}/iso/${iso_name_2012r2}"
   },
   "Steps": {
     "setup-disks": {
@@ -77,7 +86,7 @@
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
           "source_disk": "${media_disk}",
-          "destination": "${gcs_path}/${image_prefix}-v${build_date}/root.tar.gz"
+          "destination": "${gcs_url}"
         }
       }
     }
