@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	daisy "github.com/GoogleCloudPlatform/compute-daisy"
+	"google.golang.org/api/compute/v1"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
@@ -67,9 +68,13 @@ func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger 
 	}
 
 	workflowProvider := func() (*daisy.Workflow, error) {
-		return daisyutils.ParseWorkflow(wfPath, vars,
+		wf, err := daisyutils.ParseWorkflow(wfPath, vars,
 			request.Project, request.Zone, request.ScratchBucketGcsPath, request.Oauth, request.Timeout.String(),
 			request.ComputeEndpoint, request.GcsLogsDisabled, request.CloudLogsDisabled, request.StdoutLogsDisabled)
+
+		updateWorkflowWithDataDisks(wfPath, wf, request)
+
+		return wf, err
 	}
 
 	env := request.EnvironmentSettings()
@@ -85,6 +90,25 @@ func newBootableDiskProcessor(request ImageImportRequest, wfPath string, logger 
 		vars:       vars,
 	}
 	return diskProcessor
+}
+
+// This function is to attach the created data disks into the translation worker instance, to handle if part
+// of the OS data (e.g. /var) is mounted onto one of the data disks
+// currently it is supported for Linux only.
+func updateWorkflowWithDataDisks(wfPath string, wf *daisy.Workflow, request ImageImportRequest) {
+	if !strings.Contains(strings.ToLower(wfPath), "windows") {
+		var disks *[]*compute.AttachedDisk
+		if wf.Steps["translate-disk"] != nil {
+			disks = &wf.Steps["translate-disk"].IncludeWorkflow.Workflow.Steps["translate-disk-inst"].CreateInstances.Instances[0].Disks
+		} else if wf.Steps["translate-disk-inst"] != nil {
+			// case translation wf that doesn't include another workflow (e.g. opensuse_15)
+			disks = &wf.Steps["translate-disk-inst"].CreateInstances.Instances[0].Disks
+		}
+
+		for _, dataDisk := range request.DataDisks {
+			*disks = append(*disks, &compute.AttachedDisk{Source: dataDisk.GetURI()})
+		}
+	}
 }
 
 func createResourceLabeler(request ImageImportRequest) *daisyutils.ResourceLabeler {

@@ -12,10 +12,11 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package multiimageimporter
+package multidiskimporter
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"testing"
 	"time"
@@ -32,84 +33,53 @@ func TestBuildRequests_InitsFields(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	fileURIs := []string{"gs://bucket/disk1.vmdk", "gs://bucket/disk2.vmdk"}
+	fileURIs := []string{"gs://bucket/disk1Request.vmdk", "gs://bucket/disk2Request.vmdk"}
 	params := makeDefaultParams()
-	params.BuildID = "xyz"
+	params.InstanceNames = "xyz"
 
 	builder := &requestBuilder{
 		workflowDir:   "/daisy/workflows",
 		sourceFactory: initSourceFactory(ctrl, fileURIs),
 	}
+
 	requests, actualError := builder.buildRequests(params, fileURIs)
 	assert.NoError(t, actualError)
 	assert.Len(t, requests, len(fileURIs))
 
-	boot := requests[0]
-	data := requests[1]
+	disk1Request := requests[0]
+	disk2Request := requests[1]
 
-	assert.Equal(t, "ovf-xyz-1", boot.ExecutionID)
-	assert.Equal(t, "ovf-xyz-2", data.ExecutionID)
+	assert.Equal(t, fileURIs[0], disk1Request.Source.Path())
+	assert.Equal(t, fileURIs[1], disk2Request.Source.Path())
 
-	assert.Equal(t, fileURIs[0], boot.Source.Path())
-	assert.Equal(t, fileURIs[1], data.Source.Path())
+	assert.True(t, disk1Request.DataDisk)
+	assert.True(t, disk2Request.DataDisk)
 
-	assert.Equal(t, params.OsID, boot.OS)
-	assert.Empty(t, data.OS)
+	assert.Equal(t, fmt.Sprintf("%s/disk-%s", params.ScratchBucketGcsPath, disk1Request.ImageName), disk1Request.ScratchBucketGcsPath)
+	assert.Equal(t, fmt.Sprintf("%s/disk-%s", params.ScratchBucketGcsPath, disk2Request.ImageName), disk2Request.ScratchBucketGcsPath)
 
-	assert.False(t, boot.DataDisk)
-	assert.True(t, data.DataDisk)
+	assert.Equal(t, "disk-1", disk1Request.DaisyLogLinePrefix)
+	assert.Equal(t, "disk-2", disk2Request.DaisyLogLinePrefix)
 
-	assert.Equal(t, "ovf-xyz-1", boot.ImageName)
-	assert.Equal(t, "ovf-xyz-2", data.ImageName)
-
-	assert.Equal(t, params.ScratchBucketGcsPath+"/ovf-xyz-1", boot.ScratchBucketGcsPath)
-	assert.Equal(t, params.ScratchBucketGcsPath+"/ovf-xyz-2", data.ScratchBucketGcsPath)
-
-	assert.Equal(t, "disk-1", boot.DaisyLogLinePrefix)
-	assert.Equal(t, "disk-2", data.DaisyLogLinePrefix)
-
-	assertAllEqual(t, params.CloudLogsDisabled, boot.CloudLogsDisabled, data.CloudLogsDisabled)
-	assertAllEqual(t, params.GcsLogsDisabled, boot.GcsLogsDisabled, data.GcsLogsDisabled)
-	assertAllEqual(t, params.StdoutLogsDisabled, boot.StdoutLogsDisabled, data.StdoutLogsDisabled)
-	assertAllEqual(t, params.UefiCompatible, boot.UefiCompatible, data.UefiCompatible)
-	assertAllEqual(t, params.NoExternalIP, boot.NoExternalIP, data.NoExternalIP)
-	assertAllEqual(t, params.NoGuestEnvironment, boot.NoGuestEnvironment, data.NoGuestEnvironment)
-	assertAllEqual(t, params.Ce, boot.ComputeEndpoint, data.ComputeEndpoint)
-	assertAllEqual(t, params.Oauth, boot.Oauth, data.Oauth)
-	assertAllEqual(t, params.Network, boot.Network, data.Network)
-	assertAllEqual(t, params.Subnet, boot.Subnet, data.Subnet)
-	assertAllEqual(t, params.Zone, boot.Zone, data.Zone)
-	assertAllEqual(t, *params.Project, boot.Project, data.Project)
-	assertAllEqual(t, builder.workflowDir, boot.WorkflowDir, data.WorkflowDir)
-}
-
-func TestBuildRequests_PropagatesBYOLToBootDisk(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	params := makeDefaultParams()
-	params.BYOL = true
-	params.OsID = ""
-
-	fileURIs := []string{"gs://bucket/disk1.vmdk", "gs://bucket/disk2.vmdk"}
-	requests, actualError := (&requestBuilder{
-		workflowDir:   "/daisy/workflows",
-		sourceFactory: initSourceFactory(ctrl, fileURIs),
-	}).buildRequests(params, fileURIs)
-	assert.NoError(t, actualError)
-	assert.Len(t, requests, len(fileURIs))
-
-	boot := requests[0]
-	data := requests[1]
-
-	assert.True(t, boot.BYOL, "Boot disk should have BYOL flag enabled")
-	assert.False(t, data.BYOL, "Data disk should not have BYOL flag enabled")
+	assertAllEqual(t, params.CloudLogsDisabled, disk1Request.CloudLogsDisabled, disk2Request.CloudLogsDisabled)
+	assertAllEqual(t, params.GcsLogsDisabled, disk1Request.GcsLogsDisabled, disk2Request.GcsLogsDisabled)
+	assertAllEqual(t, params.StdoutLogsDisabled, disk1Request.StdoutLogsDisabled, disk2Request.StdoutLogsDisabled)
+	assertAllEqual(t, params.UefiCompatible, disk1Request.UefiCompatible, disk2Request.UefiCompatible)
+	assertAllEqual(t, params.NoExternalIP, disk1Request.NoExternalIP, disk2Request.NoExternalIP)
+	assertAllEqual(t, params.Ce, disk1Request.ComputeEndpoint, disk2Request.ComputeEndpoint)
+	assertAllEqual(t, params.Oauth, disk1Request.Oauth, disk2Request.Oauth)
+	assertAllEqual(t, params.Network, disk1Request.Network, disk2Request.Network)
+	assertAllEqual(t, params.Subnet, disk1Request.Subnet, disk2Request.Subnet)
+	assertAllEqual(t, params.Zone, disk1Request.Zone, disk2Request.Zone)
+	assertAllEqual(t, *params.Project, disk1Request.Project, disk2Request.Project)
+	assertAllEqual(t, builder.workflowDir, disk1Request.WorkflowDir, disk2Request.WorkflowDir)
 }
 
 func TestBuildRequests_CreatesTimeout_FromDeadline(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	fileURIs := []string{"gs://bucket/disk1.vmdk"}
+	fileURIs := []string{"gs://bucket/disk1Request.vmdk"}
 	expectedTimeout := time.Minute * 22
 	params := makeDefaultParams()
 	params.Deadline = time.Now().Add(expectedTimeout)
@@ -128,7 +98,7 @@ func TestBuildRequests_CreatesTimeout_FromDeadline(t *testing.T) {
 
 func TestBuildRequests_ReturnError_WhenSourceInitializationFails(t *testing.T) {
 	initError := errors.New("failed to init source")
-	fileURIs := []string{"gs://bucket/disk1.vmdk", "gs://bucket/disk2.vmdk"}
+	fileURIs := []string{"gs://bucket/disk1Request.vmdk", "gs://bucket/disk2Request.vmdk"}
 	params := makeDefaultParams()
 
 	ctrl := gomock.NewController(t)

@@ -22,13 +22,13 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-	"time"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-daisy/compute"
 	"google.golang.org/api/compute/v1"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	daisyovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/daisy_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e"
 	ovfimporttestsuite "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests/e2e/gce_ovf_import/test_suites"
 	"github.com/GoogleCloudPlatform/compute-image-tools/common/gcp"
@@ -93,6 +93,10 @@ func TestSuite(
 			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Ubuntu 1604 from Virtualbox"))
 		instanceImportUbuntu16FromAWS := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Ubuntu 1604 from AWS"))
+		InstanceImportDebian10WithBootDiskSpanMultiplePhysicalDisks := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Debain 10 with boot disk spans"))
+		InstanceImportUbuntu18WithBootDiskSpanMultiplePhysicalDisksWithLVM := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Ubuntu 18 with boot disk spans with LVM"))
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, e2e.CLITestType){}
@@ -101,6 +105,9 @@ func TestSuite(
 		testsMap[testType][instanceImportWindows2016] = runOVFInstanceImportWindows2016
 		testsMap[testType][instanceImportWindows2008R2FourNICs] = runOVFInstanceImportWindows2008R2FourNICs
 		testsMap[testType][instanceImportDebian9] = runOVFInstanceImportDebian9
+		testsMap[testType][InstanceImportDebian10WithBootDiskSpanMultiplePhysicalDisks] = runOVFInstanceImportDebian10WithBootDiskSpanMultiplePhysicalDisks
+		testsMap[testType][InstanceImportUbuntu18WithBootDiskSpanMultiplePhysicalDisksWithLVM] = runOVFInstanceImportUbuntu18WithBootDiskSpanMultiplePhysicalDisksWithLVM
+
 		testsMap[testType][instanceImportUbuntu16FromVirtualBox] = runOVFInstanceImportUbuntu16FromVirtualBox
 		testsMap[testType][instanceImportUbuntu16FromAWS] = runOVFInstanceImportUbuntu16FromAWS
 	}
@@ -131,7 +138,7 @@ func TestSuite(
 
 	// wrapper only tests
 	testsMap[e2e.Wrapper][junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "Remove temp images when instance creation fails"))] = deleteImagesIfInstanceCreationFails
+		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "Remove temp images&disks when instance creation fails"))] = deleteResourcesIfInstanceCreationFails
 	testsMap[e2e.Wrapper][junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "Allow import to work when SSD quota is exhausted"))] = fallbackWhenSSDQuotaExhausted
 
@@ -140,8 +147,8 @@ func TestSuite(
 }
 
 // This test expects OVF import will fail (since we pass an unsupported machine type flag).
-// After failure, we verify that the temporary images created prior to translation were removed.
-func deleteImagesIfInstanceCreationFails(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+// After failure, we verify that the temporary images/disks created prior to translation were removed.
+func deleteResourcesIfInstanceCreationFails(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 	buildID := path.RandString(10)
 	client, err := daisyCompute.NewClient(ctx)
@@ -170,31 +177,21 @@ func deleteImagesIfInstanceCreationFails(ctx context.Context, testCase *junitxml
 	//
 	// One goroutine is started per image, and it polls for the temporary image that
 	// we're expecting to see. Once seen, it quits.
-	detectedImages := map[string]bool{}
-	for i := 1; i < 4; i++ {
-		imgName := fmt.Sprintf("ovf-%s-%d", buildID, i)
-		detectedImages[imgName] = false
-		go func() {
-			for {
-				image, _ := client.GetImage(testProjectConfig.TestProjectID, imgName)
-				if image != nil {
-					detectedImages[imgName] = true
-					return
-				}
-				time.Sleep(10 * time.Second)
-			}
-		}()
-	}
 	e2e.RunTestCommandAssertErrorMessage(cmds[testType], buildTestArgs(props, testProjectConfig)[testType], "not-a-machine-type' was not found", logger, testCase)
 
-	// Check that the expected images were seen during import and that they were deleted.
-	for imgName, detected := range detectedImages {
-		if !detected {
-			e2e.Failure(testCase, logger, fmt.Sprintf("Didn't see expected image %s", imgName))
-		}
-		image, _ := client.GetImage(testProjectConfig.TestProjectID, imgName)
-		if image != nil {
-			e2e.Failure(testCase, logger, fmt.Sprintf("Expected image %s to be removed", imgName))
+	// check if boot image is deleted
+	imgName := fmt.Sprintf("%s-boot-image", props.instanceName)
+	image, _ := client.GetImage(testProjectConfig.TestProjectID, imgName)
+	if image != nil {
+		e2e.Failure(testCase, logger, fmt.Sprintf("Expected image %s to be removed", imgName))
+	}
+
+	// check if data disks are deleted
+	for i := 0; i < 2; i++ {
+		diskName := daisyovfutils.GenerateDataDiskName(props.instanceName, i+1)
+		disk, _ := client.GetDisk(testProjectConfig.TestProjectID, testProjectConfig.TestZone, diskName)
+		if disk != nil {
+			e2e.Failure(testCase, logger, fmt.Sprintf("Expected disk %s to be removed", diskName))
 		}
 	}
 }
@@ -380,6 +377,46 @@ func runOVFInstanceImportUbuntu16FromAWS(ctx context.Context, testCase *junitxml
 			MachineType: "n1-standard-4",
 		},
 	}
+
+	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
+}
+
+func runOVFInstanceImportDebian10WithBootDiskSpanMultiplePhysicalDisks(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+
+	suffix := path.RandString(5)
+	props := &ovfInstanceImportTestProperties{
+		instanceName: fmt.Sprintf("test-instance-debian10-boot-disk-spans-%v", suffix),
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{
+			VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
+				"daisy_integration_tests/scripts/post_translate_test.sh", logger),
+			Zone:                  "us-west1-c",
+			ExpectedStartupOutput: "All Tests Passed",
+			FailureMatches:        []string{"Test Failed:"},
+			SourceURI:             fmt.Sprintf("gs://%v/ova/debian-vm-with-boot-disk-spans-2-disks", ovaBucket),
+			Os:                    "debian-10",
+			MachineType:           "n1-standard-4",
+		}}
+
+	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
+}
+
+func runOVFInstanceImportUbuntu18WithBootDiskSpanMultiplePhysicalDisksWithLVM(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+
+	suffix := path.RandString(5)
+	props := &ovfInstanceImportTestProperties{
+		instanceName: fmt.Sprintf("test-instance-ubuntu18-lvm-%v", suffix),
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{
+			VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
+				"daisy_integration_tests/scripts/post_translate_test.sh", logger),
+			Zone:                  "us-west1-c",
+			ExpectedStartupOutput: "All Tests Passed",
+			FailureMatches:        []string{"Test Failed:"},
+			SourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-18-boot-disk-spans-with-lvm", ovaBucket),
+			Os:                    "ubuntu-1804",
+			MachineType:           "n1-standard-4",
+		}}
 
 	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }

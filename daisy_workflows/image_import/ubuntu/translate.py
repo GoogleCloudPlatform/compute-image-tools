@@ -326,7 +326,13 @@ def remove_azure_agents(g):
 
 
 def main():
-  g = diskutils.MountDisk('/dev/sdb')
+  attached_disks = diskutils.get_physical_drives()
+
+  # remove the boot disk of the worker instance
+  attached_disks.remove('/dev/sda')
+
+  g = diskutils.MountDisks(attached_disks)
+
   DistroSpecific(g)
   utils.CommonRoutines(g)
   diskutils.UnmountDisk(g)

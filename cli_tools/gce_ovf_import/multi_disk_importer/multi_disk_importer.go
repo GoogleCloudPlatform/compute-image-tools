@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package multiimageimporter
+package multidiskimporter
 
 import (
 	"context"
@@ -21,15 +21,16 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/image/importer"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	ovfdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 )
 
-// NewMultiImageImporter constructs an implementation of MultiImageImporterInterface that can
+// NewMultiDiskImporter constructs an implementation of NewMultiDiskImporterInterface that can
 // import disk files from GCS.
-func NewMultiImageImporter(workflowDir string, computeClient daisyCompute.Client,
-	storageClient domain.StorageClientInterface, logger logging.ToolLogger) ovfdomain.MultiImageImporterInterface {
-	return &multiImageImporter{
+func NewMultiDiskImporter(workflowDir string, computeClient daisyCompute.Client,
+	storageClient domain.StorageClientInterface, logger logging.ToolLogger) ovfdomain.MultiDiskImporterInterface {
+	return &multiDiskImporter{
 		builder: &requestBuilder{workflowDir, importer.NewSourceFactory(storageClient)},
 		executor: &requestExecutor{
 			&importAdapter{computeClient, storageClient},
@@ -39,29 +40,33 @@ func NewMultiImageImporter(workflowDir string, computeClient daisyCompute.Client
 	}
 }
 
-type multiImageImporter struct {
+type multiDiskImporter struct {
 	builder  *requestBuilder
 	executor *requestExecutor
 }
 
-func (m *multiImageImporter) Import(ctx context.Context, params *ovfdomain.OVFImportParams, fileURIs []string) (images []domain.Image, err error) {
+func (m *multiDiskImporter) Import(ctx context.Context, params *ovfdomain.OVFImportParams, dataDiskURIs []string) (disks []domain.Disk, err error) {
 	var requests []importer.ImageImportRequest
-	if requests, err = m.builder.buildRequests(params, fileURIs); err != nil {
+	if requests, err = m.builder.buildRequests(params, dataDiskURIs); err != nil {
 		return nil, err
 	}
 	return m.executor.executeRequests(ctx, requests)
 }
 
-// importAdapter exposes a simplified interface for image import to facilitate testing.
+// importAdapter exposes a simplified interface for disk import to facilitate testing.
 type importAdapter struct {
 	computeClient daisyCompute.Client
 	storageClient domain.StorageClientInterface
 }
 
-func (adapter *importAdapter) Import(ctx context.Context, request importer.ImageImportRequest, logger logging.Logger) error {
-	imageImporter, err := importer.NewImporter(request, adapter.computeClient, adapter.storageClient, logger)
+func (adapter *importAdapter) Import(ctx context.Context, request importer.ImageImportRequest, logger logging.Logger) (string, error) {
+	inflater, err := importer.NewInflater(request, adapter.computeClient, adapter.storageClient, imagefile.NewGCSInspector(), logger)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return imageImporter.Run(ctx)
+
+	pd, _, err := inflater.Inflate()
+	diskURI := importer.GetDiskURI(pd)
+
+	return diskURI, err
 }

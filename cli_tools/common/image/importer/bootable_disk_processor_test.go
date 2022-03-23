@@ -17,6 +17,7 @@ package importer
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"path"
 	"testing"
 
@@ -24,6 +25,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
@@ -31,6 +33,8 @@ import (
 )
 
 var opensuse15workflow string
+var ubuntu1804workflow string
+var windows2019workflow string
 
 func init() {
 	settings, err := daisyutils.GetTranslationSettings("opensuse-15")
@@ -38,6 +42,8 @@ func init() {
 		panic(err)
 	}
 	opensuse15workflow = path.Join("../../../../daisy_workflows/image_import", settings.WorkflowPath)
+	ubuntu1804workflow = "../../../../daisy_workflows/image_import/ubuntu/translate_ubuntu_1804.wf.json"
+	windows2019workflow = "../../../../daisy_workflows/image_import/windows/translate_windows_2019.wf.json"
 }
 
 func TestBootableDiskProcessor_Process_WritesSourceDiskVar(t *testing.T) {
@@ -244,6 +250,75 @@ func TestBootableDiskProcessor_SupportsCancel(t *testing.T) {
 	assert.EqualError(t, err, "workflow canceled: timed-out")
 }
 
+func TestBootableDiskProcessor_AttachDataDisksWithLinux(t *testing.T) {
+	args := defaultImportArgs()
+
+	for i := 0; i < 3; i++ {
+		diskName := fmt.Sprintf("disk-%d", i+1)
+		disk, err := disk.NewDisk(args.Project, args.Zone, diskName)
+		assert.NoError(t, err)
+		args.DataDisks = append(args.DataDisks, disk)
+	}
+
+	processor := newBootableDiskProcessor(args, ubuntu1804workflow, logging.NewToolLogger(t.Name()),
+		distro.FromGcloudOSArgumentMustParse("ubuntu-1804"))
+
+	realProcessor := processor.(*bootableDiskProcessor)
+
+	daisyutils.CheckWorkflow(realProcessor.worker, func(wf *daisy.Workflow, err error) {
+		disks := wf.Steps["translate-disk"].IncludeWorkflow.Workflow.Steps["translate-disk-inst"].CreateInstances.Instances[0].Disks
+		assert.Equal(t, len(disks), 5)
+		for i, disk := range disks[2:] {
+			assert.Equal(t, disk.Source, args.DataDisks[i].GetURI())
+		}
+	})
+}
+
+func TestBootableDiskProcessor_AttachDataDisksWithWindows(t *testing.T) {
+	args := defaultImportArgs()
+
+	for i := 0; i < 3; i++ {
+		diskName := fmt.Sprintf("disk-%d", i+1)
+		disk, err := disk.NewDisk(args.Project, args.Zone, diskName)
+		assert.NoError(t, err)
+		args.DataDisks = append(args.DataDisks, disk)
+	}
+
+	processor := newBootableDiskProcessor(args, windows2019workflow, logging.NewToolLogger(t.Name()),
+		distro.FromGcloudOSArgumentMustParse("windows-2019"))
+
+	realProcessor := processor.(*bootableDiskProcessor)
+
+	daisyutils.CheckWorkflow(realProcessor.worker, func(wf *daisy.Workflow, err error) {
+		disks := wf.Steps["import"].IncludeWorkflow.Workflow.Steps["bootstrap"].CreateInstances.Instances[0].Disks
+		assert.Equal(t, len(disks), 2)
+	})
+}
+
+func TestBootableDiskProcessor_AttachDataDisksWithoutInternalWorkflow(t *testing.T) {
+	args := defaultImportArgs()
+
+	for i := 0; i < 3; i++ {
+		diskName := fmt.Sprintf("disk-%d", i+1)
+		disk, err := disk.NewDisk(args.Project, args.Zone, diskName)
+		assert.NoError(t, err)
+		args.DataDisks = append(args.DataDisks, disk)
+	}
+
+	processor := newBootableDiskProcessor(args, opensuse15workflow, logging.NewToolLogger(t.Name()),
+		distro.FromGcloudOSArgumentMustParse("opensuse-15"))
+
+	realProcessor := processor.(*bootableDiskProcessor)
+
+	daisyutils.CheckWorkflow(realProcessor.worker, func(wf *daisy.Workflow, err error) {
+		disks := wf.Steps["translate-disk-inst"].CreateInstances.Instances[0].Disks
+		assert.Equal(t, len(disks), 5)
+		for i, disk := range disks[2:] {
+			assert.Equal(t, disk.Source, args.DataDisks[i].GetURI())
+		}
+	})
+}
+
 func createProcessor(t *testing.T, request ImageImportRequest) *bootableDiskProcessor {
 	processor := newBootableDiskProcessor(request, opensuse15workflow, logging.NewToolLogger(t.Name()),
 		distro.FromGcloudOSArgumentMustParse("windows-2008r2"))
@@ -287,7 +362,11 @@ func getImage(t *testing.T, workflow *daisy.Workflow) daisy.Image {
 }
 
 func defaultImportArgs() ImageImportRequest {
-	return ImageImportRequest{OS: "opensuse-15"}
+	return ImageImportRequest{
+		OS:      "opensuse-15",
+		Project: "project-15",
+		Zone:    "zone-1",
+	}
 }
 
 func asMap(vars map[string]daisy.Var) map[string]string {

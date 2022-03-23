@@ -403,7 +403,12 @@ def cleanup(g: guestfs.GuestFS):
 
 def main():
   disk = '/dev/sdb'
-  g = diskutils.MountDisk(disk)
+  attached_disks = diskutils.get_physical_drives()
+
+  # remove the boot disk of the worker instance
+  attached_disks.remove('/dev/sda')
+
+  g = diskutils.MountDisks(attached_disks)
   run_translate(g)
   utils.CommonRoutines(g)
   cleanup(g)

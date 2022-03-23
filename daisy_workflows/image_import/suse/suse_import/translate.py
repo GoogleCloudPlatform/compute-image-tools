@@ -319,7 +319,12 @@ def translate():
   subscription_model = utils.GetMetadataAttribute(
       'subscription_model', 'byol').lower()
 
-  g = diskutils.MountDisk('/dev/sdb')
+  attached_disks = diskutils.get_physical_drives()
+
+  # remove the boot disk of the worker instance
+  attached_disks.remove('/dev/sda')
+
+  g = diskutils.MountDisks(attached_disks)
   release = _get_release(g)
 
   pkgs = release.gce_packages if include_gce_packages else []

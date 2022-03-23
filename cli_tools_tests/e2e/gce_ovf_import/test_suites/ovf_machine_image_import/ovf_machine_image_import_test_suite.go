@@ -85,12 +85,18 @@ func TestSuite(
 			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Windows 2012 R2 two disks, Network setting (path)"))
 		machineImageImportStorageLocationTestCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Centos 7.4, Storage location"))
+		machineImageImportDebian10WithBootDiskSpanMultiplePhysicalDisks := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Debian 10 with boot disk spans"))
+		machineImageImportUbuntu18WithBootDiskSpanMultiplePhysicalDisksWithLVM := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Ubuntu 18 with boot disk spans with LVM"))
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, e2e.CLITestType){}
 		testsMap[testType][machineImageImportDebian3DisksNetworkSettingsNameTestCase] = runOVFMachineImageImportDebian3DisksNetworkSettingsName
 		testsMap[testType][machineImageImportWindows2012R2TwoDisksNetworkSettingsPathTestCase] = runOVFMachineImageImportWindows2012R2TwoDisksNetworkSettingsPath
 		testsMap[testType][machineImageImportStorageLocationTestCase] = runOVFMachineImageImportCentos74StorageLocation
+		testsMap[testType][machineImageImportDebian10WithBootDiskSpanMultiplePhysicalDisks] = runOVFMachineImageImportDebian10WithBootDiskSpanMultiplePhysicalDisks
+		testsMap[testType][machineImageImportUbuntu18WithBootDiskSpanMultiplePhysicalDisksWithLVM] = runOVFMachineImageImportUbuntu18WithBootDiskSpanMultiplePhysicalDisksWithLVM
 	}
 
 	// gcloud only tests
@@ -180,6 +186,46 @@ func runOVFMachineImageImportCentos74StorageLocation(ctx context.Context, testCa
 			Os:                    "centos-7",
 			MachineType:           "n2-standard-2",
 		}}
+	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
+}
+
+func runOVFMachineImageImportDebian10WithBootDiskSpanMultiplePhysicalDisks(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+
+	suffix := path.RandString(5)
+	props := &ovfMachineImageImportTestProperties{
+		machineImageName: fmt.Sprintf("test-gmi-debian10-boot-disk-spans-%v", suffix),
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{
+			VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
+				"daisy_integration_tests/scripts/post_translate_test.sh", logger),
+			Zone:                  "us-west1-c",
+			ExpectedStartupOutput: "All tests passed!",
+			FailureMatches:        []string{"FAILED:", "TestFailed:"},
+			SourceURI:             fmt.Sprintf("gs://%v/ova/debian-vm-with-boot-disk-spans-2-disks", ovaBucket),
+			Os:                    "debian-10",
+			MachineType:           "n1-standard-4",
+		}}
+
+	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
+}
+
+func runOVFMachineImageImportUbuntu18WithBootDiskSpanMultiplePhysicalDisksWithLVM(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
+
+	suffix := path.RandString(5)
+	props := &ovfMachineImageImportTestProperties{
+		machineImageName: fmt.Sprintf("test-gmi-ubuntu18-lvm-%v", suffix),
+		OvfImportTestProperties: ovfimporttestsuite.OvfImportTestProperties{
+			VerificationStartupScript: ovfimporttestsuite.LoadScriptContent(
+				"daisy_integration_tests/scripts/post_translate_test.sh", logger),
+			Zone:                  "us-west1-c",
+			ExpectedStartupOutput: "All tests passed!",
+			FailureMatches:        []string{"FAILED:", "TestFailed:"},
+			SourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-18-boot-disk-spans-with-lvm", ovaBucket),
+			Os:                    "ubuntu-1804",
+			MachineType:           "n1-standard-4",
+		}}
+
 	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
