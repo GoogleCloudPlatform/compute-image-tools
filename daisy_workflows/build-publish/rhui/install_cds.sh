@@ -89,6 +89,13 @@ cat $tempdir/rhui-tools.conf > /etc/rhui/rhui-tools.conf
 # Remove enrollment cert and repos from final image.
 subscription-manager remove --all
 
+# Install health checks.
+install -D -t /opt/google-rhui-infra $tempdir/health_check.py
+for unit in rhui-health-check.{service,timer}; do
+  install -m 664 -t /etc/systemd/system $tempdir/$unit
+  systemctl enable $unit
+done
+
 # Delete installer resources.
 rm -rf $tempdir
 

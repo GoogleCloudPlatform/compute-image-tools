@@ -1,0 +1,10 @@
+[Unit]
+Description=Timer for CDS health check
+Requires=rhui-health-check.service
+
+[Timer]
+Unit=rhui-health-check.service
+OnUnitActiveSec=1m
+
+[Install]
+WantedBy=timers.target

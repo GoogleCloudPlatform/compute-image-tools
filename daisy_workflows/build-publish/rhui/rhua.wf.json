@@ -22,6 +22,7 @@
   },
   "Sources": {
     "rhua_artifacts": "./rhua_artifacts",
+    "rhua_artifacts/health_check.py": "./health_check.py",
     "install_rhua.sh": "./install_rhua.sh"
   },
   "Steps": {
