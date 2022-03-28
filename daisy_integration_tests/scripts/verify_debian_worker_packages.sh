@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -o xtrace
-
 # This script checks whether debian worker packages are installed correctly.
 
 if ! qemu-img --version; then
