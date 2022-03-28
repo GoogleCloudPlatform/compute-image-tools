@@ -1,0 +1,51 @@
+{
+  "Name": "debian-worker-arm64-test",
+  "Sources": {
+    "verify_debian_worker_packages.sh": "./scripts/verify_debian_worker_packages.sh"
+  },
+  "Steps": {
+    "create-test-disk-from-image": {
+      "CreateDisks": [
+        {
+          "name": "debian-worker",
+          "sourceImage": "projects/compute-image-tools-test/global/images/family/debian-11-worker-arm64",
+          "zone": "us-central1-a",
+          "type": "pd-ssd"
+        }
+      ]
+    },
+    "run-test": {
+      "CreateInstances": [
+        {
+          "disks": [
+            {
+              "source": "debian-worker"
+            }
+          ],
+          "machineType": "t2a-standard-2",
+          "zone": "us-central1-a",
+          "name": "test",
+          "StartupScript": "verify_debian_worker_packages.sh"
+        }
+      ]
+    },
+    "wait-for-test": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "test",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "SUCCESS JO2Pd99h4qRK5HIpc5NP",
+            "FailureMatch": "FAILED JO2Pd99h4qRK5HIpc5NP:",
+            "StatusMatch": "STATUS:"
+          }
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "run-test": ["create-test-disk-from-image"],
+    "wait-for-test": ["run-test"]
+  }
+}
