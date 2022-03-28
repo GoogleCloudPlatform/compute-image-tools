@@ -5,7 +5,7 @@ Description=RHUA health check
 Type=oneshot
 ExecStart=python3 /opt/google-rhui-infra/health_check.py \
     --node rhua \
-    --result_file /var/log/google_rhui_health_check.txt \
+    --result_file /usr/share/nginx/html/google_rhui_health_check.txt \
     --nfs_mount /var/lib/rhui/remote_share
 
 [Install]
