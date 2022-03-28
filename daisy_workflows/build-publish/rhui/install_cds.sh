@@ -95,6 +95,7 @@ for unit in rhui-health-check.{service,timer}; do
   install -m 664 -t /etc/systemd/system $tempdir/$unit
   systemctl enable $unit
 done
+install -m 664 -t /etc/nginx/conf.d $tempdir/health_check.nginx.conf
 
 # Delete installer resources.
 rm -rf $tempdir

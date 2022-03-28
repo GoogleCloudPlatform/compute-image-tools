@@ -105,6 +105,7 @@ for unit in rhui-health-check.{service,timer}; do
   install -m 664 -t /etc/systemd/system $tempdir/$unit
   systemctl enable $unit
 done
+install -m 664 -t /etc/nginx/conf.d $tempdir/health_check.nginx.conf
 
 # Add NFS dependency to pulp units
 # We do this instead of patching the Ansible templates, as we need the

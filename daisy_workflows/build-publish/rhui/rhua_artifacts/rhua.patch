@@ -73,3 +73,14 @@ diff -Naur playbooks/rhua-provision.yml playbooks/rhua-provision.yml
  
      - name: Collect static browsable API and media files
        command: "{{ pulpcore_env }} pulpcore-manager collectstatic --noinput"
+
+--- templates/nginx-pulp.conf	2022-01-01 23:56:33.757374995 +0000
++++ templates/nginx-pulp.conf	2022-01-01 23:56:47.768584643 +0000
+@@ -10,6 +10,7 @@
+ }
+
+ http {
++    include /etc/nginx/conf.d/*.conf;
+     include mime.types;
+     # fallback in case we can't determine a type
+     default_type application/octet-stream;
