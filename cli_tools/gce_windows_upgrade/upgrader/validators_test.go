@@ -16,6 +16,7 @@ package upgrader
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -51,7 +52,7 @@ func TestValidateParams(t *testing.T) {
 	u = newTestUpgrader().upgrader
 	u.SourceOS = "android"
 	tcs = append(tcs, testCase{"validateOSVersion failure", u,
-		"Flag -source-os value 'android' unsupported. Please choose a supported version from {windows-2008r2}.", DefaultTimeout})
+		fmt.Sprintf("Flag -source-os value 'android' unsupported. Please choose a supported version from {%v}.", strings.Join(SupportedVersions, ", ")), DefaultTimeout})
 
 	u = newTestUpgrader().upgrader
 	u.Instance = "bad/url"
@@ -61,7 +62,7 @@ func TestValidateParams(t *testing.T) {
 	u = newTestUpgrader().upgrader
 	u.Instance = daisyutils.GetInstanceURI(testProject, testZone, testInstanceNoLicense)
 	tcs = append(tcs, testCase{"validateAndDeriveInstance failure", u,
-		"Can only upgrade GCE instance with projects/windows-cloud/global/licenses/windows-server-2008-r2-dc license attached", DefaultTimeout})
+		"Can only upgrade GCE instance with any of [projects/windows-cloud/global/licenses/windows-server-2008-r2-dc] license attached", DefaultTimeout})
 
 	u = newTestUpgrader().upgrader
 	u.Timeout = "1m"
@@ -97,24 +98,30 @@ func TestValidateOSVersion(t *testing.T) {
 	}
 
 	tcs := []testCase{
-		{"Unsupported source OS", "windows-2008", "windows-2008r2", "Flag -source-os value 'windows-2008' unsupported. Please choose a supported version from {windows-2008r2}."},
-		{"Unsupported target OS", "windows-2008r2", "windows-2012", "Flag -target-os value 'windows-2012' unsupported. Please choose a supported version from {windows-2012r2}."},
-		{"Source OS not provided", "", versionWindows2012r2, "Flag -source-os must be provided. Please choose a supported version from {windows-2008r2}."},
-		{"Target OS not provided", versionWindows2008r2, "", "Flag -target-os must be provided. Please choose a supported version from {windows-2012r2}."},
+		{"Unsupported source OS", "windows-2008", "windows-2008r2", fmt.Sprintf("Flag -source-os value 'windows-2008' unsupported. Please choose a supported version from {%v}.", strings.Join(SupportedVersions, ", "))},
+		{"Unsupported target OS", "windows-2008r2", "windows-2012", fmt.Sprintf("Flag -target-os value 'windows-2012' unsupported. Please choose a supported version from {%v}.", strings.Join(SupportedVersions, ", "))},
+		{"Source OS not provided", "", versionWindows2012r2, fmt.Sprintf("Flag -source-os must be provided. Please choose a supported version from {%v}.", strings.Join(SupportedVersions, ", "))},
+		{"Target OS not provided", versionWindows2008r2, "", fmt.Sprintf("Flag -target-os must be provided. Please choose a supported version from {%v}.", strings.Join(SupportedVersions, ", "))},
 	}
-	for supportedSourceOS, supportedTargetOS := range supportedSourceOSVersions {
-		tcs = append(tcs, testCase{
-			fmt.Sprintf("From %v to %v", supportedSourceOS, supportedTargetOS),
-			supportedSourceOS,
-			supportedTargetOS,
-			"",
-		})
+	for _, supportedSourceOS := range SupportedVersions {
+		for _, supportedTargetOS := range SupportedVersions {
+			expectedError := ""
+			if !isSupportedUpgradePath(supportedSourceOS, supportedTargetOS) {
+				expectedError = "Can't upgrade from"
+			}
+			tcs = append(tcs, testCase{
+				fmt.Sprintf("From %v to %v", supportedSourceOS, supportedTargetOS),
+				supportedSourceOS,
+				supportedTargetOS,
+				expectedError,
+			})
+		}
 	}
 
 	for _, tc := range tcs {
 		err := validateOSVersion(tc.sourceOS, tc.targetOS)
 		if tc.expectedError != "" {
-			assert.EqualErrorf(t, err, tc.expectedError, "[test name: %v]", tc.testName)
+			assert.Truef(t, strings.HasPrefix(err.Error(), tc.expectedError), "[test name: %v] expected error: %v, actual: %v", tc.testName, tc.expectedError, err)
 		} else {
 			assert.NoError(t, err, "[test name: %v]", tc.testName)
 		}
@@ -189,7 +196,7 @@ func TestValidateInstance(t *testing.T) {
 			"License error",
 			daisyutils.GetInstanceURI(testProject, testZone, testInstanceNoLicense),
 			"",
-			"Can only upgrade GCE instance with projects/windows-cloud/global/licenses/windows-server-2008-r2-dc license attached",
+			"Can only upgrade GCE instance with any of [projects/windows-cloud/global/licenses/windows-server-2008-r2-dc] license attached",
 			"",
 			"",
 			testProject, testZone, testInstanceNoLicense,
@@ -322,7 +329,7 @@ func TestValidateInstance(t *testing.T) {
 				tc.testName, derivedVars.instanceURI, expectedURI)
 		}
 
-		err = validateAndDeriveInstance(&derivedVars, testSourceOS)
+		err = validateAndDeriveInstance(&derivedVars, testSourceOS, testTargetOS)
 		if tc.expectedError == "" {
 			if err != nil {
 				t.Errorf("[%v]: Unexpected error: %v", tc.testName, err)
@@ -399,7 +406,7 @@ func TestValidateLicense(t *testing.T) {
 		{
 			"No license",
 			&compute.AttachedDisk{},
-			"Can only upgrade GCE instance with projects/windows-cloud/global/licenses/windows-server-2008-r2-dc license attached",
+			"Can only upgrade GCE instance with any of [projects/windows-cloud/global/licenses/windows-server-2008-r2-dc] license attached",
 		},
 		{
 			"No expected license",
@@ -407,13 +414,13 @@ func TestValidateLicense(t *testing.T) {
 				Licenses: []string{
 					"random-license",
 				}},
-			"Can only upgrade GCE instance with projects/windows-cloud/global/licenses/windows-server-2008-r2-dc license attached",
+			"Can only upgrade GCE instance with any of [projects/windows-cloud/global/licenses/windows-server-2008-r2-dc] license attached",
 		},
 		{
 			"Expected license",
 			&compute.AttachedDisk{
 				Licenses: []string{
-					expectedCurrentLicense[testSourceOS],
+					upgradePaths[testSourceOS][testTargetOS].expectedCurrentLicense[0],
 				}},
 			"",
 		},
@@ -422,7 +429,7 @@ func TestValidateLicense(t *testing.T) {
 			&compute.AttachedDisk{
 				Licenses: []string{
 					"random-1",
-					expectedCurrentLicense[testSourceOS],
+					upgradePaths[testSourceOS][testTargetOS].expectedCurrentLicense[0],
 					"random-2",
 				}},
 			"",
@@ -431,15 +438,15 @@ func TestValidateLicense(t *testing.T) {
 			"Upgraded",
 			&compute.AttachedDisk{
 				Licenses: []string{
-					expectedCurrentLicense[testSourceOS],
-					licenseToAdd[testSourceOS],
+					upgradePaths[testSourceOS][testTargetOS].expectedCurrentLicense[0],
+					upgradePaths[testSourceOS][testTargetOS].licenseToAdd,
 				}},
 			"The GCE instance is with projects/windows-cloud/global/licenses/windows-server-2012-r2-dc-in-place-upgrade license attached, which means it either has been upgraded or has started an upgrade in the past.",
 		},
 	}
 
 	for _, tc := range tcs {
-		err := validateLicense(tc.osDisk, testSourceOS)
+		err := validateLicense(tc.osDisk, testSourceOS, testTargetOS)
 		if tc.expectedError != "" {
 			assert.EqualErrorf(t, err, tc.expectedError, "[test name: %v]", tc.testName)
 		} else {

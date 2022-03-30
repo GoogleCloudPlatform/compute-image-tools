@@ -46,6 +46,7 @@ const (
 	testInstanceWithStartupScript               = "test-instance-with-startup-script"
 	testInstanceWithExistingStartupScriptBackup = "test-instance-with-existing-startup-script-backup"
 	testSourceOS                                = versionWindows2008r2
+	testTargetOS                                = versionWindows2012r2
 	testOriginalStartupScript                   = "original"
 )
 
@@ -108,7 +109,7 @@ func newTestGCEClient() *daisyCompute.TestClient {
 				Name: name,
 				Disks: []*compute.AttachedDisk{{DeviceName: testDisk, Source: testDiskURI, Boot: false,
 					Licenses: []string{
-						expectedCurrentLicense[testSourceOS],
+						upgradePaths[testSourceOS][testTargetOS].expectedCurrentLicense[0],
 					}}}}, nil
 		}
 		if name == testInstanceNoLicense {
@@ -124,13 +125,13 @@ func newTestGCEClient() *daisyCompute.TestClient {
 					Source:     testDiskURI,
 					Boot:       true,
 					Licenses: []string{
-						expectedCurrentLicense[testSourceOS],
+						upgradePaths[testSourceOS][testTargetOS].expectedCurrentLicense[0],
 					},
 				}},
 				Metadata: &compute.Metadata{
 					Items: []*compute.MetadataItems{
 						{
-							Key:   metadataKeyWindowsStartupScriptURL,
+							Key:   metadataWindowsStartupScriptURL,
 							Value: &originalScript,
 						},
 					},
@@ -145,17 +146,17 @@ func newTestGCEClient() *daisyCompute.TestClient {
 					Source:     testDiskURI,
 					Boot:       true,
 					Licenses: []string{
-						expectedCurrentLicense[testSourceOS],
+						upgradePaths[testSourceOS][testTargetOS].expectedCurrentLicense[0],
 					},
 				}},
 				Metadata: &compute.Metadata{
 					Items: []*compute.MetadataItems{
 						{
-							Key:   metadataKeyWindowsStartupScriptURL,
+							Key:   metadataWindowsStartupScriptURL,
 							Value: &originalScript,
 						},
 						{
-							Key:   metadataKeyWindowsStartupScriptURLBackup,
+							Key:   metadataWindowsStartupScriptURLBackup,
 							Value: &originalScript,
 						},
 					},
@@ -169,7 +170,7 @@ func newTestGCEClient() *daisyCompute.TestClient {
 				Source:     testDiskURI,
 				Boot:       true,
 				Licenses: []string{
-					expectedCurrentLicense[testSourceOS],
+					upgradePaths[testSourceOS][testTargetOS].expectedCurrentLicense[0],
 				},
 			}}}, nil
 	}
