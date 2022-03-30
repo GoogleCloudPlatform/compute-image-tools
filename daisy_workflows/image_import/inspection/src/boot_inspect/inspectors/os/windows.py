@@ -30,7 +30,7 @@ _server_versions = {
     (6, 2): ('2012', ''),
     (6, 3): ('2012', 'r2'),
     # (10,0) is resolved in code since, since it's used for
-    # both Windows 2016 and Windows 2019.
+    # Windows 2016, Windows 2019 and Windows 2022.
 }
 _client_versions = {
     (6, 0): ('Vista', ''),
@@ -81,6 +81,8 @@ def _from_nt_version(
         major, minor = '2016', ''
       elif '2019' in product_name:
         major, minor = '2019', ''
+      elif '2022' in product_name:
+        major, minor = '2022', ''
 
   if major is not None and minor is not None:
     return inspect_pb2.OsRelease(

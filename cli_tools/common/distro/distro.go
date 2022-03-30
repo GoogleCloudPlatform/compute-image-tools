@@ -338,7 +338,7 @@ func WindowsServerVersionforNTVersion(major string, minor string) (marketingMajo
 		{"6", "1", "2008", "r2"},
 		{"6", "2", "2012", ""},
 		{"6", "3", "2012", "r2"},
-		{"10", "0", "2016", ""}, // NT 10.0 is also 2019
+		{"10", "0", "2016", ""}, // NT 10.0 is also 2019 & 2022
 	} {
 		if major == t.ntMajor && minor == t.ntMinor {
 			return t.marketingMajor, t.marketingMinor, nil

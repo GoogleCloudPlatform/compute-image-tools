@@ -242,6 +242,18 @@ func TestInspectDisk(t *testing.T) {
 				},
 				OsCount: 1,
 			},
+		}, {
+			imageURI: "projects/compute-image-tools-test/global/images/windows-2022-uefi-nodrivers",
+			expected: &pb.InspectionResults{
+				OsRelease: &pb.OsRelease{
+					CliFormatted: "windows-2022",
+					Distro:       "windows",
+					MajorVersion: "2022",
+					Architecture: pb.Architecture_X64,
+					DistroId:     pb.Distro_WINDOWS,
+				},
+				OsCount: 1,
+			},
 		},
 
 		// Windows Desktop

@@ -66,6 +66,8 @@ func Test_GetTranslationSettings_ResolveSameWorkflowPathAsOldMap(t *testing.T) {
 		"windows-2016-byol":   "windows/translate_windows_2016_byol.wf.json",
 		"windows-2019":        "windows/translate_windows_2019.wf.json",
 		"windows-2019-byol":   "windows/translate_windows_2019_byol.wf.json",
+		"windows-2022":        "windows/translate_windows_2022.wf.json",
+		"windows-2022-byol":   "windows/translate_windows_2022_byol.wf.json",
 		"windows-7-x64-byol":  "windows/translate_windows_7_x64_byol.wf.json",
 		"windows-7-x86-byol":  "windows/translate_windows_7_x86_byol.wf.json",
 		"windows-8-x64-byol":  "windows/translate_windows_8_x64_byol.wf.json",

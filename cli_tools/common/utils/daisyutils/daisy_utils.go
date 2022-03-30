@@ -234,6 +234,14 @@ var (
 			GcloudOsFlag: "windows-2019-byol",
 			WorkflowPath: "windows/translate_windows_2019_byol.wf.json",
 			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2019-byol",
+		}, {
+			GcloudOsFlag: "windows-2022",
+			WorkflowPath: "windows/translate_windows_2022.wf.json",
+			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2022-dc",
+		}, {
+			GcloudOsFlag: "windows-2022-byol",
+			WorkflowPath: "windows/translate_windows_2022_byol.wf.json",
+			LicenseURI:   "projects/windows-cloud/global/licenses/windows-server-2022-byol",
 		},
 	}
 
