@@ -114,9 +114,15 @@ install -m 664 -t /etc/nginx/conf.d $tempdir/health_check.nginx.conf
 for unit in pulpcore-{worker@,api,content,resource-manager}; do
   unitdir="/etc/systemd/system/${unit}.service.d"
   [[ -d $unitdir ]] || mkdir $unitdir
-  cp $tempdir/depend-nfs.conf $unitdir/
+  install -t $unitdir $tempdir/depend-nfs.conf $tempdir/create-dirs.conf
 done
 systemctl daemon-reload
+
+cd $tempdir
+curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
+bash ./add-google-cloud-ops-agent-repo.sh --also-install --remove-repo
+yum clean all
+cd /
 
 # Delete installer resources.
 cp $tempdir/answers.yaml /root/.rhui/answers.yaml  # Expected to be found here.
