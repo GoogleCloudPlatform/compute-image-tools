@@ -185,7 +185,7 @@ var ovfOSIDToImporterOSID = map[int16]OsInfo{
 	114: {description: "Microsoft Windows 8", importerOSIDs: []string{"windows-8-x86-byol"}, nonDeterministic: true},
 	115: {description: "Microsoft Windows 8 64-bit", importerOSIDs: []string{"windows-8-x64-byol"}, nonDeterministic: true},
 	116: {description: "Microsoft Windows Server 2012 R2", importerOSIDs: []string{"windows-2012r2", "windows-2012r2-byol"}},
-	117: {description: "Microsoft Windows Server 2016", importerOSIDs: []string{"windows-2016", "windows-2016-byol", "windows-2019", "windows-2019-byol", "windows-2022", "windows-2022-byol"}}, //as per https://www.ibm.com/support/knowledgecenter/SSZQFR_2.3.2.0/iwd/pct_byos_win_image.html 2016/2019/2022 share the same ID
+	117: {description: "Microsoft Windows Server 2016", importerOSIDs: []string{"windows-2016", "windows-2016-byol", "windows-2019", "windows-2019-byol"}}, //as per https://www.ibm.com/support/knowledgecenter/SSZQFR_2.3.2.0/iwd/pct_byos_win_image.html 2016/2019 share the same ID
 	118: {description: "Microsoft Windows 8.1", importerOSIDs: []string{}},
 	119: {description: "Microsoft Windows 8.1 64-bit", importerOSIDs: []string{}},
 	120: {description: "Microsoft Windows 10", importerOSIDs: []string{"windows-10-x86-byol"}, nonDeterministic: true},
