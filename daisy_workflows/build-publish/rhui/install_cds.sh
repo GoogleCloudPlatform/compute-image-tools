@@ -97,6 +97,11 @@ for unit in rhui-health-check.{service,timer}; do
 done
 install -m 664 -t /etc/nginx/conf.d $tempdir/health_check.nginx.conf
 
+cd $tempdir
+curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
+bash ./add-google-cloud-ops-agent-repo.sh --also-install --remove-repo
+cd /
+
 # Delete installer resources.
 rm -rf $tempdir
 
