@@ -59,7 +59,7 @@ var (
 	installFolderForTargetOS = map[string]string{
 		versionWindows2012r2: "Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English",
 		versionWindows2016:   "Win_Server_STD_CORE_2016_64Bit_English",
-		versionWindows2019:   "Win_Server_STD_CORE_2019_1809",
+		versionWindows2019:   "Win_Server_STD_CORE_2019_1809.1_64Bit_English",
 		versionWindows2022:   "Win_Server_STD_CORE_2022_64Bit_English",
 	}
 )
@@ -91,16 +91,16 @@ var upgradePaths = initUpgradePath(map[string]map[string]*upgradePath{
 		versionWindows2012r2: {enabled: true},
 	},
 	versionWindows2012r2: {
-		versionWindows2016: {enabled: false},
-		versionWindows2019: {enabled: false},
-		versionWindows2022: {enabled: false},
+		versionWindows2016: {enabled: true},
+		versionWindows2019: {enabled: true},
+		versionWindows2022: {enabled: true},
 	},
 	versionWindows2016: {
-		versionWindows2019: {enabled: false},
-		versionWindows2022: {enabled: false},
+		versionWindows2019: {enabled: true},
+		versionWindows2022: {enabled: true},
 	},
 	versionWindows2019: {
-		versionWindows2022: {enabled: false},
+		versionWindows2022: {enabled: true},
 	},
 })
 
