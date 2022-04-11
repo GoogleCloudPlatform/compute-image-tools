@@ -39,23 +39,6 @@ steps:
   - --context=/workspace
   - --dockerfile=gce_image_publish.Dockerfile
 
-# Build gce_export.
-- name: 'golang'
-  dir: 'cli_tools/gce_export'
-  args: ['go', 'build', '-o=/workspace/linux/gce_export']
-  env: ['CGO_ENABLED=0']
-- name: 'golang'
-  dir: 'cli_tools/gce_export'
-  args: ['go', 'build', '-o=/workspace/windows/gce_export']
-  env: ['GOOS=windows']
-- name: 'gcr.io/kaniko-project/executor:v1.0.0'
-  args:
-  - --destination=gcr.io/$_IMAGE_PROJECT/gce_export:$_RELEASE
-  - --destination=gcr.io/$_IMAGE_PROJECT/gce_export:$COMMIT_SHA
-  - --destination=gcr.io/$_IMAGE_PROJECT/gce_export:$_WORKFLOW_EXECUTION_ID
-  - --context=/workspace
-  - --dockerfile=gce_export.Dockerfile
-
 # Build import_precheck.
 - name: 'golang'
   dir: 'cli_tools/import_precheck'
@@ -65,71 +48,6 @@ steps:
   dir: 'cli_tools/import_precheck'
   args: ['go', 'build', '-o=/workspace/windows/import_precheck.exe']
   env: ['GOOS=windows']
-
-# Build gce_vm_image_import.
-- name: 'golang'
-  dir: 'cli_tools/gce_vm_image_import'
-  args: ['go', 'build', '-o=/workspace/linux/gce_vm_image_import']
-  env: ['CGO_ENABLED=0']
-- name: 'gcr.io/kaniko-project/executor:v1.1.0'
-  args:
-  - --destination=gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$_RELEASE
-  - --destination=gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$COMMIT_SHA
-  - --destination=gcr.io/$_IMAGE_PROJECT/gce_vm_image_import:$_WORKFLOW_EXECUTION_ID
-  - --context=/workspace
-  - --dockerfile=gce_vm_image_import.Dockerfile
-
-# Build gce_onestep_image_import.
-- name: 'golang'
-  dir: 'cli_tools/gce_onestep_image_import'
-  args: ['go', 'build', '-o=/workspace/linux/gce_onestep_image_import']
-  env: ['CGO_ENABLED=0']
-- name: 'gcr.io/kaniko-project/executor:v1.1.0'
-  args:
-  - --destination=gcr.io/$_IMAGE_PROJECT/gce_onestep_image_import:$_RELEASE
-  - --destination=gcr.io/$_IMAGE_PROJECT/gce_onestep_image_import:$COMMIT_SHA
-  - --destination=gcr.io/$_IMAGE_PROJECT/gce_onestep_image_import:$_WORKFLOW_EXECUTION_ID
-  - --context=/workspace
-  - --dockerfile=gce_onestep_image_import.Dockerfile
-
-# Build gce_vm_image_export.
-- name: 'golang'
-  dir: 'cli_tools/gce_vm_image_export'
-  args: ['go', 'build', '-o=/workspace/linux/gce_vm_image_export']
-  env: ['CGO_ENABLED=0']
-- name: 'gcr.io/kaniko-project/executor:v1.1.0'
-  args:
-  - --destination=gcr.io/$_IMAGE_PROJECT/gce_vm_image_export:$_RELEASE
-  - --destination=gcr.io/$_IMAGE_PROJECT/gce_vm_image_export:$COMMIT_SHA
-  - --destination=gcr.io/$_IMAGE_PROJECT/gce_vm_image_export:$_WORKFLOW_EXECUTION_ID
-  - --context=/workspace
-  - --dockerfile=gce_vm_image_export.Dockerfile
-
-# Build gce_ovf_import.
-- name: 'golang'
-  dir: 'cli_tools/gce_ovf_import'
-  args: ['go', 'build', '-o=/workspace/linux/gce_ovf_import']
-  env: ['CGO_ENABLED=0']
-- name: 'gcr.io/kaniko-project/executor:v1.1.0'
-  args:
-  - --destination=gcr.io/$_IMAGE_PROJECT/gce_ovf_import:$_RELEASE
-  - --destination=gcr.io/$_IMAGE_PROJECT/gce_ovf_import:$COMMIT_SHA
-  - --destination=gcr.io/$_IMAGE_PROJECT/gce_ovf_import:$_WORKFLOW_EXECUTION_ID
-  - --context=/workspace
-  - --dockerfile=gce_ovf_import.Dockerfile
-
-# Build gce_ovf_export.
-- name: 'golang'
-  dir: 'cli_tools/gce_ovf_export'
-  args: ['go', 'build', '-o=/workspace/linux/gce_ovf_export']
-  env: ['CGO_ENABLED=0']
-- name: 'gcr.io/kaniko-project/executor:v1.1.0'
-  args:
-  - --destination=gcr.io/$_IMAGE_PROJECT/gce_ovf_export:$_RELEASE
-  - --destination=gcr.io/$_IMAGE_PROJECT/gce_ovf_export:$COMMIT_SHA
-  - --destination=gcr.io/$_IMAGE_PROJECT/gce_ovf_export:$_WORKFLOW_EXECUTION_ID
-  - --context=/workspace
-  - --dockerfile=gce_ovf_export.Dockerfile
 
 # Build gce_windows_upgrade.
 - name: 'golang'
