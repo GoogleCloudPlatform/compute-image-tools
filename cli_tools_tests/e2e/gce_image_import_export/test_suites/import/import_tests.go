@@ -330,6 +330,11 @@ var basicCases = []*testCase{
 		expectLicense:           "https://www.googleapis.com/compute/v1/projects/windows-cloud/global/licenses/windows-server-2019-dc",
 		requiredGuestOsFeatures: []string{"WINDOWS"},
 	}, {
+		caseName:                "windows-2022-uefi",
+		source:                  "projects/compute-image-tools-test/global/images/windows-2022-uefi-nodrivers",
+		expectLicense:           "https://www.googleapis.com/compute/v1/projects/windows-cloud/global/licenses/windows-server-2022-dc",
+		requiredGuestOsFeatures: []string{"WINDOWS"},
+	}, {
 		caseName:             "windows-10-x86-byol",
 		source:               "projects/compute-image-tools-test/global/images/windows-10-1909-ent-x86-nodrivers",
 		os:                   "windows-10-x86-byol",
