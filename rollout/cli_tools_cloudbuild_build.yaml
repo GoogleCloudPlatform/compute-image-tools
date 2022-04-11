@@ -39,16 +39,6 @@ steps:
   - --context=/workspace
   - --dockerfile=gce_image_publish.Dockerfile
 
-# Build import_precheck.
-- name: 'golang'
-  dir: 'cli_tools/import_precheck'
-  args: ['go', 'build', '-o=/workspace/linux/import_precheck']
-  env: ['CGO_ENABLED=0']
-- name: 'golang'
-  dir: 'cli_tools/import_precheck'
-  args: ['go', 'build', '-o=/workspace/windows/import_precheck.exe']
-  env: ['GOOS=windows']
-
 # Build gce_windows_upgrade.
 - name: 'golang'
   dir: 'cli_tools/gce_windows_upgrade'
