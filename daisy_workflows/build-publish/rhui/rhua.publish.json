@@ -1,0 +1,26 @@
+{
+  "Name": "rhua",
+  {{$work_project := printf "%q" "gce-image-builder" -}}
+  {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
+  {{$delete_after := `"24h*30*6"` -}}
+  {{if eq .environment "prod" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "rhel-cloud",
+  "ComputeEndpoint": {{$endpoint}},
+  {{- else -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": {{$work_project}},
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- end}}
+  {{$guest_features := `["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "SEV_CAPABLE", "GVNIC"]` -}}
+  {{$time := trimPrefix .publish_version "v"}}
+  "Images": [
+    {
+      "Family": "rhua",
+      "Prefix": "rhua",
+      "Description": "RedHat Update Appliance node image, built {{$time}}",
+      "GuestOsFeatures": {{$guest_features}}
+    }
+  ]
+}
