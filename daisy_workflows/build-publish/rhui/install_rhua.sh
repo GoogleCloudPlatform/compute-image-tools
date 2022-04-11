@@ -107,15 +107,14 @@ for unit in rhui-health-check.{service,timer}; do
 done
 install -m 664 -t /etc/nginx/conf.d $tempdir/health_check.nginx.conf
 
-# Add NFS dependency to pulp units
-# We do this instead of patching the Ansible templates, as we need the
-# services up to run the above rhui-manager commands and the modification
-# prevents starting without NFS.
-for unit in pulpcore-{worker@,api,content,resource-manager}; do
-  unitdir="/etc/systemd/system/${unit}.service.d"
-  [[ -d $unitdir ]] || mkdir $unitdir
-  install -t $unitdir $tempdir/depend-nfs.conf $tempdir/create-dirs.conf
-done
+# Add NFS dependencies to pulp worker units
+# We do this via drop-ins instead of patching the Ansible templates, as these changes will make the service
+# un-startable in the image build environment due to the NFS dependency. We need pulp3 to be running in order
+# to run the above rhui-manager commands. TODO(liamh;041122): is this true if we only add deps to
+# pulpcore-worker@ ? This may not need to be running to add repo definitions.
+unitdir="/etc/systemd/system/pulpcore-worker@.service.d"
+[[ -d $unitdir ]] || mkdir $unitdir
+install -t $unitdir $tempdir/depend-nfs.conf $tempdir/create-dirs.conf
 systemctl daemon-reload
 
 cd $tempdir
