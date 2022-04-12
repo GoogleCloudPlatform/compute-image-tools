@@ -60,6 +60,18 @@ steps:
   dir: 'cli_tools/import_precheck'
   args: ['go', 'build', '-o=/workspace/windows/import_precheck.exe']
   env: ['GOOS=windows']
+- name: 'golang'
+  dir: 'cli_tools/import_precheck'
+  args: ['go', 'build', '-o=/workspace/linux/import_precheck_32bit']
+  env:
+  - CGO_ENABLED=0
+  - GOARCH=386
+- name: 'golang'
+  dir: 'cli_tools/import_precheck'
+  args: ['go', 'build', '-o=/workspace/windows/import_precheck_32bit.exe']
+  env:
+  - GOOS=windows
+  - GOARCH=386
 
 # Build gce_vm_image_import.
 - name: 'golang'
