@@ -71,6 +71,7 @@ subscription-manager import --certificate=$tempdir/enrollment_cert.pem
 subscription-manager repos --enable=rhel-8-for-x86_64-baseos-rhui-rpms
 subscription-manager repos --enable=rhel-8-for-x86_64-appstream-rhui-rpms
 subscription-manager repos --enable=rhui-4-for-rhel-8-x86_64-rpms
+subscription-manager repos --enable=ansible-2-for-rhel-8-x86_64-rhui-rpms
 
 # Get rhui-installer and patch Ansible playbook
 # The patch skips actually mounting NFS (update fstab only), and skips
