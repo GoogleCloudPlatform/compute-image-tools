@@ -17,4 +17,5 @@ rhua:
   user: root
   cephfs_username: null
   cephfs_secretkey: null
+  cephfs_secretkey_file: null
   cephfs_name: null
