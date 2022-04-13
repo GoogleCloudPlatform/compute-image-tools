@@ -16,8 +16,7 @@ function build_fail() {
 }
 
 function exit_error() {
-  #build_fail "$0:$1 \"$BASH_COMMAND\" returned $?"
-  build_status "$0:$1 \"$BASH_COMMAND\" returned $?"
+  build_fail "$0:$1 \"$BASH_COMMAND\" returned $?"
   exit 1
 }
 
