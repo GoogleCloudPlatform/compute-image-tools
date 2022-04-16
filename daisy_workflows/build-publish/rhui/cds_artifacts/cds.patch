@@ -1,13 +1,13 @@
 diff -Naur playbooks/cds-register.yml playbooks.new/cds-register.yml
---- playbooks/cds-register.yml	2021-11-22 09:29:37.000000000 +0000
-+++ playbooks.new/cds-register.yml	2022-01-02 08:49:53.281980390 +0000
+--- playbooks/cds-register.yml	2022-03-17 10:08:34.000000000 +0000
++++ playbooks.new/cds-register.yml	2022-04-16 06:21:59.424850212 +0000
 @@ -3,7 +3,8 @@
  
  - name: Registering a CDS instance
    hosts: all
 -  gather_facts: false
-+  connection: local
 +  gather_facts: true
++  connection: local
    become: true
  
    vars:
@@ -22,16 +22,7 @@ diff -Naur playbooks/cds-register.yml playbooks.new/cds-register.yml
      - name: Install nfs-utils
        when: 'execute_all and "nfs" in remote_fs_type'
        yum:
-@@ -45,7 +42,7 @@
-         path: "{{ remote_fs_mountpoint }}"
-         src: "{{ remote_fs_server }}"
-         fstype: "{{ remote_fs_type }}"
--        state: mounted
-+        state: present
- 
-     - name: Install nginx
-       when: execute_all
-@@ -76,7 +73,7 @@
+@@ -55,7 +52,7 @@
      - name: Provide general RHUI configuration
        when: execute_all
        ansible.builtin.copy:
@@ -40,7 +31,16 @@ diff -Naur playbooks/cds-register.yml playbooks.new/cds-register.yml
          dest: /etc/rhui/rhui-tools.conf
          owner: root
          group: root
-@@ -86,7 +83,7 @@
+@@ -76,7 +73,7 @@
+         path: "{{ remote_fs_mountpoint }}"
+         src: "{{ remote_fs_server }}"
+         fstype: "{{ remote_fs_type }}"
+-        state: mounted
++        state: present
+
+     - name: Mount shared storage for ceph
+       when: 'execute_all and "ceph" in remote_fs_type'
+@@ -111,7 +108,7 @@
        when: execute_all
        ansible.builtin.copy:
          src: /usr/bin/rhui-services-restart
@@ -49,7 +49,7 @@ diff -Naur playbooks/cds-register.yml playbooks.new/cds-register.yml
          owner: root
          group: root
          mode: '0755'
-@@ -111,7 +108,7 @@
+@@ -136,7 +133,7 @@
  
      - name: Copy ca.crt
        ansible.builtin.copy:
@@ -58,7 +58,7 @@ diff -Naur playbooks/cds-register.yml playbooks.new/cds-register.yml
          dest: /etc/pki/rhui/certs/ca.crt
          owner: root
          group: root
-@@ -136,28 +133,21 @@
+@@ -161,28 +158,21 @@
          state: restarted
        loop: "{{ gunicorn_services }}"
  
