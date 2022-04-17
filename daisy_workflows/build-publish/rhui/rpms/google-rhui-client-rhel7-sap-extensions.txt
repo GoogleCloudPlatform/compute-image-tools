@@ -1,0 +1,62 @@
+[rhui]
+basicConstraints=CA:FALSE
+1.3.6.1.4.1.2312.9.2.30000.1.1=ASN1:UTF8:RHEL for SAP (for RHEL 7 Server) Update Services for SAP Solutions (RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30000.1.2=ASN1:UTF8:rhel-sap-for-rhel-7-server-rhui-e4s-rpms
+1.3.6.1.4.1.2312.9.2.30000.1.6=ASN1:UTF8:/content/e4s/rhel/rhui/server/7/\$releasever/\$basearch/sap/os
+
+1.3.6.1.4.1.2312.9.2.30001.1.1=ASN1:UTF8:RHEL for SAP HANA (for RHEL 7 Server) Update Services for SAP Solutions (Source RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30001.1.2=ASN1:UTF8:rhel-sap-hana-for-rhel-7-server-rhui-e4s-source-rpms
+1.3.6.1.4.1.2312.9.2.30001.1.6=ASN1:UTF8:/content/e4s/rhel/rhui/server/7/\$releasever/\$basearch/sap-hana/source/SRPMS
+
+1.3.6.1.4.1.2312.9.2.30002.1.1=ASN1:UTF8:RHEL for SAP (for RHEL 7 Server) Update Services for SAP Solutions (Debug RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30002.1.2=ASN1:UTF8:rhel-sap-for-rhel-7-server-rhui-e4s-debug-rpms
+1.3.6.1.4.1.2312.9.2.30002.1.6=ASN1:UTF8:/content/e4s/rhel/rhui/server/7/\$releasever/\$basearch/sap/debug
+
+1.3.6.1.4.1.2312.9.2.30003.1.1=ASN1:UTF8:RHEL for SAP HANA (for RHEL 7 Server) Update Services for SAP Solutions (Debug RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30003.1.2=ASN1:UTF8:rhel-sap-hana-for-rhel-7-server-rhui-e4s-debug-rpms
+1.3.6.1.4.1.2312.9.2.30003.1.6=ASN1:UTF8:/content/e4s/rhel/rhui/server/7/\$releasever/\$basearch/sap-hana/debug
+
+1.3.6.1.4.1.2312.9.2.30004.1.1=ASN1:UTF8:Red Hat Enterprise Linux 7 Server - Update Services for SAP Solutions - Optional (RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30004.1.2=ASN1:UTF8:rhel-7-server-e4s-optional-rhui-rpms
+1.3.6.1.4.1.2312.9.2.30004.1.6=ASN1:UTF8:/content/e4s/rhel/rhui/server/7/\$releasever/\$basearch/optional/os
+
+1.3.6.1.4.1.2312.9.2.30005.1.1=ASN1:UTF8:Red Hat Enterprise Linux 7 Server - Update Services for SAP Solutions (Debug RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30005.1.2=ASN1:UTF8:rhel-7-server-e4s-rhui-debug-rpms
+1.3.6.1.4.1.2312.9.2.30005.1.6=ASN1:UTF8:/content/e4s/rhel/rhui/server/7/\$releasever/\$basearch/debug
+
+1.3.6.1.4.1.2312.9.2.30006.1.1=ASN1:UTF8:RHEL for SAP (for RHEL 7 Server) Update Services for SAP Solutions (Source RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30006.1.2=ASN1:UTF8:rhel-sap-for-rhel-7-server-rhui-e4s-source-rpms
+1.3.6.1.4.1.2312.9.2.30006.1.6=ASN1:UTF8:/content/e4s/rhel/rhui/server/7/\$releasever/\$basearch/sap/source/SRPMS
+
+1.3.6.1.4.1.2312.9.2.30007.1.1=ASN1:UTF8:Red Hat Enterprise Linux 7 Server - Update Services for SAP Solutions - Optional (Source RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30007.1.2=ASN1:UTF8:rhel-7-server-e4s-optional-rhui-source-rpms
+1.3.6.1.4.1.2312.9.2.30007.1.6=ASN1:UTF8:/content/e4s/rhel/rhui/server/7/\$releasever/\$basearch/optional/source/SRPMS
+
+1.3.6.1.4.1.2312.9.2.30008.1.1=ASN1:UTF8:Red Hat Enterprise Linux High Availability (for RHEL 7 Server) Update Services for SAP Solutions (Source RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30008.1.2=ASN1:UTF8:rhel-ha-for-rhel-7-server-e4s-rhui-source-rpms
+1.3.6.1.4.1.2312.9.2.30008.1.6=ASN1:UTF8:/content/e4s/rhel/rhui/server/7/\$releasever/\$basearch/highavailability/source/SRPMS
+
+1.3.6.1.4.1.2312.9.2.30009.1.1=ASN1:UTF8:Red Hat Enterprise Linux 7 Server - Update Services for SAP Solutions (RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30009.1.2=ASN1:UTF8:rhel-7-server-e4s-rhui-rpms
+1.3.6.1.4.1.2312.9.2.30009.1.6=ASN1:UTF8:/content/e4s/rhel/rhui/server/7/\$releasever/\$basearch/os
+
+1.3.6.1.4.1.2312.9.2.30010.1.1=ASN1:UTF8:Red Hat Enterprise Linux 7 Server - Update Services for SAP Solutions (Source RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30010.1.2=ASN1:UTF8:rhel-7-server-e4s-rhui-source-rpms
+1.3.6.1.4.1.2312.9.2.30010.1.6=ASN1:UTF8:/content/e4s/rhel/rhui/server/7/\$releasever/\$basearch/source/SRPMS
+
+1.3.6.1.4.1.2312.9.2.30011.1.1=ASN1:UTF8:Red Hat Enterprise Linux 7 Server - Update Services for SAP Solutions - Optional (Debug RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30011.1.2=ASN1:UTF8:rhel-7-server-e4s-optional-rhui-debug-rpms
+1.3.6.1.4.1.2312.9.2.30011.1.6=ASN1:UTF8:/content/e4s/rhel/rhui/server/7/\$releasever/\$basearch/optional/debug
+
+1.3.6.1.4.1.2312.9.2.30012.1.1=ASN1:UTF8:RHEL for SAP HANA (for RHEL 7 Server) Update Services for SAP Solutions (RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30012.1.2=ASN1:UTF8:rhel-sap-hana-for-rhel-7-server-rhui-e4s-rpms
+1.3.6.1.4.1.2312.9.2.30012.1.6=ASN1:UTF8:/content/e4s/rhel/rhui/server/7/\$releasever/\$basearch/sap-hana/os
+
+1.3.6.1.4.1.2312.9.2.30013.1.1=ASN1:UTF8:Red Hat Enterprise Linux High Availability (for RHEL 7 Server) Update Services for SAP Solutions (Debug RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30013.1.2=ASN1:UTF8:rhel-ha-for-rhel-7-server-e4s-rhui-debug-rpms
+1.3.6.1.4.1.2312.9.2.30013.1.6=ASN1:UTF8:/content/e4s/rhel/rhui/server/7/\$releasever/\$basearch/highavailability/debug
+
+1.3.6.1.4.1.2312.9.2.30014.1.1=ASN1:UTF8:Red Hat Enterprise Linux High Availability (for RHEL 7 Server) Update Services for SAP Solutions (RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30014.1.2=ASN1:UTF8:rhel-ha-for-rhel-7-server-e4s-rhui-rpms
+1.3.6.1.4.1.2312.9.2.30014.1.6=ASN1:UTF8:/content/e4s/rhel/rhui/server/7/\$releasever/\$basearch/highavailability/os
+
