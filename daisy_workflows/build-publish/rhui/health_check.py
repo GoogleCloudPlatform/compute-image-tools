@@ -78,7 +78,6 @@ class ServicesAreActive(HealthCheck):
                    "redis",
                    "pulpcore-api",
                    "pulpcore-content",
-                   "pulpcore-resource-manager",
                    "pulpcore-worker@1",
                    "pulpcore-worker@2",
                    "pulpcore-worker@3",
