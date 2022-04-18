@@ -1,0 +1,165 @@
+[rhui-rhel-8-for-x86_64-appstream-e4s-rhui-debug-rpms]
+name=Red Hat Enterprise Linux 8 for x86_64 - AppStream - Update Services for SAP Solutions from RHUI (Debug RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/e4s/rhel8/rhui/$releasever/x86_64/appstream/debug
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify=1
+sslcacert=/etc/pki/rhui/ca.crt
+sslclientcert=/etc/pki/rhui/product/content.crt
+sslclientkey=/etc/pki/rhui/key.pem
+
+[rhui-rhel-8-for-x86_64-appstream-e4s-rhui-rpms]
+name=Red Hat Enterprise Linux 8 for x86_64 - AppStream - Update Services for SAP Solutions from RHUI (RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/e4s/rhel8/rhui/$releasever/x86_64/appstream/os
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify=1
+sslcacert=/etc/pki/rhui/ca.crt
+sslclientcert=/etc/pki/rhui/product/content.crt
+sslclientkey=/etc/pki/rhui/key.pem
+
+[rhui-rhel-8-for-x86_64-appstream-e4s-rhui-source-rpms]
+name=Red Hat Enterprise Linux 8 for x86_64 - AppStream - Update Services for SAP Solutions from RHUI (Source RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/e4s/rhel8/rhui/$releasever/x86_64/appstream/source/SRPMS
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify=1
+sslcacert=/etc/pki/rhui/ca.crt
+sslclientcert=/etc/pki/rhui/product/content.crt
+sslclientkey=/etc/pki/rhui/key.pem
+
+[rhui-rhel-8-for-x86_64-baseos-e4s-rhui-debug-rpms]
+name=Red Hat Enterprise Linux 8 for x86_64 - BaseOS - Update Services for SAP Solutions from RHUI (Debug RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/e4s/rhel8/rhui/$releasever/x86_64/baseos/debug
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify=1
+sslcacert=/etc/pki/rhui/ca.crt
+sslclientcert=/etc/pki/rhui/product/content.crt
+sslclientkey=/etc/pki/rhui/key.pem
+
+[rhui-rhel-8-for-x86_64-baseos-e4s-rhui-rpms]
+name=Red Hat Enterprise Linux 8 for x86_64 - BaseOS - Update Services for SAP Solutions from RHUI (RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/e4s/rhel8/rhui/$releasever/x86_64/baseos/os
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify=1
+sslcacert=/etc/pki/rhui/ca.crt
+sslclientcert=/etc/pki/rhui/product/content.crt
+sslclientkey=/etc/pki/rhui/key.pem
+
+[rhui-rhel-8-for-x86_64-baseos-e4s-rhui-source-rpms]
+name=Red Hat Enterprise Linux 8 for x86_64 - BaseOS - Update Services for SAP Solutions from RHUI (Source RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/e4s/rhel8/rhui/$releasever/x86_64/baseos/source/SRPMS
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify=1
+sslcacert=/etc/pki/rhui/ca.crt
+sslclientcert=/etc/pki/rhui/product/content.crt
+sslclientkey=/etc/pki/rhui/key.pem
+
+[rhui-rhel-8-for-x86_64-highavailability-e4s-rhui-debug-rpms]
+name=Red Hat Enterprise Linux 8 for x86_64 - High Availability - Update Services for SAP Solutions from RHUI (Debug RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/e4s/rhel8/rhui/$releasever/x86_64/highavailability/debug
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify=1
+sslcacert=/etc/pki/rhui/ca.crt
+sslclientcert=/etc/pki/rhui/product/content.crt
+sslclientkey=/etc/pki/rhui/key.pem
+
+[rhui-rhel-8-for-x86_64-highavailability-e4s-rhui-rpms]
+name=Red Hat Enterprise Linux 8 for x86_64 - High Availability - Update Services for SAP Solutions from RHUI (RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/e4s/rhel8/rhui/$releasever/x86_64/highavailability/os
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify=1
+sslcacert=/etc/pki/rhui/ca.crt
+sslclientcert=/etc/pki/rhui/product/content.crt
+sslclientkey=/etc/pki/rhui/key.pem
+
+[rhui-rhel-8-for-x86_64-highavailability-e4s-rhui-source-rpms]
+name=Red Hat Enterprise Linux 8 for x86_64 - High Availability - Update Services for SAP Solutions from RHUI (Source RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/e4s/rhel8/rhui/$releasever/x86_64/highavailability/source/SRPMS
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify=1
+sslcacert=/etc/pki/rhui/ca.crt
+sslclientcert=/etc/pki/rhui/product/content.crt
+sslclientkey=/etc/pki/rhui/key.pem
+
+[rhui-rhel-8-for-x86_64-sap-netweaver-e4s-rhui-debug-rpms]
+name=Red Hat Enterprise Linux 8 for x86_64 - SAP NetWeaver - Update Services for SAP Solutions from RHUI (Debug RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/e4s/rhel8/rhui/$releasever/x86_64/sap/debug
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify=1
+sslcacert=/etc/pki/rhui/ca.crt
+sslclientcert=/etc/pki/rhui/product/content.crt
+sslclientkey=/etc/pki/rhui/key.pem
+
+[rhui-rhel-8-for-x86_64-sap-netweaver-e4s-rhui-rpms]
+name=Red Hat Enterprise Linux 8 for x86_64 - SAP NetWeaver - Update Services for SAP Solutions from RHUI (RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/e4s/rhel8/rhui/$releasever/x86_64/sap/os
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify=1
+sslcacert=/etc/pki/rhui/ca.crt
+sslclientcert=/etc/pki/rhui/product/content.crt
+sslclientkey=/etc/pki/rhui/key.pem
+
+[rhui-rhel-8-for-x86_64-sap-netweaver-e4s-rhui-source-rpms]
+name=Red Hat Enterprise Linux 8 for x86_64 - SAP NetWeaver - Update Services for SAP Solutions from RHUI (Source RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/e4s/rhel8/rhui/$releasever/x86_64/sap/source/SRPMS
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify=1
+sslcacert=/etc/pki/rhui/ca.crt
+sslclientcert=/etc/pki/rhui/product/content.crt
+sslclientkey=/etc/pki/rhui/key.pem
+
+[rhui-rhel-8-for-x86_64-sap-solutions-e4s-rhui-debug-rpms]
+name=Red Hat Enterprise Linux 8 for x86_64 - SAP Solutions - Update Services for SAP Solutions from RHUI (Debug RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/e4s/rhel8/rhui/$releasever/x86_64/sap-solutions/debug
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify=1
+sslcacert=/etc/pki/rhui/ca.crt
+sslclientcert=/etc/pki/rhui/product/content.crt
+sslclientkey=/etc/pki/rhui/key.pem
+
+[rhui-rhel-8-for-x86_64-sap-solutions-e4s-rhui-rpms]
+name=Red Hat Enterprise Linux 8 for x86_64 - SAP Solutions - Update Services for SAP Solutions from RHUI (RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/e4s/rhel8/rhui/$releasever/x86_64/sap-solutions/os
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify=1
+sslcacert=/etc/pki/rhui/ca.crt
+sslclientcert=/etc/pki/rhui/product/content.crt
+sslclientkey=/etc/pki/rhui/key.pem
+
+[rhui-rhel-8-for-x86_64-sap-solutions-e4s-rhui-source-rpms]
+name=Red Hat Enterprise Linux 8 for x86_64 - SAP Solutions - Update Services for SAP Solutions from RHUI (Source RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/e4s/rhel8/rhui/$releasever/x86_64/sap-solutions/source/SRPMS
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify=1
+sslcacert=/etc/pki/rhui/ca.crt
+sslclientcert=/etc/pki/rhui/product/content.crt
+sslclientkey=/etc/pki/rhui/key.pem
+

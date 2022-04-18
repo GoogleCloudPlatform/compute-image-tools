@@ -1,0 +1,98 @@
+#!/bin/bash
+# Copyright © 2018 Red Hat, Inc.
+#
+# This software is licensed to you under the GNU General Public
+# License as published by the Free Software Foundation; either version
+# 2 of the License (GPLv2) or (at your option) any later version.
+# There is NO WARRANTY for this software, express or implied,
+# including the implied warranties of MERCHANTABILITY,
+# NON-INFRINGEMENT, or FITNESS FOR A PARTICULAR PURPOSE. You should
+# have received a copy of GPLv2 along with this software; if not, see
+# http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.
+
+set -e
+
+VERSION="1.0.0"
+
+YUM_RELVER_PATH="/etc/yum/vars/releasever"
+
+SET_ERR_MSG="The set option takes only one value"
+UNSET_ERR_MSG="The unset option does not take any value"
+NO_ROOT_ERR_MSG="This script needs to run with root privileges"
+
+
+function print_help {
+    echo -e "Usage: $(basename $0) [option] ... [--set RELEASE_VERSION | --unset ]\n"
+    echo -e "Set release version string for Yum in /etc/yum/vars\n"
+    echo -e "When no option is specified, print the currently set version.\n"
+    echo -e "  -s, --set\t\tset the releasever for yum (the value is not validated)"
+    echo -e "  -u, --unset\t\tremove any previously set value of releasever"
+    echo -e "  -h, --help\t\tshow this help and exit"
+    echo -e "      --version\t\tprint version string"
+}
+
+function print_version {
+    echo "$(basename $0) $VERSION"
+}
+
+function cat_version {
+    cat $YUM_RELVER_PATH 2>/dev/null || :
+}
+
+function set_release_version {
+    echo "$1" > $YUM_RELVER_PATH
+}
+
+function remove_release_version {
+    rm -f $YUM_RELVER_PATH
+}
+
+function check_for_help {
+    for OPTION in $@ ; do
+        [ "$OPTION" == "-h" ] && print_help && exit 0
+        [ "$OPTION" == "--help" ] && print_help && exit 0
+    done
+
+    return 0
+}
+
+function check_for_version {
+    for OPTION in $@ ; do
+        [ "$OPTION" == "--version" ] && print_version && exit 0
+    done
+
+    return 0
+}
+
+function check_for_root {
+    [ $EUID -ne 0 ] && echo $NO_ROOT_ERR_MSG && exit 1
+
+    return 0
+}
+
+function main {
+    # processing cli arguments
+    if [ $# -eq 0 ]; then
+        cat_version
+    else
+        check_for_help $@
+        check_for_version $@
+        check_for_root
+
+        if [ "$1" == "--set" -o "$1" == "-s" ] ; then
+            shift
+            [ $# -ne 1 ] && echo $SET_ERR_MSG && exit 1
+            set_release_version $@
+        elif [ "$1" == "--unset" -o "$1" == "-u" ] ; then
+            shift
+            [ $# -ne 0 ] && echo $UNSET_ERR_MSG && exit 1
+            remove_release_version
+        else
+            echo "Invalid options: $@"
+            exit 1
+        fi
+    fi
+}
+
+
+main $@
