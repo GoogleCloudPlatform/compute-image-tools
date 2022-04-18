@@ -1,26 +1,25 @@
 {
   "Name": "cds",
   {{$work_project := printf "%q" "gce-image-builder" -}}
-  {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*6"` -}}
-  {{if eq .environment "prod" -}}
-  "WorkProject": {{$work_project}},
-  "PublishProject": "rhel-cloud",
-  "ComputeEndpoint": {{$endpoint}},
+
+  "ComputeEndpoint": "https://www.googleapis.com/compute/alpha/projects/",
+  {{if eq .environment "test" -}}
+  "PublishProject": "google.com:rhel-infra",
+  {{- else if eq .environment "prod" -}}
+  "PublishProject": "google.com:rhel-infra",
   {{- else -}}
-  "WorkProject": {{$work_project}},
   "PublishProject": {{$work_project}},
-  "ComputeEndpoint": {{$endpoint}},
   "DeleteAfter": {{$delete_after}},
   {{- end}}
-  {{$guest_features := `["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "SEV_CAPABLE", "GVNIC"]` -}}
+
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
       "Family": "cds",
       "Prefix": "cds",
       "Description": "Content Delivery Server node image, built {{$time}}",
-      "GuestOsFeatures": {{$guest_features}}
+      "GuestOsFeatures": ["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "SEV_CAPABLE", "GVNIC"]
     }
   ]
 }
