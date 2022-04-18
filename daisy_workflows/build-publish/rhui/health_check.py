@@ -20,7 +20,6 @@ import os
 import subprocess
 import sys
 import tempfile
-import typing
 
 NFS_MOUNT = "/var/lib/rhui/remote_share"
 
@@ -71,25 +70,24 @@ class MountIsReadable(HealthCheck):
 class ServicesAreActive(HealthCheck):
 
   cds_services = ["gunicorn-auth",
-		 "gunicorn-mirror",
-		 "gunicorn-content_manager",
-		 "nginx"]
+                  "gunicorn-mirror",
+                  "gunicorn-content_manager",
+                  "nginx"]
 
   rhua_services = ["postgresql",
-		  "redis",
-		  "pulpcore-api",
-		  "pulpcore-content",
-		  "pulpcore-resource-manager",
-		  "pulpcore-worker@1",
-		  "pulpcore-worker@2",
-		  "pulpcore-worker@3",
-		  "pulpcore-worker@4",
-                  "heck",
-		  "pulpcore-worker@5",
-		  "pulpcore-worker@6",
-		  "pulpcore-worker@7",
-		  "pulpcore-worker@8",
-		  "nginx"]
+                   "redis",
+                   "pulpcore-api",
+                   "pulpcore-content",
+                   "pulpcore-resource-manager",
+                   "pulpcore-worker@1",
+                   "pulpcore-worker@2",
+                   "pulpcore-worker@3",
+                   "pulpcore-worker@4",
+                   "pulpcore-worker@5",
+                   "pulpcore-worker@6",
+                   "pulpcore-worker@7",
+                   "pulpcore-worker@8",
+                   "nginx"]
 
   def _run(self, node: str):
     self.logger.info("checking that %s services are active", node)
