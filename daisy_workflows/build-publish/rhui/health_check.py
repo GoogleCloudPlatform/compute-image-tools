@@ -17,9 +17,12 @@ import argparse
 import logging
 import logging.handlers
 import os
+import subprocess
 import sys
 import tempfile
 import typing
+
+NFS_MOUNT = "/var/lib/rhui/remote_share"
 
 
 class HealthChecks:
@@ -34,15 +37,8 @@ class HealthChecks:
   def mount_uses_nfs(self, logger: logging.Logger):
     logger.info("checking that %s is mounted as NFS", self.nfs_mount)
     with open("/proc/mounts") as mounts:
-      for line in mounts:
-        parts = line.split()
-        mnt_point, mnt_type = parts[1], parts[2]
-        if mnt_point == self.nfs_mount:
-          if mnt_type == "nfs":
-            return
-          else:
-            raise EnvironmentError("Not mounted as nfs. mount: %s" % line)
-    raise EnvironmentError("%s not in /proc/mounts" % self.nfs_mount)
+        if "/var/lib/rhui/remote_share nfs rw" not in mounts:
+            raise EnvironmentError("%s not mounted")
 
   def mount_is_writable(self, logger: logging.Logger):
     logger.info("checking that %s is writable", self.nfs_mount)
@@ -52,6 +48,37 @@ class HealthChecks:
   def mount_is_readable(self, logger: logging.Logger):
     logger.info("checking that %s is readable", self.nfs_mount)
     os.listdir(self.nfs_mount)
+
+  def cds_services_are_active(self, logger: logging.Logger):
+    logger.info("checking that services are active")
+    self._check_services(["gunicorn-auth",
+                          "gunicorn-mirror",
+                          "gunicorn-content_manager",
+                          "nginx"])
+
+  def rhua_services_are_active(self, logger: logging.Logger):
+    logger.info("checking that services are active")
+    self._check_services(["postgresql",
+                          "redis",
+                          "pulpcore-api",
+                          "pulpcore-content",
+                          "pulpcore-resource-manager",
+                          "pulpcore-worker@1",
+                          "pulpcore-worker@2",
+                          "pulpcore-worker@3",
+                          "pulpcore-worker@4",
+                          "pulpcore-worker@5",
+                          "pulpcore-worker@6",
+                          "pulpcore-worker@7",
+                          "pulpcore-worker@8",
+                          "nginx"])
+
+  def _check_services(self, services):
+    for service in services:
+      subprocess.run(["systemctl", "is-active", service],
+                     stdout=subprocess.PIPE,
+                     stderr=subprocess.PIPE,
+                     check=True)
 
 
 def main(node_type: str, result_file: typing.TextIO, nfs_mount: str):
@@ -67,6 +94,11 @@ def main(node_type: str, result_file: typing.TextIO, nfs_mount: str):
   if node_type == "rhua":
     checks += [
       health_checks.mount_is_writable,
+      health_checks.rhua_services_are_active,
+    ]
+  if node_type == "cds":
+    checks += [
+      health_checks.cds_services_are_active,
     ]
   success = True
   for func in checks:
@@ -89,7 +121,6 @@ if __name__ == "__main__":
     "--node",
     dest="node",
     type=str,
-    nargs=1,
     required=True,
     choices=["cds", "rhua"],
     help="type of node where check is running",
@@ -101,37 +132,13 @@ if __name__ == "__main__":
     type=argparse.FileType("w"),
     help="file to write result",
   )
-  parser.add_argument(
-    "--nfs_mount",
-    dest="nfs_mount",
-    type=str,
-    nargs=1,
-    required=True,
-    help="directory of NFS mount",
-  )
-  parser.add_argument(
-    "--log",
-    dest="log",
-    type=str,
-    nargs=1,
-    choices=["stdout", "syslog"],
-    default="syslog",
-    help="where to write logs",
-  )
   args = parser.parse_args()
-  if args.log[0] == "stdout":
-    handler = logging.StreamHandler(sys.stdout)
-  else:
-    handler = logging.handlers.SysLogHandler(address="/dev/log")
-    # syslog parses on the colon to determine the tag for the message.
-    handler.ident = "rhui-health-check: "
+
+  handler = logging.StreamHandler(sys.stdout)
   logging.basicConfig(
     level=logging.DEBUG,
     format="%(name)s - %(levelname)s - %(message)s",
     handlers=[handler],
   )
-  main(
-    node_type=args.node[0],
-    result_file=args.result_file,
-    nfs_mount=args.nfs_mount[0],
-  )
+
+  main(args.node, args.result_file, NFS_MOUNT)
