@@ -186,7 +186,8 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap):
   if (release.startswith('rhel-8') or release.startswith('centos-8')
       or release.startswith('centos-stream-8')
       or release.startswith('almalinux-8')
-      or release.startswith('rocky-linux-8')):
+      or release.startswith('rocky-linux-8')
+      or release.startswith('rocky-linux-optimized-gcp-8')):
     major = 8
   if (release.startswith('rhel-9')
       or release.startswith('centos-stream-9')
