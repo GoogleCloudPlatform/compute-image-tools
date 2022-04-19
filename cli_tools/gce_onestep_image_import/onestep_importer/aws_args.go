@@ -39,6 +39,8 @@ type awsImportArguments struct {
 	gcsProjectPtr      *string
 	gcsZone            string
 	gcsRegion          string
+	gcsNetwork         string
+	gcsSubnet          string
 	gcsScratchBucket   string
 	gcsStorageLocation string
 	region             string
@@ -81,6 +83,8 @@ func newAWSImportArguments(args *OneStepImportArguments) *awsImportArguments {
 		gcsProjectPtr:      args.ProjectPtr,
 		gcsZone:            args.Zone,
 		gcsRegion:          args.Region,
+		gcsNetwork:         args.Network,
+		gcsSubnet:          args.Subnet,
 		gcsScratchBucket:   args.ScratchBucketGcsPath,
 		gcsStorageLocation: args.StorageLocation,
 		region:             args.AWSRegion,
@@ -97,9 +101,8 @@ func (args *awsImportArguments) validateAndPopulate(populator param.Populator) e
 		return err
 	}
 
-	networkNotUsed, subnetNotUsed := "", ""
 	err = populator.PopulateMissingParameters(args.gcsProjectPtr, args.clientID, &args.gcsZone,
-		&args.gcsRegion, &args.gcsScratchBucket, "", &args.gcsStorageLocation, &networkNotUsed, &subnetNotUsed)
+		&args.gcsRegion, &args.gcsScratchBucket, "", &args.gcsStorageLocation, &args.gcsNetwork, &args.gcsSubnet)
 	if err != nil {
 		return err
 	}
