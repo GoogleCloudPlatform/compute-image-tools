@@ -273,7 +273,7 @@ function Configure-Power {
     Write-Host 'Power plan updated successfully'
   }
   else {
-    Write-Host 'Failed to update the power plan'
+     throw 'Failed to update the power plan'
   }
 }
 
