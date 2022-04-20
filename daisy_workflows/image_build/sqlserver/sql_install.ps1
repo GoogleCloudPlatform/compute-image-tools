@@ -259,6 +259,24 @@ function Enable-MicrosoftUpdate {
   $service_manager.AddService2("7971f918-a847-4430-9279-4a52d1efe18d",7,"")
 }
 
+function Configure-Power {
+  <#
+    .SYNOPSIS
+      Change power plan to High-performance.
+  #>
+  Write-Host 'Changing power plan to High performance'
+  $power_plan = Get-CimInstance -Namespace 'root\cimv2\power' -ClassName 'win32_PowerPlan' -OperationTimeoutSec 5 -Filter "ElementName = 'High performance'" -ErrorAction SilentlyContinue
+  powercfg /setactive $power_plan.InstanceID.ToString().Replace("Microsoft:PowerPlan\{","").Replace("}","")
+  
+  $active_plan = powercfg /getactivescheme
+  if ($active_plan -like '*High performance*') {
+    Write-Host 'Power plan updated successfully'
+  }
+  else {
+    Write-Host 'Failed to update the power plan'
+  }
+}
+
 try {
   if (!(Test-Path 'D:\')) {
     $sysprep = 'c:\Windows\System32\Sysprep'
@@ -268,6 +286,7 @@ try {
     Install-SqlServer
     Install-SSMS
     Enable-MicrosoftUpdate
+    Configure-Power
   }
 
   $reboot_required = Install-WindowsUpdates
