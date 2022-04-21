@@ -15,11 +15,8 @@
 package daisyutils
 
 import (
-	"os"
-	"path"
 	"reflect"
 	"sort"
-	"strings"
 	"testing"
 
 	daisy "github.com/GoogleCloudPlatform/compute-daisy"
@@ -86,69 +83,6 @@ func Test_GetTranslationSettings_ResolveSameWorkflowPathAsOldMap(t *testing.T) {
 			settings, err := GetTranslationSettings(osID)
 			assert.NoError(t, err)
 			assert.Equal(t, workflowPath, settings.WorkflowPath)
-		})
-	}
-}
-
-func Test_ComputeServiceAccountVar_SupportedByAllOSes(t *testing.T) {
-	workflowDir := "../../../../daisy_workflows/image_import"
-	for _, o := range supportedOS {
-		t.Run(o.GcloudOsFlag, func(t *testing.T) {
-			workflowPath := path.Join(workflowDir, o.WorkflowPath)
-			if _, err := os.Stat(workflowPath); os.IsNotExist(err) {
-				t.Fatal("Can't find", workflowPath)
-			}
-
-			wf, err := daisy.NewFromFile(workflowPath)
-			assert.NoError(t, err)
-			_, ok := wf.Vars["compute_service_account"]
-			assert.True(t, ok, "compute_service_account not supported by %s", o.WorkflowPath)
-		})
-	}
-}
-
-func Test_GetTranslationSettings_ReturnsSameLicenseAsContainedInJSON(t *testing.T) {
-	// Originally, the JSON workflows in daisy_workflows/image_import were the source of truth
-	// for licensing info. This test verifies that the license returned by GetTranslationSettings
-	// is the same as the JSON workflow.
-
-	workflowDir := "../../../../daisy_workflows/image_import"
-
-	if _, err := os.Stat(workflowDir); os.IsNotExist(err) {
-		t.Fatal("Can't find", workflowDir)
-	}
-	for _, osID := range GetSortedOSIDs() {
-		t.Run(osID, func(t *testing.T) {
-			settings, err := GetTranslationSettings(osID)
-			assert.NoError(t, err)
-			assert.NotEmpty(t, settings.WorkflowPath)
-			assert.Contains(t, settings.LicenseURI, "licenses/")
-
-			workflowPath := path.Join(workflowDir, settings.WorkflowPath)
-			if _, err := os.Stat(workflowPath); os.IsNotExist(err) {
-				t.Fatal("Can't find", workflowPath)
-			}
-
-			// Ensure that the license from TranslationSettings is specified in the
-			// JSON workflow.
-			var licensesInWorkflow []string
-			wf, err := daisy.NewFromFile(workflowPath)
-			assert.NoError(t, err)
-
-			// SLES workflows put the license in a variable. All others
-			// put the license directly in the CreateImage step.
-			if strings.Contains(osID, "sles") {
-				licensesInWorkflow = []string{wf.Vars["license"].Value}
-			} else {
-				for _, step := range wf.Steps {
-					if step.CreateImages != nil {
-						for _, image := range step.CreateImages.Images {
-							licensesInWorkflow = image.Licenses
-						}
-					}
-				}
-			}
-			assert.Contains(t, licensesInWorkflow, settings.LicenseURI)
 		})
 	}
 }
