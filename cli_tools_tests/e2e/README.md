@@ -2,57 +2,45 @@ e2e tests: Invoke gcloud and the wrapper binaries using their public APIs.
 
 ## Overview
 
-Each directory adjacent to this README is a test suite. At the time of writing, there are four test suites:
+Each directory adjacent to this README is a test suite.
+At the time of writing, there is one test suite:
 
 ```
-gce_image_import_export
-gce_ovf_export
-gce_ovf_import
 gce_windows_upgrade
 ```
 
-We build, deploy, and invoke the e2e tests using Docker images, with one image per test suite. The Docker image
-contains:
+We build, deploy, and invoke the e2e tests using Docker images,
+with one image per test suite. The Docker image contains:
 
 1. Tests, as a compiled go binary
 2. One or more wrappers, as a compiled go binary.
 3. gcloud
 
-The Dockerfiles that generate these images are in the root of this repository. At the time of writing, they are:
+The Dockerfiles that generate these images are in the root of this repository.
+At the time of writing, there is one Dockerfile:
 
 ```
-gce_image_import_export_tests.Dockerfile
-gce_ovf_export_tests.Dockerfile
-gce_ovf_import_tests.Dockerfile
 gce_windows_upgrade_tests.Dockerfile
 ```
 
 ## Quick Run
 
-To run e2e tests, we recommend using the script `run_e2e.sh` from the root of this repository.
-The header of that file contains usage information.
+To run e2e tests, we recommend using the script `run_e2e.sh` from the
+root of this repository. The header of that file contains usage information.
 
 ## Details about building
 
 Build e2e Dockerfiles using `docker build -f <docker file name>`.
 
-This example builds the tests associated with `gce_image_import_export_tests.Dockerfile`, and stores the image in a
-tag `gce_image_import_export_tests`.
+This example builds the tests associated with
+`gce_windows_upgrade_tests.Dockerfile`, and stores the image in a tag
+`gce_windows_upgrade_tests`.
 
 From the root of this repository, execute:
 
 ```shell
-gcloud auth login
-gcloud auth configure-docker
-docker build -f gce_image_import_export_tests.Dockerfile . -t gce_image_import_export_tests
+docker build -f gce_windows_upgrade_tests.Dockerfile . -t gce_windows_upgrade_tests
 ```
-
-Notes:
-
-1. The first two gcloud commands ensure that your local docker installation can read
-   the `gcr.io/compute-image-tools-test/wrapper-with-gcloud:latest` image.
-
-Use the same syntax to build other e2e Dockerfiles.
 
 ## Details about running
 
@@ -66,11 +54,11 @@ gcloud auth application-default login
 docker run --env GOOGLE_APPLICATION_CREDENTIALS= \
            --env CLOUDSDK_CONFIG=/root/.config/gcloud \
            -v $HOME/.config/gcloud:/root/.config/gcloud \
-           gce_image_import_export_tests \
+           gce_windows_upgrade_tests \
            -test_project_id $PROJECT \
            -test_zone us-central1-a \
-           -test_suite_filter=^ImageImport$ \
-           -test_case_filter=ubuntu
+           -test_suite_filter=^WindowsUpgradeTests$ \
+           -test_case_filter=BYOL
 ```
 
 Notes:

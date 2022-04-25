@@ -1,44 +1,70 @@
-# Compute Engine Image Tools
+# Compute Image Tools
 
-This repository contains various tools for managing disk images on Google
-Compute Engine.
+Tools for building, testing, releasing, and upgrading
+[Google Compute Engine images](https://cloud.google.com/compute/docs/images).
 
-## Docs
+## [GCE Export](cli_tools/gce_export)
 
-The main documentation for the tools in this repository can be found on our
-[GitHub.io page](https://googlecloudplatform.github.io/compute-image-tools/).
+Streams an attached Google Compute Engine disk to an image file in a Google
+Cloud Storage bucket.
 
-## [Daisy](daisy)
+**Docker**
 
-Daisy is a solution for running multi-step workflows on GCE.
+- Latest: `gcr.io/compute-image-tools/gce_export:latest`
+- Release: `gcr.io/compute-image-tools/gce_export:release`
 
-### [Daisy Workflows](daisy_workflows)
+**Linux x64**
 
-Full featured Daisy workflow examples, image builds, and image import
-workflows. A [user guide](daisy_workflows/import_userguide.md) for VM imports is
-also provided here.
+- [Latest](https://storage.googleapis.com/compute-image-tools/latest/linux/gce_export)
+- [Release](https://storage.googleapis.com/compute-image-tools/release/linux/gce_export)
 
-### [Daisy Tutorials](daisy_tutorials)
+**Windows x64**
 
-Basic workflow examples and tutorials for getting started with Daisy.
+- [Latest](https://storage.googleapis.com/compute-image-tools/latest/windows/gce_export.exe)
+- [Release](https://storage.googleapis.com/compute-image-tools/release/windows/gce_export.exe)
 
-## [GCE Export tool](cli_tools/gce_export)
+## [Windows Upgrade](cli_tools/gce_windows_upgrade)
 
-The gce_export tool streams a local disk to a Google Compute Engine
-image file in a Google Cloud Storage bucket.
+Performs in-place OS upgrades. The tool can be invoked
+with [`gcloud beta compute os-config os-upgrade`](https://cloud.google.com/sdk/gcloud/reference/beta/compute/os-config/os-upgrade).
 
-### Prebuilt binaries
-Prebuilt binaries are available for Windows, and Linux.
 
-Built from the latest GitHub release (all 64bit):
+**Docker**
 
-+ [Windows](https://storage.googleapis.com/compute-image-tools/release/windows/gce_export.exe)
-+ [Linux](https://storage.googleapis.com/compute-image-tools/release/linux/gce_export)
+- Latest: `gcr.io/compute-image-tools/gce_windows_upgrade:latest`
+- Release: `gcr.io/compute-image-tools/gce_windows_upgrade:release`
 
-Built from the latest commit to the master branch (all 64bit):
+**Linux x64**
 
-+ [Windows](https://storage.googleapis.com/compute-image-tools/latest/windows/gce_export.exe)
-+ [Linux](https://storage.googleapis.com/compute-image-tools/latest/linux/gce_export)
+- [Latest](https://storage.googleapis.com/compute-image-tools/latest/linux/gce_windows_upgrade)
+- [Release](https://storage.googleapis.com/compute-image-tools/release/linux/gce_windows_upgrade)
+
+
+## [Image Publish](cli_tools/gce_image_publish)
+
+Creates Google Compute Engine images from raw disk files.
+
+**Docker**
+
+- Latest: `gcr.io/compute-image-tools/gce_image_publish:latest`
+- Release: `gcr.io/compute-image-tools/gce_image_publish:release`
+
+**Linux x64**
+
+- [Latest](https://storage.googleapis.com/compute-image-tools/latest/linux/gce_image_publish)
+- [Release](https://storage.googleapis.com/compute-image-tools/release/linux/gce_image_publish)
+
+**Windows x64**
+
+- [Latest](https://storage.googleapis.com/compute-image-tools/latest/windows/gce_image_publish.exe)
+- [Release](https://storage.googleapis.com/compute-image-tools/release/windows/gce_image_publish.exe)
+
+**OSX x64**
+
+- [Latest](https://storage.googleapis.com/compute-image-tools/latest/darwin/gce_image_publish)
+- [Release](https://storage.googleapis.com/compute-image-tools/release/darwin/gce_image_publish)
+
+
 
 ## Contributing
 
