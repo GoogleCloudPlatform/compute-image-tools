@@ -1,5 +1,5 @@
 {
-  "Name": "cos-81-lts",
+  "Name": "cos-93-lts",
   {{if eq .environment "oslogin-staging" -}}
   "WorkProject": "oslogin-staging-project",
   "PublishProject": "oslogin-staging-project",
@@ -12,9 +12,9 @@
   "DeleteAfter": "24h*30*6",
   "Images": [
     {
-      "Prefix": "cos-81-lts",
-      "Family": "cos-81-lts",
-      "Description": "COS 81 LTS",
+      "Prefix": "cos-93-lts",
+      "Family": "cos-93-lts",
+      "Description": "COS 93 LTS",
       "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE", "SEV_CAPABLE"]
     }
   ]

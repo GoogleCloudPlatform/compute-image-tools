@@ -1,5 +1,5 @@
 {
-  "Name": "cos-81-lts-export",
+  "Name": "cos-97-lts-export",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -22,7 +22,7 @@
       "CreateDisks": [
         {
           "Name": "disk-image",
-          "SourceImage": "projects/cos-cloud/global/images/family/cos-81-lts",
+          "SourceImage": "projects/cos-cloud/global/images/family/cos-97-lts",
           "Type": "pd-ssd"
         }
       ]
