@@ -42,7 +42,7 @@
       "Description": "GCS or local filesystem location containing Windows update files."
     },
     "drivers_bucket": {
-      "Value": "gs://gce-windows-drivers-public/release/win6.3-signed/",
+      "Value": "gs://gce-windows-drivers-public/release/win6.3-signed-stornvme/",
       "Description": "GCS location containing the GCP Windows driver files."
     },
     "install_disk_size": {

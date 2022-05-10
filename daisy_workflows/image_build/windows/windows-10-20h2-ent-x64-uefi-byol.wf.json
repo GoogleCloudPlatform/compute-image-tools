@@ -55,7 +55,7 @@
           "install_disk": "${install_disk}",
           "install_disk_size": "50",
           "updates": "${updates}",
-          "drivers_bucket": "gs://gce-windows-drivers-public/release/win6.3-signed/",
+          "drivers_bucket": "gs://gce-windows-drivers-public/release/win6.3-signed-stornvme/",
           "dotnet48": "${dotnet48}",
           "pwsh": "${pwsh}",
           "edition": "Windows 10 ENTERPRISE",
