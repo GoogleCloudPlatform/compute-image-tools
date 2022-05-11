@@ -1,25 +1,14 @@
 {{/*
-    Template to publish an image exclusively for testing.
-    By default this template is setup to publish to the 'gce-image-builder'
-    project, the 'environment' variable can be used to publish to 'prod'.
-    DeleteAfter is set to 180 days for all environments.
+    Template to publish a test image through our production image release process.
+    By default this template is setup to publish to the 'gce-image-builder' project.
+    DeleteAfter is set to 12 hours.
   */}}
 {
   "Name": "test-image",
-  {{$work_project := printf "%q" "gce-image-builder" -}}
-  {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
-  {{$delete_after := `"12h"` -}}
-  {{if eq .environment "prod" -}}
-  "WorkProject": {{$work_project}},
+  "WorkProject": "gce-image-builder",
   "PublishProject": "bct-prod-images",
-  "ComputeEndpoint": {{$endpoint}},
-  "DeleteAfter": {{$delete_after}},
-  {{- else -}}
-  "WorkProject": {{$work_project}},
-  "PublishProject": {{$work_project}},
-  "ComputeEndpoint": {{$endpoint}},
-  "DeleteAfter": {{$delete_after}},
-  {{- end}}
+  "ComputeEndpoint": "https://www.googleapis.com/compute/alpha/projects/",
+  "DeleteAfter": "12h",
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
@@ -27,11 +16,7 @@
       "Family": "test-image",
       "Description": "This is a test image built on {{$time}}.",
       "Licenses": [
-        {{if (or (eq .environment "staging") (eq .environment "oslogin-staging")) -}}
-        "projects/bct-staging-functional/global/licenses/debian-11-bullseye"
-        {{- else -}}
         "projects/debian-cloud/global/licenses/debian-11-bullseye"
-        {{- end}}
       ],
       "GuestOsFeatures": ["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE"]
     }
