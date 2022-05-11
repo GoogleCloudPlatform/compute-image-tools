@@ -1,0 +1,62 @@
+[rhui]
+basicConstraints=CA:FALSE
+1.3.6.1.4.1.2312.9.2.30000.1.1=ASN1:UTF8:Red Hat CodeReady Linux Builder for RHEL 9 x86_64 (RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30000.1.2=ASN1:UTF8:codeready-builder-for-rhel-9-x86_64-rhui-rpms
+1.3.6.1.4.1.2312.9.2.30000.1.6=ASN1:UTF8:/content/dist/rhel9/rhui/\$releasever/x86_64/codeready-builder/os
+
+1.3.6.1.4.1.2312.9.2.30001.1.1=ASN1:UTF8:Red Hat Enterprise Linux 9 for x86_64 - Supplementary (Source RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30001.1.2=ASN1:UTF8:rhel-9-for-x86_64-supplementary-rhui-source-rpms
+1.3.6.1.4.1.2312.9.2.30001.1.6=ASN1:UTF8:/content/dist/rhel9/rhui/\$releasever/x86_64/supplementary/source/SRPMS
+
+1.3.6.1.4.1.2312.9.2.30002.1.1=ASN1:UTF8:Red Hat Enterprise Linux 9 for x86_64 - High Availability (Source RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30002.1.2=ASN1:UTF8:rhel-9-for-x86_64-highavailability-source-rhui-rpms
+1.3.6.1.4.1.2312.9.2.30002.1.6=ASN1:UTF8:/content/dist/rhel9/rhui/\$releasever/x86_64/highavailability/source/SRPMS
+
+1.3.6.1.4.1.2312.9.2.30003.1.1=ASN1:UTF8:Red Hat Enterprise Linux 9 for x86_64 - AppStream from RHUI (Source RPMs)
+1.3.6.1.4.1.2312.9.2.30003.1.2=ASN1:UTF8:rhel-9-for-x86_64-appstream-rhui-source-rpms
+1.3.6.1.4.1.2312.9.2.30003.1.6=ASN1:UTF8:/content/dist/rhel9/rhui/\$releasever/x86_64/appstream/source/SRPMS
+
+1.3.6.1.4.1.2312.9.2.30004.1.1=ASN1:UTF8:Red Hat Enterprise Linux 9 for x86_64 - High Availability (RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30004.1.2=ASN1:UTF8:rhel-9-for-x86_64-highavailability-rhui-rpms
+1.3.6.1.4.1.2312.9.2.30004.1.6=ASN1:UTF8:/content/dist/rhel9/rhui/\$releasever/x86_64/highavailability/os
+
+1.3.6.1.4.1.2312.9.2.30005.1.1=ASN1:UTF8:Red Hat CodeReady Linux Builder for RHEL 9 x86_64 (Source RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30005.1.2=ASN1:UTF8:codeready-builder-for-rhel-9-x86_64-rhui-source-rpms
+1.3.6.1.4.1.2312.9.2.30005.1.6=ASN1:UTF8:/content/dist/rhel9/rhui/\$releasever/x86_64/codeready-builder/source/SRPMS
+
+1.3.6.1.4.1.2312.9.2.30006.1.1=ASN1:UTF8:Red Hat Enterprise Linux 9 for x86_64 - AppStream from RHUI (Debug RPMs)
+1.3.6.1.4.1.2312.9.2.30006.1.2=ASN1:UTF8:rhel-9-for-x86_64-appstream-rhui-debug-rpms
+1.3.6.1.4.1.2312.9.2.30006.1.6=ASN1:UTF8:/content/dist/rhel9/rhui/\$releasever/x86_64/appstream/debug
+
+1.3.6.1.4.1.2312.9.2.30007.1.1=ASN1:UTF8:Red Hat Enterprise Linux 9 for x86_64 - Supplementary (Debug RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30007.1.2=ASN1:UTF8:rhel-9-for-x86_64-supplementary-rhui-debug-rpms
+1.3.6.1.4.1.2312.9.2.30007.1.6=ASN1:UTF8:/content/dist/rhel9/rhui/\$releasever/x86_64/supplementary/debug
+
+1.3.6.1.4.1.2312.9.2.30008.1.1=ASN1:UTF8:Red Hat Enterprise Linux 9 for x86_64 - BaseOS from RHUI (Source RPMs)
+1.3.6.1.4.1.2312.9.2.30008.1.2=ASN1:UTF8:rhel-9-for-x86_64-baseos-rhui-source-rpms
+1.3.6.1.4.1.2312.9.2.30008.1.6=ASN1:UTF8:/content/dist/rhel9/rhui/\$releasever/x86_64/baseos/source/SRPMS
+
+1.3.6.1.4.1.2312.9.2.30009.1.1=ASN1:UTF8:Red Hat Enterprise Linux 9 for x86_64 - AppStream from RHUI (RPMs)
+1.3.6.1.4.1.2312.9.2.30009.1.2=ASN1:UTF8:rhel-9-for-x86_64-appstream-rhui-rpms
+1.3.6.1.4.1.2312.9.2.30009.1.6=ASN1:UTF8:/content/dist/rhel9/rhui/\$releasever/x86_64/appstream/os
+
+1.3.6.1.4.1.2312.9.2.30010.1.1=ASN1:UTF8:Red Hat CodeReady Linux Builder for RHEL 9 x86_64 (Debug RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30010.1.2=ASN1:UTF8:codeready-builder-for-rhel-9-x86_64-rhui-debug-rpms
+1.3.6.1.4.1.2312.9.2.30010.1.6=ASN1:UTF8:/content/dist/rhel9/rhui/\$releasever/x86_64/codeready-builder/debug
+
+1.3.6.1.4.1.2312.9.2.30011.1.1=ASN1:UTF8:Red Hat Enterprise Linux 9 for x86_64 - BaseOS from RHUI (Debug RPMs)
+1.3.6.1.4.1.2312.9.2.30011.1.2=ASN1:UTF8:rhel-9-for-x86_64-baseos-rhui-debug-rpms
+1.3.6.1.4.1.2312.9.2.30011.1.6=ASN1:UTF8:/content/dist/rhel9/rhui/\$releasever/x86_64/baseos/debug
+
+1.3.6.1.4.1.2312.9.2.30012.1.1=ASN1:UTF8:Red Hat Enterprise Linux 9 for x86_64 - High Availability (Debug RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30012.1.2=ASN1:UTF8:rhel-9-for-x86_64-highavailability-debug-rhui-rpms
+1.3.6.1.4.1.2312.9.2.30012.1.6=ASN1:UTF8:/content/dist/rhel9/rhui/\$releasever/x86_64/highavailability/debug
+
+1.3.6.1.4.1.2312.9.2.30013.1.1=ASN1:UTF8:Red Hat Enterprise Linux 9 for x86_64 - Supplementary (RPMs) from RHUI
+1.3.6.1.4.1.2312.9.2.30013.1.2=ASN1:UTF8:rhel-9-for-x86_64-supplementary-rhui-rpms
+1.3.6.1.4.1.2312.9.2.30013.1.6=ASN1:UTF8:/content/dist/rhel9/rhui/\$releasever/x86_64/supplementary/os
+
+1.3.6.1.4.1.2312.9.2.30014.1.1=ASN1:UTF8:Red Hat Enterprise Linux 9 for x86_64 - BaseOS from RHUI (RPMs)
+1.3.6.1.4.1.2312.9.2.30014.1.2=ASN1:UTF8:rhel-9-for-x86_64-baseos-rhui-rpms
+1.3.6.1.4.1.2312.9.2.30014.1.6=ASN1:UTF8:/content/dist/rhel9/rhui/\$releasever/x86_64/baseos/os
+
