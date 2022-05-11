@@ -5,7 +5,6 @@ enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 sslverify=1
-sslcacert=/etc/pki/rhui/ca.crt
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
@@ -16,7 +15,6 @@ enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 sslverify=1
-sslcacert=/etc/pki/rhui/ca.crt
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
@@ -27,7 +25,6 @@ enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 sslverify=1
-sslcacert=/etc/pki/rhui/ca.crt
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
@@ -38,7 +35,6 @@ enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 sslverify=1
-sslcacert=/etc/pki/rhui/ca.crt
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
@@ -49,7 +45,6 @@ enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 sslverify=1
-sslcacert=/etc/pki/rhui/ca.crt
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
@@ -60,7 +55,6 @@ enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 sslverify=1
-sslcacert=/etc/pki/rhui/ca.crt
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
@@ -71,7 +65,6 @@ enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 sslverify=1
-sslcacert=/etc/pki/rhui/ca.crt
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
@@ -82,7 +75,6 @@ enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 sslverify=1
-sslcacert=/etc/pki/rhui/ca.crt
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
@@ -93,7 +85,6 @@ enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 sslverify=1
-sslcacert=/etc/pki/rhui/ca.crt
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
@@ -104,7 +95,6 @@ enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 sslverify=1
-sslcacert=/etc/pki/rhui/ca.crt
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
@@ -115,7 +105,6 @@ enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 sslverify=1
-sslcacert=/etc/pki/rhui/ca.crt
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
@@ -126,7 +115,6 @@ enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 sslverify=1
-sslcacert=/etc/pki/rhui/ca.crt
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
@@ -137,7 +125,6 @@ enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 sslverify=1
-sslcacert=/etc/pki/rhui/ca.crt
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
@@ -148,7 +135,6 @@ enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 sslverify=1
-sslcacert=/etc/pki/rhui/ca.crt
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
@@ -159,7 +145,6 @@ enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 sslverify=1
-sslcacert=/etc/pki/rhui/ca.crt
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
