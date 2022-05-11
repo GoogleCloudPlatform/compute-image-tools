@@ -1,0 +1,23 @@
+{{/*
+    Template to publish a test image to `bct-prod-images` through our production image release process.
+    DeleteAfter is set to 12 hours.
+  */}}
+{
+  "Name": "test-image",
+  "WorkProject": "gce-image-builder",
+  "PublishProject": "bct-prod-images",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/alpha/projects/",
+  "DeleteAfter": "12h",
+  {{$time := trimPrefix .publish_version "v"}}
+  "Images": [
+    {
+      "Prefix": "test-image",
+      "Family": "test-image",
+      "Description": "This is a test image built on {{$time}}.",
+      "Licenses": [
+        "projects/debian-cloud/global/licenses/debian-11-bullseye"
+      ],
+      "GuestOsFeatures": ["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE"]
+    }
+  ]
+}
