@@ -1,6 +1,5 @@
 {{/*
-    Template to publish a test image through our production image release process.
-    By default this template is setup to publish to the 'gce-image-builder' project.
+    Template to publish a test image to `bct-prod-images` through our production image release process.
     DeleteAfter is set to 12 hours.
   */}}
 {
