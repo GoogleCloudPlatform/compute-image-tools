@@ -46,6 +46,17 @@
             "block-project-ssh-keys": "true",
             "enable-oslogin": "false"
           },
+          "NetworkInterfaces": [
+            {
+              "network": "global/networks/default",
+              "accessConfigs": [
+                {
+                  "type": "ONE_TO_ONE_NAT",
+                  "natIP": "34.122.42.186"
+                }
+              ]
+            }
+          ],
           "StartupScript": "install_rhua.sh",
           "ServiceAccounts": [
             {
