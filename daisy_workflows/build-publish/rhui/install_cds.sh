@@ -70,7 +70,7 @@ subscription-manager repos --enable=rhui-4-for-rhel-8-x86_64-rpms
 # files from rhui-tools, and skips generating unique RHUI and CA certs, instead
 # copying our pre-generated certs.
 dnf install -y rhui-tools patch
-( cd /usr/share/rhui-tools; patch -b -p0 < $tempdir/cds.patch; )
+( cd /usr/share/rhui-tools; patch -b -p1 < $tempdir/cds.patch; )
 
 build_status "Run Ansible playbook."
 ansible-playbook \

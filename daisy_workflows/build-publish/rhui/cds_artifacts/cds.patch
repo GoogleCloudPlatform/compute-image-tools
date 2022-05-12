@@ -1,6 +1,6 @@
-diff -Naur playbooks/cds-register.yml playbooks.new/cds-register.yml
---- playbooks/cds-register.yml	2022-03-17 10:08:34.000000000 +0000
-+++ playbooks.new/cds-register.yml	2022-04-16 06:21:59.424850212 +0000
+diff -Naur orig/playbooks/cds-register.yml new/playbooks/cds-register.yml
+--- orig/playbooks/cds-register.yml	2022-05-11 22:51:00.317947815 +0000
++++ new/playbooks/cds-register.yml	2022-05-11 22:56:27.411779564 +0000
 @@ -3,7 +3,8 @@
  
  - name: Registering a CDS instance
@@ -37,7 +37,7 @@ diff -Naur playbooks/cds-register.yml playbooks.new/cds-register.yml
          fstype: "{{ remote_fs_type }}"
 -        state: mounted
 +        state: present
-
+ 
      - name: Mount shared storage for ceph
        when: 'execute_all and "ceph" in remote_fs_type'
 @@ -111,7 +108,7 @@
@@ -102,3 +102,16 @@ diff -Naur playbooks/cds-register.yml playbooks.new/cds-register.yml
  
      - name: Provide NginX general configuration
        ansible.builtin.template:
+diff -Naur orig/templates/nginx-ssl.conf new/templates/nginx-ssl.conf
+--- orig/templates/nginx-ssl.conf	2022-05-11 22:57:33.873767176 +0000
++++ new/templates/nginx-ssl.conf	2022-05-12 16:38:58.075429837 +0000
+@@ -55,7 +55,8 @@
+             gzip off;
+             auth_request /auth;
+             root {{ remote_fs_mountpoint }}/symlinks;
+-            try_files $uri @fetch_from_rhua;
++            # Google modification - no RHUA fallback
++            try_files $uri =404;
+         }
+ 
+         location @fetch_from_rhua {
