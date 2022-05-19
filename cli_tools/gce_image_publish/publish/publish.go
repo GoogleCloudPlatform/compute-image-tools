@@ -94,6 +94,8 @@ type Image struct {
 	Family string `json:",omitempty"`
 	// Image description to set for the image.
 	Description string `json:",omitempty"`
+	// Architecture to set for the image.
+	Architecture string `json:",omitempty"`
 	// Licenses to add to the image.
 	Licenses []string `json:",omitempty"`
 	// GuestOsFeatures to add to the image.
@@ -290,6 +292,7 @@ func publishImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image, skipDup
 		Image: computeAlpha.Image{
 			Name:                         publishName,
 			Description:                  img.Description,
+			Architecture:                 img.Architecture,
 			Licenses:                     img.Licenses,
 			Family:                       img.Family,
 			Deprecated:                   ds,
