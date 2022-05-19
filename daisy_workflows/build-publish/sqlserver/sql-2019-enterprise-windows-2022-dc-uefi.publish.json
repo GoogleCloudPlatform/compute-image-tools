@@ -39,6 +39,7 @@
       "Prefix": "sql-2019-enterprise-windows-2022-dc",
       "Family": "sql-ent-2019-win-2022",
       "Description": "Microsoft, SQL Server 2019 Enterprise, on Windows Server 2022 Datacenter, x64 built on {{$time}}, supports Shielded VM features",
+      "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "staging" -}}
         "projects/bct-staging-functional/global/licenses/sql-server-2019-enterprise",

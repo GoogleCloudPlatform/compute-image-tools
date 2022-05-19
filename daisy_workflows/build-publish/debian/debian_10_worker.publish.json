@@ -29,6 +29,7 @@
       "Prefix": "debian-10-worker",
       "Family": "debian-10-worker",
       "Description": "Debian 10 worker image built on {{$time}}",
+      "Architecture": "X86_64",
       "Licenses": [
         "projects/debian-cloud/global/licenses/debian-10-buster"
       ],

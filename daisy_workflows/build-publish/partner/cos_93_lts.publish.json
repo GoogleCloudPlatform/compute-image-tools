@@ -15,6 +15,7 @@
       "Prefix": "cos-93-lts",
       "Family": "cos-93-lts",
       "Description": "COS 93 LTS",
+      "Architecture": "X86_64",
       "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE", "SEV_CAPABLE"]
     }
   ]

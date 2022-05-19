@@ -15,6 +15,7 @@
       "Prefix": "fedora-coreos-testing",
       "Family": "fedora-coreos-testing",
       "Description": "Fedora CoreOS Testing",
+      "Architecture": "X86_64",
       "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE"]
     }
   ]

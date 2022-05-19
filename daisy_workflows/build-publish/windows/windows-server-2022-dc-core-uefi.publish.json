@@ -33,6 +33,7 @@
       "Prefix": "windows-server-2022-dc-core",
       "Family": "windows-2022-core",
       "Description": "Microsoft, Windows Server, 2022 Datacenter Core, Server Core, x64 built on {{$time}}, supports Shielded VM features",
+      "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "staging" -}}
         "projects/bct-staging-functional/global/licenses/windows-server-2022-dc",

@@ -43,6 +43,7 @@
       "Family": "rocky-linux-8",
       "Prefix": "rocky-linux-8",
       "Description": "Rocky Linux, Rocky Linux, 8, x86_64 built on {{$time}}",
+      "Architecture": "X86_64",
       "Licenses": [
         {{if (or (eq .environment "staging") (eq .environment "oslogin-staging")) -}}
         "projects/bct-staging-functional/global/licenses/rocky-linux-8"

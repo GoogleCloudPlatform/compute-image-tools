@@ -15,6 +15,7 @@
       "Prefix": "sles-12",
       "Family": "sles-12",
       "Description": "SUSE Enterprise Linux 12",
+      "Architecture": "X86_64",
       "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE"]
     }
   ]

@@ -15,6 +15,7 @@
       "Prefix": "cos-97-lts",
       "Family": "cos-97-lts",
       "Description": "COS 97 LTS",
+      "Architecture": "X86_64",
       "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE", "SEV_CAPABLE"]
     }
   ]

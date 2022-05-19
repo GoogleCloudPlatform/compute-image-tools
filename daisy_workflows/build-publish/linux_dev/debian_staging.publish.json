@@ -10,12 +10,14 @@
       "Prefix": "debian-9-dev",
       "Family": "debian-9-dev",
       "Description": "Debian 9 devcluster image for staging.",
+      "Architecture": "X86_64",
       "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE"]
     },
     {
       "Prefix": "debian-10-dev",
       "Family": "debian-10-dev",
       "Description": "Debian 10 devcluster image for staging.",
+      "Architecture": "X86_64",
       "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE"]
     }
   ]

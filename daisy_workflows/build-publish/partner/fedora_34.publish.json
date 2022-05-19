@@ -15,6 +15,7 @@
       "Prefix": "fedora-34",
       "Family": "fedora-34",
       "Description": "Fedora 34",
+      "Architecture": "X86_64",
       "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE"]
     }
   ]

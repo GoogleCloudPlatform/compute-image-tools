@@ -39,6 +39,7 @@
       "Prefix": "sql-2017-express-windows-2019-dc",
       "Family": "sql-exp-2017-win-2019",
       "Description": "Microsoft, SQL Server 2017 Express, on Windows Server 2019 Datacenter, x64 built on {{$time}}, supports Shielded VM features",
+      "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "staging" -}}
         "projects/bct-staging-functional/global/licenses/sql-server-2017-express",

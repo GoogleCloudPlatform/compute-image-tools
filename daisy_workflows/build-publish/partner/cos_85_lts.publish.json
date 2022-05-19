@@ -15,6 +15,7 @@
       "Prefix": "cos-85-lts",
       "Family": "cos-85-lts",
       "Description": "COS 85 LTS",
+      "Architecture": "X86_64",
       "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE", "SEV_CAPABLE"]
     }
   ]
