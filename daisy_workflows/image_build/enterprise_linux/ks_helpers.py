@@ -216,7 +216,11 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap):
       ks_post.append(templ.substitute(pkg=pkg, minor=minor, major=major))
 
     # RHEL common post.
-    templ = Template(FetchConfigPart('rhel-post.cfg'))
+    if major == 9:
+      templ = Template(FetchConfigPart('rhel9-post.cfg'))
+    else:
+      templ = Template(FetchConfigPart('rhel-post.cfg'))
+
     if sap:
       majors = f'{major}-sap'
       # RHEL 7.9 for SAP doesn't use E4S content and has a different config.
