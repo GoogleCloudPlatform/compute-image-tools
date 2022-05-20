@@ -42,6 +42,7 @@
       "Prefix": "debian-10-buster",
       "Family": "debian-10",
       "Description": "Debian, Debian GNU/Linux, 10 (buster), amd64 built on {{$time}}, supports Shielded VM features",
+      "Architecture": "X86_64",
       "Licenses": [
         {{if (or (eq .environment "staging") (eq .environment "oslogin-staging")) -}}
         "projects/bct-staging-functional/global/licenses/debian-10-buster"

@@ -33,6 +33,7 @@
       "Prefix": "windows-server-2012-r2-dc-core",
       "Family": "windows-2012-r2-core",
       "Description": "Microsoft, Windows Server, 2012 R2 Datacenter Core, Server Core, x64 built on {{$time}}, supports Shielded VM features",
+      "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "staging" -}}
         "projects/bct-staging-functional/global/licenses/windows-server-2012-r2-dc",

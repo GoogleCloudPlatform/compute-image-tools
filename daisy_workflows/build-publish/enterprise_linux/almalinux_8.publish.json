@@ -43,6 +43,7 @@
       "Family": "almalinux-8",
       "Prefix": "almalinux-8",
       "Description": "AlmaLinux, AlmaLinux, 8, x86_64 built on {{$time}}",
+      "Architecture": "X86_64",
       "Licenses": [
         {{if (or (eq .environment "staging") (eq .environment "oslogin-staging")) -}}
         "projects/bct-staging-functional/global/licenses/almalinux-8"

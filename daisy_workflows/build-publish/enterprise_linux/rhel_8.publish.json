@@ -43,6 +43,7 @@
       "Family": "rhel-8",
       "Prefix": "rhel-8",
       "Description": "Red Hat, Red Hat Enterprise Linux, 8, x86_64 built on {{$time}}, supports Shielded VM features",
+      "Architecture": "X86_64",
       "Licenses": [
         {{if (or (eq .environment "staging") (eq .environment "oslogin-staging")) -}}
         "projects/bct-staging-functional/global/licenses/rhel-8-server"

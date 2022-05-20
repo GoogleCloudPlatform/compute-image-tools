@@ -39,6 +39,7 @@
       "Prefix": "sql-2012-enterprise-windows-2012-r2-dc",
       "Family": "sql-ent-2012-win-2012-r2",
       "Description": "Microsoft, SQL Server 2012 Enterprise, on Windows Server 2012 R2 Datacenter, x64 built on {{$time}}, supports Shielded VM features",
+      "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "staging" -}}
         "projects/bct-staging-functional/global/licenses/sql-server-2012-enterprise",

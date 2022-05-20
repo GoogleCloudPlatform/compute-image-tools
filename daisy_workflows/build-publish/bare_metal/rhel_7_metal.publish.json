@@ -20,6 +20,7 @@
       "Prefix": "rhel-7-metal",
       "Family": "rhel-7-metal",
       "Description": "Red Hat, Red Hat Enterprise Linux, 7, x86_64 built on {{$time}}, supports C2 Bare Metal machine shape.",
+      "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "staging" -}}
         "projects/bct-staging-functional/global/licenses/rhel-7-server"

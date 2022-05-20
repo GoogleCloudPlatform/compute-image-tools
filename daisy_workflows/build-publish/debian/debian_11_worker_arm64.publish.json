@@ -29,6 +29,7 @@
       "Prefix": "debian-11-worker-arm64",
       "Family": "debian-11-worker-arm64",
       "Description": "Debian 11 worker arm64 image built on {{$time}}",
+      "Architecture": "ARM64",
       "Licenses": [
         "projects/debian-cloud/global/licenses/debian-11-bullseye"
       ],

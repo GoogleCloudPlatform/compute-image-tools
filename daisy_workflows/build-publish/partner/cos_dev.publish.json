@@ -15,6 +15,7 @@
       "Prefix": "cos-dev",
       "Family": "cos-dev",
       "Description": "COS dev",
+      "Architecture": "X86_64",
       "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE", "SEV_CAPABLE"]
     }
   ]

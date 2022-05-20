@@ -43,6 +43,7 @@
       "Prefix": "rhel-7-6-sap",
       "Family": "rhel-7-6-sap-ha",
       "Description": "Red Hat, Red Hat Enterprise Linux for SAP with HA and Update Services, 7.6, x86_64 built on {{$time}}, supports Shielded VM features",
+      "Architecture": "X86_64",
       "Licenses": [
         {{if (or (eq .environment "staging") (eq .environment "oslogin-staging")) -}}
         "projects/bct-staging-functional/global/licenses/rhel-7-server"

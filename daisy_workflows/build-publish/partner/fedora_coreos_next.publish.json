@@ -15,6 +15,7 @@
       "Prefix": "fedora-coreos-next",
       "Family": "fedora-coreos-next",
       "Description": "Fedora CoreOS Next",
+      "Architecture": "X86_64",
       "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE"]
     }
   ]

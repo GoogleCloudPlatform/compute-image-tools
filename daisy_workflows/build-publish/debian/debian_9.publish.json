@@ -42,6 +42,7 @@
       "Prefix": "debian-9-stretch",
       "Family": "debian-9",
       "Description": "Debian, Debian GNU/Linux, 9 (stretch), amd64 built on {{$time}}",
+      "Architecture": "X86_64",
       "Licenses": [
         {{if (or (eq .environment "staging") (eq .environment "oslogin-staging")) -}}
         "projects/bct-staging-functional/global/licenses/debian-9-stretch"

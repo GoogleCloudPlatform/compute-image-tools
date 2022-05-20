@@ -18,6 +18,7 @@
       "Family": "cds",
       "Prefix": "cds",
       "Description": "Content Delivery Server node image, built {{$time}}",
+      "Architecture": "X86_64",
       "GuestOsFeatures": ["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "SEV_CAPABLE", "GVNIC"]
     }
   ]
