@@ -23,6 +23,11 @@
   "PublishProject": "bct-staging-images",
   "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
   "DeleteAfter": {{$delete_after}},
+  {{- else if eq .environment "internal" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "windows-internal",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
   {{- else -}}
   "WorkProject": {{$work_project}},
   "PublishProject": {{$work_project}},
@@ -41,6 +46,8 @@
         {{if eq .environment "staging" -}}
         "projects/bct-staging-functional/global/licenses/windows-for-containers",
         "projects/bct-staging-functional/global/licenses/windows-server-2019-dc"
+        {{- else if eq .environment "internal" -}}
+        "projects/windows-internal/global/licenses/internal-windows"
         {{- else -}}
         "projects/windows-cloud/global/licenses/windows-for-containers",
         "projects/windows-cloud/global/licenses/windows-server-2019-dc"
