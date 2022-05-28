@@ -73,28 +73,60 @@ function Set-WindowsUpdateServer {
       Set the Windows update server to a WSUS server.
   #>
 
+  # Test connectivity to new server before setting registry values
+  $wu_server_address = $script:wu_server_url.Remove(0,$script:wu_server_url.LastIndexOf('/')+1)
+  Write-Host "Set-WindowsUpdateServer: Testing connection to $wu_server_address."
+  if (-not (Test-Connection $wu_server_address -Count 1 -ErrorAction SilentlyContinue)) {
+    if (-not (Test-Connection download.microsoft.com -Count 1 -ErrorAction SilentlyContinue)) {
+      throw 'Set-WindowsUpdateServer: Windows update server is not reachable. Cannot complete image build.'
+    }
+    Write-Host "Set-WindowsUpdateServer: $wu_server_address not reachable, defaulting to Microsoft servers"
+    return
+  }
+
+  # Set the registry keys to use a WSUS 6.x server if different from current settings.
+
+  $changed = $False
   if (-not (Test-Path $windows_update_path)) {
     New-Item -Path $windows_update_path -Value ""
+    $changed = $True
+  }
+  $windows_update_item = Get-Item $windows_update_path
+
+  if (-not (Test-Path $windows_update_au_path)) {
     New-Item -Path $windows_update_au_path -Value ""
+    $changed = $True
+  }
+  $windows_update_au_item = Get-Item $windows_update_au_path
 
-    Write-Host "Set-WindowsUpdateServer: Attempting to set Windows update server to $script:wu_server_url`:$script:wu_server_port"
+  $server = "$script:wu_server_url`:$script:wu_server_port"
 
-    $wu_server_address = $script:wu_server_url.Remove(0,$script:wu_server_url.LastIndexOf('/')+1)
-    Write-Host "Set-WindowsUpdateServer: Testing connection to $wu_server_address."
-    if (-not (Test-Connection $wu_server_address -Count 1 -ErrorAction SilentlyContinue)) {
-      if (-not (Test-Connection download.microsoft.com -Count 1 -ErrorAction SilentlyContinue)) {
-        throw 'Set-WindowsUpdateServer: Windows update server is not reachable. Cannot complete image build.'
-      }
-      Write-Host "Set-WindowsUpdateServer: $wu_server_address not reachable, defaulting to Microsoft servers"
-      return
-    }
+  if ($server -Ne $windows_update_item.GetValue("WUServer", $Null)) {
+    Write-Host "Set-WindowsUpdateServer: changing WUServer to [$server]."
+    New-ItemProperty -Path $windows_update_path -Name WUServer -Value $server -PropertyType String
+    $changed = $True
+  }
 
-    # Set the registry keys to use a WSUS 6.x server.
-    New-ItemProperty -Path $windows_update_path -Name WUServer -Value "$script:wu_server_url`:$script:wu_server_port" -PropertyType String
-    New-ItemProperty -Path $windows_update_path -Name WUStatusServer -Value "$script:wu_server_url`:$script:wu_server_port" -PropertyType String
+  if ($server -Ne $windows_update_item.GetValue("WUStatusServer", $Null)) {
+    Write-Host "Set-WindowsUpdateServer: changing WUStatusServer to [$server]."
+    New-ItemProperty -Path $windows_update_path -Name WUStatusServer -Value $server -PropertyType String
+    $changed = $True
+  }
+
+  if (1 -Ne $windows_update_au_item.GetValue("UseWUServer", $Null)) {
+    Write-Host "Set-WindowsUpdateServer: setting UseWUServer to [1]."
     New-ItemProperty -Path $windows_update_au_path -Name UseWUServer -Value 1 -PropertyType DWord
+    $changed = $True
+  }
+
+  if (1 -Ne $windows_update_au_item.GetValue("NoAutoUpdate", $Null)) {
+    Write-Host "Set-WindowsUpdateServer: setting NoAutoUpdate to [1]."
     New-ItemProperty -Path $windows_update_au_path -Name NoAutoUpdate -Value 1 -PropertyType DWord
-    Write-Host "Set-WindowsUpdateServer: Set Windows update server to $script:wu_server_url`:$script:wu_server_port, rebooting."
+    $changed = $True
+  }
+
+  if ($changed) {
+    Write-Host "Set-WindowsUpdateServer: Settings changed, rebooting."
     shutdown /r /t 00
     exit
   }
