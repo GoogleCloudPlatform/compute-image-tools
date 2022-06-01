@@ -33,7 +33,7 @@
         "Path": "./enterprise_linux.wf.json",
         "Vars": {
           "el_release": "${rhel_release}",
-          "kickstart_config": "./new_ks/rhel_7_6_sap.cfg",
+          "kickstart_config": "./kickstart/rhel_7_6_sap.cfg",
           "google_cloud_repo": "${google_cloud_repo}",
           "install_disk": "${install_disk}",
           "installer_iso": "${installer_iso}",

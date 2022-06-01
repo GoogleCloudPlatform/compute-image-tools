@@ -29,6 +29,7 @@
         "Path": "./enterprise_linux.wf.json",
         "Vars": {
           "el_release": "rhel-9",
+          "kickstart_config": "./kickstart/rhel_9.cfg",
           "google_cloud_repo": "${google_cloud_repo}",
           "install_disk": "${install_disk}",
           "installer_iso": "${installer_iso}"
