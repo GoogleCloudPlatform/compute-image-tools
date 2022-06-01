@@ -31,8 +31,6 @@ import utils
 def main():
   # Get Parameters
   release = utils.GetMetadataAttribute('el_release', raise_on_not_found=True)
-  daisy_logs_path = utils.GetMetadataAttribute('daisy-logs-path',
-                                               raise_on_not_found=True)
   savelogs = utils.GetMetadataAttribute('el_savelogs') == 'true'
 
   logging.info('EL Release: %s' % release)
