@@ -1,6 +1,6 @@
-[rhui-codeready-builder-for-rhel-9-x86_64-rhui-debug-rpms]
-name=Red Hat CodeReady Linux Builder for RHEL 9 x86_64 (Debug RPMs) from RHUI
-mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/x86_64/codeready-builder/debug
+[rhui-codeready-builder-for-rhel-9-$basearch-rhui-debug-rpms]
+name=Red Hat CodeReady Linux Builder for RHEL 9 $basearch (Debug RPMs) from RHUI
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/$basearch/codeready-builder/debug
 enabled=0
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
@@ -8,9 +8,9 @@ sslverify=1
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
-[rhui-codeready-builder-for-rhel-9-x86_64-rhui-rpms]
-name=Red Hat CodeReady Linux Builder for RHEL 9 x86_64 (RPMs) from RHUI
-mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/x86_64/codeready-builder/os
+[rhui-codeready-builder-for-rhel-9-$basearch-rhui-rpms]
+name=Red Hat CodeReady Linux Builder for RHEL 9 $basearch (RPMs) from RHUI
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/$basearch/codeready-builder/os
 enabled=0
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
@@ -18,9 +18,9 @@ sslverify=1
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
-[rhui-codeready-builder-for-rhel-9-x86_64-rhui-source-rpms]
-name=Red Hat CodeReady Linux Builder for RHEL 9 x86_64 (Source RPMs) from RHUI
-mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/x86_64/codeready-builder/source/SRPMS
+[rhui-codeready-builder-for-rhel-9-$basearch-rhui-source-rpms]
+name=Red Hat CodeReady Linux Builder for RHEL 9 $basearch (Source RPMs) from RHUI
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/$basearch/codeready-builder/source/SRPMS
 enabled=0
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
@@ -28,9 +28,9 @@ sslverify=1
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
-[rhui-rhel-9-for-x86_64-appstream-rhui-debug-rpms]
-name=Red Hat Enterprise Linux 9 for x86_64 - AppStream from RHUI (Debug RPMs)
-mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/x86_64/appstream/debug
+[rhui-rhel-9-for-$basearch-appstream-rhui-debug-rpms]
+name=Red Hat Enterprise Linux 9 for $basearch - AppStream from RHUI (Debug RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/$basearch/appstream/debug
 enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
@@ -38,9 +38,9 @@ sslverify=1
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
-[rhui-rhel-9-for-x86_64-appstream-rhui-rpms]
-name=Red Hat Enterprise Linux 9 for x86_64 - AppStream from RHUI (RPMs)
-mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/x86_64/appstream/os
+[rhui-rhel-9-for-$basearch-appstream-rhui-rpms]
+name=Red Hat Enterprise Linux 9 for $basearch - AppStream from RHUI (RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/$basearch/appstream/os
 enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
@@ -48,9 +48,9 @@ sslverify=1
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
-[rhui-rhel-9-for-x86_64-appstream-rhui-source-rpms]
-name=Red Hat Enterprise Linux 9 for x86_64 - AppStream from RHUI (Source RPMs)
-mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/x86_64/appstream/source/SRPMS
+[rhui-rhel-9-for-$basearch-appstream-rhui-source-rpms]
+name=Red Hat Enterprise Linux 9 for $basearch - AppStream from RHUI (Source RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/$basearch/appstream/source/SRPMS
 enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
@@ -58,9 +58,9 @@ sslverify=1
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
-[rhui-rhel-9-for-x86_64-baseos-rhui-debug-rpms]
-name=Red Hat Enterprise Linux 9 for x86_64 - BaseOS from RHUI (Debug RPMs)
-mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/x86_64/baseos/debug
+[rhui-rhel-9-for-$basearch-baseos-rhui-debug-rpms]
+name=Red Hat Enterprise Linux 9 for $basearch - BaseOS from RHUI (Debug RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/$basearch/baseos/debug
 enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
@@ -68,9 +68,9 @@ sslverify=1
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
-[rhui-rhel-9-for-x86_64-baseos-rhui-rpms]
-name=Red Hat Enterprise Linux 9 for x86_64 - BaseOS from RHUI (RPMs)
-mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/x86_64/baseos/os
+[rhui-rhel-9-for-$basearch-baseos-rhui-rpms]
+name=Red Hat Enterprise Linux 9 for $basearch - BaseOS from RHUI (RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/$basearch/baseos/os
 enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
@@ -78,9 +78,9 @@ sslverify=1
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
-[rhui-rhel-9-for-x86_64-baseos-rhui-source-rpms]
-name=Red Hat Enterprise Linux 9 for x86_64 - BaseOS from RHUI (Source RPMs)
-mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/x86_64/baseos/source/SRPMS
+[rhui-rhel-9-for-$basearch-baseos-rhui-source-rpms]
+name=Red Hat Enterprise Linux 9 for $basearch - BaseOS from RHUI (Source RPMs)
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/$basearch/baseos/source/SRPMS
 enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
@@ -88,9 +88,9 @@ sslverify=1
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
-[rhui-rhel-9-for-x86_64-highavailability-debug-rhui-rpms]
-name=Red Hat Enterprise Linux 9 for x86_64 - High Availability (Debug RPMs) from RHUI
-mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/x86_64/highavailability/debug
+[rhui-rhel-9-for-$basearch-highavailability-debug-rhui-rpms]
+name=Red Hat Enterprise Linux 9 for $basearch - High Availability (Debug RPMs) from RHUI
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/$basearch/highavailability/debug
 enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
@@ -98,9 +98,9 @@ sslverify=1
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
-[rhui-rhel-9-for-x86_64-highavailability-rhui-rpms]
-name=Red Hat Enterprise Linux 9 for x86_64 - High Availability (RPMs) from RHUI
-mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/x86_64/highavailability/os
+[rhui-rhel-9-for-$basearch-highavailability-rhui-rpms]
+name=Red Hat Enterprise Linux 9 for $basearch - High Availability (RPMs) from RHUI
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/$basearch/highavailability/os
 enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
@@ -108,9 +108,9 @@ sslverify=1
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
-[rhui-rhel-9-for-x86_64-highavailability-source-rhui-rpms]
-name=Red Hat Enterprise Linux 9 for x86_64 - High Availability (Source RPMs) from RHUI
-mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/x86_64/highavailability/source/SRPMS
+[rhui-rhel-9-for-$basearch-highavailability-source-rhui-rpms]
+name=Red Hat Enterprise Linux 9 for $basearch - High Availability (Source RPMs) from RHUI
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/$basearch/highavailability/source/SRPMS
 enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
@@ -118,9 +118,9 @@ sslverify=1
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
-[rhui-rhel-9-for-x86_64-supplementary-rhui-debug-rpms]
-name=Red Hat Enterprise Linux 9 for x86_64 - Supplementary (Debug RPMs) from RHUI
-mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/x86_64/supplementary/debug
+[rhui-rhel-9-for-$basearch-supplementary-rhui-debug-rpms]
+name=Red Hat Enterprise Linux 9 for $basearch - Supplementary (Debug RPMs) from RHUI
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/$basearch/supplementary/debug
 enabled=0
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
@@ -128,9 +128,9 @@ sslverify=1
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
-[rhui-rhel-9-for-x86_64-supplementary-rhui-rpms]
-name=Red Hat Enterprise Linux 9 for x86_64 - Supplementary (RPMs) from RHUI
-mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/x86_64/supplementary/os
+[rhui-rhel-9-for-$basearch-supplementary-rhui-rpms]
+name=Red Hat Enterprise Linux 9 for $basearch - Supplementary (RPMs) from RHUI
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/$basearch/supplementary/os
 enabled=0
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
@@ -138,9 +138,9 @@ sslverify=1
 sslclientcert=/etc/pki/rhui/product/content.crt
 sslclientkey=/etc/pki/rhui/key.pem
 
-[rhui-rhel-9-for-x86_64-supplementary-rhui-source-rpms]
-name=Red Hat Enterprise Linux 9 for x86_64 - Supplementary (Source RPMs) from RHUI
-mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/x86_64/supplementary/source/SRPMS
+[rhui-rhel-9-for-$basearch-supplementary-rhui-source-rpms]
+name=Red Hat Enterprise Linux 9 for $basearch - Supplementary (Source RPMs) from RHUI
+mirrorlist=https://rhui.googlecloud.com/pulp/mirror/content/dist/rhel9/rhui/$releasever/$basearch/supplementary/source/SRPMS
 enabled=0
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
