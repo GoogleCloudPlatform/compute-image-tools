@@ -47,7 +47,7 @@
         "projects/bct-staging-functional/global/licenses/windows-for-containers",
         "projects/bct-staging-functional/global/licenses/windows-server-2019-dc"
         {{- else if eq .environment "internal" -}}
-        "projects/windows-internal/global/licenses/internal-windows"
+        "projects/google.com:windows-internal/global/licenses/internal-windows"
         {{- else -}}
         "projects/windows-cloud/global/licenses/windows-for-containers",
         "projects/windows-cloud/global/licenses/windows-server-2019-dc"
