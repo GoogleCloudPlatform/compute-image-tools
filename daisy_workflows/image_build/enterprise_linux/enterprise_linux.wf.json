@@ -6,6 +6,10 @@
       "Required": true,
       "Description": "The EL release name."
     },
+    "kickstart_config": {
+      "Required": true,
+      "Description": "Path to kickstart config file."
+    },
     "el_savelogs": {
       "Value": "false",
       "Description": "Save anaconda logs to the image (useful for debugging)."
@@ -35,8 +39,7 @@
     "build_files/build_installer.py": "./build_installer.py",
     "build_files/installer.iso": "${installer_iso}",
     "build_files/utils": "../../linux_common/utils",
-    "build_files/kickstart": "./kickstart/",
-    "build_files/ks_helpers.py": "./ks_helpers.py",
+    "build_files/ks.cfg": "${kickstart_config}",
     "installerprep_startup_script": "../../linux_common/bootstrap.sh"
   },
   "Steps": {
