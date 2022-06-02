@@ -44,7 +44,7 @@
         "projects/bct-staging-functional/global/licenses/windows-server-20h2-dc",
         "projects/bct-staging-functional/global/licenses/windows-server-core"
         {{- else if eq .environment "internal" -}}
-        "projects/windows-internal/global/licenses/internal-windows",
+        "projects/google.com:windows-internal/global/licenses/internal-windows",
         "projects/windows-cloud/global/licenses/windows-server-core"
         {{- else -}}
         "projects/windows-cloud/global/licenses/windows-server-20h2-dc",
