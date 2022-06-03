@@ -40,13 +40,13 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "rhel-9-v${build_date}",
+          "Name": "rhel-9-arm64-v${build_date}",
           "SourceDisk": "${install_disk}",
           "Licenses": [
             "projects/rhel-cloud/global/licenses/rhel-9-server"
           ],
-          "Description": "Red Hat, Red Hat Enterprise Linux, 9, x86_64 built on ${build_date}",
-          "Family": "rhel-9",
+          "Description": "Red Hat, Red Hat Enterprise Linux, 9, aarch64 built on ${build_date}",
+          "Family": "rhel-9-arm64",
           "GuestOsFeatures": ["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "SEV_CAPABLE"],
           "Project": "${publish_project}",
           "NoCleanup": true,
