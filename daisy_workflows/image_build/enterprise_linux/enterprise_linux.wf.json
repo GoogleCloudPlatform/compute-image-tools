@@ -10,6 +10,10 @@
       "Required": true,
       "Description": "Path to kickstart config file."
     },
+    "machine_type": {
+      "Value": "e2-standard-4",
+      "Description": "The machine type to use during build."
+    },
     "el_savelogs": {
       "Value": "false",
       "Description": "Save anaconda logs to the image (useful for debugging)."
@@ -112,7 +116,7 @@
         {
           "Name": "inst-build",
           "Disks": [{"Source": "disk-installer"}, {"Source": "${install_disk}"}],
-          "MachineType": "e2-standard-4"
+          "MachineType": "${machine_type}"
         }
       ]
     },
