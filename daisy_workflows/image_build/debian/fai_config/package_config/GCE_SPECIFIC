@@ -13,13 +13,13 @@ vim
 # GCE disk expansion package.
 gce-disk-expand
 
+# GCE OS Config Agent
+google-osconfig-agent
+
 PACKAGES install AMD64
 # Secure Boot
 shim-signed
 grub-efi-amd64-signed
-
-# GCE OS Config Agent
-google-osconfig-agent
 
 PACKAGES install ARM64
 # SDK needs python installed
