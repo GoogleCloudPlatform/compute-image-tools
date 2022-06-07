@@ -25,7 +25,7 @@
   "DeleteAfter": {{$delete_after}},
     {{- else if eq .environment "internal" -}}
   "WorkProject": {{$work_project}},
-  "PublishProject": "windows-internal",
+  "PublishProject": "google.com:windows-internal",
   "ComputeEndpoint": {{$endpoint}},
   "DeleteAfter": {{$delete_after}},
   {{- else -}}
