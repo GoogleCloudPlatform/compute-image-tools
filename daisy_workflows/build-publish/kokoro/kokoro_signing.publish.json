@@ -6,7 +6,7 @@
   {{if eq .environment "test" -}}
   "PublishProject": "bct-prod-images",
   {{- else if eq .environment "prod" -}}
-  "PublishProject": "rhel-metal-cloud",
+  "PublishProject": "rocky-linux-cloud",
   {{- else if eq .environment "staging" -}}
   "PublishProject": "bct-staging-images",
   "WorkProject": "bct-staging-images",

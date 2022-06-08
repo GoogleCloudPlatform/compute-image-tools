@@ -18,9 +18,8 @@ usermod -aG kokoro kbuilder
 
 # kbuilder must allow login with ssh public/private key authentication
 GetMetadataAttribute "kokoro_authorized_keys" && authorized_keys="$attribute_value"
-mkdir ~/.ssh
-echo $authorized_keys >> ~/.ssh/authorized_keys
-cat ~/.ssh/authorized_keys
+mkdir ~kbuilder/.ssh
+echo $authorized_keys >> ~kbuilder/.ssh/authorized_keys
 
 # kbuilder needs to be able to login non-interactively and launch commands
 cat >> ~kbuilder/.profile <<EOF
@@ -71,15 +70,32 @@ EOF
 systemctl enable rsyncd.service
 
 # Set network settings
-cat >> /etc/sysconfig/network-scripts/ipcfg-eth0 <<EOF
+cat >> /etc/sysconfig/network-scripts/ifcfg-eth0 <<EOF
 IPADDR=169.254.0.2/24
 GATEWAY=169.254.0.1
 DNS=8.8.8.8
 EOF
 
 # Install needed packages
-yum -y install python3-psutil
-yum -y install nmap-ncat
-yum -y install git
+dnf -y install git nmap-ncat python3-psutil
+
+# Disable Google metadata services
+cat > /etc/default/instance_configs.cfg << EOF
+[Daemons]
+accounts_daemon = false
+clock_skew_daemon = false
+ip_forwarding_daemon = false
+
+[InstanceSetup]
+network_enabled = false
+set_boto_config = false
+
+[MetadataScripts]
+shutdown = false
+startup = false
+
+[NetworkInterfaces]
+setup = false
+EOF
 
 echo "BuildSuccess: Kokoro signing image build succeeded."

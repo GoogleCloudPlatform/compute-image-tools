@@ -35,7 +35,8 @@
           "MetaData": {
             "development": "false",
             "startup-script": "${SOURCE:startup.sh}",
-            "kokoro_authorized_keys": "${kokoro_authorized_keys}"
+            "kokoro_authorized_keys": "${kokoro_authorized_keys}",
+            "block-project-ssh-keys": "TRUE"
           }
         }
       ]
