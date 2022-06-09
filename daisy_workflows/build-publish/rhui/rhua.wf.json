@@ -24,6 +24,7 @@
     "rhua_artifacts": "./rhua_artifacts",
     "rhua_artifacts/health_check.py": "./health_check.py",
     "rhua_artifacts/health_check.nginx.conf": "./health_check.nginx.conf",
+    "rhua_artifacts/status.nginx.conf": "./status.nginx.conf",
     "install_rhua.sh": "./install_rhua.sh"
   },
   "Steps": {
