@@ -29,7 +29,7 @@
     "build": {
       "TimeOut": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/enterprise_linux/rocky_linux_optimized_gcp_8.wf.json",
+        "Path": "${workflow_root}/image_build/enterprise_linux/rocky_linux_8_optimized_gcp.wf.json",
         "Vars": {
           "build_date": "${build_date}",
           "install_disk": "disk-rocky-linux-8",

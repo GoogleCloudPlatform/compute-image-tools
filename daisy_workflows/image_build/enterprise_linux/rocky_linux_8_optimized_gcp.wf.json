@@ -24,8 +24,8 @@
       "IncludeWorkflow": {
         "Path": "./enterprise_linux.wf.json",
         "Vars": {
-          "el_release": "rocky-linux-optimized-gcp-8",
-          "kickstart_config": "./kickstart/rocky_linux_optimized_gcp_8.cfg",
+          "el_release": "rocky-linux-8-optimized-gcp",
+          "kickstart_config": "./kickstart/rocky_linux_8_optimized_gcp.cfg",
           "install_disk": "${install_disk}",
           "installer_iso": "${installer_iso}"
         }
