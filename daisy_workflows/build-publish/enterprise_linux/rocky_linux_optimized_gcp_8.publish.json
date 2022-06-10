@@ -7,7 +7,7 @@
   time period is set.
 */}}
 {
-  "Name": "rocky-linux-optimized-gcp-8",
+  "Name": "rocky-linux-8-optimized-gcp",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*6"` -}}
@@ -40,9 +40,9 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Family": "rocky-linux-optimized-gcp-8",
-      "Prefix": "rocky-linux-optimized-gcp-8",
-      "Description": "Rocky Linux, Rocky Linux optimized for GCP, 8, x86_64 built on {{$time}}",
+      "Family": "rocky-linux-8-optimized-gcp",
+      "Prefix": "rocky-linux-8-optimized-gcp",
+      "Description": "Rocky Linux, Rocky Linux 8 optimized for GCP, 8, x86_64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         {{if (or (eq .environment "staging") (eq .environment "oslogin-staging")) -}}

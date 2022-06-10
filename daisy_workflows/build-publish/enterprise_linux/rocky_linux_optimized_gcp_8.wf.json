@@ -1,5 +1,5 @@
 {
-  "Name": "rocky-linux-optimized-gcp-8",
+  "Name": "rocky-linux-8-optimized-gcp",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -49,7 +49,7 @@
     },
     "cleanup-image": {
       "DeleteResources": {
-        "Images": ["rocky-linux-optimized-gcp-8-v${build_date}"]
+        "Images": ["rocky-linux-8-optimized-gcp-v${build_date}"]
       }
     }
   },
