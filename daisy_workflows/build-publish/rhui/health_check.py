@@ -105,10 +105,6 @@ class HealthCheckSuite:
 
   checks = MountIsNFS, MountIsWritable, MountIsReadable, ServicesAreActive
 
-  def __init__(self, node: str):
-    """Executes health checks for node"""
-    self.run(node)
-
   def run(self, node: str):
     for check_type in self.checks:
       check = check_type()
@@ -149,7 +145,7 @@ def main():
   )
 
   args.result_file.truncate()
-  if HealthCheckSuite(args.node):
+  if HealthCheckSuite().run(args.node):
     args.result_file.write("HEALTHY\n")
   else:
     args.result_file.write("ERROR\n")
