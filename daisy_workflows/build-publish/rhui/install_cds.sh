@@ -100,6 +100,9 @@ cd $tempdir
 curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
 bash ./add-google-cloud-ops-agent-repo.sh --also-install --remove-repo
 cd /
+install -m 664 -T $tempdir/config.opsagent.yaml /etc/google-cloud-ops-agent/config.yaml
+# Status handler is used by the ops agent to collect nginx metrics.
+install -m 664 -t /etc/nginx/conf.d $tempdir/status.nginx.conf
 
 # Delete installer resources.
 rm -rf $tempdir
