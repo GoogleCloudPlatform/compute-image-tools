@@ -71,9 +71,13 @@ systemctl enable rsyncd.service
 
 # Set network settings
 cat >> /etc/sysconfig/network-scripts/ifcfg-eth0 <<EOF
-IPADDR=169.254.0.2/24
+DEVICE=eth0
+PREFIX=24
+IPADDR=169.254.0.2
 GATEWAY=169.254.0.1
 DNS=8.8.8.8
+ONBOOT=yes
+BOOTPROTO=none
 EOF
 
 # Install needed packages
@@ -97,5 +101,9 @@ startup = false
 [NetworkInterfaces]
 setup = false
 EOF
+
+# Disable agents
+dnf -y remove google-guest-agent google-compute-engine-oslogin google-osconfig-agent
+systemctl disable google-shutdown-scripts systemctl disable google-startup-scripts
 
 echo "BuildSuccess: Kokoro signing image build succeeded."
