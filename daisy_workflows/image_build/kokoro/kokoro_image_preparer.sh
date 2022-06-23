@@ -74,8 +74,12 @@ systemctl enable rsyncd.service
 # Set network settings
 cat >> /etc/sysconfig/network-scripts/ifcfg-eth0 <<EOF
 DEVICE=eth0
+PREFIX=24
+IPADDR=169.254.0.2
+GATEWAY=169.254.0.1
+DNS=8.8.8.8
 ONBOOT=yes
-BOOTPROTO=dhcp
+BOOTPROTO=none
 
 IPV6INIT=yes
 IPV6_AUTOCONF=yes
@@ -84,6 +88,8 @@ IPV6_PEERDNS=yes
 IPV6_PEERROUTES=yes
 IPV6_FAILURE_FATAL=no
 EOF
+
+echo "" > /etc/crypto-policies/back-ends/openssh.config
 
 set_etc_hosts() {
   hosts_str="$1"
