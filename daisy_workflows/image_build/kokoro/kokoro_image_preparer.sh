@@ -42,6 +42,8 @@ chmod 2775 "${build_dir}"
 # Create ready file
 su - kbuilder -c "touch ${build_dir}/READY"
 
+echo "tmpfs /tmpfs tmpfs rw,nosuid,nodev 0 0" >> /etc/fstab
+
 # Must have a running rsync daemon so that build inputs and outputs can be uploaded and downloaded
 dnf -y install rsync-daemon
 cat >> /etc/rsyncd.conf <<EOF
@@ -72,13 +74,31 @@ systemctl enable rsyncd.service
 # Set network settings
 cat >> /etc/sysconfig/network-scripts/ifcfg-eth0 <<EOF
 DEVICE=eth0
-PREFIX=24
-IPADDR=169.254.0.2
-GATEWAY=169.254.0.1
-DNS=8.8.8.8
 ONBOOT=yes
-BOOTPROTO=none
+BOOTPROTO=dhcp
+
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_PEERDNS=yes
+IPV6_PEERROUTES=yes
+IPV6_FAILURE_FATAL=no
 EOF
+
+set_etc_hosts() {
+  hosts_str="$1"
+  # Remove 127.0.1.1 as not everything binds to that address.
+  # See also: https://lists.debian.org/debian-devel/2013/07/msg00809.html
+  sed -i -e '/127\.0\.1\.1/d' /etc/hosts
+
+  sed -i -e "/^127\.0\.0\.1.*/c\
+    127\.0\.0\.1 ${hosts_str} localhost" /etc/hosts
+}
+hostname="kokoro-ubuntu"
+fqdn="kokoro-ubuntu.prod.google.com"
+hostname "$hostname"
+hosts_str="$fqdn $hostname"
+set_etc_hosts "$hosts_str"
 
 # Install needed packages
 dnf -y install git nmap-ncat python3-psutil
@@ -103,7 +123,7 @@ setup = false
 EOF
 
 # Disable agents
-dnf -y remove google-guest-agent google-compute-engine-oslogin google-osconfig-agent
-systemctl disable google-shutdown-scripts systemctl disable google-startup-scripts
+systemctl disable google-osconfig-agent
+systemctl disable google-guest-agent
 
 echo "BuildSuccess: Kokoro signing image build succeeded."

@@ -3,25 +3,15 @@
   "WorkProject": "gce-image-builder",
   "ComputeEndpoint": "https://www.googleapis.com/compute/v1/projects/",
   "DeleteAfter": "24h*30*6",
-  {{if eq .environment "test" -}}
   "PublishProject": "bct-prod-images",
-  {{- else if eq .environment "prod" -}}
-  "PublishProject": "rocky-linux-cloud",
-  {{- else if eq .environment "staging" -}}
-  "PublishProject": "bct-staging-images",
-  "WorkProject": "bct-staging-images",
-  "ComputeEndpoint": "https://www.googleapis.com/compute/cm_staging_alpha/projects/",
-  {{- else -}}
-  "PublishProject": "gce-image-builder",
-  {{- end}}
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
       "Prefix": "kokoro-signing-image",
       "Family": "kokoro-signing-image",
-      "Description": "Image for signing RPM packages in Kokoro"
+      "Description": "Image for signing RPM packages in Kokoro",
       "Licenses": [
-        "projects/rhel-cloud/global/licenses/rhel-8-server"
+        "projects/rocky-linux-cloud/global/licenses/rocky-linux-8"
       ],
       "GuestOsFeatures": ["UEFI_COMPATIBLE", "GVNIC"]
     }
