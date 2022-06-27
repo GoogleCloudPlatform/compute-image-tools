@@ -1,0 +1,56 @@
+{
+  "Name": "build-rocky-linux-8-gcp-arm64",
+  "Vars": {
+    "installer_iso": {
+      "Required": true,
+      "Description": "The Rocky Linux 8 installer ISO to build from."
+    },
+    "build_date": {
+      "Value": "${TIMESTAMP}",
+      "Description": "Build datestamp used to version the image."
+    },
+    "install_disk": {
+      "Value": "disk-rocky-linux-8",
+      "Description": "Name of the disk to install onto."
+    },
+    "publish_project": {
+      "Value": "${PROJECT}",
+      "Description": "A project to publish the resulting image to."
+    }
+  },
+  "Steps": {
+    "build-rocky": {
+      "Timeout": "60m",
+      "IncludeWorkflow": {
+        "Path": "./enterprise_linux.wf.json",
+        "Vars": {
+          "el_release": "rocky-linux-8-optimized-gcp-arm64",
+          "kickstart_config": "./kickstart/rocky_linux_8_optimized_gcp_arm64.cfg",
+          "machine_type": "t2a-standard-4",
+          "install_disk": "${install_disk}",
+          "installer_iso": "${installer_iso}"
+        }
+      }
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "rocky-linux-8-optimized-gcp-arm64-v${build_date}",
+          "SourceDisk": "${install_disk}",
+          "Licenses": [
+            "projects/rocky-linux-cloud/global/licenses/rocky-linux-8-optimized-gcp"
+          ],
+          "Description": "Rocky Linux, Rocky Linux 8 optimized for GCP, 8, aarch64 built on ${build_date}",
+          "Family": "rocky-linux-8-optimized-gcp-arm64",
+          "Project": "${publish_project}",
+          "NoCleanup": true,
+          "ExactName": true,
+          "GuestOsFeatures": ["UEFI_COMPATIBLE", "GVNIC"]
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-image": ["build-rocky"]
+  }
+}
