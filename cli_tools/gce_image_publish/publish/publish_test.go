@@ -787,7 +787,7 @@ func TestCreatePublishWithTemplate(t *testing.T) {
 		template string
 		wantErr  bool
 	}{
-		{"pass template", "{}", false},
+		{"pass template", `{"WorkProject": "blah"}`, false},
 		{"pass with invalid template", "{", true},
 	}
 	for _, tt := range tests {
