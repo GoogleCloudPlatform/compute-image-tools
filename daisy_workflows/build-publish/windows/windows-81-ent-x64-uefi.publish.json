@@ -1,0 +1,45 @@
+{{/*
+  Template to publish Windows server UEFI images.
+  By default this template is setup to publish to the 'gce-image-builder'
+  project, the 'environment' variable can be used to publish to 'test', 'prod',
+  or 'staging'.
+  DeleteAfter is set to 180 days for all environments other than prod where no
+  time period is set.
+*/}}
+{
+  "Name": "windows-81-ent-x64-uefi",
+  {{$work_project := printf "%q" "gce-image-builder" -}}
+  {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
+  {{$delete_after := `"24h*30*6"` -}}
+  {{if eq .environment "staging" -}}
+  "WorkProject": "bct-staging-images",
+  "PublishProject": "bct-staging-images",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
+  "DeleteAfter": {{$delete_after}},
+  {{- else -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "google.com:windows-internal",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- end}}
+  {{$guest_features := `["MULTI_IP_SUBNET","UEFI_COMPATIBLE","VIRTIO_SCSI_MULTIQUEUE","GVNIC","WINDOWS"]` -}}
+  {{$time := trimPrefix .publish_version "v"}}
+  "Images": [
+    {
+      "Prefix": "windows-81-ent-x64",
+      "Family": "windows-81",
+      "Description": "Microsoft, Windows 8.1 Enterprise, x64 built on {{$time}}, supports Shielded VM features",
+      "Architecture": "X86_64",
+      "Licenses": [
+        {{if eq .environment "staging" -}}
+        "projects/windows-cloud/global/licenses/windows-81-x64-byol"
+        {{- else if eq .environment "internal" -}}
+        "projects/google.com:windows-internal/global/licenses/internal-windows"
+        {{- else -}}
+        "projects/windows-cloud/global/licenses/windows-81-x64-byol"
+        {{- end}}
+      ],
+      "GuestOsFeatures": {{$guest_features}}
+    }
+  ]
+}
