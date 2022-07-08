@@ -45,7 +45,7 @@ online disk noerr
   # Find the drive which contains install media.
   $Drives = Get-WmiObject Win32_LogicalDisk
   ForEach ($Drive in $Drives) {
-    if (Test-Path "$($Drive.DeviceID)\Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English") {
+    if (Test-Path "$($Drive.DeviceID)\*2012_R2_64Bit*") {
       $script:install_media_drive = "$($Drive.DeviceID)"
     }
   }
@@ -56,7 +56,7 @@ online disk noerr
 
   # Run upgrade script from the install media.
   Set-ExecutionPolicy Unrestricted
-  Set-Location "$($script:install_media_drive)/Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English"
+  Set-Location "$($script:install_media_drive)/*2012_R2_64Bit*"
   ./upgrade.ps1
   $new_ver=[System.Environment]::OSVersion.Version
   if ("$($ver.Major).$($ver.Minor)" -eq "6.3")

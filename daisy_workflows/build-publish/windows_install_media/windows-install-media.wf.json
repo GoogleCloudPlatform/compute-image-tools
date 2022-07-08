@@ -7,28 +7,44 @@
       "Value": "/workflows",
       "Description": "Root of github workflows, defaults to /workflows in the container."
     },
-    "gcs_url": {
-      "Required": true,
-      "Description": "The GCS path that image raw file exported to."
-    },
-    "gcs_resource_path": "gs://gce-image-build-resources/windows",
-    "media_disk": "media-disk",
+    "build_date": "${TIMESTAMP}",
     "image_prefix": "windows-install-media",
-    "iso_name_2022": "SW_DVD9_Win_Server_STD_CORE_2022__64Bit_English_DC_STD_MLF_X22-74290.ISO",
-    "iso_name_2019": "SW_DVD9_Win_Server_STD_CORE_2019_1809.1_64Bit_English_DC_STD_MLF_X22-02970.ISO",
-    "iso_name_2016": "SW_DVD9_Win_Server_STD_CORE_2016_64Bit_English_-4_DC_STD_MLF_X21-70526.ISO",
-    "iso_name_2012r2": "SW_DVD9_Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English_-4_MLF_X19-82891.ISO"
+    "gcs_path": {
+      "Required": true,
+      "Description": "GCS path to export image to"
+    },
+    "gcs_resource_path": {
+      "Required": true,
+      "Description": "The GCS path of the resources used for building the image."
+    },
+    "media_disk": "media-disk",
+    "iso_name_2022": {
+      "Required": true,
+      "Description": "The ISO name of the Windows Server 2022."
+    },
+    "iso_name_2019": {
+      "Required": true,
+      "Description": "The ISO name of the Windows Server 2019."
+    },
+    "iso_name_2016": {
+      "Required": true,
+      "Description": "The ISO name of the Windows Server 2016."
+    },
+    "iso_name_2012r2": {
+      "Required": true,
+      "Description": "The ISO name of the Windows Server 2012r2."
+    }
   },
   "Sources": {
-    "prepare_install_media.ps1": "./prepare_install_media.ps1",
-    "components": "./components/",
-    "iso/Win_Server_STD_CORE_2022_64Bit_English.iso": "${gcs_resource_path}/iso/${iso_name_2022}",
-    "updates/Win_Server_STD_CORE_2019_1809.1_64Bit_English/": "${gcs_resource_path}/updates_2019/",
-    "iso/Win_Server_STD_CORE_2019_1809.1_64Bit_English.iso": "${gcs_resource_path}/iso/${iso_name_2019}",
-    "updates/Win_Server_STD_CORE_2016_64Bit_English/": "${gcs_resource_path}/updates_2016/",
-    "iso/Win_Server_STD_CORE_2016_64Bit_English.iso": "${gcs_resource_path}/iso/${iso_name_2016}",
-    "updates/Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English/": "${gcs_resource_path}/updates_2012r2/",
-    "iso/Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English.iso": "${gcs_resource_path}/iso/${iso_name_2012r2}"
+    "prepare_install_media.ps1": "../../image_build/windows_install_media/prepare_install_media.ps1",
+    "components": "../../image_build/windows_install_media/components/",
+    "iso/2022_64Bit.iso": "${gcs_resource_path}/iso/${iso_name_2022}",
+    "updates/2019_64Bit/": "${gcs_resource_path}/updates_2019/",
+    "iso/2019_64Bit.iso": "${gcs_resource_path}/iso/${iso_name_2019}",
+    "updates/2016_64Bit/": "${gcs_resource_path}/updates_2016/",
+    "iso/2016_64Bit.iso": "${gcs_resource_path}/iso/${iso_name_2016}",
+    "updates/2012_R2_64Bit/": "${gcs_resource_path}/updates_2012r2/",
+    "iso/2012_R2_64Bit.iso": "${gcs_resource_path}/iso/${iso_name_2012r2}"
   },
   "Steps": {
     "setup-disks": {
@@ -86,7 +102,7 @@
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
           "source_disk": "${media_disk}",
-          "destination": "${gcs_url}"
+          "destination": "${gcs_path}/${image_prefix}-v${build_date}/root.tar.gz"
         }
       }
     }
