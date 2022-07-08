@@ -32,7 +32,7 @@
       "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "staging" -}}
-        "projects/windows-cloud/global/licenses/windows-11-x64-byol"
+        "projects/bct-staging-functional/global/licenses/windows-ent"
         {{- else if eq .environment "internal" -}}
         "projects/google.com:windows-internal/global/licenses/internal-windows"
         {{- else -}}
