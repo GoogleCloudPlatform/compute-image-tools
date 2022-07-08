@@ -26,7 +26,7 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Prefix": "windows-10-ent-x64",
+      "Prefix": "windows-10-21h2-ent-x64",
       "Family": "windows-10",
       "Description": "Microsoft, Windows 10 Enterprise, 21h2 Update, x64 built on {{$time}}, supports Shielded VM features",
       "Architecture": "X86_64",
