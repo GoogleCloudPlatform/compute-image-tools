@@ -16,9 +16,14 @@
   "PublishProject": "bct-staging-images",
   "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
   "DeleteAfter": {{$delete_after}},
-  {{- else -}}
+  {{if eq .environment "internal" -}}
   "WorkProject": {{$work_project}},
   "PublishProject": "google.com:windows-internal",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- else -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "bct-prod-images",
   "ComputeEndpoint": {{$endpoint}},
   "DeleteAfter": {{$delete_after}},
   {{- end}}
@@ -27,7 +32,7 @@
   "Images": [
     {
       "Prefix": "windows-10-21h2-ent-x64",
-      "Family": "windows-10",
+      "Family": "windows-10-21h2-x64",
       "Description": "Microsoft, Windows 10 Enterprise, 21h2 Update, x64 built on {{$time}}, supports Shielded VM features",
       "Architecture": "X86_64",
       "Licenses": [
