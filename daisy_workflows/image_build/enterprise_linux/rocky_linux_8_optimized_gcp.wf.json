@@ -37,7 +37,7 @@
           "Name": "rocky-linux-8-optimized-gcp-v${build_date}",
           "SourceDisk": "${install_disk}",
           "Licenses": [
-            "projects/rocky-linux-cloud/global/licenses/rocky-linux-8"
+            "projects/rocky-linux-cloud/global/licenses/rocky-linux-8-optimized-gcp"
           ],
           "Description": "Rocky Linux, Rocky Linux 8 optimized for GCP, 8, x86_64 built on ${build_date}",
           "Family": "rocky-linux-8-optimized-gcp",
