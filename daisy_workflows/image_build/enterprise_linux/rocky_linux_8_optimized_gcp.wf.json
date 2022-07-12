@@ -39,7 +39,7 @@
           "Licenses": [
             "projects/rocky-linux-cloud/global/licenses/rocky-linux-8-optimized-gcp"
           ],
-          "Description": "Rocky Linux, Rocky Linux 8 optimized for GCP, 8, x86_64 built on ${build_date}",
+          "Description": "Rocky Linux, Rocky Linux, 8 optimized for GCP, x86_64 built on ${build_date}",
           "Family": "rocky-linux-8-optimized-gcp",
           "Project": "${publish_project}",
           "NoCleanup": true,
