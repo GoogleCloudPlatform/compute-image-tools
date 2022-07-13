@@ -22,7 +22,7 @@
     }
   },
   "Steps": {
-    "build-debian-10-worker": {
+    "build-debian-11-worker": {
       "Timeout": "60m",
       "IncludeWorkflow": {
         "Path": "${workflow_root}/image_build/debian/debian_11_worker.wf.json",
