@@ -1,4 +1,4 @@
-
+{
   "Name": "build-debian-11-worker",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
