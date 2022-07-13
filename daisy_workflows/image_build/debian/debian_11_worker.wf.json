@@ -10,7 +10,7 @@
       "debian_worker.sh": "./debian_worker.sh"
   },
   "Steps": {
-    "build-debian-10": {
+    "build-debian-11": {
       "Timeout": "60m",
       "IncludeWorkflow": {
         "Path": "./debian_11_fai.wf.json",
