@@ -84,7 +84,7 @@ def main():
     # Change boot args.
     args = ' '.join([
       'inst.text', 'inst.ks=hd:LABEL=INSTALLER:/%s' % ks_cfg,
-      'console=ttyS0,38400n8', 'inst.gpt', 'loglevel=debug'
+      'console=ttyS0,38400n8', 'inst.gpt', 'inst.loglevel=debug'
     ])
 
     # Tell Anaconda not to store its logs in the installed image,
