@@ -9,9 +9,9 @@
     },
     "build_date": "${TIMESTAMP}",
     "image_prefix": "windows-install-media",
-    "gcs_path": {
+    "gcs_url": {
       "Required": true,
-      "Description": "GCS path to export image to"
+      "Description": "The GCS url that the image raw file exported to."
     },
     "gcs_resource_path": {
       "Required": true,
@@ -102,7 +102,7 @@
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
           "source_disk": "${media_disk}",
-          "destination": "${gcs_path}/${image_prefix}-v${build_date}/root.tar.gz"
+          "destination": "${gcs_url}"
         }
       }
     }
