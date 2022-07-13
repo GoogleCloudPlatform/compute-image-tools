@@ -33,7 +33,7 @@
       "Licenses": [
         "projects/debian-cloud/global/licenses/debian-11-bullseye"
       ],
-      "GuestOsFeatures": ["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE, GVNIC"]
+      "GuestOsFeatures": ["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "GVNIC"]
     }
   ]
 }
