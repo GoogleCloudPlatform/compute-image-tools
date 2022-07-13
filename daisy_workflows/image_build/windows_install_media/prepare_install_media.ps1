@@ -179,7 +179,7 @@ try {
       $args = @($input)[0]
       Update-Wim -media_dir $args[0] -updates_dir $args[1]
     }
-    if (Test-Path "${updates_dir}\${name}") {
+    if (Test-Path "${updates_dir}\${name}\*") {
       $job = Start-Job -ScriptBlock $script -InitializationScript $init_block -InputObject @($dst, "${updates_dir}\${name}")
       $jobs += $job.Id
     }
