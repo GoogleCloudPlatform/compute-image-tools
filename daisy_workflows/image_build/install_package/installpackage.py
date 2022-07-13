@@ -92,7 +92,8 @@ def main():
   run('umount /mnt/dev', check=False)
   run('umount /mnt', check=False)
 
-  logging.success('InstallPackageSuccess: Package %s installed successfully', package_name)
+  logging.success('InstallPackageSuccess: Package %s installed successfully',
+                  package_name)
 
 
 if __name__ == '__main__':
