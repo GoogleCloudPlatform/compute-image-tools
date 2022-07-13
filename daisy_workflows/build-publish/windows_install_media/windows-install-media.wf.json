@@ -48,8 +48,8 @@
     }
   },
   "Sources": {
-    "prepare_install_media.ps1": "${workflow_root}/image_build/windows_install_media/prepare_install_media.ps1",
-    "components": "${workflow_root}/image_build/windows_install_media/components/",
+    "prepare_install_media.ps1": "../../image_build/windows_install_media/prepare_install_media.ps1",
+    "components": "../../image_build/windows_install_media/components/",
     "updates/2022_64Bit/": "${updates_path_2022}",
     "iso/2022_64Bit.iso": "${iso_path_2022}",
     "updates/2019_64Bit/": "${updates_path_2019}",
