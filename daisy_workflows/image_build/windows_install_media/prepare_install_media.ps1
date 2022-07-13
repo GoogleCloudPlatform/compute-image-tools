@@ -113,17 +113,19 @@ $init_block = {
       [parameter(Mandatory=$true)]
         [string]$mount_path
     )
-    Write-Host "${name}: Slipstreaming updates into image."
-    Get-ChildItem $updates_dir | ForEach-Object {
-      Write-Host "${name}: Adding '$($_.Name)' to image."
-      $path = $_.FullName
-      try {
-        Add-WindowsPackage -Path $mount_path -PackagePath $path -ErrorAction Stop
-        Write-Host "${name}: Successfully added $($_.Name)."
-      }
-      catch {
-        Write-Host "${name}: Slipstreaming update failed, trying once more..."
-        Add-WindowsPackage -Path $mount_path -PackagePath $path
+    if (Test-Path $script:updates_dir) {
+      Write-Host "${name}: Slipstreaming updates into image."
+      Get-ChildItem $updates_dir | ForEach-Object {
+        Write-Host "${name}: Adding '$($_.Name)' to image."
+        $path = $_.FullName
+        try {
+          Add-WindowsPackage -Path $mount_path -PackagePath $path -ErrorAction Stop
+          Write-Host "${name}: Successfully added $($_.Name)."
+        }
+        catch {
+          Write-Host "${name}: Slipstreaming update failed, trying once more..."
+          Add-WindowsPackage -Path $mount_path -PackagePath $path
+        }
       }
     }
   }

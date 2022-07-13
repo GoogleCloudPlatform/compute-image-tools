@@ -13,38 +13,51 @@
       "Required": true,
       "Description": "The GCS url that the image raw file exported to."
     },
-    "gcs_resource_path": {
-      "Required": true,
-      "Description": "The GCS path of the resources used for building the image."
-    },
     "media_disk": "media-disk",
-    "iso_name_2022": {
+    "iso_path_2022": {
       "Required": true,
-      "Description": "The ISO name of the Windows Server 2022."
+      "Description": "The ISO path of the Windows Server 2022."
     },
-    "iso_name_2019": {
+    "updates_path_2022": {
       "Required": true,
-      "Description": "The ISO name of the Windows Server 2019."
+      "Description": "The updates path of the Windows Server 2022."
     },
-    "iso_name_2016": {
+    "iso_path_2019": {
       "Required": true,
-      "Description": "The ISO name of the Windows Server 2016."
+      "Description": "The ISO path of the Windows Server 2019."
     },
-    "iso_name_2012r2": {
+    "updates_path_2019": {
       "Required": true,
-      "Description": "The ISO name of the Windows Server 2012r2."
+      "Description": "The updates path of the Windows Server 2019."
+    },
+    "iso_path_2016": {
+      "Required": true,
+      "Description": "The ISO path of the Windows Server 2016."
+    },
+    "updates_path_2016": {
+      "Required": true,
+      "Description": "The updates path of the Windows Server 2016."
+    },
+    "iso_path_2012r2": {
+      "Required": true,
+      "Description": "The ISO path of the Windows Server 2012r2."
+    },
+    "updates_path_2012r2": {
+      "Required": true,
+      "Description": "The updates path of the Windows Server 2012r2."
     }
   },
   "Sources": {
-    "prepare_install_media.ps1": "../../image_build/windows_install_media/prepare_install_media.ps1",
-    "components": "../../image_build/windows_install_media/components/",
-    "iso/2022_64Bit.iso": "${gcs_resource_path}/iso/${iso_name_2022}",
-    "updates/2019_64Bit/": "${gcs_resource_path}/updates_2019/",
-    "iso/2019_64Bit.iso": "${gcs_resource_path}/iso/${iso_name_2019}",
-    "updates/2016_64Bit/": "${gcs_resource_path}/updates_2016/",
-    "iso/2016_64Bit.iso": "${gcs_resource_path}/iso/${iso_name_2016}",
-    "updates/2012_R2_64Bit/": "${gcs_resource_path}/updates_2012r2/",
-    "iso/2012_R2_64Bit.iso": "${gcs_resource_path}/iso/${iso_name_2012r2}"
+    "prepare_install_media.ps1": "${workflow_root}/image_build/windows_install_media/prepare_install_media.ps1",
+    "components": "${workflow_root}/image_build/windows_install_media/components/",
+    "updates/2022_64Bit/": "${updates_path_2022}",
+    "iso/2022_64Bit.iso": "${iso_path_2022}",
+    "updates/2019_64Bit/": "${updates_path_2019}",
+    "iso/2019_64Bit.iso": "${iso_path_2019}",
+    "updates/2016_64Bit/": "${updates_path_2016}",
+    "iso/2016_64Bit.iso": "${iso_path_2016}",
+    "updates/2012_R2_64Bit/": "${updates_path_2012r2}",
+    "iso/2012_R2_64Bit.iso": "${iso_path_2012r2}"
   },
   "Steps": {
     "setup-disks": {
