@@ -10,7 +10,7 @@ from utils.common import _GetMetadataParam
 
 
 def run(cmd, capture_output=True, check=True, encoding='utf-8'):
-  logging.info('Run: %s', cmd)
+  logging.info('InstallPackageStatus: Run: %s', cmd)
   return subprocess.run(cmd.split(), capture_output=capture_output,
                         check=check, encoding=encoding)
 
@@ -53,11 +53,11 @@ def main():
   package_name = package.split('/')[-1]
 
   mount_disk = get_mount_disk(image)
-  logging.info('Mount device %s at /mnt', mount_disk)
+  logging.info('InstallPackageStatus: Mount device %s at /mnt', mount_disk)
   run(f'mount {mount_disk} /mnt')
 
   # The rpm utility requires /dev/random to initialize GnuTLS
-  logging.info('Mount dev filesystem in chroot')
+  logging.info('InstallPackageStatus: Mount dev filesystem in chroot')
   run('mount -o bind /dev /mnt/dev')
 
   utils.DownloadFile(package, f'/mnt/tmp/{package_name}')
@@ -68,16 +68,16 @@ def main():
   elif distribution == 'enterprise_linux':
     util = 'yum'
   else:
-    logging.error('Unknown Linux distribution.')
+    logging.error('InstallPackageFailed: Unknown Linux distribution.')
     return
 
-  logging.info('Installing package %s', package_name)
+  logging.info('InstallPackageStatus: Installing package %s', package_name)
   run(f'chroot /mnt {util} install -y /tmp/{package_name}')
   if distribution == 'enterprise_linux':
     # (google-guest-agent)-20210723.01
     m = re.search(r'(.+)-[0-9]{8}\.[0-9]{2}.*', package_name)
     if not m:
-      logging.error('unknown package name, cant relabel')
+      logging.error('InstallPackageFailed: unknown package name, cant relabel')
       return
     package_short_name = m.group(1)
 
@@ -92,7 +92,8 @@ def main():
   run('umount /mnt/dev', check=False)
   run('umount /mnt', check=False)
 
-  logging.success('Package %s installed successfully', package_name)
+  logging.success('InstallPackageSuccess: Package %s installed successfully',
+                  package_name)
 
 
 if __name__ == '__main__':
@@ -101,6 +102,6 @@ if __name__ == '__main__':
   except subprocess.CalledProcessError as e:
     logging.info('stdout: %s', e.stdout)
     logging.info('stderr: %s', e.stderr)
-    logging.error('failed to execute cmd: %s', e)
+    logging.error('InstallPackageFailed: failed to execute cmd: %s', e)
   except Exception as e:
-    logging.error('%s', e)
+    logging.error('InstallPackageFailed: %s', e)
