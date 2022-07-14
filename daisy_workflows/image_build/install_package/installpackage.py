@@ -68,8 +68,7 @@ def main():
   elif distribution == 'enterprise_linux':
     util = 'yum'
   else:
-    logging.error('Unknown Linux distribution.')
-    return
+    raise Exception('Unknown Linux distribution.')
 
   logging.info('Installing package %s', package_name)
   run(f'chroot /mnt {util} install -y /tmp/{package_name}')
@@ -77,8 +76,7 @@ def main():
     # (google-guest-agent)-20210723.01
     m = re.search(r'(.+)-[0-9]{8}\.[0-9]{2}.*', package_name)
     if not m:
-      logging.error('unknown package name, cant relabel')
-      return
+      raise Exception('unknown package name, cant relabel')
     package_short_name = m.group(1)
 
     out = run(f'chroot /mnt rpm -ql {package_short_name}')
