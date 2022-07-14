@@ -2,7 +2,6 @@
 
 
 import logging
-import re
 import subprocess
 
 import utils
@@ -73,17 +72,8 @@ def main():
   logging.info('Installing package %s', package_name)
   run(f'chroot /mnt {util} install -y /tmp/{package_name}')
   if distribution == 'enterprise_linux':
-    # (google-guest-agent)-20210723.01
-    m = re.search(r'(.+)-[0-9]{8}\.[0-9]{2}.*', package_name)
-    if not m:
-      raise Exception('unknown package name, cant relabel')
-    package_short_name = m.group(1)
-
-    out = run(f'chroot /mnt rpm -ql {package_short_name}')
-    with open('/mnt/tmp/relabel', 'w') as fp:
-      fp.write(out.stdout)
-    run('chroot /mnt /sbin/setfiles -v -F -f /tmp/relabel '
-        '/etc/selinux/targeted/contexts/files/file_contexts')
+    run('chroot /mnt /sbin/setfiles -v -F '
+        '/etc/selinux/targeted/contexts/files/file_contexts /')
 
   # Best effort to unmount prior to shutdown.
   run('sync', check=False)
