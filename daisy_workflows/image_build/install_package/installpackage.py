@@ -2,7 +2,6 @@
 
 
 import logging
-import re
 import subprocess
 
 import utils
