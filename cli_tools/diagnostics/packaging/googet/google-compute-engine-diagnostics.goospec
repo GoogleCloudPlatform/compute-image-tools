@@ -1,6 +1,6 @@
 {
   "name": "google-compute-engine-diagnostics",
-  "version": "1.2.0@0",
+  "version": "{{.version}}.0@0",
   "arch": "x86_64",
   "authors": "Google Inc.",
   "license": "http://www.apache.org/licenses/LICENSE-2.0",
@@ -22,6 +22,6 @@
   }],
  "build": {
     "linux": "/bin/bash",
-    "linuxArgs": ["-c", "GOOS=windows go build"]
+    "linuxArgs": ["-c", "GOOS=windows /tmp/go/bin/go build -ldflags='-X main.version={{.version}}' -o diagnostics.exe"]
   }
 }
