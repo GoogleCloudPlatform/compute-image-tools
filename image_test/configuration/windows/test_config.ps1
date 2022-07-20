@@ -27,7 +27,7 @@ function Test-Activation {
 
 function Test-MTU {
   Write-Host 'Running' $MyInvocation.MyCommand
-  $want = 1460
+  $want = 1500
   $interface = (Get-CimInstance Win32_NetworkAdapter -filter "ServiceName='netkvm'")[0]
   $result = netsh interface ipv4 show subinterface $interface.NetConnectionID
   $result[3] -match '^\s*(\d+)' | Out-Null
