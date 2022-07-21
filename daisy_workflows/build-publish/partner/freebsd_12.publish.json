@@ -14,8 +14,8 @@
     {
       "Prefix": "freebsd-12",
       "Family": "freebsd-12",
-      "Description": "FreeBSD 12.0"
       "Architecture": "X86_64",
+      "Description": "FreeBSD 12.0"
     }
   ]
 }
