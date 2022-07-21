@@ -14,7 +14,7 @@
     {
       "Prefix": "opensuse-leap-15-arm64",
       "Family": "opensuse-leap-15-arm64",
-      "Description": "openSUSE Leap 15"
+      "Description": "openSUSE Leap 15",
       "Architecture": "ARM64",
     }
   ]
