@@ -14,8 +14,8 @@
     {
       "Prefix": "freebsd-13",
       "Family": "freebsd-13",
-      "Description": "FreeBSD 13.0"
       "Architecture": "X86_64",
+      "Description": "FreeBSD 13.0"
     }
   ]
 }
