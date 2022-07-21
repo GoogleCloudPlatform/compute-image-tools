@@ -1,0 +1,22 @@
+{
+  "Name": "sles-15-arm64",
+  {{if eq .environment "oslogin-staging" -}}
+  "WorkProject": "oslogin-staging-project",
+  "PublishProject": "oslogin-staging-project",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
+  {{- else if eq .environment "staging" -}}
+  "WorkProject": "oslogin-staging-project",
+  "PublishProject": "gce-staging-images",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
+  {{- end}}
+  "DeleteAfter": "24h*30*6",
+  "Images": [
+    {
+      "Prefix": "sles-15-arm64",
+      "Family": "sles-15-arm64",
+      "Description": "SUSE Enterprise Linux 15",
+      "Architecture": "ARM64",
+      "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE"]
+    }
+  ]
+}
