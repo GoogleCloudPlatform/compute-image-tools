@@ -82,7 +82,7 @@ try {
         Restore-PreUpgradeConfiguration
 
         Write-LogInfo 'Starting Windows upgrade process (Setup.exe)'
-        & $SetupExePath /imageindex $script:imageIndex /auto upgrade /DynamicUpdate disable /telemetry disable /pkey $ProductKey /Compat IgnoreWarning
+        & $SetupExePath /imageindex $script:imageIndex /auto upgrade /telemetry disable /pkey $ProductKey /Compat IgnoreWarning
 
         Write-LogInfo 'Starting Logging of Windows upgrade process (Setup.exe)'
         & ${script:currLocation}\..\common\setup-logger.ps1
