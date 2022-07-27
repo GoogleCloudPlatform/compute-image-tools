@@ -1,0 +1,33 @@
+{{/*
+  Template to publish Windows install media images.
+  By default this template is setup to publish to the 'gce-image-builder'
+  project, the 'environment' variable can be used to publish to 'test', 'prod',
+  or 'staging'.
+  DeleteAfter is set to 180 days for all environments other than prod where no
+  time period is set.
+*/}}
+{
+  "Name": "windows-install-media",
+  {{$work_project := printf "%q" "gce-image-builder" -}}
+  {{$delete_after := `"24h*30*6"` -}}
+  {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
+  {{if eq .environment "prod" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "compute-image-tools",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- else -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "bct-prod-images",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
+  "DeleteAfter": {{$delete_after}},
+  {{- end}}
+  {{$time := trimPrefix .publish_version "v"}}
+  "Images": [
+    {
+      "Prefix": "windows-install-media",
+      "Family": "windows-install-media",
+      "Description": "Install media for Windows Server built on {{$time}}"
+    }
+  ]
+}

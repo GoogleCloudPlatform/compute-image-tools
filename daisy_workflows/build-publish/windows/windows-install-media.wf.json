@@ -1,0 +1,129 @@
+{
+  "Name": "windows-install-media",
+  "Project": "gce-image-builder",
+  "Zone": "us-central1-b",
+  "Vars": {
+    "workflow_root": {
+      "Value": "/workflows",
+      "Description": "Root of github workflows, defaults to /workflows in the container."
+    },
+    "build_date": "${TIMESTAMP}",
+    "image_prefix": "windows-install-media",
+    "gcs_url": {
+      "Required": true,
+      "Description": "The GCS url that the image raw file exported to."
+    },
+    "media_disk": "media-disk",
+    "iso_path_2022": {
+      "Required": true,
+      "Description": "The ISO path of the Windows Server 2022."
+    },
+    "updates_path_2022": {
+      "Required": true,
+      "Description": "The updates path of the Windows Server 2022."
+    },
+    "iso_path_2019": {
+      "Required": true,
+      "Description": "The ISO path of the Windows Server 2019."
+    },
+    "updates_path_2019": {
+      "Required": true,
+      "Description": "The updates path of the Windows Server 2019."
+    },
+    "iso_path_2016": {
+      "Required": true,
+      "Description": "The ISO path of the Windows Server 2016."
+    },
+    "updates_path_2016": {
+      "Required": true,
+      "Description": "The updates path of the Windows Server 2016."
+    },
+    "iso_path_2012r2": {
+      "Required": true,
+      "Description": "The ISO path of the Windows Server 2012r2."
+    },
+    "updates_path_2012r2": {
+      "Required": true,
+      "Description": "The updates path of the Windows Server 2012r2."
+    }
+  },
+  "Sources": {
+    "prepare_install_media.ps1": "../../image_build/windows/windows_install_media/prepare_install_media.ps1",
+    "components": "../../image_build/windows/windows_install_media/components/",
+    "updates/2022_64Bit/": "${updates_path_2022}",
+    "iso/2022_64Bit.iso": "${iso_path_2022}",
+    "updates/2019_64Bit/": "${updates_path_2019}",
+    "iso/2019_64Bit.iso": "${iso_path_2019}",
+    "updates/2016_64Bit/": "${updates_path_2016}",
+    "iso/2016_64Bit.iso": "${iso_path_2016}",
+    "updates/2012_R2_64Bit/": "${updates_path_2012r2}",
+    "iso/2012_R2_64Bit.iso": "${iso_path_2012r2}"
+  },
+  "Steps": {
+    "setup-disks": {
+      "CreateDisks": [
+        {
+          "Name": "${media_disk}",
+          "SizeGb": "50",
+          "Type": "pd-ssd"
+        },
+         {
+          "Name": "worker-disk",
+          "SizeGb": "500",
+          "SourceImage": "projects/windows-cloud/global/images/family/windows-2019-core",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "run-setup": {
+      "CreateInstances": [
+        {
+          "Name": "inst-setup",
+          "Disks": [{"Source": "worker-disk"}, {"Source": "${media_disk}"}],
+          "MachineType": "n1-standard-8",
+          "Metadata": {
+            "updates-path": "${SOURCESPATH}/updates",
+            "iso-path": "${SOURCESPATH}/iso",
+            "components-path": "${SOURCESPATH}/components"
+          },
+          "StartupScript": "prepare_install_media.ps1"
+        }
+      ]
+    },
+    "wait-for-setup": {
+      "Timeout": "4h",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-setup",
+          "SerialOutput": {
+            "Port": 1,
+            "FailureMatch": ["BuildFailed:", "windows-startup-script-url exit status 1"],
+            "SuccessMatch": "BuildCompleted",
+            "StatusMatch": "BuildStatus:"
+          }
+        }
+      ]
+    },
+    "delete-inst-setup": {
+      "DeleteResources": {
+        "Instances": ["inst-setup"]
+      }
+    },
+    "disk-export": {
+      "Timeout": "30m",
+      "IncludeWorkflow": {
+        "Path": "${workflow_root}/export/disk_export.wf.json",
+        "Vars": {
+          "source_disk": "${media_disk}",
+          "destination": "${gcs_url}"
+        }
+      }
+    }
+  },
+  "Dependencies": {
+    "run-setup": ["setup-disks"],
+    "wait-for-setup": ["run-setup"],
+    "delete-inst-setup": ["wait-for-setup"],
+    "disk-export": ["delete-inst-setup"]
+  }
+}
