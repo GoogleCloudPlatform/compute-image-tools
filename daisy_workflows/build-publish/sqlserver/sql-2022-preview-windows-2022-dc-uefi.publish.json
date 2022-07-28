@@ -32,7 +32,7 @@
       "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "staging" -}}
-        "projects/windows-sql-cloud/global/licenses/sql-server-2022-express",
+        "projects/bct-staging-functional/global/licenses/sql-server-2022-express",
         "projects/bct-staging-functional/global/licenses/windows-server-2022-dc"
         {{- else -}}
         "projects/windows-sql-cloud/global/licenses/sql-server-2022-express",
