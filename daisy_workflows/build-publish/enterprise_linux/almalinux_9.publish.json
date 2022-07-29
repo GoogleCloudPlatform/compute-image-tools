@@ -1,0 +1,57 @@
+{{/*
+  Template to publish UEFI-enabled Alma Linux images.
+  By default this template is setup to publish to the 'gce-image-builder'
+  project, the 'environment' variable can be used to publish to 'test', 'prod',
+  or 'staging'.
+  DeleteAfter is set to 180 days for all environments other than prod where no
+  time period is set.
+*/}}
+{
+  "Name": "almalinux-9",
+  {{$work_project := printf "%q" "gce-image-builder" -}}
+  {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
+  {{$delete_after := `"24h*30*6"` -}}
+  {{if eq .environment "test" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "bct-prod-images",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- else if eq .environment "prod" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "almalinux-cloud",
+  "ComputeEndpoint": {{$endpoint}},
+  {{- else if eq .environment "oslogin-staging" -}}
+  "WorkProject": "oslogin-staging-project",
+  "PublishProject": "oslogin-staging-project",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
+  "DeleteAfter": {{$delete_after}},
+  {{- else if eq .environment "staging" -}}
+  "WorkProject": "oslogin-staging-project",
+  "PublishProject": "gce-staging-images",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
+  "DeleteAfter": {{$delete_after}},
+  {{- else -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": {{$work_project}},
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- end}}
+  {{$guest_features := `["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "GVNIC"]` -}}
+  {{$time := trimPrefix .publish_version "v"}}
+  "Images": [
+    {
+      "Family": "almalinux-9",
+      "Prefix": "almalinux-9",
+      "Description": "AlmaLinux, AlmaLinux, 9, x86_64 built on {{$time}}",
+      "Architecture": "X86_64",
+      "Licenses": [
+        {{if (or (eq .environment "staging") (eq .environment "oslogin-staging")) -}}
+        "projects/bct-staging-functional/global/licenses/almalinux-8"
+        {{- else -}}
+        "projects/almalinux-cloud/global/licenses/almalinux-9"
+        {{- end}}
+      ],
+      "GuestOsFeatures": {{$guest_features}}
+    }
+  ]
+}
