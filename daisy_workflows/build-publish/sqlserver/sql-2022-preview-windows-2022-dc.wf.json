@@ -26,7 +26,7 @@
       "Value": "windows-cloud",
       "Description": "Project to source base image from."
     },
-    "ssms22_exe": {
+    "ssms_exe": {
       "Required": true,
       "Description": "GCS or local path to SSMS installer"
     },
@@ -46,7 +46,7 @@
           "publish_project": "${publish_project}",
           "sql_server_media": "${sql_server_media}",
           "source_image_project": "${source_image_project}",
-          "ssms22_exe": "${ssms22_exe}",
+          "ssms_exe": "${ssms_exe}",
           "timeout": "${timeout}"
         }
       }
