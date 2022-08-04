@@ -62,7 +62,7 @@ func TestValidateParams(t *testing.T) {
 	u = newTestUpgrader().upgrader
 	u.Instance = daisyutils.GetInstanceURI(testProject, testZone, testInstanceNoLicense)
 	tcs = append(tcs, testCase{"validateAndDeriveInstance failure", u,
-		"Can only upgrade GCE instance with any of [projects/windows-cloud/global/licenses/windows-server-2008-r2-dc] license attached", DefaultTimeout})
+		"No valid Windows Server PayG license can be found. Any of the following licenses are required: [projects/windows-cloud/global/licenses/windows-server-2008-r2-dc]", DefaultTimeout})
 
 	u = newTestUpgrader().upgrader
 	u.Timeout = "1m"
@@ -196,7 +196,7 @@ func TestValidateInstance(t *testing.T) {
 			"License error",
 			daisyutils.GetInstanceURI(testProject, testZone, testInstanceNoLicense),
 			"",
-			"Can only upgrade GCE instance with any of [projects/windows-cloud/global/licenses/windows-server-2008-r2-dc] license attached",
+			"No valid Windows Server PayG license can be found. Any of the following licenses are required: [projects/windows-cloud/global/licenses/windows-server-2008-r2-dc]",
 			"",
 			"",
 			testProject, testZone, testInstanceNoLicense,
@@ -406,7 +406,7 @@ func TestValidateLicense(t *testing.T) {
 		{
 			"No license",
 			&compute.AttachedDisk{},
-			"Can only upgrade GCE instance with any of [projects/windows-cloud/global/licenses/windows-server-2008-r2-dc] license attached",
+			"No valid Windows Server PayG license can be found. Any of the following licenses are required: [projects/windows-cloud/global/licenses/windows-server-2008-r2-dc]",
 		},
 		{
 			"No expected license",
@@ -414,7 +414,7 @@ func TestValidateLicense(t *testing.T) {
 				Licenses: []string{
 					"random-license",
 				}},
-			"Can only upgrade GCE instance with any of [projects/windows-cloud/global/licenses/windows-server-2008-r2-dc] license attached",
+			"No valid Windows Server PayG license can be found. Any of the following licenses are required: [projects/windows-cloud/global/licenses/windows-server-2008-r2-dc]",
 		},
 		{
 			"Expected license",
@@ -441,7 +441,7 @@ func TestValidateLicense(t *testing.T) {
 					upgradePaths[testSourceOS][testTargetOS].expectedCurrentLicense[0],
 					upgradePaths[testSourceOS][testTargetOS].licenseToAdd,
 				}},
-			"The GCE instance is with projects/windows-cloud/global/licenses/windows-server-2012-r2-dc-in-place-upgrade license attached, which means it either has been upgraded or has started an upgrade in the past.",
+			"The GCE instance has the projects/windows-cloud/global/licenses/windows-server-2012-r2-dc-in-place-upgrade license attached. This likely means the instance either has been upgraded or has started an upgrade in the past.",
 		},
 	}
 

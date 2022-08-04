@@ -40,7 +40,7 @@ function Get-MetadataValue {
 $script:install_media_drive = ''
 
 try {
-  Write-Host 'GCEMetadataScripts: Beginning upgrade startup script.'
+  Write-Host 'Beginning upgrade startup script.'
 
   $script:expected_current_version = Get-MetadataValue -key 'expected-current-version'
   $script:expected_new_version = Get-MetadataValue -key 'expected-new-version'
@@ -52,8 +52,8 @@ try {
   $ver=(Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion").ProductName
   if ($ver -ne $script:expected_current_version) {
     if ($ver -eq $script:expected_new_version) {
-      Write-Host "GCEMetadataScripts: The instance is already running $script:expected_new_version!"
-      Write-Host "GCEMetadataScripts: Rerunning upgrade.ps1 as the post-upgrade step."
+      Write-Host "The instance is already running $script:expected_new_version!"
+      Write-Host "Rerunning upgrade.ps1 as the post-upgrade step."
     } else {
       throw "The instance is not running $script:expected_current_version. It is '$ver'."
     }
@@ -90,7 +90,7 @@ online disk noerr
   $new_ver=(Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion").ProductName
   if ($new_ver -eq $script:expected_new_version)
   {
-    Write-Host "GCEMetadataScripts: post-upgrade step is done."
+    Write-Host "post-upgrade step is done."
   }
   Write-Host "windows_upgrade_current_version='$new_ver'"
 }

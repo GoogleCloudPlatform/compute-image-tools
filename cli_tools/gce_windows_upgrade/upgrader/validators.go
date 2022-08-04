@@ -223,10 +223,10 @@ func validateLicense(osDisk *compute.AttachedDisk, sourceOS, targetOS string) er
 		}
 	}
 	if !matchSourceOSVersion {
-		return daisy.Errf(fmt.Sprintf("Can only upgrade GCE instance with any of %v license attached", upgradePaths[sourceOS][targetOS].expectedCurrentLicense))
+		return daisy.Errf(fmt.Sprintf("No valid Windows Server PayG license can be found. Any of the following licenses are required: %v", upgradePaths[sourceOS][targetOS].expectedCurrentLicense))
 	}
 	if upgraded {
-		return daisy.Errf(fmt.Sprintf("The GCE instance is with %v license attached, which means it either has been upgraded or has started an upgrade in the past.", upgradePaths[sourceOS][targetOS].licenseToAdd))
+		return daisy.Errf(fmt.Sprintf("The GCE instance has the %v license attached. This likely means the instance either has been upgraded or has started an upgrade in the past.", upgradePaths[sourceOS][targetOS].licenseToAdd))
 	}
 	return nil
 }
