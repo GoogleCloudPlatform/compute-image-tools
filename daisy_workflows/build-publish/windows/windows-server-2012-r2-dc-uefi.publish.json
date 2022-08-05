@@ -16,8 +16,8 @@
   "PublishProject": "windows-cloud",
   "ComputeEndpoint": {{$endpoint}},
   {{- else if eq .environment "staging" -}}
-  "WorkProject": "bct-staging-images",
-  "PublishProject": "bct-staging-images",
+  "WorkProject": "oslogin-staging-project",
+  "PublishProject": "gce-staging-images",
   "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
   "DeleteAfter": {{$delete_after}},
   {{- else if eq .environment "internal" -}}
