@@ -50,6 +50,7 @@ var (
 	ce             = flag.String("compute_endpoint_override", "", "API endpoint to override default, will override ComputeEndpoint in template")
 	filter         = flag.String("filter", "", "regular expression to filter images to publish by prefixes")
 	rolloutRate    = flag.Int("rollout_rate", 60, "The number of minutes between the image rolling out between zones. 0 minutes will not use a rollout policy.")
+	imagePrefix    = flag.Int("image_prefix", "", "Override Image.Prefix from json file.")
 )
 
 const (
@@ -143,7 +144,7 @@ func main() {
 	imagesCache := map[string][]*computeAlpha.Image{}
 	for _, path := range flag.Args() {
 		p, err := publish.CreatePublish(
-			*sourceVersion, *publishVersion, *workProject, *publishProject, *sourceGCS, *sourceProject, *ce, path, varMap, imagesCache)
+			*sourceVersion, *publishVersion, *workProject, *publishProject, *sourceGCS, *sourceProject, *ce, *imagePrefix, path, varMap, imagesCache)
 		if err != nil {
 			loadErr := fmt.Errorf("Loading publish error %s from %q", err, path)
 			fmt.Println(loadErr)

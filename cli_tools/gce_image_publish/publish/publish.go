@@ -120,21 +120,21 @@ var (
 )
 
 // CreatePublish creates a publish object
-func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, path string, varMap map[string]string, imagesCache map[string][]*computeAlpha.Image) (*Publish, error) {
+func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, imagePrefix, path string, varMap map[string]string, imagesCache map[string][]*computeAlpha.Image) (*Publish, error) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %v", path, err)
 	}
 	templateContent := string(b)
-	return createPublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, templateContent, varMap, imagesCache)
+	return createPublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, imagePrefix, templateContent, varMap, imagesCache)
 }
 
 // CreatePublishWithTemplate creates a publish object without reading a template file
-func CreatePublishWithTemplate(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, template string, varMap map[string]string, imagesCache map[string][]*computeAlpha.Image) (*Publish, error) {
-	return createPublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, template, varMap, imagesCache)
+func CreatePublishWithTemplate(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, imagePrefix, template string, varMap map[string]string, imagesCache map[string][]*computeAlpha.Image) (*Publish, error) {
+	return createPublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, imagePrefix, template, varMap, imagesCache)
 }
 
-func createPublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, template string, varMap map[string]string, imagesCache map[string][]*computeAlpha.Image) (*Publish, error) {
+func createPublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, imagePrefix, template string, varMap map[string]string, imagesCache map[string][]*computeAlpha.Image) (*Publish, error) {
 	p := Publish{
 		sourceVersion:  sourceVersion,
 		publishVersion: publishVersion,
@@ -189,6 +189,11 @@ func createPublish(sourceVersion, publishVersion, workProject, publishProject, s
 			}
 		} else {
 			return nil, fmt.Errorf("%s\nWorkProject unspecified", template)
+		}
+	}
+	if imagePrefix != "" {
+		for _, img := range p.Images {
+			img.Prefix = imagePrefix
 		}
 	}
 

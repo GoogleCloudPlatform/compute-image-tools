@@ -770,7 +770,7 @@ func TestCreatePublishWithFile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := CreatePublish("", "", "", "", "", "", "", tt.path, map[string]string{}, map[string][]*computeAlpha.Image{})
+			_, err := CreatePublish("", "", "", "", "", "", "", "", tt.path, map[string]string{}, map[string][]*computeAlpha.Image{})
 			if err != nil && !tt.wantErr {
 				t.Errorf("CreatePublish() called with path %s: got error %v", tt.path, err)
 			}
@@ -792,7 +792,7 @@ func TestCreatePublishWithTemplate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := CreatePublishWithTemplate("", "", "", "", "", "", "", tt.template, map[string]string{}, map[string][]*computeAlpha.Image{})
+			_, err := CreatePublishWithTemplate("", "", "", "", "", "", "", "", tt.template, map[string]string{}, map[string][]*computeAlpha.Image{})
 			if err != nil && !tt.wantErr {
 				t.Errorf("CreatePublishWithTemplate() called with template %s: got error %v", tt.template, err)
 			}
