@@ -49,7 +49,7 @@ chown -R kbuilder:kbuilder .ssh
 mkdir -p /tmpfs
 echo "tmpfs /tmpfs tmpfs rw,nosuid,nodev 0 0" >> /etc/fstab
 
-dnf -y install rsync-daemon git nmap-ncat python3-psutil
+dnf -y install rsync-daemon git nmap-ncat python3-psutil rpm-sign
 
 cat >> /etc/rsyncd.conf <<EOF
 use chroot = yes
