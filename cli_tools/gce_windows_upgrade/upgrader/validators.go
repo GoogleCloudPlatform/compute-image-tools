@@ -59,7 +59,7 @@ func (u *upgrader) validateAndDeriveParams() error {
 	if err := validateAndDeriveInstanceURI(u.Instance, u.ProjectPtr, u.Zone, u.derivedVars); err != nil {
 		return err
 	}
-	if err := validateAndDeriveInstance(u.derivedVars, u.SourceOS); err != nil {
+	if err := validateAndDeriveInstance(u.derivedVars, u.SourceOS, u.TargetOS); err != nil {
 		return err
 	}
 
@@ -84,23 +84,33 @@ func (u *upgrader) validateAndDeriveParams() error {
 
 func validateOSVersion(sourceOS, targetOS string) error {
 	if sourceOS == "" {
-		return daisy.Errf("Flag -source-os must be provided. Please choose a supported version from {%v}.", strings.Join(SupportedSourceOSVersions(), ", "))
+		return daisy.Errf("Flag -source-os must be provided. Please choose a supported version from {%v}.", strings.Join(SupportedVersions, ", "))
 	}
-	if _, ok := supportedSourceOSVersions[sourceOS]; !ok {
-		return daisy.Errf("Flag -source-os value '%v' unsupported. Please choose a supported version from {%v}.", sourceOS, strings.Join(SupportedSourceOSVersions(), ", "))
+	if !isSupportedOSVersion(sourceOS) {
+		return daisy.Errf("Flag -source-os value '%v' unsupported. Please choose a supported version from {%v}.", sourceOS, strings.Join(SupportedVersions, ", "))
 	}
 	if targetOS == "" {
-		return daisy.Errf("Flag -target-os must be provided. Please choose a supported version from {%v}.", strings.Join(SupportedTargetOSVersions(), ", "))
+		return daisy.Errf("Flag -target-os must be provided. Please choose a supported version from {%v}.", strings.Join(SupportedVersions, ", "))
 	}
-	if _, ok := supportedTargetOSVersions[targetOS]; !ok {
-		return daisy.Errf("Flag -target-os value '%v' unsupported. Please choose a supported version from {%v}.", targetOS, strings.Join(SupportedTargetOSVersions(), ", "))
+	if !isSupportedOSVersion(targetOS) {
+		return daisy.Errf("Flag -target-os value '%v' unsupported. Please choose a supported version from {%v}.", targetOS, strings.Join(SupportedVersions, ", "))
 	}
-	// We may chain several upgrades together in the future (for example, 2008r2->2012r2->2016->2019).
-	// For now, we only support one-step upgrade.
-	if expectedTargetOS, _ := supportedSourceOSVersions[sourceOS]; expectedTargetOS != targetOS {
-		return daisy.Errf("Can't upgrade from %v to %v. Can only upgrade to %v.", sourceOS, targetOS, expectedTargetOS)
+	if !isSupportedUpgradePath(sourceOS, targetOS) {
+		return daisy.Errf("Can't upgrade from %v to %v. Supported upgrade paths are: %v.", sourceOS, targetOS, strings.Join(getAllUpgradePaths(), ", "))
 	}
 	return nil
+}
+
+func getAllUpgradePaths() []string {
+	paths := []string{}
+	for sourceOS, targets := range upgradePaths {
+		for targetOS, upgradePath := range targets {
+			if upgradePath.enabled {
+				paths = append(paths, fmt.Sprintf("%v => %v", sourceOS, targetOS))
+			}
+		}
+	}
+	return paths
 }
 
 func validateAndDeriveInstanceURI(instance string, projectPtr *string, inputZone string, derivedVars *derivedVars) error {
@@ -128,7 +138,7 @@ func validateAndDeriveInstanceURI(instance string, projectPtr *string, inputZone
 	return nil
 }
 
-func validateAndDeriveInstance(derivedVars *derivedVars, sourceOS string) error {
+func validateAndDeriveInstance(derivedVars *derivedVars, sourceOS, targetOS string) error {
 	inst, err := computeClient.GetInstance(derivedVars.instanceProject, derivedVars.instanceZone, derivedVars.instanceName)
 	if err != nil {
 		return daisy.Errf("Failed to get instance: %v", err)
@@ -143,7 +153,7 @@ func validateAndDeriveInstance(derivedVars *derivedVars, sourceOS string) error 
 	if err := validateAndDeriveOSDisk(bootDisk, derivedVars); err != nil {
 		return err
 	}
-	if err := validateLicense(bootDisk, sourceOS); err != nil {
+	if err := validateLicense(bootDisk, sourceOS, targetOS); err != nil {
 		return err
 	}
 
@@ -164,9 +174,9 @@ func validateAndDeriveInstance(derivedVars *derivedVars, sourceOS string) error 
 	//    must have been modified, so we should backup 'windows-startup-script-url-backup'
 	//    instead.
 	if inst.Metadata != nil && inst.Metadata.Items != nil {
-		originalURL := getMetadataValue(inst.Metadata.Items, metadataKeyWindowsStartupScriptURLBackup)
+		originalURL := getMetadataValue(inst.Metadata.Items, metadataWindowsStartupScriptURLBackup)
 		if originalURL == nil {
-			originalURL = getMetadataValue(inst.Metadata.Items, metadataKeyWindowsStartupScriptURL)
+			originalURL = getMetadataValue(inst.Metadata.Items, metadataWindowsStartupScriptURL)
 		}
 		derivedVars.originalWindowsStartupScriptURL = originalURL
 	}
@@ -200,21 +210,23 @@ func validateAndDeriveOSDisk(osDisk *compute.AttachedDisk, derivedVars *derivedV
 	return nil
 }
 
-func validateLicense(osDisk *compute.AttachedDisk, sourceOS string) error {
+func validateLicense(osDisk *compute.AttachedDisk, sourceOS, targetOS string) error {
 	matchSourceOSVersion := false
 	upgraded := false
 	for _, lic := range osDisk.Licenses {
-		if strings.HasSuffix(lic, expectedCurrentLicense[sourceOS]) {
-			matchSourceOSVersion = true
-		} else if strings.HasSuffix(lic, licenseToAdd[sourceOS]) {
-			upgraded = true
+		for _, expectedLic := range upgradePaths[sourceOS][targetOS].expectedCurrentLicense {
+			if strings.HasSuffix(lic, expectedLic) {
+				matchSourceOSVersion = true
+			} else if strings.HasSuffix(lic, upgradePaths[sourceOS][targetOS].licenseToAdd) {
+				upgraded = true
+			}
 		}
 	}
 	if !matchSourceOSVersion {
-		return daisy.Errf(fmt.Sprintf("Can only upgrade GCE instance with %v license attached", expectedCurrentLicense[sourceOS]))
+		return daisy.Errf(fmt.Sprintf("No valid Windows Server PayG license can be found. Any of the following licenses are required: %v", upgradePaths[sourceOS][targetOS].expectedCurrentLicense))
 	}
 	if upgraded {
-		return daisy.Errf(fmt.Sprintf("The GCE instance is with %v license attached, which means it either has been upgraded or has started an upgrade in the past.", licenseToAdd[sourceOS]))
+		return daisy.Errf(fmt.Sprintf("The GCE instance has the %v license attached. This likely means the instance either has been upgraded or has started an upgrade in the past.", upgradePaths[sourceOS][targetOS].licenseToAdd))
 	}
 	return nil
 }

@@ -21,7 +21,6 @@ import (
 
 	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/collections"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisyutils"
 )
 
@@ -59,21 +58,6 @@ const (
 		"3. Delete the snapshot: {{.osDiskSnapshotName}}\n" +
 		"\n"
 )
-
-var (
-	supportedSourceOSVersions    = map[string]string{versionWindows2008r2: versionWindows2012r2}
-	supportedTargetOSVersions, _ = collections.ReverseMap(supportedSourceOSVersions)
-)
-
-// SupportedSourceOSVersions returns supported source versions of upgrading
-func SupportedSourceOSVersions() []string {
-	return collections.GetKeys(supportedSourceOSVersions)
-}
-
-// SupportedTargetOSVersions returns supported target versions of upgrading
-func SupportedTargetOSVersions() []string {
-	return collections.GetKeys(supportedTargetOSVersions)
-}
 
 func getIntroVarMap(u *upgrader) map[string]interface{} {
 	originalStartupScriptURL := "None."

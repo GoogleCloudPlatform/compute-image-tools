@@ -82,17 +82,24 @@ func TestGenerateStaticWorkflow(t *testing.T) {
 		{"cleanup", populateCleanupSteps, testInstance},
 		{"rollback", populateRollbackSteps, testInstanceWithStartupScript},
 	}
-	for sourceOS := range supportedSourceOSVersions {
-		tcs = append(tcs, testCase{
-			"upgrade-" + sourceOS,
-			upgradeSteps[sourceOS],
-			testInstance,
-		})
-		tcs = append(tcs, testCase{
-			"retry-upgrade-" + sourceOS,
-			retryUpgradeSteps[sourceOS],
-			testInstanceWithStartupScript,
-		})
+	for _, targetOS := range SupportedVersions {
+		// 2008r2 can't be target OS, skip it.
+		if targetOS != versionWindows2008r2 {
+			tcs = append(tcs, testCase{
+				"upgrade-to-" + targetOS,
+				upgradeSteps[targetOS],
+				testInstance,
+			})
+		}
+
+		// Only 2012r2 supports retry-upgrade.
+		if targetOS == versionWindows2012r2 {
+			tcs = append(tcs, testCase{
+				"retry-upgrade-to-" + targetOS,
+				retryUpgradeSteps[targetOS],
+				testInstanceWithStartupScript,
+			})
+		}
 	}
 
 	for _, tc := range tcs {

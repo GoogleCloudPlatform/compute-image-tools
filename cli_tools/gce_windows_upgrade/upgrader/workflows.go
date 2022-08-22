@@ -26,8 +26,13 @@ import (
 )
 
 var (
-	upgradeSteps      = map[string]func(*upgrader, *daisy.Workflow) error{versionWindows2008r2: populateUpgradeStepsFrom2008r2To2012r2}
-	retryUpgradeSteps = map[string]func(*upgrader, *daisy.Workflow) error{versionWindows2008r2: populateRetryUpgradeStepsFrom2008r2To2012r2}
+	upgradeSteps = map[string]func(*upgrader, *daisy.Workflow) error{
+		versionWindows2012r2: populateUpgradeStepsFrom2008r2To2012r2,
+		versionWindows2016:   populateUpgradeStepsTo2016,
+		versionWindows2019:   populateUpgradeStepsTo2019,
+		versionWindows2022:   populateUpgradeStepsTo2022,
+	}
+	retryUpgradeSteps = map[string]func(*upgrader, *daisy.Workflow) error{versionWindows2012r2: populateRetryUpgradeStepsFrom2008r2To2012r2}
 )
 
 func (u *upgrader) prepare() (daisyutils.DaisyWorker, error) {
@@ -40,7 +45,7 @@ func (u *upgrader) prepare() (daisyutils.DaisyWorker, error) {
 
 func populatePrepareSteps(u *upgrader, w *daisy.Workflow) error {
 	currentExecutablePath := os.Args[0]
-	w.Sources = map[string]string{"upgrade_script.ps1": path.ToWorkingDir(upgradeScriptName[u.SourceOS], currentExecutablePath)}
+	w.Sources = map[string]string{"upgrade_script.ps1": path.ToWorkingDir("upgrade_script.ps1", currentExecutablePath)}
 
 	stepStopInstance, err := daisyutils.NewStep(w, "stop-instance")
 	if err != nil {
@@ -99,7 +104,7 @@ func populatePrepareSteps(u *upgrader, w *daisy.Workflow) error {
 				Zone:           u.instanceZone,
 				Type:           u.osDiskType,
 				SourceSnapshot: u.osDiskSnapshotName,
-				Licenses:       []string{licenseToAdd[u.SourceOS]},
+				Licenses:       []string{upgradePaths[u.SourceOS][u.TargetOS].licenseToAdd},
 			},
 			Resource: daisy.Resource{
 				ExactName: true,
@@ -174,8 +179,8 @@ func populatePrepareSteps(u *upgrader, w *daisy.Workflow) error {
 
 	// If there isn't an original url, just skip the backup step.
 	if u.originalWindowsStartupScriptURL != nil {
-		fmt.Printf("\nDetected an existing metadata for key '%v', value='%v'. Will backup to '%v'.\n\n", metadataKeyWindowsStartupScriptURL,
-			*u.originalWindowsStartupScriptURL, metadataKeyWindowsStartupScriptURLBackup)
+		fmt.Printf("\nDetected an existing metadata for key '%v', value='%v'. Will backup to '%v'.\n\n", metadataWindowsStartupScriptURL,
+			*u.originalWindowsStartupScriptURL, metadataWindowsStartupScriptURLBackup)
 
 		stepBackupScript, err := daisyutils.NewStep(w, "backup-script", stepAttachInstallDisk)
 		if err != nil {
@@ -184,7 +189,7 @@ func populatePrepareSteps(u *upgrader, w *daisy.Workflow) error {
 		stepBackupScript.UpdateInstancesMetadata = &daisy.UpdateInstancesMetadata{
 			&daisy.UpdateInstanceMetadata{
 				Instance: u.instanceURI,
-				Metadata: map[string]string{metadataKeyWindowsStartupScriptURLBackup: *u.originalWindowsStartupScriptURL},
+				Metadata: map[string]string{metadataWindowsStartupScriptURLBackup: *u.originalWindowsStartupScriptURL},
 			},
 		}
 		prevStep = stepBackupScript
@@ -197,7 +202,12 @@ func populatePrepareSteps(u *upgrader, w *daisy.Workflow) error {
 	stepSetScript.UpdateInstancesMetadata = &daisy.UpdateInstancesMetadata{
 		&daisy.UpdateInstanceMetadata{
 			Instance: u.instanceURI,
-			Metadata: map[string]string{metadataKeyWindowsStartupScriptURL: "${SOURCESPATH}/upgrade_script.ps1"},
+			Metadata: map[string]string{
+				metadataWindowsStartupScriptURL: "${SOURCESPATH}/upgrade_script.ps1",
+				"expected-current-version":      upgradePaths[u.SourceOS][u.TargetOS].expectedCurrentVersion,
+				"expected-new-version":          upgradePaths[u.SourceOS][u.TargetOS].expectedNewVersion,
+				"install-folder":                upgradePaths[u.SourceOS][u.TargetOS].installFolder,
+			},
 		},
 	}
 	return nil
@@ -208,7 +218,7 @@ func (u *upgrader) upgrade() (daisyutils.DaisyWorker, error) {
 		return u.upgradeFn()
 	}
 
-	return u.runWorkflowWithSteps("upgrade", u.Timeout, upgradeSteps[u.SourceOS])
+	return u.runWorkflowWithSteps("upgrade", u.Timeout, upgradeSteps[u.TargetOS])
 }
 
 func populateUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow) error {
@@ -241,7 +251,7 @@ func populateUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow) erro
 					Name: u.instanceURI,
 					SerialOutput: &daisy.SerialOutput{
 						Port:         1,
-						SuccessMatch: "windows_upgrade_current_version=6.3",
+						SuccessMatch: "windows_upgrade_current_version='Windows Server 2012 R2 Datacenter'",
 						FailureMatch: []string{"UpgradeFailed:"},
 						StatusMatch:  "GCEMetadataScripts:",
 					},
@@ -272,12 +282,85 @@ func populateUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow) erro
 	return nil
 }
 
+func populateUpgradeStepsTo2016(u *upgrader, w *daisy.Workflow) error {
+	return populateUpgradeStepsTemplate(u, w, versionStringForWindows2016)
+}
+
+func populateUpgradeStepsTo2019(u *upgrader, w *daisy.Workflow) error {
+	return populateUpgradeStepsTemplate(u, w, versionStringForWindows2019)
+}
+
+func populateUpgradeStepsTo2022(u *upgrader, w *daisy.Workflow) error {
+	return populateUpgradeStepsTemplate(u, w, versionStringForWindows2022)
+}
+
+func populateUpgradeStepsTemplate(u *upgrader, w *daisy.Workflow, newVersionString string) error {
+	cleanupWorkflow, err := u.generateWorkflowWithSteps("cleanup", "10m", populateCleanupSteps)
+	if err != nil {
+		return nil
+	}
+
+	w.Steps = map[string]*daisy.Step{
+		"start-instance": {
+			StartInstances: &daisy.StartInstances{
+				Instances: []string{u.instanceURI},
+			},
+		},
+		"wait-for-boot": {
+			Timeout: "15m",
+			WaitForInstancesSignal: &daisy.WaitForInstancesSignal{
+				{
+					Name: u.instanceURI,
+					SerialOutput: &daisy.SerialOutput{
+						Port:         1,
+						SuccessMatch: "GCEMetadataScripts: Beginning upgrade startup script.",
+					},
+				},
+			},
+		},
+		"wait-for-upgrade": {
+			WaitForAnyInstancesSignal: &daisy.WaitForAnyInstancesSignal{
+				{
+					Name: u.instanceURI,
+					SerialOutput: &daisy.SerialOutput{
+						Port:         1,
+						SuccessMatch: fmt.Sprintf("windows_upgrade_current_version='%v'", newVersionString),
+						FailureMatch: []string{"UpgradeFailed:"},
+						StatusMatch:  "GCEMetadataScripts:",
+					},
+				},
+				{
+					Name: u.instanceURI,
+					SerialOutput: &daisy.SerialOutput{
+						Port: 3,
+						// These errors were thrown from setup.exe.
+						FailureMatch: []string{"CheckDiskSpaceRequirements not satisfied"}, //TODO: disk issue, CPU/mem issue
+						// This is the prefix of error log emitted from install media. Catch it and write to daisy log for debugging.
+						StatusMatch: "$WINDOWS.~BT setuperr$",
+					},
+				},
+			},
+		},
+		"cleanup-temp-resources": {
+			IncludeWorkflow: &daisy.IncludeWorkflow{
+				Workflow: cleanupWorkflow,
+			},
+		},
+	}
+	w.Dependencies = map[string][]string{
+		"wait-for-boot":          {"start-instance"},
+		"wait-for-upgrade":       {"start-instance"},
+		"cleanup-temp-resources": {"wait-for-upgrade"},
+	}
+	return nil
+}
+
 func (u *upgrader) retryUpgrade() (daisyutils.DaisyWorker, error) {
 	if u.retryUpgradeFn != nil {
 		return u.retryUpgradeFn()
 	}
 
-	return u.runWorkflowWithSteps("retry-upgrade", u.Timeout, retryUpgradeSteps[u.SourceOS])
+	return u.runWorkflowWithSteps("retry-upgrade", u.Timeout, retryUpgradeSteps[u.TargetOS])
 }
 
 func populateRetryUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow) error {
@@ -305,7 +388,7 @@ func populateRetryUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow)
 					Name: u.instanceURI,
 					SerialOutput: &daisy.SerialOutput{
 						Port:         1,
-						SuccessMatch: "windows_upgrade_current_version=6.3",
+						SuccessMatch: "windows_upgrade_current_version='Windows Server 2012 R2 Datacenter'",
 						FailureMatch: []string{"UpgradeFailed:"},
 						StatusMatch:  "GCEMetadataScripts:",
 					},
@@ -374,8 +457,8 @@ func populateCleanupSteps(u *upgrader, w *daisy.Workflow) error {
 				{
 					Instance: u.instanceURI,
 					Metadata: map[string]string{
-						metadataKeyWindowsStartupScriptURL:       u.getOriginalStartupScriptURL(),
-						metadataKeyWindowsStartupScriptURLBackup: "",
+						metadataWindowsStartupScriptURL:       u.getOriginalStartupScriptURL(),
+						metadataWindowsStartupScriptURLBackup: "",
 					},
 				},
 			},
@@ -471,8 +554,8 @@ func populateRollbackSteps(u *upgrader, w *daisy.Workflow) error {
 		{
 			Instance: u.instanceURI,
 			Metadata: map[string]string{
-				metadataKeyWindowsStartupScriptURL:       u.getOriginalStartupScriptURL(),
-				metadataKeyWindowsStartupScriptURLBackup: "",
+				metadataWindowsStartupScriptURL:       u.getOriginalStartupScriptURL(),
+				metadataWindowsStartupScriptURLBackup: "",
 			},
 		},
 	}

@@ -39,18 +39,8 @@ const (
 const (
 	logPrefix = "[windows-upgrade]"
 
-	metadataKeyWindowsStartupScriptURL       = "windows-startup-script-url"
-	metadataKeyWindowsStartupScriptURLBackup = "windows-startup-script-url-backup"
-
-	versionWindows2008r2 = "windows-2008r2"
-	versionWindows2012r2 = "windows-2012r2"
-)
-
-var (
-	upgradeScriptName = map[string]string{versionWindows2008r2: "upgrade_script_2008r2_to_2012r2.ps1"}
-
-	expectedCurrentLicense = map[string]string{versionWindows2008r2: "projects/windows-cloud/global/licenses/windows-server-2008-r2-dc"}
-	licenseToAdd           = map[string]string{versionWindows2008r2: "projects/windows-cloud/global/licenses/windows-server-2012-r2-dc-in-place-upgrade"}
+	metadataWindowsStartupScriptURL       = "windows-startup-script-url"
+	metadataWindowsStartupScriptURLBackup = "windows-startup-script-url-backup"
 )
 
 type derivedVars struct {
