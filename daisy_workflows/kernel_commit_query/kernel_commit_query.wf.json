@@ -1,0 +1,111 @@
+{
+  "Name": "kernel-commit-query",
+  "DefaultTimeout": "30m",
+  "Vars": {
+    "result_dest": {
+      "Required": true,
+      "Description": "The GCS path for the result data file."
+    },
+    "source_image": {
+      "Required": true,
+      "Description": "The image used to process the kernel commit queries."
+    },
+     "catalog": {
+      "Required": true,
+      "Description": "The catalog of patches of interest."
+    },
+     "upstream_kernel_repo": {
+      "Required": true,
+      "Description": "Linux kernel upstream repo URL."
+    },
+     "filter_spec": {
+      "Required": false,
+      "Description": "Used to filter out patch queries."
+    },
+     "os_type": {
+      "Required": true,
+      "Description": "The OS type, used to determine the strategy to fetch kernel source code."
+    },
+     "strategy": {
+      "Required": true,
+      "Description": "The strategy used on querying kernel commits."
+    },
+     "upstream_kernel_version": {
+      "Required": true,
+      "Description": "The upstream kernel version containing all the required patches in the catalog."
+    }
+  },
+  "Sources": {
+    "kernel_commit_query/utils": "../linux_common/utils",
+    "kernel_commit_query/kcq.py": "./kcq.py",
+    "kernel_commit_query/catalog": "${catalog}",
+    "kernel_commit_query/${os_type}.sh": "${os_type}.sh",
+    "startup_script": "../linux_common/bootstrap.sh"
+  },
+  "Steps": {
+    "setup-disks": {
+      "CreateDisks": [
+        {
+          "Name": "source-disk",
+          "SourceImage": "${source_image}",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "run": {
+      "CreateInstances": [
+        {
+          "Name": "inst",
+          "Disks": [{"Source": "source-disk"}],
+          "MachineType": "n1-highcpu-32",
+          "Metadata": {
+            "files_gcs_dir": "${SOURCESPATH}/kernel_commit_query",
+            "script": "${os_type}.sh",
+            "upstream_kernel_repo": "${upstream_kernel_repo}",
+            "upstream_kernel_version": "${upstream_kernel_version}",
+            "filter_spec": "${filter_spec}",
+            "strategy": "${strategy}",
+        },
+          "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_write"
+          ],
+          "StartupScript": "startup_script"
+        }
+      ]
+    },
+    "wait": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst",
+          "Timeout": "15m",
+          "SerialOutput": {
+            "Port": 1,
+            "FailureMatch": "ExportFailed:",
+            "SuccessMatch": "ExportSuccess:",
+            "StatusMatch": "ExportStatus:"
+          }
+        }
+      ]
+    },
+    "delete-inst": {
+      "DeleteResources": {
+        "Instances": ["inst"],
+        "Disks":["source-disk"]
+      }
+    },
+    "copy-to-destination": {
+      "CopyGCSObjects": [
+        {
+          "Source": "${OUTSPATH}/result.json",
+          "Destination": "${result_dest}"
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "run": ["setup-disks"],
+    "wait": ["run"],
+    "delete-inst": ["wait"],
+    "copy-to-destination": ["wait"]
+  }
+}
