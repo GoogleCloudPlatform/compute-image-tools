@@ -154,6 +154,17 @@ function Run-SecondBootSteps {
       [string]$windows_version
   )
 
+  # For some reason the docker service may not be started automatically on the
+  # first reboot, although it seems to work fine on subsequent reboots. The
+  # docker service must be running or else the vEthernet interface may not be
+  # present.
+  Restart-Service docker
+
+  Write-Host 'Setting host vEthernet MTU to 1460'
+  Get-NetAdapter | Where-Object {$_.Name -like 'vEthernet*'} | ForEach-Object {
+    & netsh interface ipv4 set subinterface $_.InterfaceIndex mtu=1460 store=persistent
+  }
+
   # As most if not all Windows containers are based on one of the base images
   # provided by Microsoft, we pull them here so that running a container using
   # this image is quick.
@@ -164,6 +175,13 @@ function Run-SecondBootSteps {
     if (!$?) {
       throw "Error running 'docker pull $image'"
     }
+  }
+
+  Write-Host 'Setting container vEthernet MTU to 1460'
+  $servercore_image = Get-ServerCoreImageName $windows_version
+  & docker run --rm "$servercore_image" powershell.exe "Get-NetAdapter | Where-Object {`$_.Name -like 'vEthernet*'} | ForEach-Object { & netsh interface ipv4 set subinterface `$_.InterfaceIndex mtu=1460 store=persistent }"
+  if (!$?) {
+    throw "Error running 'docker run $servercore_image'"
   }
 }
 

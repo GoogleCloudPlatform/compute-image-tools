@@ -23,7 +23,7 @@ $items= @(
     cmd="net localgroup 'Remote Desktop Users'"
   },
   @{
-    description="Verify that MTU size is no greater than 1500, expect [MTU <= 1500, Interface:Ethernet]:";
+    description="Verify that MTU size is no greater than 1460, expect [MTU <= 1460, Interface:Ethernet]:";
     cmd="netsh interface ipv4 show subinterfaces"
   }
 )
