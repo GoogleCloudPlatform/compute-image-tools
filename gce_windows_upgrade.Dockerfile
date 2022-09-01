@@ -14,7 +14,7 @@
 
 FROM gcr.io/distroless/base
 
-COPY cli_tools/gce_windows_upgrade/upgrade_script_2008r2_to_2012r2.ps1 /upgrade_script_2008r2_to_2012r2.ps1
+COPY cli_tools/gce_windows_upgrade/upgrade_script.ps1 /upgrade_script.ps1
 COPY linux/gce_windows_upgrade /gce_windows_upgrade
 
 ENTRYPOINT ["/gce_windows_upgrade"]

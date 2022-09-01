@@ -27,5 +27,5 @@ RUN chmod +x /gce_windows_upgrade
 FROM gcr.io/$PROJECT_ID/e2e-test-base:latest
 COPY --from=0 /gce_windows_upgrade_test_runner gce_windows_upgrade_test_runner
 COPY --from=0 /gce_windows_upgrade gce_windows_upgrade
-COPY /cli_tools/gce_windows_upgrade/upgrade_script_2008r2_to_2012r2.ps1 upgrade_script_2008r2_to_2012r2.ps1
+COPY /cli_tools/gce_windows_upgrade/upgrade_script.ps1 upgrade_script.ps1
 ENTRYPOINT ["./gce_windows_upgrade_test_runner"]
