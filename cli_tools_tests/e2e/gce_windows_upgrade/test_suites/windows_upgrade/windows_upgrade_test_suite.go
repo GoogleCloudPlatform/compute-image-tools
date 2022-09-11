@@ -65,7 +65,7 @@ func TestSuite(
 		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, e2e.CLITestType){}
 
 	for _, testType := range testTypes {
-		normalCase2012 := junitxml.NewTestCase(
+		normalCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Normal case"))
 		richParamsAndLatestInstallMedia := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Rich params and latest install media"))
@@ -80,7 +80,7 @@ func TestSuite(
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, e2e.CLITestType){}
-		testsMap[testType][normalCase2012] = runWindowsUpgradeNormalCase2012
+		testsMap[testType][normalCase] = runWindowsUpgradeNormalCase
 		testsMap[testType][richParamsAndLatestInstallMedia] = runWindowsUpgradeWithRichParamsAndLatestInstallMedia
 		testsMap[testType][failedAndCleanup] = runWindowsUpgradeFailedAndCleanup
 		testsMap[testType][failedAndRollback] = runWindowsUpgradeFailedAndRollback
@@ -115,7 +115,7 @@ func TestSuite(
 		testProjectConfig, testSuiteName, testsMap)
 }
 
-func runWindowsUpgradeNormalCase2012(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runWindowsUpgradeNormalCase(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	suffix := path.RandString(5)
