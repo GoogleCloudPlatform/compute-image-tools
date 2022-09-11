@@ -181,7 +181,7 @@ func runWindowsUpgradeStaging(ctx context.Context, testCase *junitxml.TestCase, 
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType, testImage string, sourceOS string, targetOS string) {
 
 	suffix := path.RandString(5)
-	instanceName := fmt.Sprintf("test-upgrade-normal-case-%v", suffix)
+	instanceName := fmt.Sprintf("test-upgrade-staging-%v", suffix)
 	instance := fmt.Sprintf("projects/%v/zones/%v/instances/%v",
 		testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
 
