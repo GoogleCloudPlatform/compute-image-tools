@@ -146,7 +146,7 @@ func runWindowsUpgradeNormalCase(ctx context.Context, testCase *junitxml.TestCas
 		},
 	}
 	runTest(ctx, standardImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
-		true, false, "", false, 0, false, "6.3")
+		true, false, "", false, 0, false)
 }
 
 func runWindowsUpgradeStaging2012(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
@@ -192,11 +192,10 @@ func runWindowsUpgradeStaging(ctx context.Context, testCase *junitxml.TestCase, 
 			fmt.Sprintf("-source-os=%v", sourceOS),
 			fmt.Sprintf("-target-os=%v", targetOS),
 			fmt.Sprintf("-instance=%v", instance),
-			fmt.Sprintf("-use-staging-install-media=false"),
+			fmt.Sprintf("-use-staging-install-media=true"),
 		},
 	}
-	runTest(ctx, testImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
-		true, false, "", false, 0, false, expectedVersion)
+	runStagingTest(ctx, testImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase, expectedVersion)
 }
 
 func runWindowsUpgradeWithRichParamsAndLatestInstallMedia(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
@@ -246,7 +245,7 @@ func runWindowsUpgradeWithRichParamsAndLatestInstallMedia(ctx context.Context, t
 		},
 	}
 	runTest(ctx, standardImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
-		true, false, "original", true, 2, false, "6.3")
+		true, false, "original", true, 2, false)
 }
 
 // this test is cli only, since gcloud can't accept ctrl+c and cleanup
@@ -267,7 +266,7 @@ func runWindowsUpgradeFailedAndCleanup(ctx context.Context, testCase *junitxml.T
 		},
 	}
 	runTest(ctx, standardImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
-		false, true, "", false, 0, false, "6.3")
+		false, true, "", false, 0, false)
 }
 
 // this test is cli only, since gcloud can't accept ctrl+c and cleanup
@@ -290,7 +289,7 @@ func runWindowsUpgradeFailedAndRollback(ctx context.Context, testCase *junitxml.
 		},
 	}
 	runTest(ctx, standardImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
-		false, true, "original-backup", true, 2, false, "6.3")
+		false, true, "original-backup", true, 2, false)
 }
 
 func runWindowsUpgradeInsufficientDiskSpace(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
@@ -327,7 +326,7 @@ func runWindowsUpgradeInsufficientDiskSpace(ctx context.Context, testCase *junit
 		},
 	}
 	runTest(ctx, insufficientDiskSpaceImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
-		false, false, "original", true, 0, false, "6.3")
+		false, false, "original", true, 0, false)
 }
 
 func runWindowsUpgradeBYOL(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
@@ -364,13 +363,12 @@ func runWindowsUpgradeBYOL(ctx context.Context, testCase *junitxml.TestCase, log
 		},
 	}
 	runTest(ctx, byolImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
-		false, false, "", false, 0, true, "6.3")
+		false, false, "", false, 0, true)
 }
 
 func runTest(ctx context.Context, image string, args []string, testType e2e.CLITestType,
 	testProjectConfig *testconfig.Project, instanceName string, logger *log.Logger, testCase *junitxml.TestCase,
-	expectSuccess bool, triggerFailure bool, expectedScriptURL string, autoRollback bool, dataDiskCount int, expectValidationFailure bool,
-	expectedVersion string) {
+	expectSuccess bool, triggerFailure bool, expectedScriptURL string, autoRollback bool, dataDiskCount int, expectValidationFailure bool) {
 
 	if args == nil {
 		return
@@ -472,12 +470,59 @@ func runTest(ctx context.Context, image string, args []string, testType e2e.CLIT
 	}
 
 	verifyUpgradedInstance(ctx, logger, testCase, testProjectConfig, instanceName, success,
-		expectSuccess, expectedScriptURL, autoRollback, dataDiskCount, expectValidationFailure, expectedVersion)
+		expectSuccess, expectedScriptURL, autoRollback, dataDiskCount, expectValidationFailure)
+}
+
+func runStagingTest(ctx context.Context, image string, args []string, testType e2e.CLITestType,
+	testProjectConfig *testconfig.Project, instanceName string, logger *log.Logger, testCase *junitxml.TestCase, expectedVersion string) {
+
+	if args == nil {
+		return
+	}
+	cmd, ok := cmds[testType]
+	if !ok {
+		return
+	}
+
+	// create the test instance
+	if !e2e.RunTestCommand("gcloud", []string{
+		"compute", "instances", "create", fmt.Sprintf("--image=%v", image),
+		"--boot-disk-type=pd-ssd", "--machine-type=n1-standard-4", fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID), instanceName,
+	}, logger, testCase) {
+		return
+	}
+
+	defer cleanupTestInstance(testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName, logger, testCase)
+
+	var success bool
+	if testType == e2e.Wrapper {
+		cmd := e2e.RunTestCommandAsync(cmd, args, logger, testCase)
+
+		err := cmd.Wait()
+		if err != nil {
+			success = false
+		} else {
+			success = true
+		}
+	}
+
+	if success != true {
+		e2e.Failure(testCase, logger, fmt.Sprintf("Actual success: %v, expect success: true", success))
+		return
+	}
+
+	instance, err := gcp.CreateInstanceObject(ctx, testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName, true)
+	if err != nil {
+		e2e.Failure(testCase, logger, fmt.Sprintf("Failed to fetch instance object for %v: %v", instanceName, err))
+		return
+	}
+	verifyOSVersion(instance, testCase, instanceName, logger, expectedVersion)
 }
 
 func verifyUpgradedInstance(ctx context.Context, logger *log.Logger, testCase *junitxml.TestCase,
 	testProjectConfig *testconfig.Project, instanceName string, success bool, expectSuccess bool,
-	expectedScriptURL string, autoRollback bool, dataDiskCount int, expectValidationFailure bool, expectedVersion string) {
+	expectedScriptURL string, autoRollback bool, dataDiskCount int, expectValidationFailure bool) {
 
 	if success != expectSuccess {
 		e2e.Failure(testCase, logger, fmt.Sprintf("Actual success: %v, expect success: %v", success, expectSuccess))
@@ -497,7 +542,7 @@ func verifyUpgradedInstance(ctx context.Context, logger *log.Logger, testCase *j
 	}
 
 	if expectSuccess {
-		if !verifyOSVersion(instance, testCase, instanceName, logger, expectedVersion) {
+		if !verifyOSVersion(instance, testCase, instanceName, logger, "6.3") {
 			return
 		}
 	} else {
