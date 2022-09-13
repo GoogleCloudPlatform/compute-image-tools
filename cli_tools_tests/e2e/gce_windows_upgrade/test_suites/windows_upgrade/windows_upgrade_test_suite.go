@@ -89,18 +89,18 @@ func TestSuite(
 	}
 
 	// These tests only apply to wrapper since it's testing staging install media.
-	staging2012 := junitxml.NewTestCase(
+	stagingUpgrade2008To2012 := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[%v] Staging test 2008 -> 2012", e2e.Wrapper))
-	staging2016 := junitxml.NewTestCase(
+	stagingUpgrade2012To2016 := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[%v] Staging test 2012 -> 2016", e2e.Wrapper))
-	staging2019 := junitxml.NewTestCase(
+	stagingUpgrade2012To2019 := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[%v] Staging test 2012 -> 2019", e2e.Wrapper))
-	staging2022 := junitxml.NewTestCase(
+	stagingUpgrade2012To2022 := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[%v] Staging test 2012 -> 2022", e2e.Wrapper))
-	testsMap[e2e.Wrapper][staging2012] = runWindowsUpgradeStaging2012
-	testsMap[e2e.Wrapper][staging2016] = runWindowsUpgradeStaging2016
-	testsMap[e2e.Wrapper][staging2019] = runWindowsUpgradeStaging2019
-	testsMap[e2e.Wrapper][staging2022] = runWindowsUpgradeStaging2022
+	testsMap[e2e.Wrapper][stagingUpgrade2008To2012] = runWindowsUpgradeStaging2008To2012
+	testsMap[e2e.Wrapper][stagingUpgrade2012To2016] = runWindowsUpgradeStaging2012To2016
+	testsMap[e2e.Wrapper][stagingUpgrade2012To2019] = runWindowsUpgradeStaging2012To2019
+	testsMap[e2e.Wrapper][stagingUpgrade2012To2022] = runWindowsUpgradeStaging2012To2022
 
 	if !e2e.GcloudAuth(logger, nil) {
 		logger.Printf("Failed to run gcloud auth.")
@@ -149,28 +149,28 @@ func runWindowsUpgradeNormalCase(ctx context.Context, testCase *junitxml.TestCas
 		true, false, "", false, 0, false)
 }
 
-func runWindowsUpgradeStaging2012(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runWindowsUpgradeStaging2008To2012(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	runWindowsUpgradeStaging(ctx, testCase, logger,
 		testProjectConfig, testType, standardImage, "windows-2008r2", "windows-2012r2", "6.3")
 }
 
-func runWindowsUpgradeStaging2016(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runWindowsUpgradeStaging2012To2016(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	runWindowsUpgradeStaging(ctx, testCase, logger,
 		testProjectConfig, testType, standardImage2012, "windows-2012r2", "windows-2016", "10.0")
 }
 
-func runWindowsUpgradeStaging2019(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runWindowsUpgradeStaging2012To2019(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	runWindowsUpgradeStaging(ctx, testCase, logger,
 		testProjectConfig, testType, standardImage2012, "windows-2012r2", "windows-2019", "10.0")
 }
 
-func runWindowsUpgradeStaging2022(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runWindowsUpgradeStaging2012To2022(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	runWindowsUpgradeStaging(ctx, testCase, logger,
