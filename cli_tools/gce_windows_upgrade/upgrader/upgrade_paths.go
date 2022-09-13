@@ -57,10 +57,10 @@ var (
 	}
 
 	installFolderForTargetOS = map[string]string{
-		versionWindows2012r2: "Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English",
-		versionWindows2016:   "Win_Server_STD_CORE_2016_64Bit_English",
-		versionWindows2019:   "Win_Server_STD_CORE_2019_1809.1_64Bit_English",
-		versionWindows2022:   "Win_Server_STD_CORE_2022_64Bit_English",
+		versionWindows2012r2: "*2012_R2_64Bit*",
+		versionWindows2016:   "*2016_64Bit*",
+		versionWindows2019:   "*2019_64Bit*",
+		versionWindows2022:   "*2022_64Bit*",
 	}
 )
 
