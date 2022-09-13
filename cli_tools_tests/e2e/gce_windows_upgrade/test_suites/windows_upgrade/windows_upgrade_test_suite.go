@@ -90,13 +90,13 @@ func TestSuite(
 
 	// These tests only apply to wrapper since it's testing staging install media.
 	staging2012 := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "Staging test 2008 -> 2012"))
+		testSuiteName, fmt.Sprintf("[%v] Staging test 2008 -> 2012", e2e.Wrapper))
 	staging2016 := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "Staging test 2012 -> 2016"))
+		testSuiteName, fmt.Sprintf("[%v] Staging test 2012 -> 2016", e2e.Wrapper))
 	staging2019 := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "Staging test 2012 -> 2019"))
+		testSuiteName, fmt.Sprintf("[%v] Staging test 2012 -> 2019", e2e.Wrapper))
 	staging2022 := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v] %v", e2e.Wrapper, "Staging test 2012 -> 2022"))
+		testSuiteName, fmt.Sprintf("[%v] Staging test 2012 -> 2022", e2e.Wrapper))
 	testsMap[e2e.Wrapper][staging2012] = runWindowsUpgradeStaging2012
 	testsMap[e2e.Wrapper][staging2016] = runWindowsUpgradeStaging2016
 	testsMap[e2e.Wrapper][staging2019] = runWindowsUpgradeStaging2019
@@ -146,39 +146,40 @@ func runWindowsUpgradeNormalCase(ctx context.Context, testCase *junitxml.TestCas
 		},
 	}
 	runTest(ctx, standardImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
-		true, false, "", false, 0, false)
+		true, false, "", false, 0, false, "6.3")
 }
 
 func runWindowsUpgradeStaging2012(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	runWindowsUpgradeStaging(ctx, testCase, logger,
-		testProjectConfig, testType, standardImage, "windows-2008r2", "windows-2012r2")
+		testProjectConfig, testType, standardImage, "windows-2008r2", "windows-2012r2", "6.3")
 }
 
 func runWindowsUpgradeStaging2016(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	runWindowsUpgradeStaging(ctx, testCase, logger,
-		testProjectConfig, testType, standardImage2012, "windows-2012r2", "windows-2016")
+		testProjectConfig, testType, standardImage2012, "windows-2012r2", "windows-2016", "10.0")
 }
 
 func runWindowsUpgradeStaging2019(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	runWindowsUpgradeStaging(ctx, testCase, logger,
-		testProjectConfig, testType, standardImage2012, "windows-2012r2", "windows-2019")
+		testProjectConfig, testType, standardImage2012, "windows-2012r2", "windows-2019", "10.0")
 }
 
 func runWindowsUpgradeStaging2022(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	runWindowsUpgradeStaging(ctx, testCase, logger,
-		testProjectConfig, testType, standardImage2012, "windows-2012r2", "windows-2022")
+		testProjectConfig, testType, standardImage2012, "windows-2012r2", "windows-2022", "10.0")
 }
 
 func runWindowsUpgradeStaging(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-	testProjectConfig *testconfig.Project, testType e2e.CLITestType, testImage string, sourceOS string, targetOS string) {
+	testProjectConfig *testconfig.Project, testType e2e.CLITestType, testImage string, sourceOS string, targetOS string,
+	expectedVersion string) {
 
 	suffix := path.RandString(5)
 	instanceName := fmt.Sprintf("test-upgrade-staging-%v", suffix)
@@ -191,11 +192,11 @@ func runWindowsUpgradeStaging(ctx context.Context, testCase *junitxml.TestCase, 
 			fmt.Sprintf("-source-os=%v", sourceOS),
 			fmt.Sprintf("-target-os=%v", targetOS),
 			fmt.Sprintf("-instance=%v", instance),
-			fmt.Sprintf("-use-staging-install-media=%v", false),
+			fmt.Sprintf("-use-staging-install-media=false"),
 		},
 	}
 	runTest(ctx, testImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
-		true, false, "", false, 0, false)
+		true, false, "", false, 0, false, expectedVersion)
 }
 
 func runWindowsUpgradeWithRichParamsAndLatestInstallMedia(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
@@ -245,7 +246,7 @@ func runWindowsUpgradeWithRichParamsAndLatestInstallMedia(ctx context.Context, t
 		},
 	}
 	runTest(ctx, standardImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
-		true, false, "original", true, 2, false)
+		true, false, "original", true, 2, false, "6.3")
 }
 
 // this test is cli only, since gcloud can't accept ctrl+c and cleanup
@@ -266,7 +267,7 @@ func runWindowsUpgradeFailedAndCleanup(ctx context.Context, testCase *junitxml.T
 		},
 	}
 	runTest(ctx, standardImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
-		false, true, "", false, 0, false)
+		false, true, "", false, 0, false, "6.3")
 }
 
 // this test is cli only, since gcloud can't accept ctrl+c and cleanup
@@ -289,7 +290,7 @@ func runWindowsUpgradeFailedAndRollback(ctx context.Context, testCase *junitxml.
 		},
 	}
 	runTest(ctx, standardImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
-		false, true, "original-backup", true, 2, false)
+		false, true, "original-backup", true, 2, false, "6.3")
 }
 
 func runWindowsUpgradeInsufficientDiskSpace(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
@@ -326,7 +327,7 @@ func runWindowsUpgradeInsufficientDiskSpace(ctx context.Context, testCase *junit
 		},
 	}
 	runTest(ctx, insufficientDiskSpaceImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
-		false, false, "original", true, 0, false)
+		false, false, "original", true, 0, false, "6.3")
 }
 
 func runWindowsUpgradeBYOL(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
@@ -363,12 +364,13 @@ func runWindowsUpgradeBYOL(ctx context.Context, testCase *junitxml.TestCase, log
 		},
 	}
 	runTest(ctx, byolImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
-		false, false, "", false, 0, true)
+		false, false, "", false, 0, true, "6.3")
 }
 
 func runTest(ctx context.Context, image string, args []string, testType e2e.CLITestType,
 	testProjectConfig *testconfig.Project, instanceName string, logger *log.Logger, testCase *junitxml.TestCase,
-	expectSuccess bool, triggerFailure bool, expectedScriptURL string, autoRollback bool, dataDiskCount int, expectValidationFailure bool) {
+	expectSuccess bool, triggerFailure bool, expectedScriptURL string, autoRollback bool, dataDiskCount int, expectValidationFailure bool,
+	expectedVersion string) {
 
 	if args == nil {
 		return
@@ -470,12 +472,12 @@ func runTest(ctx context.Context, image string, args []string, testType e2e.CLIT
 	}
 
 	verifyUpgradedInstance(ctx, logger, testCase, testProjectConfig, instanceName, success,
-		expectSuccess, expectedScriptURL, autoRollback, dataDiskCount, expectValidationFailure)
+		expectSuccess, expectedScriptURL, autoRollback, dataDiskCount, expectValidationFailure, expectedVersion)
 }
 
 func verifyUpgradedInstance(ctx context.Context, logger *log.Logger, testCase *junitxml.TestCase,
 	testProjectConfig *testconfig.Project, instanceName string, success bool, expectSuccess bool,
-	expectedScriptURL string, autoRollback bool, dataDiskCount int, expectValidationFailure bool) {
+	expectedScriptURL string, autoRollback bool, dataDiskCount int, expectValidationFailure bool, expectedVersion string) {
 
 	if success != expectSuccess {
 		e2e.Failure(testCase, logger, fmt.Sprintf("Actual success: %v, expect success: %v", success, expectSuccess))
@@ -495,7 +497,7 @@ func verifyUpgradedInstance(ctx context.Context, logger *log.Logger, testCase *j
 	}
 
 	if expectSuccess {
-		if !verifyOSVersion(instance, testCase, instanceName, logger) {
+		if !verifyOSVersion(instance, testCase, instanceName, logger, expectedVersion) {
 			return
 		}
 	} else {
@@ -552,14 +554,14 @@ func verifyLicensesAndDisks(instance *gcp.Instance, expectValidationFailure bool
 	return true
 }
 
-func verifyOSVersion(instance *gcp.Instance, testCase *junitxml.TestCase, instanceName string, logger *log.Logger) bool {
+func verifyOSVersion(instance *gcp.Instance, testCase *junitxml.TestCase, instanceName string, logger *log.Logger, expectedVersion string) bool {
 	err := instance.RestartWithScriptCode("$ver=[System.Environment]::OSVersion.Version\n" +
 		"Write-Host \"windows_upgrade_verify_version=$($ver.Major).$($ver.Minor)\"")
 	if err != nil {
 		testCase.WriteFailure("Error starting instance `%v` with script: `%v`", instanceName, err)
 		return false
 	}
-	expectedOutput := "windows_upgrade_verify_version=6.3"
+	expectedOutput := fmt.Sprintf("windows_upgrade_verify_version=%v", expectedVersion)
 	logger.Printf("[%v] Waiting for `%v` in instance serial console.", instanceName,
 		expectedOutput)
 	if err := instance.WaitForSerialOutput(
