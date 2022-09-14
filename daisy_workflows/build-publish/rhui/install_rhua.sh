@@ -76,7 +76,8 @@ subscription-manager repos --enable=ansible-2-for-rhel-8-x86_64-rhui-rpms
 # Get rhui-installer and patch Ansible playbook
 # The patch skips actually mounting NFS (update fstab only), and skips
 # generating a unique RHUA cert, instead copying our pre-generated cert.
-dnf install -y rhui-installer patch
+# TODO: temporarily pin version to match patch.
+dnf install -y rhui-installer-4.1.0.4-1.el8ui patch
 ( cd /usr/share/rhui-installer; patch -b -p0 < $tempdir/rhua.patch; )
 
 # We don't use rhui-installer as it doesn't allow us to extend the answers file
