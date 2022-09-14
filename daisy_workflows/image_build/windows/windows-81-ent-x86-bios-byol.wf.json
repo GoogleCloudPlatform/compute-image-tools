@@ -1,5 +1,5 @@
 {
-  "Name": "windows-windows-81-ent-x86-uefi",
+  "Name": "windows-windows-81-ent-x86-bios-byol",
   "Vars": {
     "install_disk": "install-disk",
     "media": {
