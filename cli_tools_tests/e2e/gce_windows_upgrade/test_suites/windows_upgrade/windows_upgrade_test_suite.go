@@ -169,14 +169,14 @@ func runWindowsUpgradeStaging2016To2019(ctx context.Context, testCase *junitxml.
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	runWindowsUpgradeStaging(ctx, testCase, logger,
-		testProjectConfig, testType, standardImage2016, "windows-2012r2", "windows-2019", "10.0")
+		testProjectConfig, testType, standardImage2016, "windows-2016", "windows-2019", "10.0")
 }
 
 func runWindowsUpgradeStaging2019To2022(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	runWindowsUpgradeStaging(ctx, testCase, logger,
-		testProjectConfig, testType, standardImage2019, "windows-2012r2", "windows-2022", "10.0")
+		testProjectConfig, testType, standardImage2019, "windows-2019", "windows-2022", "10.0")
 }
 
 func runWindowsUpgradeStaging(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
