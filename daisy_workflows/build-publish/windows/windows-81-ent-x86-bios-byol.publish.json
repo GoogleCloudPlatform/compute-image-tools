@@ -34,7 +34,7 @@
       "Prefix": "windows-81-ent-x86",
       "Family": "windows-8-1-x86",
       "Description": "Microsoft, Windows 8.1 Enterprise, x86 built on {{$time}}, supports Shielded VM features",
-      "Architecture": "X86_86",
+      "Architecture": "X86",
       "Licenses": [
         {{if eq .environment "staging" -}}
         "projects/bct-staging-functional/global/licenses/windows-ent"
