@@ -35,10 +35,12 @@ import (
 
 const (
 	testSuiteName              = "WindowsUpgradeTests"
-	standardImage              = "projects/compute-image-tools-test/global/images/test-image-win2008r2-20200414"
+	standardImage2008          = "projects/compute-image-tools-test/global/images/test-image-win2008r2-20200414"
+	standardImage2012          = "projects/compute-image-tools-test/global/images/test-image-win2012r2-20220902"
+	standardImage2016          = "projects/compute-image-tools-test/global/images/test-image-win2016-20220902"
+	standardImage2019          = "projects/compute-image-tools-test/global/images/test-image-win2019-20220902"
 	insufficientDiskSpaceImage = "projects/compute-image-tools-test/global/images/test-image-windows-2008r2-no-space"
 	byolImage                  = "projects/compute-image-tools-test/global/images/test-image-windows-2008r2-byol"
-	standardImage2012          = "projects/compute-image-tools-test/global/images/test-image-win2012r2-20200609"
 )
 
 var (
@@ -93,14 +95,14 @@ func TestSuite(
 		testSuiteName, fmt.Sprintf("[%v] Staging test 2008 -> 2012", e2e.Wrapper))
 	stagingUpgrade2012To2016 := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[%v] Staging test 2012 -> 2016", e2e.Wrapper))
-	stagingUpgrade2012To2019 := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v] Staging test 2012 -> 2019", e2e.Wrapper))
-	stagingUpgrade2012To2022 := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[%v] Staging test 2012 -> 2022", e2e.Wrapper))
+	stagingUpgrade2016To2019 := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v] Staging test 2016 -> 2019", e2e.Wrapper))
+	stagingUpgrade2019To2022 := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[%v] Staging test 2019 -> 2022", e2e.Wrapper))
 	testsMap[e2e.Wrapper][stagingUpgrade2008To2012] = runWindowsUpgradeStaging2008To2012
 	testsMap[e2e.Wrapper][stagingUpgrade2012To2016] = runWindowsUpgradeStaging2012To2016
-	testsMap[e2e.Wrapper][stagingUpgrade2012To2019] = runWindowsUpgradeStaging2012To2019
-	testsMap[e2e.Wrapper][stagingUpgrade2012To2022] = runWindowsUpgradeStaging2012To2022
+	testsMap[e2e.Wrapper][stagingUpgrade2016To2019] = runWindowsUpgradeStaging2016To2019
+	testsMap[e2e.Wrapper][stagingUpgrade2019To2022] = runWindowsUpgradeStaging2019To2022
 
 	if !e2e.GcloudAuth(logger, nil) {
 		logger.Printf("Failed to run gcloud auth.")
@@ -145,7 +147,7 @@ func runWindowsUpgradeNormalCase(ctx context.Context, testCase *junitxml.TestCas
 			instance,
 		},
 	}
-	runTest(ctx, standardImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
+	runTest(ctx, standardImage2008, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
 		true, false, "", false, 0, false)
 }
 
@@ -153,7 +155,7 @@ func runWindowsUpgradeStaging2008To2012(ctx context.Context, testCase *junitxml.
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	runWindowsUpgradeStaging(ctx, testCase, logger,
-		testProjectConfig, testType, standardImage, "windows-2008r2", "windows-2012r2", "6.3")
+		testProjectConfig, testType, standardImage2008, "windows-2008r2", "windows-2012r2", "6.3")
 }
 
 func runWindowsUpgradeStaging2012To2016(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
@@ -163,18 +165,18 @@ func runWindowsUpgradeStaging2012To2016(ctx context.Context, testCase *junitxml.
 		testProjectConfig, testType, standardImage2012, "windows-2012r2", "windows-2016", "10.0")
 }
 
-func runWindowsUpgradeStaging2012To2019(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runWindowsUpgradeStaging2016To2019(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	runWindowsUpgradeStaging(ctx, testCase, logger,
-		testProjectConfig, testType, standardImage2012, "windows-2012r2", "windows-2019", "10.0")
+		testProjectConfig, testType, standardImage2016, "windows-2012r2", "windows-2019", "10.0")
 }
 
-func runWindowsUpgradeStaging2012To2022(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runWindowsUpgradeStaging2019To2022(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType e2e.CLITestType) {
 
 	runWindowsUpgradeStaging(ctx, testCase, logger,
-		testProjectConfig, testType, standardImage2012, "windows-2012r2", "windows-2022", "10.0")
+		testProjectConfig, testType, standardImage2019, "windows-2012r2", "windows-2022", "10.0")
 }
 
 func runWindowsUpgradeStaging(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
@@ -244,7 +246,7 @@ func runWindowsUpgradeWithRichParamsAndLatestInstallMedia(ctx context.Context, t
 			instance,
 		},
 	}
-	runTest(ctx, standardImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
+	runTest(ctx, standardImage2008, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
 		true, false, "original", true, 2, false)
 }
 
@@ -265,7 +267,7 @@ func runWindowsUpgradeFailedAndCleanup(ctx context.Context, testCase *junitxml.T
 			fmt.Sprintf("-instance=%v", instance),
 		},
 	}
-	runTest(ctx, standardImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
+	runTest(ctx, standardImage2008, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
 		false, true, "", false, 0, false)
 }
 
@@ -288,7 +290,7 @@ func runWindowsUpgradeFailedAndRollback(ctx context.Context, testCase *junitxml.
 			fmt.Sprintf("-auto-rollback"),
 		},
 	}
-	runTest(ctx, standardImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
+	runTest(ctx, standardImage2008, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
 		false, true, "original-backup", true, 2, false)
 }
 
