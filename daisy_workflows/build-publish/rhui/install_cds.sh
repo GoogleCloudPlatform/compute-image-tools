@@ -69,7 +69,8 @@ subscription-manager repos --enable=rhui-4-for-rhel-8-x86_64-rpms
 # The patch skips actually mounting NFS (update fstab only), makes backups of
 # files from rhui-tools, and skips generating unique RHUI and CA certs, instead
 # copying our pre-generated certs.
-dnf install -y rhui-tools patch
+# TODO: temporarily pin version to match patch.
+dnf install -y rhui-tools-4.1.0.6-1.el8ui patch
 ( cd /usr/share/rhui-tools; patch -b -p1 < $tempdir/cds.patch; )
 
 build_status "Run Ansible playbook."
