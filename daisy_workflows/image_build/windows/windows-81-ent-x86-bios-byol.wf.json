@@ -30,7 +30,7 @@
       "Description": "Google Cloud repo to retrieve packages from during the build."
     },
     "name": {
-      "Value": "windows-81-ent-x86-uefi-v${TIMESTAMP}",
+      "Value": "windows-81-ent-x86-bios-byol-v${TIMESTAMP}",
       "Description": "The name of the output image."
     },
     "project": {
@@ -95,9 +95,6 @@
             {
               "Type": "MULTI_IP_SUBNET"
             },
-            {
-              "Type": "UEFI_COMPATIBLE"
-            }
           ],
           "NoCleanup": true,
           "ExactName": true
