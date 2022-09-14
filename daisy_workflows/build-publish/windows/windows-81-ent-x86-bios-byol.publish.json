@@ -1,0 +1,50 @@
+{{/*
+  Template to publish Windows server BIOS images.
+  By default this template is setup to publish to the 'gce-image-builder'
+  project, the 'environment' variable can be used to publish to 'test', 'prod',
+  or 'staging'.
+  DeleteAfter is set to 180 days for all environments other than prod where no
+  time period is set.
+*/}}
+{
+  "Name": "windows-81-ent-x86-bios-byol",
+  {{$work_project := printf "%q" "gce-image-builder" -}}
+  {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
+  {{$delete_after := `"24h*30*6"` -}}
+  {{if eq .environment "staging" -}}
+  "WorkProject": "oslogin-staging-project",
+  "PublishProject": "gce-staging-images",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
+  "DeleteAfter": {{$delete_after}},
+  {{- else if eq .environment "internal" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "google.com:windows-internal",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- else -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "bct-prod-images",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- end}}
+  {{$guest_features := `["MULTI_IP_SUBNET","VIRTIO_SCSI_MULTIQUEUE","WINDOWS"]` -}}
+  {{$time := trimPrefix .publish_version "v"}}
+  "Images": [
+    {
+      "Prefix": "windows-81-ent-x86",
+      "Family": "windows-8-1-x86",
+      "Description": "Microsoft, Windows 8.1 Enterprise, x86 built on {{$time}}, supports Shielded VM features",
+      "Architecture": "X86_86",
+      "Licenses": [
+        {{if eq .environment "staging" -}}
+        "projects/bct-staging-functional/global/licenses/windows-ent"
+        {{- else if eq .environment "internal" -}}
+        "projects/google.com:windows-internal/global/licenses/internal-windows"
+        {{- else -}}
+        "projects/windows-cloud/global/licenses/windows-81-x86-byol"
+        {{- end}}
+      ],
+      "GuestOsFeatures": {{$guest_features}}
+    }
+  ]
+}
