@@ -38,7 +38,7 @@ const (
 	standardImage              = "projects/compute-image-tools-test/global/images/test-image-win2008r2-20200414"
 	insufficientDiskSpaceImage = "projects/compute-image-tools-test/global/images/test-image-windows-2008r2-no-space"
 	byolImage                  = "projects/compute-image-tools-test/global/images/test-image-windows-2008r2-byol"
-	standardImage2012          = "projects/compute-image-tools-test/global/images/test-image-win2012r2-20220902"
+	standardImage2012          = "projects/compute-image-tools-test/global/images/test-image-win2012r2-20200609"
 )
 
 var (
