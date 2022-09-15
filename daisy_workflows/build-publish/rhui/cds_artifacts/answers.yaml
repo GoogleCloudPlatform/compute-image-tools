@@ -1,10 +1,10 @@
 cds_extra_rpms:
 - python3-gunicorn
 - python3-m2crypto
-- rhui-cds-plugin-authorizer
-- rhui-cds-plugin-authorizer-cert
-- rhui-cds-plugin-fetcher
-- rhui-cds-plugin-mirror
+- rhui-cds-plugin-authorizer-1.0.2-1.el8ui.noarch
+- rhui-cds-plugin-authorizer-cert-1.0.3-1.el8ui.noarch
+- rhui-cds-plugin-fetcher-1.0.4-1.el8ui.noarch
+- rhui-cds-plugin-mirror-1.0.1-1.el8ui.noarch
 execute_all: true
 remote_fs_mountpoint: /var/lib/rhui/remote_share
 remote_fs_server: nfs.rhui.google:/rhui
