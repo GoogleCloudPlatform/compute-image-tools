@@ -182,6 +182,18 @@ function Install-WindowsUpdates {
     }
   }
 
+  # Windows 11 may get stuck installing KB5007651. $pn for Windows 11 reports as Win 10 Enterprise.
+  # This is an intended behavior by Microsoft for backwards compatibility.
+  # As such we skip the KB here instead of trying to target by $pn.
+  if ($updates.Count -eq 1) {
+    foreach ($update in $updates) {
+      if ($update.Title -like '*KB5007651*') {
+        Write-Host 'Install-WindowsUpdates: KB5007651 detected as a single update remaining. Skipping known issue KB.'
+        return $false
+      }
+    }
+  }      
+
   foreach ($update in $updates) {
     if (-not ($update.EulaAccepted)) {
       Write-Host 'The following update required a EULA to be accepted:'
