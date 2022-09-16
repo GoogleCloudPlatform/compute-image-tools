@@ -240,7 +240,7 @@ func populateUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow) erro
 					Name: u.instanceURI,
 					SerialOutput: &daisy.SerialOutput{
 						Port:         1,
-						SuccessMatch: "GCEMetadataScripts: Beginning upgrade startup script.",
+						SuccessMatch: "Beginning upgrade startup script.",
 					},
 				},
 			},
@@ -313,7 +313,7 @@ func populateUpgradeStepsTemplate(u *upgrader, w *daisy.Workflow, newVersionStri
 					Name: u.instanceURI,
 					SerialOutput: &daisy.SerialOutput{
 						Port:         1,
-						SuccessMatch: "GCEMetadataScripts: Beginning upgrade startup script.",
+						SuccessMatch: "Beginning upgrade startup script.",
 					},
 				},
 			},
@@ -377,7 +377,7 @@ func populateRetryUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow)
 					Name: u.instanceURI,
 					SerialOutput: &daisy.SerialOutput{
 						Port:         1,
-						SuccessMatch: "GCEMetadataScripts: Beginning upgrade startup script.",
+						SuccessMatch: "Beginning upgrade startup script.",
 					},
 				},
 			},
