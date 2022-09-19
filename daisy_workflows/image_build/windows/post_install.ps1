@@ -189,11 +189,12 @@ function Install-WindowsUpdates {
     $productMajorVersion = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name CurrentMajorVersionNumber).CurrentMajorVersionNumber
     $productMinorVersion = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name CurrentMinorVersionNumber).CurrentMinorVersionNumber
     $productBuildNumber = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name CurrentBuildNumber).CurrentBuildNumber
-    if($productMajorVersion -eq 10 -and $productMinorVersion -eq 0 -and $productBuildNumber -ge 22000)
-    foreach ($update in $updates) {
-      if ($update.Title -like '*KB5007651*') {
-        Write-Host 'Install-WindowsUpdates: KB5007651 detected as a single update remaining. Skipping known issue KB.'
-        return $false
+    if($productMajorVersion -eq 10 -and $productMinorVersion -eq 0 -and $productBuildNumber -ge 22000) {
+      foreach ($update in $updates) {
+        if ($update.Title -like '*KB5007651*') {
+          Write-Host 'Install-WindowsUpdates: KB5007651 detected as a single update remaining. Skipping known issue KB.'
+          return $false
+        }
       }
     }
   }      
