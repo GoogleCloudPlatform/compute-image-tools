@@ -11,13 +11,6 @@ options:
     path: /go/src
 
 steps:
-- id: e2e-test-base
-  name: 'gcr.io/kaniko-project/executor:v0.22.0'
-  args:
-  - --destination=gcr.io/$PROJECT_ID/e2e-test-base:latest
-  - --destination=gcr.io/$PROJECT_ID/e2e-test-base:$COMMIT_SHA
-  - --context=/workspace
-  - --dockerfile=e2e_test_base.Dockerfile
 - id: gce-windows-upgrade-tests
   name: 'gcr.io/kaniko-project/executor:v0.22.0'
   args:

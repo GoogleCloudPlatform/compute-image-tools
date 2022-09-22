@@ -24,7 +24,7 @@ RUN cd /build/cli_tools/gce_windows_upgrade && CGO_ENABLED=0 go build -o /gce_wi
 RUN chmod +x /gce_windows_upgrade
 
 # Build test container
-FROM gcr.io/$PROJECT_ID/e2e-test-base:latest
+FROM google/cloud-sdk:debian_component_based
 COPY --from=0 /gce_windows_upgrade_test_runner gce_windows_upgrade_test_runner
 COPY --from=0 /gce_windows_upgrade gce_windows_upgrade
 COPY /cli_tools/gce_windows_upgrade/upgrade_script.ps1 upgrade_script.ps1
