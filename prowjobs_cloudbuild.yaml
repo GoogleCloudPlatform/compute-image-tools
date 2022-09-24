@@ -8,11 +8,6 @@ options:
 steps:
 - id: gce-windows-upgrade-tests
   name: 'gcr.io/kaniko-project/executor:v0.22.0'
-  volumes:
-  - name: go-pkg
-    path: /go/pkg
-  - name: go-src
-    path: /go/src
   args:
   - --destination=gcr.io/$PROJECT_ID/gce-windows-upgrade-tests:latest
   - --destination=gcr.io/$PROJECT_ID/gce-windows-upgrade-tests:$COMMIT_SHA
