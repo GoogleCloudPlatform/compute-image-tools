@@ -1,14 +1,8 @@
 {
   "Name": "ubuntu-pro-2004",
-  {{if eq .environment "oslogin-staging" -}}
   "WorkProject": "oslogin-staging-project",
   "PublishProject": "oslogin-staging-project",
   "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
-  {{- else if eq .environment "staging" -}}
-  "WorkProject": "oslogin-staging-project",
-  "PublishProject": "gce-staging-images",
-  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
-  {{- end}}
   "DeleteAfter": "24h*30*6",
   "Images": [
     {

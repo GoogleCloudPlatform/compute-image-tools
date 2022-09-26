@@ -1,5 +1,5 @@
 {
-  "Name": "fedora-coreos-stable-export",
+  "Name": "cos-101-lts-export",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -22,7 +22,7 @@
       "CreateDisks": [
         {
           "Name": "disk-image",
-          "SourceImage": "projects/fedora-coreos-cloud/global/images/family/fedora-coreos-stable",
+          "SourceImage": "projects/cos-cloud/global/images/family/cos-101-lts",
           "Type": "pd-ssd"
         }
       ]
