@@ -11,10 +11,9 @@
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*6"` -}}
-  {{if eq .environment "staging" -}}
-  "WorkProject": "oslogin-staging-project",
-  "PublishProject": "gce-staging-images",
-  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
+  {{if eq .environment "prod" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "gce-windows-client-images",
   "DeleteAfter": {{$delete_after}},
   {{- else if eq .environment "internal" -}}
   "WorkProject": {{$work_project}},
