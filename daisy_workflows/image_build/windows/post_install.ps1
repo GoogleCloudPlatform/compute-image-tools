@@ -186,18 +186,25 @@ function Install-WindowsUpdates {
   # This is an intended behavior by Microsoft for backwards compatibility.
   # As such we skip the KB here instead of trying to target by $pn.
   if ($updates.Count -eq 1) {
-    $productMajorVersion = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name CurrentMajorVersionNumber).CurrentMajorVersionNumber
-    $productMinorVersion = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name CurrentMinorVersionNumber).CurrentMinorVersionNumber
     $productBuildNumber = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name CurrentBuildNumber).CurrentBuildNumber
-    if($productMajorVersion -eq 10 -and $productMinorVersion -eq 0 -and $productBuildNumber -ge 22000) {
-      foreach ($update in $updates) {
-        if ($update.Title -like '*KB5007651*') {
-          Write-Host 'Install-WindowsUpdates: KB5007651 detected as a single update remaining. Skipping known issue KB.'
-          return $false
+
+    # Server 2012R2 doesn't have CurrentMajor and CurrentMinor keys; detect 2012R2 build number and skip the version check
+    # This is fine, since the update only targets Win10/11
+    if ($productBuildNumber -eq 9600) {
+      continue
+    }
+    else {
+      $productMajorVersion = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name CurrentMajorVersionNumber).CurrentMajorVersionNumber
+      $productMinorVersion = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name CurrentMinorVersionNumber).CurrentMinorVersionNumber
+      if($productMajorVersion -eq 10 -and $productMinorVersion -eq 0 -and $productBuildNumber -ge 22000) {
+        foreach ($update in $updates) {
+          if ($update.Title -like '*KB5007651*') {
+            Write-Host 'Install-WindowsUpdates: KB5007651 detected as a single update remaining. Skipping known issue KB.'
+            return $false
+          }
         }
       }
-    }
-  }      
+    }      
 
   foreach ($update in $updates) {
     if (-not ($update.EulaAccepted)) {
