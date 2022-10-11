@@ -21,11 +21,6 @@
   "WorkProject": {{$work_project}},
   "PublishProject": "windows-sql-cloud",
   "ComputeEndpoint": {{$endpoint}},
-  {{- else if eq .environment "staging" -}}
-  "WorkProject": "bct-staging-images",
-  "PublishProject": "bct-staging-images",
-  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
-  "DeleteAfter": {{$delete_after}},
   {{- else -}}
   "WorkProject": {{$work_project}},
   "PublishProject": {{$work_project}},
@@ -41,13 +36,8 @@
       "Description": "Microsoft, SQL Server 2016 Standard, on Windows Server 2019 Datacenter, x64 built on {{$time}}, supports Shielded VM features",
       "Architecture": "X86_64",
       "Licenses": [
-        {{if eq .environment "staging" -}}
-        "projects/bct-staging-functional/global/licenses/sql-server-2016-standard",
-        "projects/bct-staging-functional/global/licenses/windows-server-2019-dc"
-        {{- else -}}
         "projects/windows-sql-cloud/global/licenses/sql-server-2016-standard",
         "projects/windows-cloud/global/licenses/windows-server-2019-dc"
-        {{- end}}
       ],
       "GuestOsFeatures": {{$guest_features}}
     }
