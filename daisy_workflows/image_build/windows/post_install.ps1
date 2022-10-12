@@ -186,9 +186,9 @@ function Install-WindowsUpdates {
   # This is an intended behavior by Microsoft for backwards compatibility.
   # As such we skip the KB here instead of trying to target by $pn.
   if ($updates.Count -eq 1) {
-    $productMajorVersion = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name CurrentMajorVersionNumber).CurrentMajorVersionNumber
-    $productMinorVersion = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name CurrentMinorVersionNumber).CurrentMinorVersionNumber
-    $productBuildNumber = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name CurrentBuildNumber).CurrentBuildNumber
+    $productBuildNumber = [Environment]::OSVersion.Version.Build
+    $productMajorVersion = [Environment]::OSVersion.Version.Major
+    $productMinorVersion = [Environment]::OSVersion.Version.Minor
     if($productMajorVersion -eq 10 -and $productMinorVersion -eq 0 -and $productBuildNumber -ge 22000) {
       foreach ($update in $updates) {
         if ($update.Title -like '*KB5007651*') {
@@ -197,7 +197,7 @@ function Install-WindowsUpdates {
         }
       }
     }
-  }      
+  }
 
   foreach ($update in $updates) {
     if (-not ($update.EulaAccepted)) {
