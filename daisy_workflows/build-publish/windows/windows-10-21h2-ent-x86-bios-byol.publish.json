@@ -35,9 +35,7 @@
       "Description": "Microsoft, Windows 10 Enterprise, 21h2 Update, x86 built on {{$time}}, supports Shielded VM features",
       "Architecture": "X86",
       "Licenses": [
-        {{if eq .environment "client" -}}
-        "projects/google.com:windows-internal/global/licenses/internal-windows"
-        {{- else if eq .environment "internal" -}}
+        {{if eq .environment "client" || eq .environment "internal" -}}
         "projects/google.com:windows-internal/global/licenses/internal-windows"
         {{- else -}}
         "projects/windows-cloud/global/licenses/windows-10-x86-byol"
