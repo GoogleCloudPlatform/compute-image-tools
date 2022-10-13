@@ -1,8 +1,7 @@
 {{/*
   Template to publish UEFI-enabled Rocky Linux images.
   By default this template is setup to publish to the 'gce-image-builder'
-  project, the 'environment' variable can be used to publish to 'test', 'prod',
-  or 'staging'.
+  project, the 'environment' variable can be used to publish to 'test', 'prod'
   DeleteAfter is set to 180 days for all environments other than prod where no
   time period is set.
 */}}
@@ -20,11 +19,6 @@
   "WorkProject": {{$work_project}},
   "PublishProject": "rocky-linux-cloud",
   "ComputeEndpoint": {{$endpoint}},
-  {{- else if eq .environment "oslogin-staging" -}}
-  "WorkProject": "oslogin-staging-project",
-  "PublishProject": "oslogin-staging-project",
-  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
-  "DeleteAfter": {{$delete_after}},
   {{- else -}}
   "WorkProject": {{$work_project}},
   "PublishProject": {{$work_project}},
@@ -40,11 +34,7 @@
       "Description": "Rocky Linux, Rocky Linux, 9, aarch64 built on {{$time}}",
       "Architecture": "ARM64",
       "Licenses": [
-        {{if (or (eq .environment "staging") (eq .environment "oslogin-staging")) -}}
-        "projects/bct-staging-functional/global/licenses/rocky-linux-9"
-        {{- else -}}
         "projects/rocky-linux-cloud/global/licenses/rocky-linux-9"
-        {{- end}}
       ],
       "GuestOsFeatures": {{$guest_features}}
     }
