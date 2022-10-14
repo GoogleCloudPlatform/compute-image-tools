@@ -1,8 +1,7 @@
 {{/*
   Template to publish UEFI-enabled Red Hat Enterprise Linux images.
   By default this template is setup to publish to the 'gce-image-builder'
-  project, the 'environment' variable can be used to publish to 'test', 'prod',
-  or 'staging'.
+  project, the 'environment' variable can be used to publish to 'test', 'prod'
   DeleteAfter is set to 180 days for all environments other than prod where no
   time period is set.
 */}}
@@ -20,16 +19,6 @@
   "WorkProject": {{$work_project}},
   "PublishProject": "rhel-byos-cloud",
   "ComputeEndpoint": {{$endpoint}},
-  {{- else if eq .environment "oslogin-staging" -}}
-  "WorkProject": "oslogin-staging-project",
-  "PublishProject": "oslogin-staging-project",
-  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
-  "DeleteAfter": {{$delete_after}},
-  {{- else if eq .environment "staging" -}}
-  "WorkProject": "oslogin-staging-project",
-  "PublishProject": "gce-staging-images",
-  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
-  "DeleteAfter": {{$delete_after}},
   {{- else -}}
   "WorkProject": {{$work_project}},
   "PublishProject": {{$work_project}},
@@ -45,11 +34,7 @@
       "Description": "Red Hat, Red Hat Enterprise Linux, 7, BYOS x86_64 built on {{$time}}, supports Shielded VM features",
       "Architecture": "X86_64",
       "Licenses": [
-        {{if (or (eq .environment "staging") (eq .environment "oslogin-staging")) -}}
-        "projects/bct-staging-functional/global/licenses/rhel-7-byos"
-        {{- else -}}
         "projects/rhel-cloud/global/licenses/rhel-7-byos"
-        {{- end}}
       ],
       "GuestOsFeatures": {{$guest_features}}
     }
