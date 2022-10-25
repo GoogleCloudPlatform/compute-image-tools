@@ -36,8 +36,8 @@ The specific image build workflows all include the base
 ### RHEL images
 
 RHEL images will contain by default access to an appropriate set of RHEL
-content; use of this content is provided as part of your blah contract and
-[more details](here).
+content; use of this content is provided as part of your GCE customer agreement
+and is billed based on instance usage.
 
 Red Hat BYOS images will contain the `subscription-manager` tool which can be
 used after boot to attach a Red Hat subscription to the resulting instance. The
