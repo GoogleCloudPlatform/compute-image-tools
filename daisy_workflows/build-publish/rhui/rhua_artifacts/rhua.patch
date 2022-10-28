@@ -1,84 +1,33 @@
 diff -Naur playbooks/rhua-provision.yml playbooks/rhua-provision.yml
---- playbooks/rhua-provision.yml	2022-01-01 23:56:33.757374995 +0000
-+++ playbooks/rhua-provision.yml	2022-01-01 23:56:47.768584643 +0000
-@@ -3,6 +3,7 @@
+--- playbooks/rhua-provision.yml	2022-01-01 12:52:43.000000000 +0000
++++ playbooks/rhua-provision.yml	2022-01-01 23:47:02.888894990 +0000
+@@ -125,20 +125,6 @@
+         regexp: "{{ remote_fs_mountpoint_escaped }}"
+         line: "{{ rhua.remote_fs_server }} {{ rhua.remote_fs_mountpoint }} {{ rhua.remote_fs_type }} rw 0 0"
  
- - name: RHUA provision playbook
-   hosts: all
-+  connection: local
-   gather_facts: true
-   become: true
-   vars:
-@@ -96,7 +97,7 @@
-         src: "{{ rhua.remote_fs_server }}"
-         fstype: "{{ rhua.remote_fs_type }}"
-         opts: "{{ rhua.rhua_mount_options }}"
--        state: mounted
-+        state: present
- 
-     - name: Create /etc/pki/rhui/certs directory if it does not exist
+-    - name: Test whether the shared storage is mounted
+-      ansible.builtin.shell: "cat /proc/mounts | grep -F {{ rhua.remote_fs_mountpoint }}"
+-      register: mounts_result
+-      failed_when: mounts_result.rc > 1
+-      changed_when: False
+-
+-    - name: Unmount current shared storage if new is specified
+-      when: 'mounts_result.rc == 0 and rhua.remote_fs_server not in mounts_result.stdout'
+-      ansible.builtin.command: "umount {{ rhua.remote_fs_mountpoint }} warn=false"
+-
+-    - name: Mount shared storage
+-      when: 'mounts_result.rc > 0 or rhua.remote_fs_server not in mounts_result.stdout'
+-      ansible.builtin.command: "mount {{ rhua.remote_fs_mountpoint }} warn=false"
+-
+     - name: Create certs directory if it does not exist
        ansible.builtin.file:
-@@ -304,28 +305,32 @@
-         group: pulp
-         mode: '0700'
- 
--    - name: Create private key for NginX SSL cert serving Pulp content
--      community.crypto.openssl_privatekey:
--        path: /etc/pulp/certs/pulp_webserver.key
--
--    - name: Generate CSR for NginX SSL cert serving Pulp content
--      community.crypto.openssl_csr:
--        path: /etc/pulp/certs/pulp_webserver.csr
--        privatekey_path: /etc/pulp/certs/pulp_webserver.key
--        subject_alt_name: "DNS:{{ rhua.rhua_hostname }}"
--        C: US
--        ST: NC
--        O: Red Hat Update Infrastructure
--        CN: "{{ rhua.rhua_hostname }}"
--
--    - name: Generate SSL certificate for NginX serving Pulp content
--      community.crypto.x509_certificate:
--        path: /etc/pulp/certs/pulp_webserver.crt
--        csr_path: /etc/pulp/certs/pulp_webserver.csr
--        provider: ownca
--        ownca_path: /etc/pki/rhui/certs/ca.crt
--        ownca_privatekey_path: /etc/pki/rhui/private/ca.key
--      notify: Restart NginX
-+    - name: Block User provided the TLS certificate
-+      when: 'rhua.user_supplied_tls_crt != None'
-+      block:
-+        - name: User provided the TLS certificate
-+          ansible.builtin.debug:
-+            msg: User Supplied TLS key {{ rhua.user_supplied_tls_key }} and TLS crt {{ rhua.user_supplied_tls_crt }}
-+
-+        - name: Copy in user supplied TLS key
-+          ansible.builtin.copy:
-+            src: "{{ rhua.user_supplied_tls_key }}"
-+            dest: /etc/pulp/certs/pulp_webserver.key
-+            mode: '0600'
-+            owner: root
-+            group: root
-+            force: yes
-+          notify: Restart NginX
-+
-+        - name: Copy in user supplied TLS crt certificate
-+          ansible.builtin.copy:
-+            src: "{{ rhua.user_supplied_tls_crt }}"
-+            dest: /etc/pulp/certs/pulp_webserver.crt
-+            mode: '0644'
-+            owner: root
-+            group: root
-+            force: yes
-+          notify: Restart NginX
- 
-     - name: Collect static browsable API and media files
-       command: "{{ pulpcore_env }} pulpcore-manager collectstatic --noinput"
-
---- templates/nginx-pulp.conf	2022-01-01 23:56:33.757374995 +0000
-+++ templates/nginx-pulp.conf	2022-01-01 23:56:47.768584643 +0000
+         path: "{{ rhua.cert_certs_dir }}"
+diff -Naur templates/nginx-pulp.conf templates/nginx-pulp.conf
+--- templates/nginx-pulp.conf	2022-01-01 12:52:43.000000000 +0000
++++ templates/nginx-pulp.conf	2022-01-01 05:31:34.475487068 +0000
 @@ -10,6 +10,7 @@
  }
-
+ 
  http {
 +    include /etc/nginx/conf.d/*.conf;
      include mime.types;
