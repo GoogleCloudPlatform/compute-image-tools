@@ -1,6 +1,6 @@
 diff -Naur orig/playbooks/cds-register.yml new/playbooks/cds-register.yml
---- orig/playbooks/cds-register.yml	2022-05-11 22:51:00.317947815 +0000
-+++ new/playbooks/cds-register.yml	2022-05-11 22:56:27.411779564 +0000
+--- orig/playbooks/cds-register.yml	2022-10-04 12:51:09.000000000 +0000
++++ new/playbooks/cds-register.yml	2022-10-28 20:45:15.574276945 +0000
 @@ -3,7 +3,8 @@
  
  - name: Registering a CDS instance
@@ -21,26 +21,38 @@ diff -Naur orig/playbooks/cds-register.yml new/playbooks/cds-register.yml
 -
      - name: Install nfs-utils
        when: 'execute_all and "nfs" in remote_fs_type'
-       yum:
+       ansible.builtin.dnf:
 @@ -55,7 +52,7 @@
      - name: Provide general RHUI configuration
        when: execute_all
        ansible.builtin.copy:
 -        src: /etc/rhui/rhui-tools.conf
-+        src: "{{ rhui_tools_conf }}"
++        src: "{{ rhui_tools_conf_src }}"
          dest: /etc/rhui/rhui-tools.conf
          owner: root
          group: root
-@@ -76,7 +73,7 @@
-         path: "{{ remote_fs_mountpoint }}"
-         src: "{{ remote_fs_server }}"
-         fstype: "{{ remote_fs_type }}"
--        state: mounted
-+        state: present
+@@ -86,20 +83,6 @@
+         regexp: "{{ remote_fs_mountpoint_escaped }}"
+         line: "{{ remote_fs_server }} {{ remote_fs_mountpoint }} {{ remote_fs_type }} rw 0 0"
  
-     - name: Mount shared storage for ceph
-       when: 'execute_all and "ceph" in remote_fs_type'
-@@ -111,7 +108,7 @@
+-    - name: Test whether the shared storage is mounted
+-      ansible.builtin.shell: "cat /proc/mounts | grep -F {{ remote_fs_mountpoint }}"
+-      register: mounts_result
+-      failed_when: mounts_result.rc > 1
+-      changed_when: False
+-
+-    - name: Unmount current shared storage if new is specified
+-      when: 'mounts_result.rc == 0 and remote_fs_server not in mounts_result.stdout'
+-      ansible.builtin.command: "umount {{ remote_fs_mountpoint }} warn=false"
+-
+-    - name: Mount shared storage
+-      when: 'mounts_result.rc > 0 or remote_fs_server not in mounts_result.stdout'
+-      ansible.builtin.command: "mount {{ remote_fs_mountpoint }} warn=false"
+-
+     - name: Reset NginX module
+       when: execute_all
+       command: dnf -y module reset nginx
+@@ -142,7 +125,7 @@
        when: execute_all
        ansible.builtin.copy:
          src: /usr/bin/rhui-services-restart
@@ -49,63 +61,37 @@ diff -Naur orig/playbooks/cds-register.yml new/playbooks/cds-register.yml
          owner: root
          group: root
          mode: '0755'
-@@ -136,7 +133,7 @@
+@@ -167,7 +150,7 @@
  
-     - name: Copy ca.crt
+     - name: Copy RHUI CA Cert
        ansible.builtin.copy:
--        src: /etc/pki/rhui/certs/ca.crt
-+        src: "{{ user_supplied_ca_crt }}"
-         dest: /etc/pki/rhui/certs/ca.crt
+-        src: "{{ rhui_ca_crt }}"
++        src: "{{ rhui_ca_crt_src }}"
+         dest: "{{ rhui_ca_crt }}"
          owner: root
          group: root
-@@ -161,28 +158,21 @@
-         state: restarted
-       loop: "{{ gunicorn_services }}"
+@@ -175,7 +158,7 @@
  
--    - name: Generate SSL certificate private key
--      community.crypto.openssl_privatekey:
--        path: "/etc/pki/rhui/certs/{{ inventory_hostname }}.key"
--
--    - name: Generate SSL certificate signing request
--      community.crypto.openssl_csr:
--        path: "/etc/pki/rhui/certs/{{ inventory_hostname }}.csr"
--        privatekey_path: "/etc/pki/rhui/certs/{{ inventory_hostname }}.key"
--        C: US
--        ST: NC
--        O: Red Hat Update Infrastructure
--        CN: "{{ inventory_hostname }}"
--        subject_alt_name: "{{ haproxies | map(attribute='hostname') | list | union(host_list) | union( [ lb_hostname ] ) | map('regex_replace', '^', 'DNS:') | list }}"
--
--    - name: Generate SSL certificate for NginX
--      community.crypto.x509_certificate:
--        path: "/etc/pki/rhui/certs/{{ inventory_hostname }}.crt"
--        csr_path: "/etc/pki/rhui/certs/{{ inventory_hostname }}.csr"
--        provider: ownca
--        ownca_path: /etc/pki/rhui/certs/ca.crt
--        ownca_privatekey_content: "{{ ca_key }}"
--        ownca_not_after: "+{{ cds_certs_expiration }}d"
-+    - name: Copy TLS key
-+      ansible.builtin.copy:
-+        src: "{{ user_supplied_tls_key }}"
-+        dest: /etc/pki/rhui/certs/{{ inventory_hostname }}.key
-+        owner: root
-+        group: root
-+        mode: '0600'
-+
-+    - name: Copy TLS cert
-+      ansible.builtin.copy:
-+        src: "{{ user_supplied_tls_crt }}"
-+        dest: /etc/pki/rhui/certs/{{ inventory_hostname }}.crt
-+        owner: root
-+        group: root
-+        mode: '0644'
+     - name: Copy Client SSL Cert
+       ansible.builtin.copy:
+-        src: "{{ ssl_ca_crt }}"
++        src: "{{ ssl_ca_crt_src }}"
+         dest: "{{ ssl_ca_crt }}"
+         owner: root
+         group: root
+@@ -183,7 +166,7 @@
  
-     - name: Provide NginX general configuration
-       ansible.builtin.template:
+     - name: Copy Client Entitlement Cert
+       ansible.builtin.copy:
+-        src: "{{ entitlement_ca_crt }}"
++        src: "{{ entitlement_ca_crt_src }}"
+         dest: "{{ entitlement_ca_crt }}"
+         owner: root
+         group: root
 diff -Naur orig/templates/nginx-ssl.conf new/templates/nginx-ssl.conf
---- orig/templates/nginx-ssl.conf	2022-05-11 22:57:33.873767176 +0000
-+++ new/templates/nginx-ssl.conf	2022-05-12 16:38:58.075429837 +0000
-@@ -55,7 +55,8 @@
+--- orig/templates/nginx-ssl.conf	2022-10-04 12:51:09.000000000 +0000
++++ new/templates/nginx-ssl.conf	2022-10-28 20:25:55.800008512 +0000
+@@ -59,7 +59,8 @@
              gzip off;
              auth_request /auth;
              root {{ remote_fs_mountpoint }}/symlinks;
@@ -114,4 +100,4 @@ diff -Naur orig/templates/nginx-ssl.conf new/templates/nginx-ssl.conf
 +            try_files $uri =404;
          }
  
-         location @fetch_from_rhua {
+         location /pulp/container/ {
