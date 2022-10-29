@@ -38,21 +38,11 @@ gcloud secrets versions access latest --secret enrollment_cert > \
 # Entitlement cert: enable the RHUA to sync content from RH CDN
 gcloud secrets versions access latest --secret entitlement_cert > \
   $tempdir/entitlement_cert.pem
-
-# Main CA cert used for generating others, such as entitlement certs. Used by
-# rhui-installer to generate a cert for the local pulp webserver
+# CA cert & key, used to generate the RHUA cert
 gcloud secrets versions access latest --secret rhua_ca_cert > \
   $tempdir/rhua_ca.crt
-# Main CA key
 gcloud secrets versions access latest --secret rhua_ca_key > \
   $tempdir/rhua_ca.key
-
-# None of these are needed on the running RHUA node. We pass them in primarily
-# to get rhui-installer not to needlessly generate new ones.
-echo 'DUMMY SSL CRT' > $tempdir/dummy_ssl.crt
-echo 'DUMMY SSL KEY' > $tempdir/dummy_ssl.key
-echo 'DUMMY ENTITLEMENT CRT' > $tempdir/dummy_entitlement.crt
-echo 'DUMMY ENTITLEMENT KEY' > $tempdir/dummy_entitlement.key
 
 # Import subscription certificate.
 subscription-manager import --certificate=$tempdir/enrollment_cert.pem
@@ -71,18 +61,12 @@ dnf install -y rhui-installer-4.2.0.4-1.el8ui patch
 # NFS during install.
 ( cd /usr/share/rhui-installer; patch -b -p0 < $tempdir/rhua.patch; )
 
-
-# Run rhui-installer. Most params are simply to set appropriate config files.
 rhui-installer -u root --log-level debug \
   --cds-lb-hostname rhui.googlecloud.com \
   --remote-fs-server nfs.rhui.google:/rhui \
-  --rhua-hostname rhua.nfs.google \
+  --rhua-hostname rhua.rhui.google
   --user-supplied-rhui-ca-crt $tempdir/rhua_ca.crt \
-  --user-supplied-rhui-ca-key $tempdir/rhua_ca.key \
-  --user-supplied-client-ssl-ca-crt $tempdir/dummy_ssl.crt \
-  --user-supplied-client-ssl-ca-key $tempdir/dummy_ssl.key \
-  --user-supplied-client-entitlement-ca-crt $tempdir/dummy_ssl.key \
-  --user-supplied-client-entitlement-ca-key $tempdir/dummy_ssl.key \
+  --user-supplied-rhui-ca-key $tempdir/rhua_ca.key
 
 
 # Remove rhui-installer, enrollment cert and RHUI repos from final image.
@@ -129,6 +113,9 @@ install -m 664 -t /etc/nginx/conf.d $tempdir/status.nginx.conf
 # Delete installer resources.
 rm -rf $tempdir
 rm -rf /root/.ssh
+# No need to keep the CA active on running RHUA.
 echo 'DUMMY CA KEY' > /etc/pki/rhui/private/ca.key
+echo 'DUMMY CA KEY' > /etc/pki/rhui/private/client_entitlement_ca.key
+echo 'DUMMY CA KEY' > /etc/pki/rhui/private/client_ssl_ca.key
 
 build_success "RHUA setup complete."
