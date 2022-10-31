@@ -36,23 +36,26 @@ gcloud secrets versions access latest --secret enrollment_cert > \
   $tempdir/enrollment_cert.pem
 gcloud secrets versions access latest --secret rhua_ca_cert > \
   $tempdir/ca.crt
-# Now provided by daisy workflow.
-#gcloud secrets versions access latest --secret rhui_tls_cert > \
-#  $tempdir/rhui.crt
 gcloud secrets versions access latest --secret rhui_tls_key > \
   $tempdir/rhui.key
+# Note rhui.crt is provided via Daisy, not secret.
 
-# TODO: here we need to do the ACME steps via certbot w/ Google Cloud DNS
-# plugin. We need to install both from somewhere, then run them. For now,
-# self-signed cert.
-
-# We define the tasks which use these new fields in cds.patch
+# The user_supplied_* fields would normally be prompted for when you choose the
+# 'add CDS' screen in rhui-manager. The _src fields are defined by us in
+# cds.patch and allow local Ansible installation. As with RHUA, all 3 CAs are
+# the same.
 cat >>$tempdir/answers.yaml <<EOF
-rhui_tools_conf: $tempdir/rhui-tools.conf
-user_supplied_ca_crt: $tempdir/ca.crt
-user_supplied_tls_crt: $tempdir/rhui.crt
-user_supplied_tls_key: $tempdir/rhui.key
+user_supplied_ssl_crt: $tempdir/rhui.crt
+user_supplied_ssl_key: $tempdir/rhui.key
+rhui_ca_crt_src: $tempdir/ca.crt
+ssl_ca_crt_src: $tempdir/ca.crt
+entitlement_ca_crt_src: $tempdir/ca.crt
+rhui_tools_conf_src: $tempdir/rhui-tools.conf
 EOF
+
+# Make 'RHUA' resolveable so the NginX service can be started in the Ansible
+# playbook. TODO: remove RHUA connectivity from NginX config.
+echo '127.0.0.2 rhua.rhui.google' >> /etc/hosts
 
 # Import enrollment certificate.
 subscription-manager import --certificate=$tempdir/enrollment_cert.pem
@@ -66,11 +69,9 @@ subscription-manager repos --enable=rhel-8-for-x86_64-appstream-rhui-rpms
 subscription-manager repos --enable=rhui-4-for-rhel-8-x86_64-rpms
 
 # Get rhui-tools and patch Ansible playbook
-# The patch skips actually mounting NFS (update fstab only), makes backups of
-# files from rhui-tools, and skips generating unique RHUI and CA certs, instead
-# copying our pre-generated certs.
+# The patch skips mounting NFS and enables local Ansible installation.
 # TODO: temporarily pin version to match patch.
-dnf install -y rhui-tools-4.1.0.6-1.el8ui patch
+dnf install -y rhui-tools-4.2.0.9-1.el8ui patch
 ( cd /usr/share/rhui-tools; patch -b -p1 < $tempdir/cds.patch; )
 
 build_status "Run Ansible playbook."
@@ -78,13 +79,6 @@ ansible-playbook \
   -i localhost, \
   --extra-vars @$tempdir/answers.yaml \
   /usr/share/rhui-tools/playbooks/cds-register.yml
-
-cp /usr/bin/rhui-services-restart /usr/bin/rhui-services-restart.bak
-dnf remove -y rhui-tools rhui-tools-libs
-
-# Restore files owned by rhui-tools package.
-mv /usr/bin/rhui-services-restart.bak /usr/bin/rhui-services-restart
-cat $tempdir/rhui-tools.conf > /etc/rhui/rhui-tools.conf
 
 # Remove enrollment cert and repos from final image.
 subscription-manager remove --all
@@ -107,5 +101,7 @@ install -m 664 -t /etc/nginx/conf.d $tempdir/status.nginx.conf
 
 # Delete installer resources.
 rm -rf $tempdir
+# Remove the RHUA hack entry added on line 58. TODO: remove when installer is updated.
+sed -i"" -e '/rhua.rhui.google/d' /etc/hosts
 
 build_success "CDS setup complete."
