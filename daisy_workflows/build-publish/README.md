@@ -17,7 +17,7 @@ The following directories exist
   [enterprise\_linux](../image_build/enterprise_linux)
 * kokoro - workflow for an internal use image
 * linux\_dev - unknown/unused (?)
-* rhui - workflows for internal use images
+* [rhui](rhui/README.md) - workflows for internal use images
 * sqlserver - wrapper workflows for [sqlserver](../image_build/sqlserver)
 * windows - wrapper workflows for [windows](../image_build/windows)
 * windows\_container - wrapper workflows for
