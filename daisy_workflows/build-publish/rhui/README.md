@@ -19,6 +19,8 @@ appropriate for RHEL users on Google Cloud, add the [Ops Agent], add our safety
 modifications to RHUA service definitions, and add our health check agent used
 for both Internet Load Balancers and Managed Instance Groups.
 
+[Ops Agent]: https://cloud.google.com/stackdriver/docs/solutions/agents/ops-agent
+
 ### RHUA patch and modifications
 
 The `rhui-installer` principally installs software for the RHUA node, most steps
