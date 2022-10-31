@@ -31,38 +31,18 @@ tempdir=$(mktemp -d /tmp/daisy-rhuaXXX)
 gsutil cp "${SRC_PATH}/rhua_artifacts/*" $tempdir/
 
 # Get secrets.
+
+# Enrollment cert: enable access to RHUI content repos on RH CDN
 gcloud secrets versions access latest --secret enrollment_cert > \
   $tempdir/enrollment_cert.pem
+# Entitlement cert: enable the RHUA to sync content from RH CDN
 gcloud secrets versions access latest --secret entitlement_cert > \
   $tempdir/entitlement_cert.pem
-gcloud secrets versions access latest --secret rhua_tls_cert > \
-  $tempdir/rhua.crt
-gcloud secrets versions access latest --secret rhua_tls_key > \
-  $tempdir/rhua.key
-
-# RHUA node does not need the CA; it won't be issuing any new certs.
-# Not providing files causes new CA to be generated unnecessarily.
-echo "DUMMY CA KEY" > $tempdir/rhua_ca.key
-echo "DUMMY CA CERT" > $tempdir/rhua_ca.crt
-
-# Add cert entries to answers.yaml
-# We defined the tasks which use the new user_supplied_tls_{crt,key} fields in
-# rhua.patch. Indentation is important, we are appending to the 'rhua' mapping.
-cat >>$tempdir/answers.yaml <<EOF
-  user_supplied_ca_crt: $tempdir/rhua_ca.crt
-  user_supplied_ca_key: $tempdir/rhua_ca.key
-  user_supplied_tls_crt: $tempdir/rhua.crt
-  user_supplied_tls_key: $tempdir/rhua.key
-EOF
-
-# Generate 'secret' answers in a separate file as top level scalars (mimic
-# rhui-installer behavior).
-rhuipassword=$(openssl rand -hex 16)
-cat >>$tempdir/secret_answers.yaml <<EOF
-rhui_active_login_file: null
-rhui_manager_password: $rhuipassword
-rhui_manager_password_changed: true
-EOF
+# CA cert & key, used to generate the RHUA cert
+gcloud secrets versions access latest --secret rhua_ca_cert > \
+  $tempdir/rhua_ca.crt
+gcloud secrets versions access latest --secret rhua_ca_key > \
+  $tempdir/rhua_ca.key
 
 # Import subscription certificate.
 subscription-manager import --certificate=$tempdir/enrollment_cert.pem
@@ -74,23 +54,23 @@ subscription-manager repos --enable=rhui-4-for-rhel-8-x86_64-rpms
 subscription-manager repos --enable=ansible-2-for-rhel-8-x86_64-rhui-rpms
 
 # Get rhui-installer and patch Ansible playbook
-# The patch skips actually mounting NFS (update fstab only), and skips
-# generating a unique RHUA cert, instead copying our pre-generated cert.
-# TODO: temporarily pin version to match patch.
-dnf install -y rhui-installer-4.1.0.4-1.el8ui patch
+# TODO: temporarily pin version to match patch until we move to ISO install
+dnf install -y rhui-installer-4.2.0.4-1.el8ui patch
+
+# Patch the rhua playbook and some templates. Disables need for access to
+# NFS during install.
 ( cd /usr/share/rhui-installer; patch -b -p0 < $tempdir/rhua.patch; )
 
-# We don't use rhui-installer as it doesn't allow us to extend the answers file
-# and it assumes install-over-SSH. Instead, invoke ansible-playbook directly.
-build_status "Run Ansible playbook."
-ansible-playbook \
-  -i localhost, \
-  --extra-vars @$tempdir/answers.yaml \
-  --extra-vars @$tempdir/secret_answers.yaml \
-  /usr/share/rhui-installer/playbooks/rhua-provision.yml
-dnf remove -y rhui-installer
+rhui-installer -u root --log-level debug \
+  --cds-lb-hostname rhui.googlecloud.com \
+  --remote-fs-server nfs.rhui.google:/rhui \
+  --rhua-hostname rhua.rhui.google
+  --user-supplied-rhui-ca-crt $tempdir/rhua_ca.crt \
+  --user-supplied-rhui-ca-key $tempdir/rhua_ca.key
 
-# Remove enrollment cert and RHUI repos from final image.
+
+# Remove rhui-installer, enrollment cert and RHUI repos from final image.
+dnf remove -y rhui-installer
 subscription-manager remove --all
 
 # Add content cert and managed repos.
@@ -110,15 +90,17 @@ done
 install -m 664 -t /etc/nginx/conf.d $tempdir/health_check.nginx.conf
 
 # Add NFS dependencies to pulp worker units
-# We do this via drop-ins instead of patching the Ansible templates, as these changes will make the service
-# un-startable in the image build environment due to the NFS dependency. We need pulp3 to be running in order
-# to run the above rhui-manager commands. TODO(liamh;041122): is this true if we only add deps to
-# pulpcore-worker@ ? This may not need to be running to add repo definitions.
+#
+# We do this via drop-ins instead of patching the Ansible templates, as these
+# changes will make the service un-startable in the image build environment due
+# to the NFS dependency. We need pulp3 to be running in order to run the above
+# rhui-manager commands. It's also hoped we can eventually drop the patch.
 unitdir="/etc/systemd/system/pulpcore-worker@.service.d"
 [[ -d $unitdir ]] || mkdir $unitdir
 install -t $unitdir $tempdir/depend-nfs.conf $tempdir/create-dirs.conf
 systemctl daemon-reload
 
+# Install the ops-agent
 cd $tempdir
 curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
 bash ./add-google-cloud-ops-agent-repo.sh --also-install --remove-repo
@@ -129,8 +111,11 @@ install -m 664 -T $tempdir/config.opsagent.yaml /etc/google-cloud-ops-agent/conf
 install -m 664 -t /etc/nginx/conf.d $tempdir/status.nginx.conf
 
 # Delete installer resources.
-cp $tempdir/answers.yaml /root/.rhui/answers.yaml  # Expected to be found here.
 rm -rf $tempdir
 rm -rf /root/.ssh
+# No need to keep the CA active on running RHUA.
+echo 'DUMMY CA KEY' > /etc/pki/rhui/private/ca.key
+echo 'DUMMY CA KEY' > /etc/pki/rhui/private/client_entitlement_ca.key
+echo 'DUMMY CA KEY' > /etc/pki/rhui/private/client_ssl_ca.key
 
 build_success "RHUA setup complete."
