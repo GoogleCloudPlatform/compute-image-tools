@@ -99,8 +99,9 @@ install -m 664 -T $tempdir/config.opsagent.yaml /etc/google-cloud-ops-agent/conf
 # Status handler is used by the ops agent to collect nginx metrics.
 install -m 664 -t /etc/nginx/conf.d $tempdir/status.nginx.conf
 
-# Delete installer resources and remove the RHUA hack.
+# Delete installer resources.
 rm -rf $tempdir
+# Remove the RHUA hack entry added on line 58. TODO: remove when installer is updated.
 sed -i"" -e '/rhua.rhui.google/d' /etc/hosts
 
 build_success "CDS setup complete."
