@@ -15,8 +15,13 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
+      {{- if eq .environment "test" -}}
+      "Family": "rhua-testing",
+      "Prefix": "rhua-testing",
+      {{- else -}}
       "Family": "rhua",
       "Prefix": "rhua",
+      {{- end}}
       "Description": "RedHat Update Appliance node image, built {{$time}}",
       "Architecture": "X86_64",
       "GuestOsFeatures": ["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "SEV_CAPABLE", "GVNIC"]
