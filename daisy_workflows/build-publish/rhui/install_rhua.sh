@@ -64,7 +64,7 @@ dnf install -y rhui-installer-4.2.0.4-1.el8ui patch
 rhui-installer -u root --log-level debug \
   --cds-lb-hostname rhui.googlecloud.com \
   --remote-fs-server nfs.rhui.google:/rhui \
-  --rhua-hostname rhua.rhui.google
+  --rhua-hostname rhua.rhui.google \
   --user-supplied-rhui-ca-crt $tempdir/rhua_ca.crt \
   --user-supplied-rhui-ca-key $tempdir/rhua_ca.key
 
