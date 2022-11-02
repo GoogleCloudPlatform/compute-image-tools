@@ -16,12 +16,11 @@
   "Images": [
     {
       {{if eq .environment "test" -}}
-      "Family": "cds-testing",
       "Prefix": "cds-testing",
       {{- else -}}
       "Family": "cds",
-      "Prefix": "cds",
       {{- end}}
+      "Prefix": "cds",
       "Description": "Content Delivery Server node image, built {{$time}}",
       "Architecture": "X86_64",
       "GuestOsFeatures": ["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "SEV_CAPABLE", "GVNIC"]
