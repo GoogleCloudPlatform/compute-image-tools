@@ -3,7 +3,7 @@
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$delete_after := `"24h*30*6"` -}}
 
-  {{- if eq .environment "test" -}}
+  {{if eq .environment "test" -}}
   "PublishProject": "google.com:rhel-infra",
   {{- else if eq .environment "prod" -}}
   "PublishProject": "google.com:rhel-infra",
@@ -15,7 +15,7 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      {{- if eq .environment "test" -}}
+      {{if eq .environment "test" -}}
       "Family": "rhua-testing",
       {{- else -}}
       "Family": "rhua",

@@ -16,7 +16,7 @@
   "Images": [
     {
       {{if eq .environment "test" -}}
-      "Prefix": "cds-testing",
+      "Family": "cds-testing",
       {{- else -}}
       "Family": "cds",
       {{- end}}
