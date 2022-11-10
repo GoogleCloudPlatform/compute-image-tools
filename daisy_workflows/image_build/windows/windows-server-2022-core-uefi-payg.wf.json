@@ -19,7 +19,7 @@
       "Description": "GCS or local path to Cloud SDK installer"
     },
     "description": {
-      "Value": "Microsoft, Windows Server, 2022 Datacenter Core, Server Core, x64 built on ${TIMESTAMP}, supports Shielded VM features"
+      "Value": "Microsoft, Windows Server, 2022 Core, Server Core, x64 built on ${TIMESTAMP}, supports Shielded VM features"
     },
     "family": {
       "Value": "windows-2022-core",
