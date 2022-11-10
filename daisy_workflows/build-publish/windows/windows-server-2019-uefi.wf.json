@@ -1,5 +1,5 @@
 {
-  "Name": "windows-20h2-dc-core-uefi",
+  "Name": "windows-2019-uefi",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -45,7 +45,7 @@
     "build": {
       "Timeout": "4h",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/windows/windows-server-sac-20h2-dc-core-uefi-payg.wf.json",
+        "Path": "${workflow_root}/image_build/windows/windows-server-2019-uefi-payg.wf.json",
         "Vars": {
           "install_disk": "disk-install",
           "updates": "${updates}",

@@ -1,5 +1,5 @@
 {
-  "Name": "windows-2004-dc-core-uefi",
+  "Name": "windows-2012-r2-uefi",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -45,7 +45,7 @@
     "build": {
       "Timeout": "4h",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/windows/windows-server-sac-2004-dc-core-uefi-payg.wf.json",
+        "Path": "${workflow_root}/image_build/windows/windows-server-2012-r2-uefi-payg.wf.json",
         "Vars": {
           "install_disk": "disk-install",
           "updates": "${updates}",
