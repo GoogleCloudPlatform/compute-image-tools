@@ -1,0 +1,59 @@
+{
+  "Name": "windows-2019-for-containers-uefi",
+  "Project": "gce-image-builder",
+  "Zone": "us-west1-a",
+  "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
+  "ComputeEndpoint": "https://www.googleapis.com/compute/alpha/projects/",
+  "Vars": {
+    "gcs_url": {
+      "Required": true,
+      "Description": "The GCS url that the image raw file is exported to."
+    },
+    "build_date": "${TIMESTAMP}",
+    "install_disk": "disk-install",
+    "source_image_project": "bct-prod-images",
+    "workflow_root": {
+      "Value": "/workflows",
+      "Description": "Root of github workflows, defaults to /workflows in the container."
+    }
+  },
+  "Steps": {
+    "build-image": {
+      "TimeOut": "70m",
+      "IncludeWorkflow": {
+        "Path": "${workflow_root}/image_build/windows_for_containers/windows-2019-for-containers-uefi.wf.json",
+        "Vars": {
+          "build_date": "${build_date}",
+          "publish_project": "${PROJECT}",
+          "source_image_project": "${source_image_project}",
+          "install_disk": "${install_disk}"
+        }
+      }
+    },
+    "export-image": {
+      "Timeout": "60m",
+      "IncludeWorkflow": {
+        "Path": "${workflow_root}/export/disk_export.wf.json",
+        "Vars": {
+          "source_disk": "${install_disk}",
+          "destination": "${gcs_url}"
+        }
+      }
+    },
+    "cleanup-image": {
+      "DeleteResources": {
+        "Images": [
+          "windows-server-2019-for-containers-v${build_date}"
+        ]
+      }
+    }
+  },
+  "Dependencies": {
+    "export-image": [
+      "build-image"
+    ],
+    "cleanup-image": [
+      "build-image"
+    ]
+  }
+}
