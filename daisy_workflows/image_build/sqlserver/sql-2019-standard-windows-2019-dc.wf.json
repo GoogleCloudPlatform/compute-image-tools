@@ -45,7 +45,7 @@
             "projects/windows-sql-cloud/global/licenses/sql-server-2019-standard"
           ],
           "Description": "Microsoft, SQL Server 2019 Standard, on Windows Server 2019, x64 built on ${build_date}, supports Shielded VM features",
-          "GuestOsFeatures": ["MULTI_IP_SUBNET", "UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "WINDOWS"],
+          "GuestOsFeatures": ["MULTI_IP_SUBNET", "UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "WINDOWS", "GVNIC"],
           "Family": "sql-std-2019-win-2019",
           "Project": "${publish_project}",
           "NoCleanup": true,

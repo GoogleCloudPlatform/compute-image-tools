@@ -45,7 +45,7 @@
             "projects/windows-sql-cloud/global/licenses/sql-server-2012-enterprise"
           ],
           "Description": "Microsoft, SQL Server 2012 Enterprise, on Windows Server 2012 R2, x64 built on ${build_date}, supports Shielded VM features",
-          "GuestOsFeatures": ["MULTI_IP_SUBNET", "UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "WINDOWS"],
+          "GuestOsFeatures": ["MULTI_IP_SUBNET", "UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "WINDOWS", "GVNIC"],
           "Family": "sql-ent-2012-win-2012-r2",
           "Project": "${publish_project}",
           "NoCleanup": true,
