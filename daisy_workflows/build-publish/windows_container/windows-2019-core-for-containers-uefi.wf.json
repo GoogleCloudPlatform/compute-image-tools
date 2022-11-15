@@ -1,5 +1,5 @@
 {
-  "Name": "windows-2019-standard-core-for-containers-uefi",
+  "Name": "windows-2019-core-for-containers-uefi",
   "Project": "gce-image-builder",
   "Zone": "us-west1-a",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
