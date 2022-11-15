@@ -43,7 +43,7 @@
   },
   "Steps": {
     "build": {
-      "Timeout": "5h",
+      "Timeout": "6h",
       "IncludeWorkflow": {
         "Path": "${workflow_root}/image_build/windows/windows-server-2016-uefi-payg.wf.json",
         "Vars": {
