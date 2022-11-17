@@ -138,7 +138,8 @@ def Execute(cmd, cwd=None, capture_output=False, env=None, raise_errors=True):
 
 
 def ClearEtcResolv(g):
-  """Clear /etc/resolv.conf to allow DNS settings to come from GCP's DHCP server.
+  """Clear /etc/resolv.conf to allow DNS settings to come from
+     GCP's DHCP server.
 
   Args:
     g (guestfs.GuestFS): A mounted GuestFS instance.
