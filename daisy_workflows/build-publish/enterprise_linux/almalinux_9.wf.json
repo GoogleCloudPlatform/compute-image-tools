@@ -23,6 +23,10 @@
     "installer_iso": {
       "Required": true,
       "Description": "The AlmaLinux 9 installer ISO to build from."
+    },
+    "run-sbom-bool": {
+      "Value": "false",
+      "Description": "Determines if the SBOM for the image will be generated"
     }
   },
   "Steps": {
@@ -45,7 +49,7 @@
         "Vars": {
           "destination": "${gcs_url}",
           "source_disk": "disk-almalinux-9",
-          "run-sbom-bool": "true"
+          "run-sbom-bool": "{run-sbom-bool}"
         }
       }
     },

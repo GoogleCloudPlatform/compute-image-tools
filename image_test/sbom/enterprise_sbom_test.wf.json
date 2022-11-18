@@ -2,13 +2,9 @@
   "Name": "export-almalinux-9",
   "Zone": "us-central1-b",
   "Vars": {
-    "gcs_url": {
-      "Required": true,
-      "Description": "The GCS path that image raw file exported to."
-    },
     "workflow_root": {
-      "Value": "/workflows",
-      "Description": "Root of github workflows, defaults to /workflows in the container."
+      "Value": "../../daisy_workflows",
+      "Description": "Root of workflows, should be set to parent of the export directory."
     }
   },
   "Sources": {
