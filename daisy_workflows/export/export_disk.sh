@@ -24,8 +24,6 @@ if [[ $? -ne 0 ]]; then
   exit
 fi
 
-echo "Earliest SBOM"
-
 BYTES_1GB=1073741824
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
@@ -61,15 +59,12 @@ TARGET_SIZE_BYTES=$(gsutil ls -l "${GCS_PATH}" | head -n 1 | awk '{print $1}')
 TARGET_SIZE_GB=$(awk "BEGIN {print int(((${TARGET_SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
 serialOutputPrefixedKeyValue "GCEExport" "target-size-gb" "${TARGET_SIZE_GB}"
 
-echo "Mid SBOM"
-
 # Generate SBOM if flag is set
 function runSBOMGeneration() {
   gsutil cp gs://koln-bucket/syft_0.59.0_linux_amd64.tar.gz .
   tar -xf syft_0.59.0_linux_amd64.tar.gz
   mount /dev/sdb2 /mnt
   mount -o ro /dev /mnt/dev
-  echo "SBOM Function"
   ./syft /mnt -o spdx-json > enterprise_sbom.json
   gsutil cp enterprise_sbom.json ${SBOM_PATH}
   umount /mnt/dev
