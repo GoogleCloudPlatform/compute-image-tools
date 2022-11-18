@@ -14,7 +14,7 @@
       "Description": "list of GCE licenses to record in the exported image"
     },
     "export_instance_disk_image": {
-      "Value": "projects/compute-image-tools/global/images/family/debian-10-worker",
+      "Value": "projects/compute-image-tools/global/images/family/debian-11-worker",
       "Description": "image to use for the exporter instance"
     },
     "export_instance_disk_size": {
@@ -36,6 +36,10 @@
     "compute_service_account": {
       "Value": "default",
       "Description": "Service account that will be used by the created worker instance"
+    },
+    "run-sbom-bool": {
+      "Value": "false",
+      "Description": "Flag for whether or not to run sbom generation, false by default"
     }
   },
   "Sources": {
@@ -61,7 +65,9 @@
             "block-project-ssh-keys": "true",
             "gcs-path": "${OUTSPATH}/${NAME}.tar.gz",
             "licenses": "${licenses}",
-            "startup-script": "${SOURCE:${NAME}_export_disk.sh}"
+            "sbom-path": "${OUTSPATH}/enterprise_sbom.json",
+            "startup-script": "${SOURCE:${NAME}_export_disk.sh}",
+            "run-sbom-bool": "${run-sbom-bool}"
           },
           "networkInterfaces": [
             {

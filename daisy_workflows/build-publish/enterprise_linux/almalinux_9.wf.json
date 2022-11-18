@@ -44,7 +44,8 @@
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
           "destination": "${gcs_url}",
-          "source_disk": "disk-almalinux-9"
+          "source_disk": "disk-almalinux-9",
+          "run-sbom-bool": "true"
         }
       }
     },
