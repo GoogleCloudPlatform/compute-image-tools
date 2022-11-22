@@ -28,8 +28,7 @@ BYTES_1GB=1073741824
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
 LICENSES=$(curl -f -H Metadata-Flavor:Google ${URL}/licenses)
-RUN_SBOM_BOOL=$(curl -f -H Metadata-Flavor:Google ${URL}/run-sbom-bool)
-SBOM_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-path)
+RUN_SBOM_BOOL=$(curl -f -H Metadata-Flavor:Google ${URL}/run_sbom_bool)
 
 mkdir ~/upload
 
@@ -59,10 +58,16 @@ TARGET_SIZE_BYTES=$(gsutil ls -l "${GCS_PATH}" | head -n 1 | awk '{print $1}')
 TARGET_SIZE_GB=$(awk "BEGIN {print int(((${TARGET_SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
 serialOutputPrefixedKeyValue "GCEExport" "target-size-gb" "${TARGET_SIZE_GB}"
 
-# Generate SBOM if flag is set
+SBOM_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-path)
+SYFT_SOURCE=$(curl -f -H Metadata-Flavor:Google ${URL}/syft-source)
+
+# Generate SBOM if run-sbom-bool is true
 function runSBOMGeneration() {
-  gsutil cp gs://koln-bucket/syft_0.59.0_linux_amd64.tar.gz .
-  tar -xf syft_0.59.0_linux_amd64.tar.gz
+  echo "Syft source is"
+  echo ${SYFT_SOURCE}
+  gsutil cp ${SYFT_SOURCE} syft.tar.gz
+  # tar -xf syft_0.59.0_linux_amd64.tar.gz
+  tar -xf syft.tar.gz
   mount /dev/sdb2 /mnt
   mount -o ro /dev /mnt/dev
   ./syft /mnt -o spdx-json > enterprise_sbom.json

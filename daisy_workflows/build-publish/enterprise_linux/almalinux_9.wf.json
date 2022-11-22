@@ -24,9 +24,13 @@
       "Required": true,
       "Description": "The AlmaLinux 9 installer ISO to build from."
     },
-    "run-sbom-bool": {
+    "run_sbom_bool": {
       "Value": "false",
       "Description": "Determines if the SBOM for the image will be generated"
+    },
+    "syft_source": {
+      "Value": ".",
+      "Description": "Source url for the syft tar gz file, required if run_sbom_bool=true"
     }
   },
   "Steps": {
@@ -49,7 +53,8 @@
         "Vars": {
           "destination": "${gcs_url}",
           "source_disk": "disk-almalinux-9",
-          "run-sbom-bool": "{run-sbom-bool}"
+          "run_sbom_bool": "${run_sbom_bool}",
+          "syft_source": "${syft_source}"
         }
       }
     },

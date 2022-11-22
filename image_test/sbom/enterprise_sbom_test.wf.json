@@ -5,6 +5,10 @@
     "workflow_root": {
       "Value": "../../daisy_workflows",
       "Description": "Root of workflows, should be set to parent of the export directory."
+    },
+    "syft_source": {
+      "Value": ".",
+      "Description": "the source url for syft, required because this is a test for sbom generation"
     }
   },
   "Sources": {
@@ -25,9 +29,10 @@
       "IncludeWorkflow": {
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
-          "destination": "${OUTSPATH}",
-          "run-sbom-bool": "true",
-          "source_disk": "disk-export"
+          "destination": "${OUTSPATH}/disk_export.tar.gz",
+          "run_sbom_bool": "true",
+          "source_disk": "disk-export",
+          "syft_source": "${syft_source}"
         }
       }
     },
