@@ -54,7 +54,8 @@
           "Metadata": {
             "outs-path": "${OUTSPATH}",
             "startup-script": "${SOURCE:test-sbom-export}",
-            "sbom-file-name": "enterprise_sbom.json"
+            "sbom-file-name": "enterprise_sbom.json",
+            "disk-file-name": "export-image.tar.gz"
           },
           "ServiceAccounts": [
             {
