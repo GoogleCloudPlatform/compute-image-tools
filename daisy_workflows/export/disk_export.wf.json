@@ -42,13 +42,14 @@
       "Description": "Flag for whether or not to run sbom generation, false by default"
     },
     "syft_source": {
-      "Value": ".",
+      "Value": "",
       "Description": "the source url for syft, required if run_sbom_bool=true"
     }
   },
   "Sources": {
     "${NAME}_export_disk.sh": "./export_disk.sh",
-    "syft.tar.gz": "${syft_source}"
+    "syft.tar.gz": "${syft_source}",
+    "sbom-script.sh": "./export_sbom.sh"
   },
   "Steps": {
     "setup-disks": {
@@ -70,10 +71,11 @@
             "block-project-ssh-keys": "true",
             "gcs-path": "${OUTSPATH}/${NAME}.tar.gz",
             "licenses": "${licenses}",
-            "sbom-path": "${OUTSPATH}/enterprise_sbom.json",
+            "sbom-path": "${OUTSPATH}/sbom.json",
             "startup-script": "${SOURCE:${NAME}_export_disk.sh}",
             "run_sbom_bool": "${run_sbom_bool}",
-            "syft_source": "${SOURCESPATH}/syft.tar.gz}"
+            "sbom-script": "${SOURCESPATH}/sbom-script.sh",
+            "syft-source": "${SOURCESPATH}/syft.tar.gz"
           },
           "networkInterfaces": [
             {

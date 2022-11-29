@@ -59,16 +59,16 @@ TARGET_SIZE_GB=$(awk "BEGIN {print int(((${TARGET_SIZE_BYTES}-1)/${BYTES_1GB}) +
 serialOutputPrefixedKeyValue "GCEExport" "target-size-gb" "${TARGET_SIZE_GB}"
 
 SBOM_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-path)
+# Path to the generic SBOM script, shared functionality between enterprise-linux and debian. 
+SBOM_SCRIPT=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-script)
 SYFT_SOURCE=$(curl -f -H Metadata-Flavor:Google ${URL}/syft-source)
 
-# Generate SBOM if run-sbom-bool is true
 function runSBOMGeneration() {
-  gsutil cp ${SYFT_SOURCE} syft.tar.gz
-  tar -xf syft.tar.gz
   mount /dev/sdb2 /mnt
   mount -o ro /dev /mnt/dev
-  ./syft /mnt -o spdx-json > enterprise_sbom.json
-  gsutil cp enterprise_sbom.json ${SBOM_PATH}
+  gsutil cp ${SBOM_SCRIPT} export_sbom.sh
+  chmod +x export_sbom.sh
+  ./export_sbom.sh --syft-source $SYFT_SOURCE --sbom-path $SBOM_PATH
   umount /mnt/dev
   umount /mnt
   echo "GCEExport: SBOM success"
