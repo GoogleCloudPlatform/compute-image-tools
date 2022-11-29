@@ -63,10 +63,7 @@ SYFT_SOURCE=$(curl -f -H Metadata-Flavor:Google ${URL}/syft-source)
 
 # Generate SBOM if run-sbom-bool is true
 function runSBOMGeneration() {
-  echo "Syft source is"
-  echo ${SYFT_SOURCE}
   gsutil cp ${SYFT_SOURCE} syft.tar.gz
-  # tar -xf syft_0.59.0_linux_amd64.tar.gz
   tar -xf syft.tar.gz
   mount /dev/sdb2 /mnt
   mount -o ro /dev /mnt/dev
@@ -75,7 +72,6 @@ function runSBOMGeneration() {
   umount /mnt/dev
   umount /mnt
   echo "GCEExport: SBOM success"
-  echo "SBOM upload success"
 }
 
 if [ $RUN_SBOM_BOOL = "true" ]; then
