@@ -68,7 +68,7 @@ function runSBOMGeneration() {
   mount -o ro /dev /mnt/dev
   gsutil cp ${SBOM_SCRIPT} export_sbom.sh
   chmod +x export_sbom.sh
-  ./export_sbom.sh --syft-source $SYFT_SOURCE --sbom-path $SBOM_PATH
+  ./export_sbom.sh -s $SYFT_SOURCE -p $SBOM_PATH
   umount /mnt/dev
   umount /mnt
   echo "GCEExport: SBOM success"

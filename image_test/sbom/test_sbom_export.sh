@@ -1,3 +1,5 @@
+#!/bin/bash
+
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 SBOM_FILE_NAME=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-file-name)
 OUTS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/outs-path)
@@ -9,6 +11,7 @@ GCS_PATH_OUTDISK=${OUTS_PATH}/${DISK_FILE_NAME}
 # check if sbom file is there
 # potentially run other script for sbom contents
 # to check, need a convention for the sbom json file name as well, input variable. 
+
 gsutil -q stat $GCS_PATH_SBOM
 status=$?
 
