@@ -12,8 +12,6 @@ if [ $# -ne 4 ]; then
 fi
 
 if [ $1 = "--syft-source" ] && [ $3 = "--sbom-path" ]; then
-  echo "inside sbom"
-  echo $SBOM_PATH
   SYFT_SOURCE=$2
   SBOM_PATH=$4
   gsutil cp ${SYFT_SOURCE} syft.tar.gz
