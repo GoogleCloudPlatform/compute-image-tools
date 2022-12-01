@@ -62,9 +62,13 @@ def get_mount_offset(sfdisk_output):
     if ptable == None:
       raise Exception('sfdisk did not return a partition table')
 
-    sector_size = ptable.get("sectorsize", None)
+    sector_size = ptable.get('sectorsize', None)
     if sector_size == None:
-      raise Exception('Couldn't determine the sector size')
+      raise Exception('Could not determine the sector size')
+
+    partitions = ptable.get('partitions', None)
+    if partitions == None:
+      raise Exception('No partitions found in partition table')
 
     for partition in partitions:
       partition_type = partition['type']
@@ -90,8 +94,8 @@ def run_sbom_generation(syft_source, disk_name, work_dir, sbom_script,
     gs_sbom_path = outs_path + '/sbom.json'
     subprocess.run(['gsutil', 'cp', sbom_script, 'export_sbom.sh'], check=True)
     subprocess.run(['chmod', '+x', 'export_sbom.sh'], check=True)
-    subprocess.run(['./export_sbom.sh', '--syft-source', syft_source,
-                   '--sbom-path', gs_sbom_path], check=True)
+    subprocess.run(['./export_sbom.sh', '-s', syft_source,
+                   '-p', gs_sbom_path], check=True)
     subprocess.run(['umount', '/mnt'], check=True)
     logging.info('sbom generation completed')
 
