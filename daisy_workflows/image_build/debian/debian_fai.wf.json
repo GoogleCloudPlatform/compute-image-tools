@@ -6,15 +6,25 @@
     "debian_version": {"Required": true, "Description": "Debian version to build."},
     "builder_machine_type": {"Value": "e2-standard-4", "Description": "Machine type for builder instance."},
     "builder_source_image": {
-      "Value": "projects/compute-image-tools/global/images/family/debian-10-worker",
+      "Value": "projects/compute-image-tools/global/images/family/debian-11-worker",
       "Description": "Base image for builder instance."
+    },
+    "run_sbom_bool": {
+      "Value": "false",
+      "Description": "Determines if the SBOM for the image will be generated."
+    },
+    "syft_source": {
+      "Value": ".",
+      "Description": "source url for syft tar gz file, required if run_sbom_bool=true."
     }
   },
   "Sources": {
     "build_files/build.py": "./build_fai.py",
     "build_files/fai_config": "./fai_config/",
     "build_files/utils": "../../linux_common/utils",
-    "startup_script": "../../linux_common/bootstrap.sh"
+    "sbom_script.sh": "../../export/export_sbom.sh",
+    "startup_script": "../../linux_common/bootstrap.sh",
+    "syft.tar.gz": "${syft_source}"
   },
   "Steps": {
     "setup": {
@@ -40,7 +50,10 @@
             "debian_install_google_api_python_client": "yes",
             "script": "build.py",
             "script_prints_status": "no",
-            "prefix": "Build"
+            "prefix": "Build",
+            "sbom_script": "${SOURCESPATH}/sbom_script.sh",
+            "run_sbom_bool": "${run_sbom_bool}",
+            "syft_source": "${SOURCESPATH}/syft.tar.gz"
           },
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_write"
