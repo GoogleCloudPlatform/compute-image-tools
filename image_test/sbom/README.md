@@ -4,7 +4,7 @@ This is an example command to test if the SBOM is correctly generated for almali
 tar.gz file and sbom json file are expected to appear in a scratch path within the input Google Cloud Project.
 
 ```
-daisy -project {project name} enterprise_sbom_test.wf.json
+daisy -project {project name} -var:syft_source=path_to_syft_source enterprise_sbom_test.wf.json
 ```
 
 
