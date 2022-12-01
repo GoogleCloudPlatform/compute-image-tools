@@ -5,6 +5,14 @@
     "publish_project": {
       "Value": "${PROJECT}",
       "Description": "A project to publish the resulting image to."
+    },
+    "run_sbom_bool": {
+      "Value": "false",
+      "Description": "Determines if the SBOM for the image will be generated."
+    },
+    "syft_source": {
+      "Value": ".",
+      "Description": "source url for syft tar gz file, required if run_sbom_bool=true."
     }
   },
   "Steps": {
@@ -14,7 +22,9 @@
         "Path": "./debian_fai.wf.json",
         "Vars": {
           "build_date": "${build_date}",
-          "debian_version": "buster"
+          "debian_version": "buster",
+          "run_sbom_bool": "${run_sbom_bool}",
+          "syft_source": "${syft_source}"
         }
       }
     },

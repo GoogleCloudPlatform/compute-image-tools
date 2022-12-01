@@ -1,0 +1,109 @@
+{
+  "Name": "debian-10",
+  "Project": "gce-image-builder",
+  "Zone": "us-central1-b",
+  "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
+  "Vars": {
+    "build_date": {
+      "Value": "${TIMESTAMP}",
+      "Description": "Build datestamp used to version the image."
+    },
+    "google_cloud_repo": {
+      "Value": "stable",
+      "Description": "The Google Cloud Repo branch to use."
+    },
+    "workflow_root": {
+      "Value": "/workflows",
+      "Description": "Root of github workflows, defaults to /workflows in the container."
+    },
+    "testing_workflow_root": {
+      "Value": "../../daisy_workflows",
+      "Description": "the root of the build publish workflow relative to this test workflow"
+    },
+    "gcs_url": {
+      "Required": true,
+      "Description": "bucket to export debian sbom and image for this test"
+    },
+    "run_sbom_bool": {
+      "Value": "true",
+      "Description": "Determines whether an SBOM is generated, should be true for this test"
+    },
+    "syft_source": {
+      "Value": ".",
+      "Description": "source url for syft tar gz file, required if run_sbom_bool=true"
+    }
+  },
+  "Sources": {
+    "test-sbom-export": "./test_sbom_export.sh"
+  },
+  "Steps": {
+    "build": {
+      "TimeOut": "60m",
+      "IncludeWorkflow": {
+        "Path": "${testing_workflow_root}/build-publish/debian/debian_10.wf.json",
+        "Vars": {
+          "build_date": "${build_date}",
+          "google_cloud_repo": "${google_cloud_repo}",
+          "run_sbom_bool": "true",
+          "workflow_root": "${workflow_root}",
+          "gcs_url": "${gcs_url}" ,
+          "syft_source": "${syft_source}" 
+        }
+      }
+    },
+    "setup-test-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-worker-test",
+          "SourceImage": "projects/compute-image-tools/global/images/family/debian-11-worker",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "run-tests": {
+      "CreateInstances": [
+        {
+          "Name": "debian-tester",
+          "Disks": [{"Source": "disk-worker-test"}],
+          "MachineType": "n1-highcpu-4",
+          "Metadata": {
+            "outs-path": "${OUTSPATH}",
+            "startup-script": "${SOURCE:test-sbom-export}",
+            "sbom-file-name": "sbom.json",
+            "disk-file-name": "root.tar.gz"
+          },
+          "ServiceAccounts": [
+            {
+              "Email": "default",
+              "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"]
+            }
+          ]
+        }
+      ]
+    },
+    "wait-for-tests": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "debian-tester",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "SBOMSuccess",
+            "FailureMatch": "SBOMFailed",
+            "StatusMatch": "SBOMTesting"
+          }
+        }
+      ]
+    },
+    "cleanup-image": {
+      "DeleteResources": {
+        "Disks": ["disk-debian-10", "disk-worker-test"]
+      }
+    }
+  },
+  "Dependencies": {
+    "setup-test-disk": ["build"],
+    "run-tests": ["setup-test-disk"],
+    "wait-for-tests": ["run-tests"],
+    "cleanup-image": ["wait-for-tests"]
+  }
+}

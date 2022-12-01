@@ -23,6 +23,7 @@ debian_version: The FAI tool debian version to be requested.
 image_dest: The Cloud Storage destination for the resultant image.
 """
 
+import json
 import logging
 import os
 import platform
@@ -49,6 +50,52 @@ def mycopytree(src, dst):
     return dst
 
 
+# get number of bytes to offset when mounting the raw disk image file
+def get_mount_offset(sfdisk_output):
+  logging.info('getting disk mount offset')
+  # To find the partition corresponding to the image, the filesystem type
+  # must have this constant string value.
+  Linux_Filesystem_GUID = '0FC63DAF-8483-4772-8E79-3D69D8477DE4'
+  sfdisk_json = json.loads(sfdisk_output)
+  try:
+    ptable = sfdisk_json.get('partitiontable', None)
+    if ptable == None:
+      raise Exception('sfdisk did not return a partition table')
+
+    sector_size = ptable.get("sectorsize", None)
+    if sector_size == None:
+      raise Exception('Couldn't determine the sector size')
+
+    for partition in partitions:
+      partition_type = partition['type']
+      # Get the offset for mounting the disk
+      if partition_type == Linux_Filesystem_GUID:
+        mount_offset = partition['start']
+        return mount_offset * sector_size
+    return 0
+  except KeyError as e:
+    logging.error('sfdisk command json parsing key error: ' + str(e))
+    return 1
+  raise Exception('Linux FileSystem not found in raw disk')
+
+
+# Syft SBOM generation steps
+def run_sbom_generation(syft_source, disk_name, work_dir, sbom_script,
+                        outs_path, offset):
+    logging.info('sbom generation running')
+
+    subprocess.run(['mount', '-o', 'loop,offset=' + str(offset),
+                   work_dir + '/' + disk_name, '/mnt'], check=True)
+
+    gs_sbom_path = outs_path + '/sbom.json'
+    subprocess.run(['gsutil', 'cp', sbom_script, 'export_sbom.sh'], check=True)
+    subprocess.run(['chmod', '+x', 'export_sbom.sh'], check=True)
+    subprocess.run(['./export_sbom.sh', '--syft-source', syft_source,
+                   '--sbom-path', gs_sbom_path], check=True)
+    subprocess.run(['umount', '/mnt'], check=True)
+    logging.info('sbom generation completed')
+
+
 def main():
   # Get Parameters.
   build_date = utils.GetMetadataAttribute(
@@ -58,6 +105,12 @@ def main():
       'debian_version', raise_on_not_found=True)
   outs_path = utils.GetMetadataAttribute('daisy-outs-path',
                                          raise_on_not_found=True)
+  run_sbom_bool = utils.GetMetadataAttribute('run_sbom_bool',
+                                             raise_on_not_found=True)
+  sbom_script = utils.GetMetadataAttribute('sbom_script',
+                                           raise_on_not_found=True)
+  syft_source = utils.GetMetadataAttribute('syft_source',
+                                           raise_on_not_found=True)
 
   logging.info('debian-cloud-images version: %s' % debian_cloud_images_version)
   logging.info('debian version: %s' % debian_version)
@@ -134,6 +187,18 @@ def main():
 
   if returncode != 0:
     raise subprocess.CalledProcessError(returncode, cmd)
+  if run_sbom_bool:
+    try:
+      raw_disk_file_path = work_dir + '/' + disk_name
+      sfdisk_output = subprocess.run(['sfdisk', '-J', raw_disk_file_path],
+                                     check=True, capture_output=True)
+      offset = get_mount_offset(sfdisk_output.stdout.decode('utf-8'))
+
+      run_sbom_generation(syft_source, disk_name, work_dir, sbom_script,
+                          outs_path, offset)
+    # if any command in SBOM generation failed, print out the error
+    except subprocess.CalledProcessError as e:
+      logging.error('SBOM generation mounting step failed: %s', e)
 
   # Packs a gzipped tar file with disk.raw inside
   disk_tar_gz = 'debian-{}-{}.tar.gz'.format(debian_version, build_date)
