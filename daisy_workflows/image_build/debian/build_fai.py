@@ -58,15 +58,15 @@ def get_mount_offset(sfdisk_output):
   Linux_Filesystem_GUID = '0FC63DAF-8483-4772-8E79-3D69D8477DE4'
   sfdisk_json = json.loads(sfdisk_output)
   ptable = sfdisk_json.get('partitiontable', None)
-  if ptable == None:
+  if ptable is None:
     raise Exception('sfdisk did not return a partition table')
 
   sector_size = ptable.get('sectorsize', None)
-  if sector_size == None:
+  if sector_size is None:
     raise Exception('Could not determine the sector size')
 
   partitions = ptable.get('partitions', None)
-  if partitions == None:
+  if partitions is None:
     raise Exception('No partitions found in partition table')
 
   for partition in partitions:
@@ -75,8 +75,8 @@ def get_mount_offset(sfdisk_output):
     if partition_type == Linux_Filesystem_GUID:
       mount_offset = partition['start']
       return mount_offset * sector_size
-  
-  # Linux_Filesystem_GUID was not found    
+
+  # Linux_Filesystem_GUID was not found
   raise Exception('Linux FileSystem not found in raw disk')
 
 
