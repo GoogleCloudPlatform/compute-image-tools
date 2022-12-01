@@ -57,29 +57,26 @@ def get_mount_offset(sfdisk_output):
   # must have this constant string value.
   Linux_Filesystem_GUID = '0FC63DAF-8483-4772-8E79-3D69D8477DE4'
   sfdisk_json = json.loads(sfdisk_output)
-  try:
-    ptable = sfdisk_json.get('partitiontable', None)
-    if ptable == None:
-      raise Exception('sfdisk did not return a partition table')
+  ptable = sfdisk_json.get('partitiontable', None)
+  if ptable == None:
+    raise Exception('sfdisk did not return a partition table')
 
-    sector_size = ptable.get('sectorsize', None)
-    if sector_size == None:
-      raise Exception('Could not determine the sector size')
+  sector_size = ptable.get('sectorsize', None)
+  if sector_size == None:
+    raise Exception('Could not determine the sector size')
 
-    partitions = ptable.get('partitions', None)
-    if partitions == None:
-      raise Exception('No partitions found in partition table')
+  partitions = ptable.get('partitions', None)
+  if partitions == None:
+    raise Exception('No partitions found in partition table')
 
-    for partition in partitions:
-      partition_type = partition['type']
-      # Get the offset for mounting the disk
-      if partition_type == Linux_Filesystem_GUID:
-        mount_offset = partition['start']
-        return mount_offset * sector_size
-    return 0
-  except KeyError as e:
-    logging.error('sfdisk command json parsing key error: ' + str(e))
-    return 1
+  for partition in partitions:
+    partition_type = partition['type']
+    # Get the offset for mounting the disk
+    if partition_type == Linux_Filesystem_GUID:
+      mount_offset = partition['start']
+      return mount_offset * sector_size
+  
+  # Linux_Filesystem_GUID was not found    
   raise Exception('Linux FileSystem not found in raw disk')
 
 
