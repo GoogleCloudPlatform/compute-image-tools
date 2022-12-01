@@ -1,0 +1,95 @@
+{
+  "Name": "export-almalinux-9",
+  "Zone": "us-central1-b",
+  "Vars": {
+    "workflow_root": {
+      "Value": "../../daisy_workflows",
+      "Description": "Root of workflows, should be set to parent of the export directory."
+    },
+    "syft_source": {
+      "Value": ".",
+      "Description": "the source url for syft, required because this is a test for sbom generation"
+    }
+  },
+  "Sources": {
+    "test-sbom-export": "./test_sbom_export.sh"
+  },
+  "Steps": {
+    "setup-disks": {
+      "CreateDisks": [
+        {
+          "Name": "disk-export",
+          "SourceImage": "projects/almalinux-cloud/global/images/family/almalinux-9",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "export-image": {
+      "Timeout": "60m",
+      "IncludeWorkflow": {
+        "Path": "${workflow_root}/export/disk_export.wf.json",
+        "Vars": {
+          "destination": "${OUTSPATH}/disk_export.tar.gz",
+          "run_sbom_bool": "true",
+          "source_disk": "disk-export",
+          "syft_source": "${syft_source}"
+        }
+      }
+    },
+    "setup-test-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-test",
+          "SourceImage": "projects/compute-image-tools/global/images/family/debian-11-worker",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "run-tests": {
+      "CreateInstances": [
+        {
+          "Name": "enterprise-tester",
+          "Disks": [{"Source": "disk-test"}],
+          "MachineType": "n1-highcpu-4",
+          "Metadata": {
+            "outs-path": "${OUTSPATH}",
+            "startup-script": "${SOURCE:test-sbom-export}",
+            "sbom-file-name": "sbom.json",
+            "disk-file-name": "export-image.tar.gz"
+          },
+          "ServiceAccounts": [
+            {
+              "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"]
+            }
+          ]
+        }
+      ]
+    },
+    "wait-for-tests": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "enterprise-tester",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "SBOMSuccess",
+            "FailureMatch": "SBOMFailed",
+            "StatusMatch": "SBOMTesting"
+          }
+        }
+      ]
+    },
+    "delete-instances": {
+      "DeleteResources": {
+        "Instances": ["enterprise-tester"],
+        "GCSPaths":["${SCRATCHPATH}/"]
+      }
+    }
+  },
+  "Dependencies": {
+    "export-image": ["setup-disks"],
+    "setup-test-disk": ["export-image"],
+    "run-tests": ["setup-test-disk"],
+    "wait-for-tests": ["run-tests"],
+    "delete-instances": ["wait-for-tests"]
+  }
+}
