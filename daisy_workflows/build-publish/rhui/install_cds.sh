@@ -32,8 +32,8 @@ tempdir=$(mktemp -d /tmp/daisy-cdsXXX)
 gsutil cp "${SRC_PATH}/cds_artifacts/*" $tempdir/
 
 # Get secrets.
-gcloud secrets versions access latest --secret enrollment_cert > \
-  $tempdir/enrollment_cert.pem
+gcloud secrets versions access latest --secret entitlement_cert > \
+  $tempdir/entitlement_cert.pem
 gcloud secrets versions access latest --secret rhua_ca_cert > \
   $tempdir/ca.crt
 gcloud secrets versions access latest --secret rhui_tls_key > \
@@ -57,8 +57,8 @@ EOF
 # playbook. TODO: remove RHUA connectivity from NginX config.
 echo '127.0.0.2 rhua.rhui.google' >> /etc/hosts
 
-# Import enrollment certificate.
-subscription-manager import --certificate=$tempdir/enrollment_cert.pem
+# Import entitlement certificate.
+subscription-manager import --certificate=$tempdir/entitlement_cert.pem
 
 # Enable base repos for installing CDS. Using the RHUI versions bc we have the
 # RHUI subscription attached.
@@ -80,8 +80,9 @@ ansible-playbook \
   --extra-vars @$tempdir/answers.yaml \
   /usr/share/rhui-tools/playbooks/cds-register.yml
 
-# Remove enrollment cert and repos from final image.
-subscription-manager remove --all
+# Disable repos from final image.
+subscription-manager repos --disable=rhel-8-for-x86_64-baseos-rhui-rpms
+subscription-manager repos --disable=rhel-8-for-x86_64-appstream-rhui-rpms
 
 # Install health checks.
 install -D -t /opt/google-rhui-infra $tempdir/health_check.py

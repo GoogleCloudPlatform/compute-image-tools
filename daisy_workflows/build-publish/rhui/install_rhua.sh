@@ -32,10 +32,8 @@ gsutil cp "${SRC_PATH}/rhua_artifacts/*" $tempdir/
 
 # Get secrets.
 
-# Enrollment cert: enable access to RHUI content repos on RH CDN
-gcloud secrets versions access latest --secret enrollment_cert > \
-  $tempdir/enrollment_cert.pem
-# Entitlement cert: enable the RHUA to sync content from RH CDN
+# Entitlement cert: used to both enable access to RHUI content repos (where we get the installer and
+# dependencies) and used to enable the RHUA to sync content from RH CDN
 gcloud secrets versions access latest --secret entitlement_cert > \
   $tempdir/entitlement_cert.pem
 # CA cert & key, used to generate the RHUA cert
@@ -45,7 +43,7 @@ gcloud secrets versions access latest --secret rhua_ca_key > \
   $tempdir/rhua_ca.key
 
 # Import subscription certificate.
-subscription-manager import --certificate=$tempdir/enrollment_cert.pem
+subscription-manager import --certificate=$tempdir/entitlement_cert.pem
 
 # Enable repos for installing RHUA.
 subscription-manager repos --enable=rhel-8-for-x86_64-baseos-rhui-rpms
@@ -69,9 +67,12 @@ rhui-installer -u root --log-level debug \
   --user-supplied-rhui-ca-key $tempdir/rhua_ca.key
 
 
-# Remove rhui-installer, enrollment cert and RHUI repos from final image.
+# Remove rhui-installer, and disable RHUI repos in final image.
 dnf remove -y rhui-installer
-subscription-manager remove --all
+subscription-manager repos --disable=rhel-8-for-x86_64-baseos-rhui-rpms
+subscription-manager repos --disable=rhel-8-for-x86_64-appstream-rhui-rpms
+subscription-manager repos --disable=rhui-4-for-rhel-8-x86_64-rpms
+subscription-manager repos --disable=ansible-2-for-rhel-8-x86_64-rhui-rpms
 
 # Add content cert and managed repos.
 build_status "Add repos to RHUA."
