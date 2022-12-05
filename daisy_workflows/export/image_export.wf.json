@@ -38,14 +38,6 @@
     "compute_service_account": {
       "Value": "default",
       "Description": "Service account that will be used by the created worker instance"
-    },
-    "run_sbom_bool": {
-      "Value": "false",
-      "Description": "Flag for whether or not to run sbom generation, false by default"
-    },
-    "syft_source": {
-      "Value": "",
-      "Description": "the source url for syft, required if run_sbom_bool=true"
     }
   },
   "Steps": {
@@ -71,9 +63,7 @@
           "licenses": "${licenses}",
           "export_network": "${export_network}",
           "export_subnet": "${export_subnet}",
-          "compute_service_account": "${compute_service_account}",
-          "run_sbom_bool": "${run_sbom_bool}",
-          "syft_source": "${syft_source}"
+          "compute_service_account": "${compute_service_account}"
         }
       }
     }
