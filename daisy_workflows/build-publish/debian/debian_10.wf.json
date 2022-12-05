@@ -19,6 +19,14 @@
     "gcs_url": {
       "Required": true,
       "Description": "The GCS path that image raw file exported to."
+    },
+    "run_sbom_bool": {
+      "Value": "false",
+      "Description": "Determines if the SBOM for the image will be generated."
+    },
+    "syft_source": {
+      "Value": "",
+      "Description": "Source url for the syft tar gz file, required if run_sbom_bool=true."
     }
   },
   "Steps": {
@@ -41,13 +49,17 @@
         }
       ]
     },
-    "copy-to-destination": {
-      "CopyGCSObjects": [
-        {
-          "Source": "${OUTSPATH}/root.tar.gz",
-          "Destination": "${gcs_url}"
+    "export-image": {
+      "Timeout": "60m",
+      "IncludeWorkflow": {
+        "Path": "${workflow_root}/export/disk_export.wf.json",
+        "Vars": {
+          "destination": "${gcs_url}",
+          "source_disk": "disk-debian-10",
+          "run_sbom_bool": "${run_sbom_bool}",
+          "syft_source": "${syft_source}"
         }
-      ]
+      }
     },
     "cleanup-image": {
       "DeleteResources": {
@@ -57,7 +69,7 @@
   },
   "Dependencies": {
     "create-disk": ["build"],
-    "copy-to-destination": ["build"],
-    "cleanup-image": ["create-disk"]
+    "export-image": ["create-disk"],
+    "cleanup-image": ["export-image"]
   }
 }

@@ -64,9 +64,11 @@ SBOM_SCRIPT=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-script)
 SYFT_SOURCE=$(curl -f -H Metadata-Flavor:Google ${URL}/syft-source)
 
 function runSBOMGeneration() {
-  mount /dev/sdb2 /mnt
+  # Get the partition with the largest size from the mounted disk by sorting
+  SBOM_DISK_PARTITION=$(lsblk /dev/sdb --output=name -l -b --sort=size | tail -2 | head -1)
+  mount /dev/$SBOM_DISK_PARTITION /mnt
   mount -o ro /dev /mnt/dev
-  gsutil cp ${SBOM_SCRIPT} export_sbom.sh
+  gsutil cp $SBOM_SCRIPT export_sbom.sh
   chmod +x export_sbom.sh
   ./export_sbom.sh -s $SYFT_SOURCE -p $SBOM_PATH
   umount /mnt/dev
