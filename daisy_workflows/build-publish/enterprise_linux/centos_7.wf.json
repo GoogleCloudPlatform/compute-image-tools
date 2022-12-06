@@ -23,6 +23,10 @@
     "installer_iso": {
       "Required": true,
       "Description": "The CentOS 7 installer ISO to build from."
+    },
+    "syft_source": {
+      "Value": "",
+      "Description": "Source url for the syft tar gz file."
     }
   },
   "Steps": {
@@ -44,7 +48,8 @@
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
           "destination": "${gcs_url}",
-          "source_disk": "disk-centos-7"
+          "source_disk": "disk-centos-7",
+          "syft_source": "${syft_source}"
         }
       }
     },

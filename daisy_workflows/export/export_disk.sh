@@ -61,20 +61,26 @@ serialOutputPrefixedKeyValue "GCEExport" "target-size-gb" "${TARGET_SIZE_GB}"
 SBOM_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-path)
 # Path to the generic SBOM script, shared functionality between enterprise-linux and debian. 
 SBOM_SCRIPT=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-script)
+# References the tar-gz for syft, if SBOM generation will run. 
+SYFT_TAR_FILE=$(curl -f -H Metadata-Flavor:Google ${URL}/syft-tar-file)
+# User passed in value for syft source, if empty then do not run SBOM generation
 SYFT_SOURCE=$(curl -f -H Metadata-Flavor:Google ${URL}/syft-source)
 
 function runSBOMGeneration() {
-  mount /dev/sdb2 /mnt
+  # Get the partition with the largest size from the mounted disk by sorting
+  SBOM_DISK_PARTITION=$(lsblk /dev/sdb --output=name -l -b --sort=size | tail -2 | head -1)
+  mount /dev/$SBOM_DISK_PARTITION /mnt
   mount -o ro /dev /mnt/dev
-  gsutil cp ${SBOM_SCRIPT} export_sbom.sh
+  gsutil cp $SBOM_SCRIPT export_sbom.sh
   chmod +x export_sbom.sh
-  ./export_sbom.sh -s $SYFT_SOURCE -p $SBOM_PATH
+  ./export_sbom.sh -s $SYFT_TAR_FILE -p $SBOM_PATH
   umount /mnt/dev
   umount /mnt
-  echo "GCEExport: SBOM success"
+  echo "GCEExport: SBOM export success"
 }
 
-if [ $RUN_SBOM_BOOL = "true" ]; then
+# If no source for syft was passed in, do not run SBOM generation. 
+if [ $SYFT_SOURCE != "" ]; then
   runSBOMGeneration
 fi
 
