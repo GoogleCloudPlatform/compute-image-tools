@@ -37,13 +37,9 @@
       "Value": "default",
       "Description": "Service account that will be used by the created worker instance"
     },
-    "run_sbom_bool": {
-      "Value": "false",
-      "Description": "Flag for whether or not to run sbom generation, false by default"
-    },
     "syft_source": {
       "Value": "",
-      "Description": "the source url for syft, required if run_sbom_bool=true"
+      "Description": "the source url for syft"
     }
   },
   "Sources": {
@@ -73,9 +69,9 @@
             "licenses": "${licenses}",
             "sbom-path": "${OUTSPATH}/sbom.json",
             "startup-script": "${SOURCE:${NAME}_export_disk.sh}",
-            "run_sbom_bool": "${run_sbom_bool}",
             "sbom-script": "${SOURCESPATH}/sbom-script.sh",
-            "syft-source": "${SOURCESPATH}/syft.tar.gz"
+            "syft-tar-file": "${SOURCESPATH}/syft.tar.gz",
+            "syft-source": "${syft_source}"
           },
           "networkInterfaces": [
             {

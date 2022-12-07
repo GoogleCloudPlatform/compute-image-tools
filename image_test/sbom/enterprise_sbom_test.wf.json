@@ -1,5 +1,5 @@
 {
-  "Name": "export-almalinux-9",
+  "Name": "export-centos-7-test",
   "Zone": "us-central1-b",
   "Vars": {
     "workflow_root": {
@@ -7,7 +7,7 @@
       "Description": "Root of workflows, should be set to parent of the export directory."
     },
     "syft_source": {
-      "Value": ".",
+      "Required": true,
       "Description": "the source url for syft, required because this is a test for sbom generation"
     }
   },
@@ -19,7 +19,7 @@
       "CreateDisks": [
         {
           "Name": "disk-export",
-          "SourceImage": "projects/almalinux-cloud/global/images/family/almalinux-9",
+          "SourceImage": "projects/centos-cloud/global/images/family/centos-7",
           "Type": "pd-ssd"
         }
       ]
@@ -30,7 +30,6 @@
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
           "destination": "${OUTSPATH}/disk_export.tar.gz",
-          "run_sbom_bool": "true",
           "source_disk": "disk-export",
           "syft_source": "${syft_source}"
         }
@@ -40,7 +39,7 @@
       "CreateDisks": [
         {
           "Name": "disk-test",
-          "SourceImage": "projects/compute-image-tools/global/images/family/debian-11-worker",
+          "SourceImage": "projects/compute-image-tools/global/images/family/debian-10-worker",
           "Type": "pd-ssd"
         }
       ]
