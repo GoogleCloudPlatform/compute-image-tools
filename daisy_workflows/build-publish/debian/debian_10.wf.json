@@ -22,7 +22,7 @@
     },
     "syft_source": {
       "Value": "",
-      "Description": "Source url for the syft tar gz file, required only if generating SBOM."
+      "Description": "Source url for the syft tar gz file, if generating SBOM. If empty no SBOM is generated."
     }
   },
   "Steps": {
