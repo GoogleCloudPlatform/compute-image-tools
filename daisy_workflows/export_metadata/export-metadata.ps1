@@ -51,10 +51,10 @@ function Export-ImageMetadata {
             # Get Package Info for each package
             $info = & 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed' '-info' $name
             foreach ($line in $info) {
-                if ($line -match "Version") {
+                if ($line -cmatch "^Version") {
                     $version = $line.Split(":")[1].Trim()
                 }
-                if ($line -match "Source") {
+                if ($line -cmatch "^Source") {
                     $source = $line.Split(":")
                     $source = [String]::Concat($source[1..$source.length]).Trim()
                 }
