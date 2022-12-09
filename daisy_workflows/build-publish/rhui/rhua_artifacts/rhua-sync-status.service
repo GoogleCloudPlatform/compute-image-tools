@@ -1,0 +1,9 @@
+[Unit]
+Description=RHUA Sync Status
+
+[Service]
+Type=oneshot
+ExecStart=python3 /opt/google-rhui-infra/rhua_sync_status.py
+
+[Install]
+WantedBy=multi-user.target

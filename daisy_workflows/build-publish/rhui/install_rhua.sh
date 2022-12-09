@@ -89,6 +89,13 @@ for unit in rhui-health-check.{service,timer}; do
 done
 install -m 664 -t /etc/nginx/conf.d $tempdir/health_check.nginx.conf
 
+# Install RHUA sync status.
+install -D -t /opt/google-rhui-infra $tempdir/rhua_sync_status.py
+for unit in rhua-sync-status.{service,timer}; do
+  install -m 664 -t /etc/systemd/system $tempdir/$unit
+  systemctl enable $unit
+done
+
 # Add NFS dependencies to pulp worker units
 #
 # We do this via drop-ins instead of patching the Ansible templates, as these

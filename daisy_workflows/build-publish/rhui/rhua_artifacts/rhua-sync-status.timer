@@ -1,0 +1,10 @@
+[Unit]
+Description=Timer for RHUA Sync Status Script 
+Requires=rhua-sync-status.service
+
+[Timer]
+Unit=rhua-sync-status.service
+OnUnitActiveSec=5m
+
+[Install]
+WantedBy=timers.target
