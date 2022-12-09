@@ -171,16 +171,11 @@ class CommitQuery(object):
 
         catalog = self.__readCatalog()
         data = self.__getPatchesData(catalog)
-        upstream_chain = self.__exportPatches(write_patch=False)
 
         for curr_hash in data:
             curr_found = False
             curr = data[curr_hash]
             test_attrs = ['hash', 'subject', 'abbrev_hash']
-
-            if curr_hash in upstream_chain:
-                found.append(curr_hash)
-                continue
 
             for attr in test_attrs:
                 res = run(['grep', curr[attr], changelog_file], check=False,
