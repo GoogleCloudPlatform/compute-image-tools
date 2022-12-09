@@ -13,29 +13,31 @@
 #  limitations under the License.
 """Publish metrics for RHUA sync status."""
 
-import datetime
-import json
 import os
 import subprocess
-import requests
 import time
 
-REPODIR = "/var/lib/rhui/remote_share/symlinks/pulp/content/content"
+import requests
+
+
+REPODIR = '/var/lib/rhui/remote_share/symlinks/pulp/content/content'
+
 
 def GetRepodataList(dirname):
   # Use "find" here because os.walk takes ~30 minutes,
   # while find takes 10-30 seconds.
-  cmd = ['find', dirname, "-name", "repodata"]
+  cmd = ['find', dirname, '-name', 'repodata']
   output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   return output.stdout.split()
 
 
 def PublishMetric(metric_type, points, access_token, mig_name):
   region = GetRegion()
-  url = "https://monitoring.googleapis.com/v3/projects/google.com%3Arhel-infra/timeSeries"
+  url = ('https://monitoring.googleapis.com/v3/projects/'
+         'google.com%3Arhel-infra/timeSeries')
   headers = {'Authorization': 'Bearer {}'.format(access_token)}
   metric = {'type': metric_type}
-  resource_labels = {'project_id': "155767908850",
+  resource_labels = {'project_id': '155767908850',
                      'location': region,
                      'namespace': 'rhua-sync-status',
                      'node_id': mig_name}
@@ -57,7 +59,8 @@ def PublishRepoAge(seconds_since_update, timestamp, access_token, mig_name):
   end_time = time.strftime('%Y-%m-%dT%H:%M:%S-00:00', time.gmtime(timestamp))
   metric_type = 'custom.googleapis.com/rhua_sync_age'
 
-  points = [{'interval': {'endTime': end_time}, 'value': {'int64Value': seconds_since_update}}]
+  points = [{'interval': {'endTime': end_time},
+             'value': {'int64Value': seconds_since_update}}]
 
   PublishMetric(metric_type, points, access_token, mig_name)
 
@@ -72,7 +75,6 @@ def PublishRecentUpdates(recent_updates, access_token, mig_name):
     point = {'interval': {'endTime': end_time}, 'value': {'boolValue': True}}
     points.append(point)
 
-
   PublishMetric(metric_type, points, access_token, mig_name)
 
 
@@ -81,13 +83,15 @@ def PublishLastHourCount(hour_count, timestamp, access_token, mig_name):
   end_time = time.strftime('%Y-%m-%dT%H:%M:%S-00:00', time.gmtime(timestamp))
   metric_type = 'custom.googleapis.com/rhua_updates_in_hour'
 
-  points = [{'interval': {'endTime': end_time}, 'value': {'int64Value': hour_count}}]
+  points = [{'interval': {'endTime': end_time},
+             'value': {'int64Value': hour_count}}]
 
   PublishMetric(metric_type, points, access_token, mig_name)
 
 
 def GetAccessToken():
-  url = "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token"
+  url = ('http://metadata.google.internal/computeMetadata/v1/instance/'
+         'service-accounts/default/token')
   headers = {'Metadata-Flavor': 'Google'}
   r = requests.get(url, headers=headers)
   access_token = r.json()['access_token']
@@ -95,15 +99,17 @@ def GetAccessToken():
 
 
 def GetMIGName():
-  url = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/created-by"
+  url = ('http://metadata.google.internal/computeMetadata/v1/instance/'
+         'attributes/created-by')
   headers = {'Metadata-Flavor': 'Google'}
   r = requests.get(url, headers=headers)
   full_path = r.text
-  mig_name = full_path.split("/")[-1]
+  mig_name = full_path.split('/')[-1]
   return mig_name
 
+
 def GetRegion():
-  url = "http://metadata.google.internal/computeMetadata/v1/instance/zone"
+  url = 'http://metadata.google.internal/computeMetadata/v1/instance/zone'
   headers = {'Metadata-Flavor': 'Google'}
   r = requests.get(url, headers=headers)
   zone = r.text.split('/')[-1]
@@ -146,4 +152,3 @@ def main():
 
 if __name__ == '__main__':
   main()
-
