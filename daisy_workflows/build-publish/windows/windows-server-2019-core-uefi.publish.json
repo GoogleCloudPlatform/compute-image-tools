@@ -31,7 +31,7 @@
   "Images": [
     {
       "Prefix": "windows-server-2019-core",
-      "Family": "windows-2019-core-standard",
+      "Family": "windows-2019-standard-core",
       "Description": "Microsoft, Windows Server, 2019 Core, Server Core, x64 built on {{$time}}, supports Shielded VM features",
       "Architecture": "X86_64",
       "Licenses": [
