@@ -27,7 +27,8 @@ def GetRepodataList(dirname):
   # Use "find" here because os.walk takes ~30 minutes,
   # while find takes 10-30 seconds.
   cmd = ['find', dirname, '-name', 'repodata']
-  output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  output = subprocess.run(
+      cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
   return output.stdout.split()
 
 
@@ -49,13 +50,11 @@ def PublishMetric(metric_type, points, access_token, mig_name):
                   'points': points}]
 
   data = {'timeSeries': time_series}
-  print(data)
-  r = requests.post(url, json=data, headers=headers)
-  print(r.text)
+  requests.post(url, json=data, headers=headers)
 
 
 def PublishRepoAge(seconds_since_update, timestamp, access_token, mig_name):
-  print(seconds_since_update)
+  """Publishes the number of seconds since the last update."""
   end_time = time.strftime('%Y-%m-%dT%H:%M:%S-00:00', time.gmtime(timestamp))
   metric_type = 'custom.googleapis.com/rhua_sync_age'
 
@@ -66,6 +65,7 @@ def PublishRepoAge(seconds_since_update, timestamp, access_token, mig_name):
 
 
 def PublishRecentUpdates(recent_updates, access_token, mig_name):
+  """Publishes a True value for every update timestamp."""
   if not recent_updates:
     return
   metric_type = 'custom.googleapis.com/rhua_updates'
@@ -79,7 +79,7 @@ def PublishRecentUpdates(recent_updates, access_token, mig_name):
 
 
 def PublishLastHourCount(hour_count, timestamp, access_token, mig_name):
-  print(hour_count)
+  """Publishes the number of repodata directories updated in the last hour."""
   end_time = time.strftime('%Y-%m-%dT%H:%M:%S-00:00', time.gmtime(timestamp))
   metric_type = 'custom.googleapis.com/rhua_updates_in_hour'
 
@@ -139,11 +139,7 @@ def main():
 
   repo_age = int(now - newest)
   access_token = GetAccessToken()
-  print(access_token)
   mig_name = GetMIGName()
-  print(mig_name)
-  region = GetRegion()
-  print(region)
 
   PublishRepoAge(repo_age, now, access_token, mig_name)
   PublishLastHourCount(hour_count, now, access_token, mig_name)
