@@ -64,7 +64,7 @@
             "upstream_kernel_repo": "${upstream_kernel_repo}",
             "upstream_kernel_version": "${upstream_kernel_version}",
             "filter_spec": "${filter_spec}",
-            "strategy": "${strategy}",
+            "strategy": "${strategy}"
         },
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_write"
