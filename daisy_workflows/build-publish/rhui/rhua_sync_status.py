@@ -24,8 +24,6 @@ REPODIR = '/var/lib/rhui/remote_share/symlinks/pulp/content/content'
 
 
 def GetRepodataList(dirname):
-  # Use "find" here because os.walk takes ~30 minutes,
-  # while find takes 10-30 seconds.
   cmd = ['find', dirname, '-name', 'repodata']
   output = subprocess.run(
       cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
@@ -34,11 +32,13 @@ def GetRepodataList(dirname):
 
 def PublishMetric(metric_type, points, access_token, mig_name):
   region = GetRegion()
+  project_name = GetProjectName()
+  project_number = GetProjectNumber()
   url = ('https://monitoring.googleapis.com/v3/projects/'
-         'google.com%3Arhel-infra/timeSeries')
+         '{0}/timeSeries'.format(project_name))
   headers = {'Authorization': 'Bearer {}'.format(access_token)}
   metric = {'type': metric_type}
-  resource_labels = {'project_id': '155767908850',
+  resource_labels = {'project_id': project_number,
                      'location': region,
                      'namespace': 'rhua-sync-status',
                      'node_id': mig_name}
@@ -96,6 +96,24 @@ def GetAccessToken():
   r = requests.get(url, headers=headers)
   access_token = r.json()['access_token']
   return access_token
+
+
+def GetProjectName():
+  url = ('http://metadata.google.internal/computeMetadata/v1/project/'
+         'project-id')
+  headers = {'Metadata-Flavor': 'Google'}
+  r = requests.get(url, headers=headers)
+  output = r.text
+  return output.strip()
+
+
+def GetProjectNumber():
+  url = ('http://metadata.google.internal/computeMetadata/v1/project/'
+         'numeric-project-id')
+  headers = {'Metadata-Flavor': 'Google'}
+  r = requests.get(url, headers=headers)
+  output = r.text
+  return output.strip()
 
 
 def GetMIGName():
