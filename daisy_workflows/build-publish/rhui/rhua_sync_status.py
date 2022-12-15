@@ -30,10 +30,7 @@ def GetRepodataList(dirname):
   return output.stdout.split()
 
 
-def PublishMetric(metric_type, points, access_token, mig_name):
-  region = GetRegion()
-  project_name = GetProjectName()
-  project_number = GetProjectNumber()
+def PublishMetric(metric_type, points, access_token, region, project_name, project_number, mig_name):
   url = ('https://monitoring.googleapis.com/v3/projects/'
          '{0}/timeSeries'.format(project_name))
   headers = {'Authorization': 'Bearer {}'.format(access_token)}
@@ -53,7 +50,8 @@ def PublishMetric(metric_type, points, access_token, mig_name):
   requests.post(url, json=data, headers=headers)
 
 
-def PublishRepoAge(seconds_since_update, timestamp, access_token, mig_name):
+def PublishRepoAge(seconds_since_update, timestamp, access_token, region,
+                   project_name, project_number, mig_name):
   """Publishes the number of seconds since the last update."""
   end_time = time.strftime('%Y-%m-%dT%H:%M:%S-00:00', time.gmtime(timestamp))
   metric_type = 'custom.googleapis.com/rhua_sync_age'
@@ -61,10 +59,12 @@ def PublishRepoAge(seconds_since_update, timestamp, access_token, mig_name):
   points = [{'interval': {'endTime': end_time},
              'value': {'int64Value': seconds_since_update}}]
 
-  PublishMetric(metric_type, points, access_token, mig_name)
+  PublishMetric(metric_type, points, access_token, region, project_name,
+                project_number, mig_name)
 
 
-def PublishRecentUpdates(recent_updates, access_token, mig_name):
+def PublishRecentUpdates(recent_updates, access_token, region, project_name,
+                         project_number, mig_name):
   """Publishes a True value for every update timestamp."""
   if not recent_updates:
     return
@@ -75,10 +75,12 @@ def PublishRecentUpdates(recent_updates, access_token, mig_name):
     point = {'interval': {'endTime': end_time}, 'value': {'boolValue': True}}
     points.append(point)
 
-  PublishMetric(metric_type, points, access_token, mig_name)
+  PublishMetric(metric_type, points, access_token, region, project_name,
+                project_number, mig_name)
 
 
-def PublishLastHourCount(hour_count, timestamp, access_token, mig_name):
+def PublishLastHourCount(hour_count, timestamp, access_token, region,
+                         project_name, project_number, mig_name):
   """Publishes the number of repodata directories updated in the last hour."""
   end_time = time.strftime('%Y-%m-%dT%H:%M:%S-00:00', time.gmtime(timestamp))
   metric_type = 'custom.googleapis.com/rhua_updates_in_hour'
@@ -86,7 +88,8 @@ def PublishLastHourCount(hour_count, timestamp, access_token, mig_name):
   points = [{'interval': {'endTime': end_time},
              'value': {'int64Value': hour_count}}]
 
-  PublishMetric(metric_type, points, access_token, mig_name)
+  PublishMetric(metric_type, points, access_token, region, project_name,
+                project_number, mig_name)
 
 
 def GetAccessToken():
@@ -157,11 +160,14 @@ def main():
 
   repo_age = int(now - newest)
   access_token = GetAccessToken()
+  region = GetRegion()
+  project_name = GetProjectName()
+  project_number = GetProjectNumber()
   mig_name = GetMIGName()
 
-  PublishRepoAge(repo_age, now, access_token, mig_name)
-  PublishLastHourCount(hour_count, now, access_token, mig_name)
-  PublishRecentUpdates(recent_updates, access_token, mig_name)
+  PublishRepoAge(repo_age, now, access_token, region, project_name, project_number, mig_name)
+  PublishLastHourCount(hour_count, now, access_token, region, project_name, project_number, mig_name)
+  PublishRecentUpdates(recent_updates, access_token, region, project_name, project_number, mig_name)
 
 
 if __name__ == '__main__':
