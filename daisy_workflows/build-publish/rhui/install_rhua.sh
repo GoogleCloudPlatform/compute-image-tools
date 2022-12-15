@@ -81,9 +81,10 @@ rhui-manager --noninteractive --user admin --password "$password" cert upload \
 rhui-manager --noninteractive --user admin --password "$password" repo \
   add_by_repo --repo_ids $(paste -sd "," "${tempdir}/reponames.txt")
 
-# Install health checks.
+# Install health checks and RHUA sync status.
 install -D -t /opt/google-rhui-infra $tempdir/health_check.py
-for unit in rhui-health-check.{service,timer}; do
+install -D -t /opt/google-rhui-infra $tempdir/rhua_sync_status.py
+for unit in {rhui-health-check,rhua-sync-status}.{service,timer}; do
   install -m 664 -t /etc/systemd/system $tempdir/$unit
   systemctl enable $unit
 done
