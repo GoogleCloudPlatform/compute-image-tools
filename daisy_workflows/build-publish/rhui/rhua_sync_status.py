@@ -30,7 +30,8 @@ def GetRepodataList(dirname):
   return output.stdout.split()
 
 
-def PublishMetric(metric_type, points, access_token, region, project_name, project_number, mig_name):
+def PublishMetric(metric_type, points, access_token, region, project_name,
+                  project_number, mig_name):
   url = ('https://monitoring.googleapis.com/v3/projects/'
          '{0}/timeSeries'.format(project_name))
   headers = {'Authorization': 'Bearer {}'.format(access_token)}
@@ -165,9 +166,12 @@ def main():
   project_number = GetProjectNumber()
   mig_name = GetMIGName()
 
-  PublishRepoAge(repo_age, now, access_token, region, project_name, project_number, mig_name)
-  PublishLastHourCount(hour_count, now, access_token, region, project_name, project_number, mig_name)
-  PublishRecentUpdates(recent_updates, access_token, region, project_name, project_number, mig_name)
+  PublishRepoAge(repo_age, now, access_token, region, project_name,
+                 project_number, mig_name)
+  PublishLastHourCount(hour_count, now, access_token, region, project_name,
+                       project_number, mig_name)
+  PublishRecentUpdates(recent_updates, access_token, region, project_name,
+                       project_number, mig_name)
 
 
 if __name__ == '__main__':
