@@ -56,7 +56,7 @@
   },
   "Steps": {
     "windows-build": {
-      "Timeout": "4h",
+      "Timeout": "5h",
       "IncludeWorkflow": {
         "Path": "./windows-build-uefi.wf.json",
         "Vars": {
