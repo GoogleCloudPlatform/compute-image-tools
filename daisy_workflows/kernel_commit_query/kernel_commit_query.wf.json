@@ -33,6 +33,10 @@
      "upstream_kernel_version": {
       "Required": true,
       "Description": "The upstream kernel version containing all the required patches in the catalog."
+    },
+      "machine_type": {
+      "Required": true,
+      "Description": "The machine type used for the query instances."
     }
   },
   "Sources": {
@@ -57,7 +61,7 @@
         {
           "Name": "inst",
           "Disks": [{"Source": "source-disk"}],
-          "MachineType": "n1-highcpu-32",
+          "MachineType": "${machine_type}",
           "Metadata": {
             "files_gcs_dir": "${SOURCESPATH}/kernel_commit_query",
             "script": "${os_type}.sh",
