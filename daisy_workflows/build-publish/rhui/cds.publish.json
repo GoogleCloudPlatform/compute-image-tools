@@ -2,7 +2,7 @@
   "Name": "cds",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$delete_after := `"24h*30*6"` -}}
-
+  "WorkProject": {{$work_project}},
   {{if eq .environment "test" -}}
   "PublishProject": "google.com:rhel-infra",
   {{- else if eq .environment "prod" -}}
