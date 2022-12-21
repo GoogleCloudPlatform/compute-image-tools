@@ -28,4 +28,4 @@ popd
 kernel_pkg=$(dpkg -S /boot/vmlinuz-`uname -r` | sed 's/:.*$//g')
 apt-get changelog $kernel_pkg > /files/kernel.changelog
 
-python3 kcq.py
+python3 /files/kcq.py
