@@ -1,6 +1,6 @@
 {
   "Name": "kernel-commit-query",
-  "DefaultTimeout": "30m",
+  "DefaultTimeout": "40m",
   "Vars": {
     "result_dest": {
       "Required": true,
@@ -81,7 +81,7 @@
       "WaitForInstancesSignal": [
         {
           "Name": "inst",
-          "Timeout": "15m",
+          "Timeout": "40m",
           "SerialOutput": {
             "Port": 1,
             "FailureMatch": "ExportFailed:",
