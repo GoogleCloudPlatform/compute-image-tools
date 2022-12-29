@@ -66,27 +66,21 @@ SYFT_TAR_FILE=$(curl -f -H Metadata-Flavor:Google ${URL}/syft-tar-file)
 # User passed in value for syft source, if empty then do not run SBOM generation
 SYFT_SOURCE=$(curl -f -H Metadata-Flavor:Google ${URL}/syft-source)
 
-# Return error if any command failed, such as a mount failure. 
-# Used to ensure SBOM generation succeeded without unexpected behavior. 
-function run_sbom_cmd_with_check() {
-  $@
-  RETURN_STATUS=$?
-  if [[ RETURN_STATUS -ne 0 ]]; then
-    echo "ExportFailed: SBOM Generation returned error $RETURN_STATUS with command $@"
-    exit 1
-  fi
-}
-
 function runSBOMGeneration() {
   # Get the partition with the largest size from the mounted disk by sorting
   SBOM_DISK_PARTITION=$(lsblk /dev/sdb --output=name -l -b --sort=size | tail -2 | head -1)
-  run_sbom_cmd_with_check mount /dev/$SBOM_DISK_PARTITION /mnt
-  run_sbom_cmd_with_check mount -o bind /dev /mnt/dev
-  run_sbom_cmd_with_check gsutil cp $SBOM_SCRIPT export_sbom.sh
-  run_sbom_cmd_with_check chmod +x export_sbom.sh
+  mount /dev/$SBOM_DISK_PARTITION /mnt
+  MOUNT_STATUS=$?
+  if [[ MOUNT_STATUS -ne 0 ]]; then
+    echo "ExportFailed: mounting for SBOM generation return error $MOUNT_STATUS"
+    exit 1
+  fi
+  mount -o bind /dev /mnt/dev
+  gsutil cp $SBOM_SCRIPT export_sbom.sh
+  chmod +x export_sbom.sh
   ./export_sbom.sh -s $SYFT_TAR_FILE -p $SBOM_PATH
-  run_sbom_cmd_with_check umount /mnt/dev
-  run_sbom_cmd_with_check umount /mnt
+  umount /mnt/dev
+  umount /mnt
   echo "GCEExport: SBOM export success"
 }
 
