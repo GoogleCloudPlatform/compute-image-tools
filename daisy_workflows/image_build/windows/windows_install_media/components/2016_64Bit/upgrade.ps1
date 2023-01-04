@@ -52,10 +52,10 @@ try {
     $script:winVersion = [System.Environment]::OSVersion.Version
     $script:installationType = Get-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion' -Name 'InstallationType'
     if ($script:installationType.InstallationType -eq 'Server Core') {
-        $script:imageIndex = Find-ImageIndex -image_name 'Windows Server 2016 SERVERDATACENTERCORE'
+        $script:imageIndex = Find-ImageIndex -image_name $('Windows Server 2016 SERVERDATACENTERCORE', 'Windows Server 2016 Datacenter')
     }
     elseif ($script:installationType.InstallationType -eq 'Server') {
-        $script:imageIndex = Find-ImageIndex -image_name 'Windows Server 2016 SERVERDATACENTER'
+        $script:imageIndex = Find-ImageIndex -image_name $('Windows Server 2016 SERVERDATACENTER', 'Windows Server 2016 Datacenter (Desktop Experience)')
     }
     else {
         $msg = 'Unexpected installation type is detected: '+$script:installationType.InstallationType
