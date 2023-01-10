@@ -22,16 +22,18 @@
 function Find-ImageIndex {
     param (
         [parameter(Mandatory=$true)]
-        [string]$image_name
+        [string[]]$image_names
     )
 
     $images = Get-WindowsImage -ImagePath ./sources/install.wim
     foreach ($image in $images) {
-        if ($image.ImageName -eq $image_name) {
-            return $image.ImageIndex
+        foreach ($image_name in $image_names) {
+            if ($image.ImageName -eq $image_name) {
+                return $image.ImageIndex
+            }
         }
     }
-    $msg = 'No image is found from the installation media: '+$image_name
+    $msg = 'No image is found from the installation media: '+$image_names[0]
     throw $msg
 }
 
