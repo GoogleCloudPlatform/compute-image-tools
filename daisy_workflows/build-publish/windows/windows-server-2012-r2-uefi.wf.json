@@ -43,7 +43,7 @@
   },
   "Steps": {
     "build": {
-      "Timeout": "4h",
+      "Timeout": "5h",
       "IncludeWorkflow": {
         "Path": "${workflow_root}/image_build/windows/windows-server-2012-r2-uefi-payg.wf.json",
         "Vars": {
