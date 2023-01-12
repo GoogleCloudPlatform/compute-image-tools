@@ -9,6 +9,10 @@
     "syft_source": {
       "Required": true,
       "Description": "the source url for syft, required because this is a test for sbom generation"
+    },
+    "disk_outs_tar_file": {
+      "Value": "export-image.tar.gz",
+      "Description": "Name of disk output file for validation of image export success"
     }
   },
   "Sources": {
@@ -29,7 +33,7 @@
       "IncludeWorkflow": {
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
-          "destination": "${OUTSPATH}/disk_export.tar.gz",
+          "destination": "${OUTSPATH}/${disk_outs_tar_file}",
           "source_disk": "disk-export",
           "syft_source": "${syft_source}"
         }
@@ -54,7 +58,7 @@
             "outs-path": "${OUTSPATH}",
             "startup-script": "${SOURCE:test-sbom-export}",
             "sbom-file-name": "sbom.json",
-            "disk-file-name": "export-image.tar.gz"
+            "disk-file-name": "${disk_outs_tar_file}"
           },
           "ServiceAccounts": [
             {
