@@ -28,20 +28,22 @@ BYTES_1GB=1073741824
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
 LICENSES=$(curl -f -H Metadata-Flavor:Google ${URL}/licenses)
-RUN_SBOM_BOOL=$(curl -f -H Metadata-Flavor:Google ${URL}/run_sbom_bool)
+# Name for the source disk when getting the sympath
+SOURCE_DISK_NAME=$(curl -f -H Metadata-Flavor:Google ${URL}/source-disk-name)
 
 mkdir ~/upload
 
 # Source disk size info.
-SOURCE_SIZE_BYTES=$(lsblk /dev/sdb --output=size -b | sed -n 2p)
+SOURCE_DISK_SYMPATH=$(readlink -f /dev/disk/by-id/google-$SOURCE_DISK_NAME)
+SOURCE_SIZE_BYTES=$(lsblk $SOURCE_DISK_SYMPATH --output=size -b | sed -n 2p)
 SOURCE_SIZE_GB=$(awk "BEGIN {print int(((${SOURCE_SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
 serialOutputPrefixedKeyValue "GCEExport" "source-size-gb" "${SOURCE_SIZE_GB}"
 
 echo "GCEExport: Running export tool."
 if [[ -n $LICENSES ]]; then
-  gce_export -buffer_prefix ~/upload -gcs_path "$GCS_PATH" -disk /dev/sdb -licenses "$LICENSES" -y
+  gce_export -buffer_prefix ~/upload -gcs_path "$GCS_PATH" -disk $SOURCE_DISK_SYMPATH -licenses "$LICENSES" -y
 else
-  gce_export -buffer_prefix ~/upload -gcs_path "$GCS_PATH" -disk /dev/sdb -y
+  gce_export -buffer_prefix ~/upload -gcs_path "$GCS_PATH" -disk $SOURCE_DISK_SYMPATH -y
 fi
 GCE_EXPORT_RESULT=$?
 if [[ ${GCE_EXPORT_RESULT} -eq 2 ]]; then
@@ -57,10 +59,7 @@ fi
 TARGET_SIZE_BYTES=$(gsutil ls -l "${GCS_PATH}" | head -n 1 | awk '{print $1}')
 TARGET_SIZE_GB=$(awk "BEGIN {print int(((${TARGET_SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
 serialOutputPrefixedKeyValue "GCEExport" "target-size-gb" "${TARGET_SIZE_GB}"
-
 SBOM_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-path)
-# Path to the generic SBOM script, shared functionality between enterprise-linux and debian. 
-SBOM_SCRIPT=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-script)
 # References the tar-gz for syft, if SBOM generation will run. 
 SYFT_TAR_FILE=$(curl -f -H Metadata-Flavor:Google ${URL}/syft-tar-file)
 # User passed in value for syft source, if empty then do not run SBOM generation
@@ -68,12 +67,14 @@ SYFT_SOURCE=$(curl -f -H Metadata-Flavor:Google ${URL}/syft-source)
 
 function runSBOMGeneration() {
   # Get the partition with the largest size from the mounted disk by sorting
-  SBOM_DISK_PARTITION=$(lsblk /dev/sdb --output=name -l -b --sort=size | tail -2 | head -1)
+  SBOM_DISK_PARTITION=$(lsblk $SOURCE_DISK_SYMPATH --output=name -l -b --sort=size | tail -2 | head -1)
   mount /dev/$SBOM_DISK_PARTITION /mnt
-  mount -o ro /dev /mnt/dev
-  gsutil cp $SBOM_SCRIPT export_sbom.sh
+  mount -o bind,ro /dev /mnt/dev
   chmod +x export_sbom.sh
-  ./export_sbom.sh -s $SYFT_TAR_FILE -p $SBOM_PATH
+  gsutil cp $SYFT_SOURCE syft.tar.gz
+  tar -xf syft.tar.gz
+  ./syft /mnt -o spdx-json > sbom.json
+  gsutil cp sbom.json $SBOM_PATH
   umount /mnt/dev
   umount /mnt
   echo "GCEExport: SBOM export success"

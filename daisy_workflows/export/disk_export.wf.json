@@ -44,8 +44,7 @@
   },
   "Sources": {
     "${NAME}_export_disk.sh": "./export_disk.sh",
-    "syft.tar.gz": "${syft_source}",
-    "sbom-script.sh": "./export_sbom.sh"
+    "syft.tar.gz": "${syft_source}"
   },
   "Steps": {
     "setup-disks": {
@@ -69,7 +68,7 @@
             "licenses": "${licenses}",
             "sbom-path": "${OUTSPATH}/sbom.json",
             "startup-script": "${SOURCE:${NAME}_export_disk.sh}",
-            "sbom-script": "${SOURCESPATH}/sbom-script.sh",
+            "source-disk-name": "${source_disk}",
             "syft-tar-file": "${SOURCESPATH}/syft.tar.gz",
             "syft-source": "${syft_source}"
           },
