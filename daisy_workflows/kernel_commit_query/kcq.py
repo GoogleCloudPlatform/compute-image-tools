@@ -32,6 +32,7 @@ import platform
 import re
 import subprocess as sp
 
+import requests
 import utils
 
 upstream_kernel_dir = '/files/upstream_kernel'
@@ -40,6 +41,8 @@ patches_dir = '/files/patches'
 result_file = '/files/result.json'
 catalog_file = '/files/catalog'
 changelog_file = '/files/kernel.changelog'
+upstream_commit_url = 'https://git.kernel.org/pub/scm/linux/kernel/\
+git/torvalds/linux.git/patch/?id='
 
 devnull = {'stdout': sp.DEVNULL, 'stderr': sp.DEVNULL}
 capture = {'stdout': sp.PIPE, 'stderr': sp.PIPE}
@@ -161,20 +164,29 @@ class CommitQuery(object):
             run(['git'] + curr.split(' '), cwd=distro_kernel_dir,
                 **devnull)
 
+    def __parsePatch(self, cid, patch):
+        res = {'hash': cid, 'abbrev_hash': cid[0:7]}
+        for curr in patch.split('\n'):
+            if curr.startswith('Subject:'):
+                res['subject'] = curr.replace('Subject: ', '')
+                break
+        return res
+
     def ChangelogCheck(self):
         logging.info('Checking patches from: %s' % patches_dir)
 
         found = []
         not_found = []
 
-        self.__fetchUpstreamKernel()
-
         catalog = self.__readCatalog()
-        data = self.__getPatchesData(catalog)
 
-        for curr_hash in data:
-            curr_found = False
-            curr = data[curr_hash]
+        for curr_hash in catalog:
+            resp = requests.get(upstream_commit_url + curr_hash)
+
+            if not resp.ok:
+                raise Exception("Failed to query upstream commit")
+
+            curr = self.__parsePatch(curr_hash, resp.text)
             test_attrs = ['hash', 'subject', 'abbrev_hash']
 
             for attr in test_attrs:

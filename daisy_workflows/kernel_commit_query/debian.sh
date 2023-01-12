@@ -15,7 +15,7 @@
 
 set -xeu
 
-apt-get update -y && apt-get upgrade -y && apt-get install -y git linux-source
+apt-get update -y && apt-get install -y git linux-source
 
 rm -rf /files/distro_kernel && mkdir -p /files/distro_kernel
 tar --strip-components=1 -xvf $(ls /usr/src/linux-source*.tar.xz) \
