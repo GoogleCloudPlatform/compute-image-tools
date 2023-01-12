@@ -285,7 +285,7 @@ def main():
     else:
         raise Exception('Unknown strategy: %s' % cq.attrs.strategy)
 
-    logging.info('finished')
+    logging.info('KCQStatus: success')
 
 
 if __name__ == '__main__':

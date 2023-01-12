@@ -15,11 +15,11 @@
 
 set -xeu
 
-apt-get update -y && apt-get install -y git linux-source
+apt-get update -y && apt-get install -y git linux-source python3-requests
 
 rm -rf /files/distro_kernel && mkdir -p /files/distro_kernel
 tar --strip-components=1 -xvf $(ls /usr/src/linux-source*.tar.xz) \
-    -C /files/distro_kernel
+    -C /files/distro_kernel 2>&1 >> /dev/null
 
 pushd /files/distro_kernel
 rm -rf {.git,.gitattributes,.gitignore}
