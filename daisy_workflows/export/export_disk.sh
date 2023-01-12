@@ -71,7 +71,7 @@ function runSBOMGeneration() {
   mount /dev/$SBOM_DISK_PARTITION /mnt
   mount -o bind,ro /dev /mnt/dev
   chmod +x export_sbom.sh
-  gsutil cp $SYFT_SOURCE syft.tar.gz
+  gsutil cp $SYFT_TAR_FILE syft.tar.gz
   tar -xf syft.tar.gz
   ./syft /mnt -o spdx-json > sbom.json
   gsutil cp sbom.json $SBOM_PATH
