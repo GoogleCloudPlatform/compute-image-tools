@@ -23,6 +23,10 @@
     "installer_iso": {
       "Required": true,
       "Description": "The Rocky Linux 9 installer ISO to build from."
+    },
+    "syft_source": {
+      "Value": "",
+      "Description": "Source url for the syft tar gz file, if generating SBOM. If empty no SBOM is generated."
     }
   },
   "Steps": {
@@ -44,7 +48,8 @@
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
           "destination": "${gcs_url}",
-          "source_disk": "disk-rocky-linux-9"
+          "source_disk": "disk-rocky-linux-9",
+          "syft_source": "${syft_source}"
         }
       }
     },
