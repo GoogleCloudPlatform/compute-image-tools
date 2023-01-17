@@ -70,7 +70,6 @@ function runSBOMGeneration() {
   SBOM_DISK_PARTITION=$(lsblk $SOURCE_DISK_SYMPATH --output=name -l -b --sort=size | tail -2 | head -1)
   mount /dev/$SBOM_DISK_PARTITION /mnt
   mount -o bind,ro /dev /mnt/dev
-  chmod +x export_sbom.sh
   gsutil cp $SYFT_TAR_FILE syft.tar.gz
   tar -xf syft.tar.gz
   ./syft /mnt -o spdx-json > sbom.json
