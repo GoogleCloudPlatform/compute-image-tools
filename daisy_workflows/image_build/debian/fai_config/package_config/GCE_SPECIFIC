@@ -16,6 +16,9 @@ gce-disk-expand
 # GCE OS Config Agent
 google-osconfig-agent
 
+# gcloud
+google-cloud-cli
+
 PACKAGES install AMD64
 # Secure Boot
 shim-signed
