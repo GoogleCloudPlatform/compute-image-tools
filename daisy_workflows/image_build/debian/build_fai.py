@@ -97,11 +97,13 @@ def main():
   # Set scripts executable (daisy doesn't preserve this)
   os.chmod(config_space + 'scripts/GCE_CLEAN/10-gce-clean', 0o755)
   os.chmod(config_space + 'scripts/GCE_SPECIFIC/12-sshd', 0o755)
+  os.chmod(config_space + 'hooks/repository.GCE_SPECIFIC', 0o755)
+  os.chmod(config_space + 'hooks/configure.GCE_SPECIFIC', 0o755)
 
   # Config fai-tool
   # Base classes
-  fai_classes = ['DEBIAN', 'CLOUD', 'GCE', 'GCE_SDK', 'LINUX_IMAGE_CLOUD',
-                 'GCE_SPECIFIC', 'GCE_CLEAN']
+  fai_classes = ['DEBIAN', 'CLOUD', 'GCE', 'LINUX_IMAGE_CLOUD', 'GCE_SPECIFIC',
+                 'GCE_CLEAN']
 
   # Arch-specific classes
   if platform.machine() == 'aarch64':

@@ -1,0 +1,4 @@
+#!/bin/sh
+# This removes the build time keyring from the resulting image.
+set -eu
+rm -v $FAI_ROOT/etc/apt/trusted.gpg.d/gce-specific-build.asc

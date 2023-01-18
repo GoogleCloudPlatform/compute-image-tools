@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# This copies the keyring into the build environment for bootstrapping.
+# The installation of the google-cloud-packages-archive-keyring package
+# provides the resulting keyring in the image.
+set -eu
+cp -v $FAI/package_config/GCE_SPECIFIC.asc $FAI_ROOT/etc/apt/trusted.gpg.d/gce-specific-build.asc
+
