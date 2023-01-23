@@ -189,6 +189,7 @@ class CommitQuery(object):
             curr = self.__parsePatch(curr_hash, resp.text)
             test_attrs = ['hash', 'subject', 'abbrev_hash']
 
+            curr_found = False
             for attr in test_attrs:
                 res = run(['grep', curr[attr], changelog_file], check=False,
                           **devnull)
