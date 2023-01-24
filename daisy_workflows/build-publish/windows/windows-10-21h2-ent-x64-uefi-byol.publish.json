@@ -7,7 +7,7 @@
   time period is set.
 */}}
 {
-  "Name": "windows-11-21h2-ent-x64-uefi",
+  "Name": "windows-10-21h2-ent-x64-uefi-byol",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*6"` -}}
@@ -30,9 +30,9 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Prefix": "windows-11-21h2-ent-x64",
-      "Family": "windows-11-21h2-x64",
-      "Description": "Microsoft, Windows 11 Enterprise, 21h2 Update, x64 built on {{$time}}, supports Shielded VM features",
+      "Prefix": "windows-10-21h2-ent-x64",
+      "Family": "windows-10-21h2-x64",
+      "Description": "Microsoft, Windows 10 Enterprise, 21h2 Update, x64 built on {{$time}}, supports Shielded VM features",
       "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "staging" -}}
@@ -40,7 +40,7 @@
         {{- else if eq .environment "internal" -}}
         "projects/google.com:windows-internal/global/licenses/internal-windows"
         {{- else -}}
-        "projects/windows-cloud/global/licenses/windows-11-x64-byol"
+        "projects/windows-cloud/global/licenses/windows-10-x64-byol"
         {{- end}}
       ],
       "GuestOsFeatures": {{$guest_features}}

@@ -1,5 +1,5 @@
 {
-  "Name": "windows-11-21h2-ent-x64-uefi",
+  "Name": "windows-81-ent-x64-uefi-byol",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -43,9 +43,9 @@
   },
   "Steps": {
     "build": {
-      "Timeout": "5h",
+      "Timeout": "4h",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/windows/windows-11-21h2-ent-x64-uefi.wf.json",
+        "Path": "${workflow_root}/image_build/windows/windows-81-ent-x64-uefi-byol.wf.json",
         "Vars": {
           "install_disk": "disk-install",
           "updates": "${updates}",
