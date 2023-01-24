@@ -1,5 +1,5 @@
 {
-  "Name": "windows-10-21h2-ent-x64-uefi",
+  "Name": "windows-windows-81-ent-x64-uefi-byol",
   "Vars": {
     "install_disk": "install-disk",
     "media": {
@@ -19,10 +19,10 @@
       "Description": "GCS or local path to Cloud SDK installer"
     },
     "description": {
-      "Value": "Microsoft, Windows 10 Enterprise 21h2, x64 built on ${TIMESTAMP}, supports Shielded VM features"
+      "Value": "Microsoft, Windows 8.1 Enterprise, x64 built on ${TIMESTAMP}, supports Shielded VM features"
     },
     "family": {
-      "Value": "windows-10-21h2-ent-x64",
+      "Value": "windows-81",
       "Description": "Desired image family of the output image."
     },
     "google_cloud_repo": {
@@ -30,7 +30,7 @@
       "Description": "Google Cloud repo to retrieve packages from during the build."
     },
     "name": {
-      "Value": "windows-10-21h2-ent-x64-v${TIMESTAMP}",
+      "Value": "windows-81-ent-x64-uefi-v${TIMESTAMP}",
       "Description": "The name of the output image."
     },
     "project": {
@@ -56,7 +56,7 @@
   },
   "Steps": {
     "windows-build": {
-      "Timeout": "4h",
+      "Timeout": "5h",
       "IncludeWorkflow": {
         "Path": "./windows-build-uefi.wf.json",
         "Vars": {
@@ -66,7 +66,7 @@
           "drivers_bucket": "${drivers_bucket}",
           "dotnet48": "${dotnet48}",
           "pwsh": "${pwsh}",
-          "edition": "Windows 10 ENTERPRISE",
+          "edition": "Windows 8.1 Enterprise",
           "media": "${media}",
           "cloud_sdk": "${cloudsdk}",
           "google_cloud_repo": "${google_cloud_repo}",
@@ -83,7 +83,7 @@
           "Family": "${family}",
           "Description": "${description}",
           "Licenses": [
-            "projects/windows-cloud/global/licenses/windows-10-x64-byol"
+            "projects/windows-cloud/global/licenses/windows-81-x64-byol"
           ],
           "GuestOsFeatures": [
             {
