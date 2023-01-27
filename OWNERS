@@ -2,24 +2,20 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 
 approvers:
-  - adjackura
-  - hopkiw
-  - dntczdx
-  - zmarano
   - bkatyl
-  - linskeyd
-  - KarnVadaliya
-  - jjerger
   - dorileo
+  - jjerger
+  - karnvadaliya
   - koln67
+  - linskeyd
+  - zmarano
 reviewers:
-  - adjackura
-  - hopkiw
-  - dntczdx
-  - zmarano
   - bkatyl
-  - linskeyd
-  - KarnVadaliya
-  - jjerger
+  - chaitanyakulkarni28
   - dorileo
+  - jjerger
+  - karnvadaliya
   - koln67
+  - linskeyd
+  - vorakl
+  - zmarano
