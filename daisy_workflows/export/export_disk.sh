@@ -59,6 +59,9 @@ fi
 TARGET_SIZE_BYTES=$(gsutil ls -l "${GCS_PATH}" | head -n 1 | awk '{print $1}')
 TARGET_SIZE_GB=$(awk "BEGIN {print int(((${TARGET_SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
 serialOutputPrefixedKeyValue "GCEExport" "target-size-gb" "${TARGET_SIZE_GB}"
+# Final destination for the disk and sbom exported files
+DESTINATION=$(curl -f -H Metadata-Flavor:Google ${URL}/destination)
+# Local sbom outspath
 SBOM_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-path)
 # References the tar-gz for syft, if SBOM generation will run. 
 SYFT_TAR_FILE=$(curl -f -H Metadata-Flavor:Google ${URL}/syft-tar-file)
@@ -72,8 +75,9 @@ function runSBOMGeneration() {
   mount -o bind,ro /dev /mnt/dev
   gsutil cp $SYFT_TAR_FILE syft.tar.gz
   tar -xf syft.tar.gz
-  ./syft /mnt -o spdx-json > sbom.json
-  gsutil cp sbom.json $SBOM_PATH
+  ./syft /mnt -o spdx-json > image.sbom.json
+  gsutil cp image.sbom.json $SBOM_PATH
+  gsutil cp $SBOM_PATH $DESTINATION
   umount /mnt/dev
   umount /mnt
   echo "GCEExport: SBOM export success"

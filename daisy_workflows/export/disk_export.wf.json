@@ -64,9 +64,10 @@
           "MachineType": "n1-highcpu-4",
           "Metadata": {
             "block-project-ssh-keys": "true",
+            "destination": "${destination}",
             "gcs-path": "${OUTSPATH}/${NAME}.tar.gz",
             "licenses": "${licenses}",
-            "sbom-path": "${OUTSPATH}/sbom.json",
+            "sbom-path": "${OUTSPATH}/${NAME}.sbom.json",
             "startup-script": "${SOURCE:${NAME}_export_disk.sh}",
             "source-disk-name": "${source_disk}",
             "syft-tar-file": "${SOURCESPATH}/syft.tar.gz",
