@@ -1,11 +1,10 @@
 #!/bin/bash
 
 URL="http://metadata/computeMetadata/v1/instance/attributes"
-SBOM_FILE_NAME=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-file-name)
 OUTS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/outs-path)
 DISK_FILE_NAME=$(curl -f -H Metadata-Flavor:Google ${URL}/disk-file-name)
 
-GCS_PATH_SBOM=${OUTS_PATH}/${SBOM_FILE_NAME}
+GCS_PATH_SBOM=${OUTS_PATH}/*.sbom.json
 GCS_PATH_OUTDISK=${OUTS_PATH}/${DISK_FILE_NAME}
 # check if tar.gz file is there
 # check if sbom file is there
