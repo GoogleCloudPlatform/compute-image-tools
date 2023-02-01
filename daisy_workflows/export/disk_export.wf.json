@@ -10,6 +10,10 @@
       "Required": true,
       "Description": "GCS path to export image to"
     },
+    "sbom_destination": {
+      "Value": "${OUTSPATH}/${NAME}.sbom.json",
+      "Description": "GCS path to export sbom to, does nothing by default"
+    },
     "licenses": {
       "Description": "list of GCE licenses to record in the exported image"
     },
@@ -114,12 +118,21 @@
           "Destination": "${destination}"
         }
       ]
+    },
+    "copy-sbom-object": {
+      "CopyGCSObjects": [
+        {
+          "Source": "${OUTSPATH}/${NAME}.sbom.json",
+          "Destination": "${sbom_destination}"
+        }
+      ]
     }
   },
   "Dependencies": {
     "run-${NAME}": ["setup-disks"],
     "wait-for-inst-${NAME}": ["run-${NAME}"],
     "delete-inst": ["wait-for-inst-${NAME}"],
-    "copy-image-object": ["wait-for-inst-${NAME}"]
+    "copy-image-object": ["wait-for-inst-${NAME}"],
+    "copy-sbom-object": ["copy-image-object"]
   }
 }
