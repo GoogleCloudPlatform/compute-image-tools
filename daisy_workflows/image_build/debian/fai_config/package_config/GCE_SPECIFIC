@@ -10,6 +10,9 @@ man
 net-tools
 vim
 
+# Google Cloud package keyring
+google-cloud-packages-archive-keyring
+
 # GCE disk expansion package.
 gce-disk-expand
 
