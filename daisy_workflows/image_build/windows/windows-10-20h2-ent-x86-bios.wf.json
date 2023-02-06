@@ -1,5 +1,5 @@
 {
-  "Name": "windows-10-20h2-ent-x86-bios-byol",
+  "Name": "windows-10-20h2-ent-x86-bios",
   "Vars": {
     "install_disk": "install-disk",
     "media": {
