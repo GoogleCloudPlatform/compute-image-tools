@@ -7,7 +7,7 @@
   time period is set.
 */}}
 {
-  "Name": "windows-10-21h2-ent-x64-uefi-byol",
+  "Name": "windows-10-21h2-ent-x64-uefi",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*6"` -}}

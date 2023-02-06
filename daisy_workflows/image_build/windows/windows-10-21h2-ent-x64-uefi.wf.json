@@ -1,5 +1,5 @@
 {
-  "Name": "windows-10-21h2-ent-x64-uefi-byol",
+  "Name": "windows-10-21h2-ent-x64-uefi",
   "Vars": {
     "install_disk": "install-disk",
     "media": {
