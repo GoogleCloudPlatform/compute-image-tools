@@ -77,12 +77,14 @@ function runSBOMGeneration() {
   tar -xf syft.tar.gz
   ./syft /mnt -o spdx-json > image.sbom.json
   gsutil cp image.sbom.json $SBOM_PATH
-  gsutil cp $SBOM_PATH $DESTINATION
   umount /mnt/dev
   umount /mnt
   echo "GCEExport: SBOM export success"
 }
 
+# Always create empty sbom file so workflow copying does not fail
+touch image.sbom.json
+gsutil cp image.sbom.json $SBOM_PATH
 # If no source for syft was passed in, do not run SBOM generation. 
 if [ $SYFT_SOURCE != "" ]; then
   runSBOMGeneration
