@@ -20,6 +20,9 @@
       "Required": true,
       "Description": "The GCS path that image raw file exported to."
     },
+    "sbom_destination": {
+      "Description": "SBOM Destination"
+    },
     "installer_iso": {
       "Required": true,
       "Description": "The CentOS Stream 9 installer ISO to build from."
@@ -48,6 +51,7 @@
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
           "destination": "${gcs_url}",
+          "sbom_destination": "${sbom_destination}",
           "source_disk": "disk-centos-stream-9",
           "syft_source": "${syft_source}"
         }
