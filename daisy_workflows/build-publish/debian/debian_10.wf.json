@@ -20,6 +20,10 @@
       "Required": true,
       "Description": "The GCS path that image raw file exported to."
     },
+    "sbom_destination": {
+      "Value": "${OUTSPATH}/export-image.sbom.json",
+      "Description": "SBOM final export destination, copies in place by default"
+    },
     "syft_source": {
       "Value": "",
       "Description": "Source url for the syft tar gz file, if generating SBOM. If empty no SBOM is generated."
@@ -51,6 +55,7 @@
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
           "destination": "${gcs_url}",
+          "sbom_destination": "${sbom_destination}",
           "source_disk": "disk-debian-10",
           "syft_source": "${syft_source}"
         }
