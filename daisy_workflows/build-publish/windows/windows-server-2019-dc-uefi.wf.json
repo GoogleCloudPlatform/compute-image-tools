@@ -32,6 +32,9 @@
       "Required": true,
       "Description": "The GCS url that the image raw file exported to."
     },
+    "sbom_destination": {
+      "Description": "The GCS url that the sbom file exported to."
+    },
     "google_cloud_repo": {
       "Value": "stable",
       "Description": "The Google Cloud Repo branch to use."
