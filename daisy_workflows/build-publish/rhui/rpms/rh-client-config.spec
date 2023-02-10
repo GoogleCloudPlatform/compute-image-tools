@@ -82,5 +82,5 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) /etc/cron.daily/google-rhui-client-package-update
 
 %changelog
-* Sun Apr 17 2022 Liam Hopkins <liamh@google.com>
-- Created new client RPMs for RHUIv4 migration.
+* Fri Feb 10 2023 Google Compute Engine <images--associates@google.com>
+- Updated client RPMs for RHUIv4 migration.
