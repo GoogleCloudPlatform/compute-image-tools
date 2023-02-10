@@ -11,6 +11,7 @@ BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildArch:	noarch
 Requires: yum
+Requires: crontabs
 
 %description
 Red Hat Update Infrastructure for Google Compute Engine instances
