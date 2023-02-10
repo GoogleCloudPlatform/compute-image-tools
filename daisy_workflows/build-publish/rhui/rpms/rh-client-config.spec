@@ -79,7 +79,7 @@ rm -rf $RPM_BUILD_ROOT
 %if 0%{?_gpg_keys:1}
     %config  /etc/pki/rpm-gpg/RPM-GPG-KEY-*
 %endif
-%attr(711,root,root) %config  /etc/cron.daily/google-rhui-client-package-update
+%attr(755,root,root) /etc/cron.daily/google-rhui-client-package-update
 
 %changelog
 * Sun Apr 17 2022 Liam Hopkins <liamh@google.com>
