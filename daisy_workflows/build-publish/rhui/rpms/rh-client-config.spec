@@ -50,6 +50,7 @@ mkdir -p $RPM_BUILD_ROOT/%{_bindir}
 cp $RPM_BUILD_DIR/%{name}-%{version}/rhui-set-release $RPM_BUILD_ROOT/%{_bindir}
 
 # google-rhui-client-update cron job
+mkdir -p $RPM_BUILD_ROOT/etc/cron.daily
 cp $RPM_BUILD_DIR/%{name}-%{version}/google-rhui-client-package-update $RPM_BUILD_ROOT/etc/cron.daily
 
 %post
