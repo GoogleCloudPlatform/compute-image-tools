@@ -79,7 +79,7 @@ rm -rf $RPM_BUILD_ROOT
 %if 0%{?_gpg_keys:1}
     %config  /etc/pki/rpm-gpg/RPM-GPG-KEY-*
 %endif
-%attr(755,root,root) /etc/cron.daily/google-rhui-client-package-update
+%attr(755,root,root) %config  /etc/cron.daily/google-rhui-client-package-update
 
 %changelog
 * Fri Feb 10 2023 Google Compute Engine <images--associates@google.com>
