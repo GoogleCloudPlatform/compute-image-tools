@@ -1,0 +1,3 @@
+#!/bin/bash
+# Updating Red Hat Update Infrastructure client packages
+yum -y -q update 'google-rhui-client*'

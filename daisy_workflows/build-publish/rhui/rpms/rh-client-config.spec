@@ -11,6 +11,7 @@ BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildArch:	noarch
 Requires: yum
+Requires: crontabs
 
 %description
 Red Hat Update Infrastructure for Google Compute Engine instances
@@ -48,6 +49,9 @@ cp $RPM_BUILD_DIR/%{name}-%{version}/key.pem $RPM_BUILD_ROOT/etc/pki/rhui
 mkdir -p $RPM_BUILD_ROOT/%{_bindir}
 cp $RPM_BUILD_DIR/%{name}-%{version}/rhui-set-release $RPM_BUILD_ROOT/%{_bindir}
 
+# google-rhui-client-update cron job
+mkdir -p $RPM_BUILD_ROOT/etc/cron.daily
+cp $RPM_BUILD_DIR/%{name}-%{version}/google-rhui-client-package-update $RPM_BUILD_ROOT/etc/cron.daily
 
 %post
 if [ "$1" = "1" ]; then  # 'install', not 'upgrade'
@@ -77,7 +81,8 @@ rm -rf $RPM_BUILD_ROOT
 %if 0%{?_gpg_keys:1}
     %config  /etc/pki/rpm-gpg/RPM-GPG-KEY-*
 %endif
+%attr(755,root,root) %config  /etc/cron.daily/google-rhui-client-package-update
 
 %changelog
-* Sun Apr 17 2022 Liam Hopkins <liamh@google.com>
-- Created new client RPMs for RHUIv4 migration.
+* Fri Feb 10 2023 Google Compute Engine <gc-team@google.com>
+- Updated client RPMs for RHUIv4 migration.
