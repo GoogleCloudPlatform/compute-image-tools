@@ -24,6 +24,7 @@ for cert in *.crt; do
   cp "${package}.crt" "${tardir}/content.crt"
   cp "${package}.repo" "${tardir}/rh-cloud.repo"
   cp rhui-set-release "${tardir}/rhui-set-release"
+  cp google-rhui-client-package-update "${tardir}/google-rhui-client-package-update"
 
   # Get entitlement key, which requires access permissions.
   gcloud secrets versions access latest --secret "${package}-key" --project "$PROJECT" > "${tardir}/key.pem"
