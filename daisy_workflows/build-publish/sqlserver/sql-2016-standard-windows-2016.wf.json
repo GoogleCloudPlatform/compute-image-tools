@@ -16,6 +16,9 @@
       "Value": "/workflows",
       "Description": "Root of github workflows, defaults to /workflows in the container."
     },
+    "sbom_destination": {
+      "Description": "The GCS url that the sbom file exported to."
+    },
     "install_disk": "disk-install",
     "publish_project": "${PROJECT}",
     "sql_server_media": {
