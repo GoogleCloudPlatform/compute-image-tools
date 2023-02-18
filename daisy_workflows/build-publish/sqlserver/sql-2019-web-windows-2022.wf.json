@@ -12,6 +12,9 @@
       "Required": true,
       "Description": "The GCS url that the image raw file exported to."
     },
+    "sbom_destination": {
+      "Description": "The GCS url that the sbom file exported to."
+    },
     "workflow_root": {
       "Value": "/workflows",
       "Description": "Root of github workflows, defaults to /workflows in the container."

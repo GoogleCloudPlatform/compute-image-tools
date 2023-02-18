@@ -9,6 +9,9 @@
       "Required": true,
       "Description": "The GCS url that the image raw file is exported to."
     },
+    "sbom_destination": {
+      "Description": "The GCS url that the sbom file exported to."
+    },
     "build_date": "${TIMESTAMP}",
     "install_disk": "disk-install",
     "source_image_project": "bct-prod-images",
