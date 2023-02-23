@@ -9,7 +9,6 @@ image_name: The name of the image in GCP.
 image_family: The family that image belongs.
 distribution: Use image distribution. Must be one of [enterprise_linux,
   debian, centos].
-uefi: boolean Whether using UEFI to boot OS.
 """
 
 import datetime
@@ -28,7 +27,6 @@ def main():
   image_family = utils.GetMetadataAttribute('image_family')
   distribution = utils.GetMetadataAttribute('distribution',
                                             raise_on_not_found=True)
-  uefi = utils.GetMetadataAttribute('uefi', 'false').lower() == 'true'
   outs_path = utils.GetMetadataAttribute('daisy-outs-path')
 
   logging.info('Creating upload metadata of the image and packages.')
@@ -54,14 +52,11 @@ def main():
       'gce-disk-expand',
   ]
 
-  # This assumes that:
-  # 1. /dev/sdb1 is the EFI system partition.
-  # 2. /dev/sdb2 is the root mount for the installed system.
-  # Except for debian 10, which has out-of-order partitions.
-  if uefi and 'debian-10' not in image_family:
-    mount_disk = '/dev/sdb2'
-  else:
-    mount_disk = '/dev/sdb1'
+  mount_disk = unmounted_root_fs()
+  if mount_disk is None:
+    logging.error('Could not find scanned disk root fs')
+    return
+
   subprocess.run(['mount', mount_disk, '/mnt'], check=False)
   logging.info('Mount %s device to /mnt', mount_disk)
 
@@ -130,6 +125,52 @@ def make_pkg_metadata(name, version, epoch, commit_hash):
     version = '%s:%s' % (epoch, version)
 
   return {'name': name, 'version': version, 'commit_hash': commit_hash}
+
+
+def root_fs(block_device):
+    # Given a block device returns the partition's device node of a root fs
+    # partition. It looks for a partition with the root fs guuid. Returns
+    # None if no root fs is found.
+    root_guuid = '0fc63daf-8483-4772-8e79-3d69d8477de4'
+    process = subprocess.run(['lsblk', block_device, '-lno', 'NAME'],
+                             capture_output=True, check=True)
+
+    for ln in process.stdout.decode().split():
+        part = '/dev/' + ln
+        if part == block_device:
+            continue
+        process = subprocess.run(['blkid', '-p', part],
+                                 capture_output=True, check=True)
+        result = process.stdout.decode().replace(part + ': ', '')
+        for tk in result.split(' '):
+            if tk.startswith('PART_ENTRY_TYPE'):
+                guuid = tk.replace('PART_ENTRY_TYPE=', '').replace('"', '')
+                if guuid == root_guuid:
+                    return part
+
+    return None
+
+
+def unmounted_root_fs():
+    # Searches for the unmounted root fs in the system, we know there'll be 2
+    # block devices the worker's disk and the scanned image/disk so we test
+    # for /dev/sda and /dev/sdb.
+    process = subprocess.run(['mount'], capture_output=True, check=True)
+    mounted_parts = process.stdout.decode().split()
+
+    for curr in ['/dev/sda', '/dev/sdb']:
+        device_node = root_fs(curr)
+        if device_node is None:
+            continue
+        is_mounted = False
+        for ln in mounted_parts:
+            if device_node in ln:
+                is_mounted = True
+                break
+        if not is_mounted:
+            return device_node
+
+    return None
 
 
 if __name__ == '__main__':
