@@ -9,6 +9,7 @@ image_name: The name of the image in GCP.
 image_family: The family that image belongs.
 distribution: Use image distribution. Must be one of [enterprise_linux,
   debian, centos].
+uefi: boolean Whether using UEFI to boot OS.
 """
 
 import datetime
@@ -27,6 +28,7 @@ def main():
   image_family = utils.GetMetadataAttribute('image_family')
   distribution = utils.GetMetadataAttribute('distribution',
                                             raise_on_not_found=True)
+  uefi = utils.GetMetadataAttribute('uefi', 'false').lower() == 'true'
   outs_path = utils.GetMetadataAttribute('daisy-outs-path')
 
   logging.info('Creating upload metadata of the image and packages.')
@@ -52,10 +54,17 @@ def main():
       'gce-disk-expand',
   ]
 
-  mount_disk = unmounted_root_fs()
-  if mount_disk is None:
-    logging.error('Could not find scanned disk root fs')
-    return
+  # This assumes that:
+  # 1. /dev/sdb1 is the EFI system partition.
+  # 2. /dev/sdb2 is the root mount for the installed system.
+  # Except for debian 10, which has out-of-order partitions.
+  if uefi and 'debian-10' not in image_family:
+    mount_disk = '/dev/sdb2'
+  else:
+    mount_disk = unmounted_root_fs()
+    if mount_disk is None:
+      logging.error('Could not find scanned disk root fs')
+      return
 
   subprocess.run(['mount', mount_disk, '/mnt'], check=False)
   logging.info('Mount %s device to /mnt', mount_disk)
