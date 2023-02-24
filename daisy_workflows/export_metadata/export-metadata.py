@@ -142,11 +142,16 @@ def root_fs(block_device):
         process = subprocess.run(['blkid', '-p', part],
                                  capture_output=True, check=True)
         result = process.stdout.decode().replace(part + ': ', '')
-        for tk in result.split(' '):
-            if tk.startswith('PART_ENTRY_TYPE'):
-                guuid = tk.replace('PART_ENTRY_TYPE=', '').replace('"', '')
-                if guuid == root_guuid:
-                    return part
+        tokens = result.replace('"', '').split(' ')
+        data = {i.split('=')[0]: i.split('=')[1] for i in tokens}
+
+        entry_type = data.get('PART_ENTRY_TYPE', None)
+        if entry_type == root_guuid:
+          return part
+
+        label = data.get('LABEL', None)
+        if label == 'root':
+          return part
 
     return None
 
