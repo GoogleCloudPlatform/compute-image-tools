@@ -29,8 +29,8 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Family": "rhel-9-0-sap",
-      "Prefix": "rhel-9-0-sap-ha",
+      "Family": "rhel-9-0-sap-ha",
+      "Prefix": "rhel-9-0-sap",
       "Description": "Red Hat, Red Hat Enterprise Linux for SAP with HA and Update Services, 9.0, x86_64 built on {{$time}}, supports Shielded VM features",
       "Architecture": "X86_64",
       "Licenses": [
