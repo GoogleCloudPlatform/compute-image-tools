@@ -14,7 +14,7 @@ is a GCE Image in the build project.
 
 Debian build workflows all follow the steps:
 
-1. Create an instance using the `debian-10-worker` image as a boot disk and the
+1. Create an instance using the `debian-11-worker` image as a boot disk and the
    appropriate installer script as startup script
 
 1. On boot, the startup script performs the relevant build steps which output a
@@ -22,40 +22,26 @@ Debian build workflows all follow the steps:
 
 1. The file in GCS is then used to create a GCE Image.
 
-### Debian 9 (Stretch)
+### Debian build process
 
-Debian 9 Stretch uses bootstrap-vz from the now archived repo on github.
-https://github.com/andsens/bootstrap-vz
-
-Because this is unmaintained, we use a user fork of the repo with our
-modifications.
-https://github.com/hopkiw/bootstrap-vz
-
-### Debian 10 (Buster) and newer
-
-Debian 10 Buster and newer releases use the project FAI (Fully Automated
-Install) tool, starting from the officially maintained FAI configs from the
-Debian cloud images project.
+Debian releases use the FAI (Fully Automated Install) tool, starting from the
+officially maintained FAI configs from the Debian cloud images project. This
+build doesn't use the full toolset provided by the cloud images team project.
 
 https://salsa.debian.org/cloud-team/debian-cloud-images
 
-The `fai_config` directory contains FAI classes and scripts to be used for GCE
-specific builds which the Debian project did not wish to maintain themselves.
-Therefore the final config used is a mix of the upstream classes and the ones in
-the `fai_config` directory layered in.
+The `fai_config` directory contains FAI classes and scripts which deviate from
+the base Debian cloud images team build in order to support the GCE guest
+envirnoment on Debian. Therefore the final config used is a mix of the upstream
+classes and the ones in the `fai_config` directory layered in.
 
 ## Invoking the build workflows
 
 Example Daisy invocations:
 ```shell
 
-# Debian 9
+# Debian 11
 daisy -project my-project \
       -zone us-west1-a \
-      debian_9.wf.json
-
-# Debian 10
-daisy -project my-project \
-      -zone us-west1-a \
-      debian_10_fai.wf.json
+      debian_11_fai.wf.json
 ```

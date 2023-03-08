@@ -2,43 +2,31 @@ PACKAGES install
 # To avoid entropy issues when intances boot.
 haveged
 
-# Used by the bootstrap script.
-curl
-
-# Useful tools
-man
+# Useful tools not already in the EXTRAS package config
 net-tools
-vim
 
 # Google Cloud package keyring
 google-cloud-packages-archive-keyring
 
-# GCE disk expansion package.
+# GCE disk expansion package
 gce-disk-expand
 
 # GCE OS Config Agent
 google-osconfig-agent
 
-# gcloud
+# gcloud cli
+python3
 google-cloud-cli
 
 PACKAGES install AMD64
-# Secure Boot
+# Secure Boot on amd64
 shim-signed
 grub-efi-amd64-signed
 
 PACKAGES install ARM64
-# SDK needs python installed
-python3
-
-# Unsigned grub
+# Unsigned grub on arm64
 grub-efi-arm64
 
-# Use gce-disk-expand instead.
+# Use gce-disk-expand instead of cloud-init based scripts.
 PACKAGES remove
 cloud-initramfs-growroot
-
-# No secure boot on ARM, yet.
-PACKAGES remove ARM64
-grub-efi-arm64-signed
-shim-signed
