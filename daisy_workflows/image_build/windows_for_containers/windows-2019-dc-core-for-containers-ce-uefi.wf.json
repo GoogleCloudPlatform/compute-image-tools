@@ -1,5 +1,5 @@
 {
-  "Name": "windows-2019-core-containers-uefi-build-ce",
+  "Name": "windows-2019-dc-core-containers-ce-uefi-build",
   "Vars": {
     "build_date": "${TIMESTAMP}",
     "publish_project": "${PROJECT}",
@@ -19,7 +19,7 @@
         },
         {
           "Name": "${install_disk}",
-          "SourceImage": "projects/${source_image_project}/global/images/family/windows-2019-standard-core",
+          "SourceImage": "projects/${source_image_project}/global/images/family/windows-2019-core",
           "Type": "pd-ssd"
         }
       ]
@@ -57,11 +57,11 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "windows-server-2019-core-for-containers-ce-v${build_date}",
+          "Name": "windows-server-2019-dc-core-for-containers-ce-v${build_date}",
           "SourceDisk": "${install_disk}",
           "Licenses": ["projects/windows-cloud/global/licenses/windows-for-containers"],
-          "Description": "Microsoft, Windows Server, 2019 Standard Core for Containers, Server Core, GPT, Secure Boot ready, x64 built on ${build_date}, Docker Community Edition",
-          "GuestOsFeatures": ["MULTI_IP_SUBNET","UEFI_COMPATIBLE","VIRTIO_SCSI_MULTIQUEUE","GVNIC","WINDOWS"],
+          "Description": "Microsoft, Windows Server, 2019 Datacenter Core for Containers, Server Core, GPT, Secure Boot ready, x64 built on ${build_date}, Docker Community Edition",
+          "GuestOsFeatures": [ "MULTI_IP_SUBNET", "UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "GVNIC", "WINDOWS"],
           "Project": "${publish_project}",
           "NoCleanup": true,
           "ExactName": true

@@ -5,7 +5,7 @@
   or 'staging'.
 */}}
 {
-  "Name": "windows-server-2019-dc-core-for-containers-uefi-ce",
+  "Name": "windows-server-2019-dc-for-containers-ce-uefi",
   {{$work_project := `"gce-image-builder"` -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*6"` -}}
@@ -18,12 +18,7 @@
   "WorkProject": {{$work_project}},
   "PublishProject": "windows-cloud",
   "ComputeEndpoint": {{$endpoint}},
-  {{- else if eq .environment "staging" -}}
-  "WorkProject": "bct-staging-images",
-  "PublishProject": "bct-staging-images",
-  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
-  "DeleteAfter": {{$delete_after}},
-    {{- else if eq .environment "internal" -}}
+  {{- else if eq .environment "internal" -}}
   "WorkProject": {{$work_project}},
   "PublishProject": "google.com:windows-internal",
   "ComputeEndpoint": {{$endpoint}},
@@ -38,21 +33,15 @@
   "Images": [
     {
       {{/* Version here is important because of container incompatibilities */}}
-      "Prefix": "windows-server-2019-dc-core-for-containers-ce",
-      "Description": "Microsoft, Windows Server, 2019 Datacenter Core for Containers, Server Core, x64 built on {{$time}}, supports Shielded VM features, Docker Community Edition",
+      "Prefix": "windows-server-2019-dc-for-containers-ce",
+      "Description": "Microsoft, Windows Server, 2019 Datacenter for Containers, x64 built on {{$time}}, supports Shielded VM features, Docker Community Edition",
       "Architecture": "X86_64",
       "Licenses": [
-        {{if eq .environment "staging" -}}
-        "projects/bct-staging-functional/global/licenses/windows-for-containers",
-        "projects/bct-staging-functional/global/licenses/windows-server-2019-dc",
-        "projects/bct-staging-functional/global/licenses/windows-server-core"
-        {{- else if eq .environment "internal" -}}
-        "projects/google.com:windows-internal/global/licenses/internal-windows",
-        "projects/windows-cloud/global/licenses/windows-server-core"
+        {{if eq .environment "internal" -}}
+        "projects/google.com:windows-internal/global/licenses/internal-windows"
         {{- else -}}
         "projects/windows-cloud/global/licenses/windows-for-containers",
-        "projects/windows-cloud/global/licenses/windows-server-2019-dc",
-        "projects/windows-cloud/global/licenses/windows-server-core"
+        "projects/windows-cloud/global/licenses/windows-server-2019-dc"
         {{- end}}
       ],
       "GuestOsFeatures": [
