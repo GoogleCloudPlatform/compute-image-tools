@@ -1,5 +1,5 @@
 {
-  "Name": "windows-2019-dc-core-for-containers-uefi-ce",
+  "Name": "windows-2019-dc-for-containers-ce-uefi",
   "Project": "gce-image-builder",
   "Zone": "us-west1-a",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -24,7 +24,7 @@
     "build-image": {
       "TimeOut": "70m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/windows_for_containers/windows-2019-dc-core-for-containers-uefi-ce.wf.json",
+        "Path": "${workflow_root}/image_build/windows_for_containers/windows-2019-dc-for-containers-ce-uefi.wf.json",
         "Vars": {
           "build_date": "${build_date}",
           "publish_project": "${PROJECT}",
@@ -46,7 +46,7 @@
     "cleanup-image": {
       "DeleteResources": {
         "Images": [
-          "windows-server-2019-dc-core-for-containers-ce-v${build_date}"
+          "windows-server-2019-dc-for-containers-ce-v${build_date}"
         ]
       }
     }
