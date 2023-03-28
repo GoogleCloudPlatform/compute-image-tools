@@ -61,7 +61,7 @@
           "SourceDisk": "${install_disk}",
           "Licenses": ["projects/windows-cloud/global/licenses/windows-for-containers"],
           "Description": "Microsoft, Windows Server, 2019 Datacenter for Containers, x64 built on ${build_date}",
-          "GuestOsFeatures": ["MULTI_IP_SUBNET", "VIRTIO_SCSI_MULTIQUEUE", "WINDOWS"],
+          "GuestOsFeatures": ["MULTI_IP_SUBNET", "VIRTIO_SCSI_MULTIQUEUE", "GVNIC", "WINDOWS"],
           "Family": "windows-2019-for-containers",
           "Project": "${publish_project}",
           "NoCleanup": true,
