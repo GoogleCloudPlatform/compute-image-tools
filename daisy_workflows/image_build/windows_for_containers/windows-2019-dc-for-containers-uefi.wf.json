@@ -7,7 +7,7 @@
     "source_image_project": {"Value": "windows-cloud", "Description": "Project to source base image from."}
   },
   "Sources": {
-    "container_image_install_ce.ps1": "./container_image_install.ps1"
+    "container_image_install.ps1": "./container_image_install.ps1"
   },
   "Steps": {
     "setup-disks": {
