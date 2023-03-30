@@ -83,7 +83,8 @@ def main():
   logging.info('Downloaded and extracted %s.', url)
 
   work_dir = url_params['filename']
-  config_space = os.getcwd() + '/' + work_dir + '/config_space/' + debian_version + '/'
+  config_space = (os.getcwd() + '/' + work_dir + '/config_space/'
+                  + debian_version + '/')
 
   # Remove upstream test cases that won't work here.
   os.remove(config_space + 'hooks/tests.BASE')
