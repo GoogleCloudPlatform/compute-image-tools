@@ -21,10 +21,6 @@
 # Docker Community Edition meant for Windows client installations).
 
 $ErrorActionPreference = 'Stop'
-$DockerPath = 'https://master.dockerproject.org/windows/x86_64/docker.exe'
-$DockerDPath = 'https://master.dockerproject.org/windows/x86_64/dockerd.exe'
-$DockerDataPath = "$($env:ProgramData)\docker"
-$DockerServiceName = "docker"
 
 function Get-MetadataValue {
   param (
@@ -122,7 +118,6 @@ function Get-NanoserverImageName {
     [parameter(Mandatory=$true)]
       [string]$windows_version
   )
-
   $repo = Get-ContainerRepo $windows_version
   $image = 'nanoserver'
   $label = Get-ContainerVersionLabel $windows_version
@@ -134,7 +129,6 @@ function Get-BaseContainerImageNames {
     [parameter(Mandatory=$true)]
       [string]$windows_version
   )
-
   $images = @(Get-ServerCoreImageName $windows_version)
   if (Supports-NanoserverContainerImage $windows_version) {
     $images += (Get-NanoserverImageName $windows_version)
@@ -142,129 +136,22 @@ function Get-BaseContainerImageNames {
   return $images
 }
 
-function Install-ContainerHost {
-  $installState = (Get-WindowsFeature containers)
-  if($installstate.installed -ne 'True') {
-    Write-Output "Containers Windows feature not installed. Installing."
-    Install-WindowsFeature containers
-    return
-  }
-
-  else {
-    if (Test-Docker) {
-      Write-Output "Docker is already installed, skipping Docker installation."
-    }
-    else {
-      Install-Docker -DockerPath $DockerPath -DockerDPath $DockerDPath
-    }
-    Write-Output "Docker install complete."
-  }
-}
-
-function Copy-File {
-  param(
-    [string]$SourcePath,
-    [string]$DestinationPath
-  )
-
-  if ($SourcePath -eq $DestinationPath) {
-    return
-  }     
-  if (Test-Path $SourcePath) {
-    Copy-Item -Path $SourcePath -Destination $DestinationPath
-  }
-  elseif (($SourcePath -as [System.URI]).AbsoluteURI -ne $null) {
-    if ($PSVersionTable.PSVersion.Major -ge 5) {
-      # Disable progress display because it kills performance for large downloads (at least on 64-bit PowerShell)
-      $ProgressPreference = 'SilentlyContinue'
-      Invoke-WebRequest -Uri $SourcePath -OutFile $DestinationPath -UseBasicParsing
-      $ProgressPreference = 'Continue'
-    }
-    else {
-      $webClient = New-Object System.Net.WebClient
-      $webClient.DownloadFile($SourcePath, $DestinationPath)
-    } 
-  }
-  else {
-    throw "Cannot copy from $SourcePath"
-  }
-}
-
-function Install-Docker() {
-  param(
-    [string][ValidateNotNullOrEmpty()]$DockerPath = "https://master.dockerproject.org/windows/x86_64/docker.exe",
-    [string][ValidateNotNullOrEmpty()]$DockerDPath = "https://master.dockerproject.org/windows/x86_64/dockerd.exe"
-  )
-
-  Write-Output "Installing Docker."
-  Copy-File -SourcePath $DockerPath -DestinationPath $env:windir\System32\docker.exe        
-  Write-Output "Installing Docker daemon."
-  Copy-File -SourcePath $DockerDPath -DestinationPath $env:windir\System32\dockerd.exe
-  $dockerConfigPath = Join-Path $DockerDataPath "config"
-  if (!(Test-Path $dockerConfigPath)) {
-    md -Path $dockerConfigPath | Out-Null
-  }
-
-  # Register the docker service.
-  # Configuration options should be placed at %programdata%\docker\config\daemon.json
-  Write-Output "Configuring the docker service."
-  $daemonSettings = New-Object PSObject     
-  $certsPath = Join-Path $DockerDataPath "certs.d"
-  if (Test-Path $certsPath) {
-    $daemonSettings | Add-Member NoteProperty hosts @("npipe://", "0.0.0.0:2376")
-    $daemonSettings | Add-Member NoteProperty tlsverify true
-    $daemonSettings | Add-Member NoteProperty tlscacert (Join-Path $certsPath "ca.pem")
-    $daemonSettings | Add-Member NoteProperty tlscert (Join-Path $certsPath "server-cert.pem")
-    $daemonSettings | Add-Member NoteProperty tlskey (Join-Path $certsPath "server-key.pem")
-  }
-  $daemonSettingsFile = Join-Path $dockerConfigPath "daemon.json"
-  $daemonSettings | ConvertTo-Json | Out-File -FilePath $daemonSettingsFile -Encoding ASCII  
-  & dockerd --register-service --service-name $DockerServiceName
-  Start-Service -Name $DockerServiceName
-
-  # Wait for docker to come to steady state
-  Wait-Docker
-}
-
-function Test-Docker() {
-  $service = Get-Service -Name $DockerServiceName -ErrorAction SilentlyContinue
-  return ($service -ne $null)
-}
-
-function Wait-Docker() {
-  Write-Output "Waiting for Docker daemon."
-  $dockerReady = $false
-  $startTime = Get-Date
-  while (-not $dockerReady) {
-    try {
-      docker version | Out-Null
-        if (-not $?) {
-          throw "Docker daemon is not running yet."
-        }
-      $dockerReady = $true
-    }
-    catch {
-      $timeElapsed = $(Get-Date) - $startTime
-        if ($($timeElapsed).TotalMinutes -ge 1) {
-          throw "Docker Daemon did not start successfully within 1 minute."
-        }
-
-      # Delay error and try again
-      Start-Sleep -sec 1
-    }
-  }
-  Write-Output "Successfully connected to Docker Daemon."
-}
-
 function Run-FirstBootSteps {
-  Write-Host 'Installing NuGet module.'
-  Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
+  if ((Get-WindowsFeature Containers).Installed) {
+    Write-Host 'Containers feature already installed, skipping feature installation'
+  }
+  else {
+    Write-Host 'Installing/Enabling Windows feature: Containers'
+    Add-WindowsFeature Containers
+    return
+  }
 
-  Write-Host 'Installing DockerMsftProvider module.'
-  Install-Module -Name DockerMsftProvider -Repository PSGallery -Force
-
-  Write-Host 'Installing Docker CE.'
-  Install-ContainerHost
+  Write-Host 'Fetching Docker CE install script'
+  Invoke-WebRequest -UseBasicParsing "https://raw.githubusercontent.com/microsoft/Windows-Containers/Main/helpful_tools/Install-DockerCE/install-docker-ce.ps1" -o $env:TEMP\install-docker-ce.ps1
+  dir $env:TEMP
+  Write-Host 'Running docker install script'
+  $dockerwait = Start-Process -PassThru -FilePath "powershell.exe" -ArgumentList "$env:TEMP\install-docker-ce.ps1"
+  Wait-Process -InputObject $dockerwait
 }
 
 function Run-SecondBootSteps {
@@ -272,8 +159,6 @@ function Run-SecondBootSteps {
     [parameter(Mandatory=$true)]
       [string]$windows_version
   )
-
-  Install-ContainerHost
 
   # For some reason the docker service may not be started automatically on the
   # first reboot, although it seems to work fine on subsequent reboots. The
@@ -308,13 +193,9 @@ function Run-SecondBootSteps {
 
 & googet -noconfirm update
 & ping 127.0.0.1 -n 60
+$dockerStatus = Get-Service -Name 'docker' -ErrorAction SilentlyContinue
 try {
   $windows_version = Get-MetadataValue 'version'
-
-  # Use the existence of the docker service to determine if all firstboot
-  # steps completed, as the container install forces a reboot prior to
-  # docker installation.
-  $dockerStatus = Get-Service -Name 'docker' -ErrorAction SilentlyContinue
   Write-Host "Windows version: $windows_version"
   if (-not $windows_version) {
     throw 'Error retrieving "version" from metadata'
