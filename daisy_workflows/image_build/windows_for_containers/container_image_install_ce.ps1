@@ -151,6 +151,19 @@ function Run-FirstBootSteps {
   Write-Host 'Running docker install script'
   $dockerwait = Start-Process -PassThru -FilePath "powershell.exe" -ArgumentList "$env:TEMP\install-docker-ce.ps1"
   Wait-Process -InputObject $dockerwait
+
+  Write-Host 'Copying Docker license information'
+  mkdir C:\Windows\System32\Docker
+  Invoke-WebRequest -UseBasicParsing "https://raw.githubusercontent.com/docker/docker-ce/master/LICENSE" -o C:\Windows\System32\Docker\LICENSE.txt
+  
+  Write-Host 'Stopping docker service (if running) and updating binary paths'
+  Stop-Service docker
+  Move-Item -Path C:\Windows\System32\dockerd.exe -Destination C:\Windows\System32\Docker\dockerd.exe
+  Move-Item -Path C:\Windows\System32\docker.exe -Destination C:\Windows\System32\Docker\docker.exe
+  Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Services\docker" -Name ImagePath -Value "C:\Windows\system32\Docker\dockerd.exe --run-service --service-name docker"
+  $systempath = $env:PATH
+  $systempath += 'C:\Windows\System32\Docker'
+  [Environment]::SetEnvironmentVariable('PATH', $systempath, 'Machine')
 }
 
 function Run-SecondBootSteps {
@@ -159,6 +172,7 @@ function Run-SecondBootSteps {
       [string]$windows_version
   )
 
+  Write-Host $env:PATH
   # For some reason the docker service may not be started automatically on the
   # first reboot, although it seems to work fine on subsequent reboots. The
   # docker service must be running or else the vEthernet interface may not be
