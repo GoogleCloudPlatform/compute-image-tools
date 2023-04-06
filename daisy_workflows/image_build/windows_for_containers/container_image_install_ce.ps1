@@ -153,17 +153,21 @@ function Run-FirstBootSteps {
   Wait-Process -InputObject $dockerwait
 
   Write-Host 'Copying Docker license information'
-  mkdir C:\Windows\System32\Docker
-  Invoke-WebRequest -UseBasicParsing "https://raw.githubusercontent.com/docker/docker-ce/master/LICENSE" -o C:\Windows\System32\Docker\LICENSE.txt
-  
+  $dockerPath = 'C:\Program Files\Docker'
+  if (-not (Test-Path $dockerPath)) {
+    New-Item -Path $dockerPath -ItemType Directory
+  }
+  Invoke-WebRequest -UseBasicParsing "https://raw.githubusercontent.com/docker/docker-ce/master/LICENSE" -o "$dockerPath\LICENSE.txt"
+
   Write-Host 'Stopping docker service (if running) and updating binary paths'
   Stop-Service docker
-  Move-Item -Path C:\Windows\System32\dockerd.exe -Destination C:\Windows\System32\Docker\dockerd.exe
-  Move-Item -Path C:\Windows\System32\docker.exe -Destination C:\Windows\System32\Docker\docker.exe
-  Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Services\docker" -Name ImagePath -Value "C:\Windows\system32\Docker\dockerd.exe --run-service --service-name docker"
-  $systempath = $env:PATH
-  $systempath += 'C:\Windows\System32\Docker'
-  [Environment]::SetEnvironmentVariable('PATH', $systempath, 'Machine')
+  Move-Item -Path C:\Windows\System32\dockerd.exe -Destination "$dockerPath\dockerd.exe"
+  Move-Item -Path C:\Windows\System32\docker.exe -Destination "$dockerPath\docker.exe"
+  
+  Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Services\docker' -Name ImagePath -Value "$dockerPath\dockerd.exe --run-service --service-name docker" 
+  if ($env:PATH -notlike "*$dockerPath*") {
+    [Environment]::SetEnvironmentVariable('PATH', $env:PATH + $dockerPath + ';', 'Machine')
+  }
 }
 
 function Run-SecondBootSteps {
@@ -172,7 +176,6 @@ function Run-SecondBootSteps {
       [string]$windows_version
   )
 
-  Write-Host $env:PATH
   # For some reason the docker service may not be started automatically on the
   # first reboot, although it seems to work fine on subsequent reboots. The
   # docker service must be running or else the vEthernet interface may not be
