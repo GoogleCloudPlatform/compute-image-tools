@@ -151,6 +151,23 @@ function Run-FirstBootSteps {
   Write-Host 'Running docker install script'
   $dockerwait = Start-Process -PassThru -FilePath "powershell.exe" -ArgumentList "$env:TEMP\install-docker-ce.ps1"
   Wait-Process -InputObject $dockerwait
+
+  Write-Host 'Copying Docker license information'
+  $dockerPath = 'C:\Program Files\Docker'
+  if (-not (Test-Path $dockerPath)) {
+    New-Item -Path $dockerPath -ItemType Directory
+  }
+  Invoke-WebRequest -UseBasicParsing "https://raw.githubusercontent.com/docker/docker-ce/master/LICENSE" -o "$dockerPath\LICENSE.txt"
+
+  Write-Host 'Stopping docker service (if running) and updating binary paths'
+  Stop-Service docker
+  Move-Item -Path C:\Windows\System32\dockerd.exe -Destination "$dockerPath\dockerd.exe"
+  Move-Item -Path C:\Windows\System32\docker.exe -Destination "$dockerPath\docker.exe"
+  
+  Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Services\docker' -Name ImagePath -Value "$dockerPath\dockerd.exe --run-service --service-name docker" 
+  if ($env:PATH -notlike "*$dockerPath*") {
+    [Environment]::SetEnvironmentVariable('PATH', $env:PATH + $dockerPath + ';', 'Machine')
+  }
 }
 
 function Run-SecondBootSteps {
