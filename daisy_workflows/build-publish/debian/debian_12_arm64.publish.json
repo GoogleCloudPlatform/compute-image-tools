@@ -28,14 +28,14 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Prefix": "debian-10-buster",
-      "Family": "debian-10",
-      "Description": "Debian, Debian GNU/Linux, 10 (buster), amd64 built on {{$time}}, supports Shielded VM features",
-      "Architecture": "X86_64",
+      "Prefix": "debian-12-bookworm-arm64",
+      "Family": "debian-12-arm64",
+      "Description": "Debian, Debian GNU/Linux, 12 (bookworm), arm64 built on {{$time}}",
+      "Architecture": "ARM64",
       "Licenses": [
-        "projects/debian-cloud/global/licenses/debian-10-buster"
+        "projects/debian-cloud/global/licenses/debian-12-bookworm"
       ],
-      "GuestOsFeatures": ["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "GVNIC"]
+      "GuestOsFeatures": ["UEFI_COMPATIBLE", "GVNIC"]
     }
   ]
 }

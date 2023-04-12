@@ -1,2 +1,2 @@
-deb http://packages.cloud.google.com/apt google-compute-engine-{%release%}-stable main
-deb http://packages.cloud.google.com/apt cloud-sdk-{%release%} main
+deb https://packages.cloud.google.com/apt google-compute-engine-{%SUITE%}-stable main
+deb https://packages.cloud.google.com/apt cloud-sdk-{%SUITE%} main

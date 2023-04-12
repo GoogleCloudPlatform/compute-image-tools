@@ -53,7 +53,7 @@ def main():
   # Get Parameters.
   build_date = utils.GetMetadataAttribute(
       'build_date', raise_on_not_found=True)
-  debian_cloud_images_version = '69783f7417aefb332d5d7250ba242adeca444131'
+  debian_cloud_images_version = '695ae0c8660d5bbfdb4e01f4a5cc2bacbc06783b'
   debian_version = utils.GetMetadataAttribute(
       'debian_version', raise_on_not_found=True)
   outs_path = utils.GetMetadataAttribute('daisy-outs-path',
@@ -83,13 +83,11 @@ def main():
   logging.info('Downloaded and extracted %s.', url)
 
   work_dir = url_params['filename']
-  config_space = os.getcwd() + '/' + work_dir + '/config_space/'
+  config_space = (os.getcwd() + '/' + work_dir + '/config_space/'
+                  + debian_version + '/')
 
-  # We are going to replace this with our variant
-  os.remove(config_space + 'class/BULLSEYE.var')
-
-  # Remove failing test method for now.
-  os.remove(config_space + 'hooks/tests.CLOUD')
+  # Remove upstream test cases that won't work here.
+  os.remove(config_space + 'hooks/tests.BASE')
 
   # Copy our classes to the FAI config space
   mycopytree('/files/fai_config', config_space)
@@ -101,23 +99,32 @@ def main():
   os.chmod(config_space + 'hooks/configure.GCE_SPECIFIC', 0o755)
 
   # Config fai-tool
-  # Base classes
-  fai_classes = ['DEBIAN', 'CLOUD', 'GCE', 'LINUX_IMAGE_CLOUD', 'GCE_SPECIFIC',
-                 'GCE_CLEAN']
+  # Base classes used for everything
+  fai_classes = ['BASE', 'DEBIAN', 'CLOUD', 'GCE', 'EXTRAS', 'IPV6_DHCP',
+                 'TIME_SYSTEMD', 'GCE_SPECIFIC', 'GCE_CLEAN',
+                 'LINUX_VARIANT_CLOUD']
 
   # Arch-specific classes
   if platform.machine() == 'aarch64':
-    fai_classes += ['ARM64', 'GRUB_EFI_ARM64', 'BACKPORTS_LINUX']
+    fai_classes += ['ARM64', 'GRUB_EFI_ARM64']
   else:
     fai_classes += ['AMD64', 'GRUB_CLOUD_AMD64']
 
-  # Version-specific classes
-  if debian_version == 'buster':
-    fai_classes += ['BUSTER']
-  elif debian_version == 'bullseye':
-    fai_classes += ['BULLSEYE']
-  elif debian_version == 'sid':
-    fai_classes += ['SID']
+  # Version-specific classes used to select release and kernel
+  if debian_version == 'buster':  # Debian 10
+    # Use the backports kernel for Buster due to gVNIC.
+    fai_classes += ['BUSTER', 'LINUX_VERSION_BACKPORTS',
+                    'LINUX_VERSION_BUSTER_LTS+LINUX_VARIANT_CLOUD']
+  elif debian_version == 'bullseye':  # Debian 11
+    fai_classes += ['BULLSEYE', 'LINUX_VERSION_BASE+LINUX_VARIANT_CLOUD']
+    # Use the backports kernel for Bullseye arm64 due to gVNIC.
+    if platform.machine() == 'aarch64':  # Debian 11 arm64
+      fai_classes += ['LINUX_VERSION_BACKPORTS',
+                      'LINUX_VERSION_BACKPORTS+LINUX_VARIANT_CLOUD']
+  elif debian_version == 'bookworm':  # Debian 12
+    fai_classes += ['BOOKWORM', 'LINUX_VERSION_BASE+LINUX_VARIANT_CLOUD']
+  elif debian_version == 'sid':  # Debian unstable
+    fai_classes += ['SID', 'LINUX_VERSION_BASE+LINUX_VARIANT_CLOUD']
 
   image_size = '10G'
   disk_name = 'disk.raw'

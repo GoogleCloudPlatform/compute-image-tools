@@ -1,0 +1,74 @@
+{
+  "Name": "debian-12-arm64",
+  "Project": "gce-image-builder",
+  "Zone": "us-central1-b",
+  "Vars": {
+    "build_date": {
+      "Value": "${TIMESTAMP}",
+      "Description": "Build datestamp used to version the image."
+    },
+    "google_cloud_repo": {
+      "Value": "DEPRECATED",
+      "Description": "DEPRECATED. Included to ease transition of our pipelines, but not used."
+    },
+    "workflow_root": {
+      "Value": "/workflows",
+      "Description": "Root of github workflows, defaults to /workflows in the container."
+    },
+    "gcs_url": {
+      "Required": true,
+      "Description": "The GCS path that image raw file exported to."
+    },
+    "sbom_destination": {
+      "Value": "${OUTSPATH}/export-image.sbom.json",
+      "Description": "SBOM final export destination, copies in place by default"
+    },
+    "syft_source": {
+      "Value": "",
+      "Description": "Source url for the syft tar gz file, if generating SBOM. If empty no SBOM is generated."
+    }
+  },
+  "Steps": {
+    "build": {
+      "TimeOut": "60m",
+      "IncludeWorkflow": {
+        "Path": "${workflow_root}/image_build/debian/debian_12_arm64.wf.json",
+        "Vars": {
+          "build_date": "${build_date}"
+        }
+      }
+    },
+    "create-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-debian-12",
+          "SourceImage": "debian-12-arm64-v${build_date}",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "export-image": {
+      "Timeout": "60m",
+      "IncludeWorkflow": {
+        "Path": "${workflow_root}/export/disk_export.wf.json",
+        "Vars": {
+          "destination": "${gcs_url}",
+          "sbom_destination": "${sbom_destination}",
+          "source_disk": "disk-debian-12",
+          "syft_source": "${syft_source}"
+        }
+      }
+    },
+    "cleanup-image": {
+      "DeleteResources": {
+        "Images": ["debian-12-arm64-v${build_date}"]
+      }
+    }
+  },
+  "Dependencies": {
+    "create-disk": ["build"],
+    "export-image": ["create-disk"],
+    "cleanup-image": ["export-image"]
+  }
+}
