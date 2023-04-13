@@ -233,7 +233,11 @@ function Install-SqlServer {
   & netsh advfirewall firewall add rule name='SQL Server' dir=in action=allow protocol=TCP localport=1433
 
   Write-Host 'Installing SQL Server'
-  & "${sql_install}\setup.exe" "/ConfigurationFile=${sql_config}"
+  
+  $process = Start-Process "${sql_install}\setup.exe" -ArgumentList "/ConfigurationFile=${sql_config}" -Wait
+  if ($process.ExitCode -ne 0) {
+    throw "SQL Server installer returned non-zero exit code. Exit Code: $($process.ExitCode)"
+  }
   Write-Host 'Finished installing SQL Server'
 }
 
@@ -249,7 +253,10 @@ function Install-SSMS {
   $ssms_exe = 'D:\SSMS-Setup-ENU.exe'
   & 'gsutil' -m cp "${gs_path}/SSMS-Setup-ENU.exe" $ssms_exe
 
-  Start-Process $ssms_exe -ArgumentList @('/install','/quiet','/norestart') -Wait
+  $process = Start-Process $ssms_exe -ArgumentList @('/install','/quiet','/norestart') -Wait
+  if ($process.ExitCode -ne 0) {
+    throw "SSMS installer returned non-zero exit code. Exit Code: $($process.ExitCode)"
+  }
 
   Write-Host 'Finished installing SSMS'
 }
