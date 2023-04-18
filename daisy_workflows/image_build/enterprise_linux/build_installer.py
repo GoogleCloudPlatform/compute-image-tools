@@ -67,7 +67,8 @@ def main():
   utils.Execute(['mount', '-o', 'ro,loop', '-t', 'iso9660', iso_file, 'iso'])
   utils.Execute(['mount', '-t', 'vfat', '/dev/sdb1', 'boot'])
   utils.Execute(['mount', '-t', 'ext2', '/dev/sdb2', 'installer'])
-  utils.Execute(['rsync', '-Pav', 'iso/EFI', 'iso/images', 'boot/'])
+  utils.Execute(['rsync', '-Pav', '--chown=root:root', 'iso/EFI',
+                 'iso/images', 'boot/'])
   utils.Execute(['cp', iso_file, 'installer/'])
   utils.Execute(['cp', ks_cfg, 'installer/'])
 
