@@ -8,6 +8,9 @@ net-tools
 # Google Cloud package keyring
 google-cloud-packages-archive-keyring
 
+# GCE guest software
+google-compute-engine
+
 # GCE disk expansion package
 gce-disk-expand
 
