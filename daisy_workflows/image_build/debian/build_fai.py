@@ -112,9 +112,8 @@ def main():
 
   # Version-specific classes used to select release and kernel
   if debian_version == 'buster':  # Debian 10
-    # Use the backports kernel for Buster due to gVNIC.
     fai_classes += ['BUSTER', 'LINUX_VERSION_BACKPORTS',
-                    'LINUX_VERSION_BUSTER_LTS+LINUX_VARIANT_CLOUD']
+                    'LINUX_VERSION_BASE+LINUX_VARIANT_CLOUD']
   elif debian_version == 'bullseye':  # Debian 11
     fai_classes += ['BULLSEYE', 'LINUX_VERSION_BASE+LINUX_VARIANT_CLOUD']
     # Use the backports kernel for Bullseye arm64 due to gVNIC.
