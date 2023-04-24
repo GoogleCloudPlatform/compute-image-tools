@@ -55,8 +55,8 @@ def main():
   utils.Execute(['parted', installer_disk, 'mkpart', 'primary', 'fat32', '1MB',
                  '1024MB'])
   utils.Execute(['sync'])
-  utils.Execute(['parted', installer_disk, 'mkpart', 'primary', 'ext2', '1024MB',
-                 '100%'])
+  utils.Execute(['parted', installer_disk, 'mkpart', 'primary', 'ext2',
+                 '1024MB', '100%'])
   utils.Execute(['sync'])
   utils.Execute(['parted', installer_disk, 'set', '1', 'boot', 'on'])
   utils.Execute(['sync'])
