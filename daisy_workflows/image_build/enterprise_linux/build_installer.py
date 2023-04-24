@@ -44,31 +44,37 @@ def main():
   # Write the installer disk. Write GPT label, create partition,
   # copy installer boot files over.
   logging.info('Writing installer disk.')
-  utils.Execute(['parted', '/dev/sdb', 'mklabel', 'gpt'])
+
+  installer_disk = ('/dev/' + os.path.basename(
+      os.readlink('/dev/disk/by-id/google-disk-installer')))
+  installer_disk1 = installer_disk + '1'
+  installer_disk2 = installer_disk + '2'
+
+  utils.Execute(['parted', installer_disk, 'mklabel', 'gpt'])
   utils.Execute(['sync'])
-  utils.Execute(['parted', '/dev/sdb', 'mkpart', 'primary', 'fat32', '1MB',
+  utils.Execute(['parted', installer_disk, 'mkpart', 'primary', 'fat32', '1MB',
                  '1024MB'])
   utils.Execute(['sync'])
-  utils.Execute(['parted', '/dev/sdb', 'mkpart', 'primary', 'ext2', '1024MB',
-                 '100%'])
+  utils.Execute(['parted', installer_disk, 'mkpart', 'primary', 'ext2',
+                 '1024MB', '100%'])
   utils.Execute(['sync'])
-  utils.Execute(['parted', '/dev/sdb', 'set', '1', 'boot', 'on'])
+  utils.Execute(['parted', installer_disk, 'set', '1', 'boot', 'on'])
   utils.Execute(['sync'])
-  utils.Execute(['parted', '/dev/sdb', 'set', '1', 'esp', 'on'])
+  utils.Execute(['parted', installer_disk, 'set', '1', 'esp', 'on'])
   utils.Execute(['sync'])
-  utils.Execute(['mkfs.vfat', '-F', '32', '/dev/sdb1'])
+  utils.Execute(['mkfs.vfat', '-F', '32', installer_disk1])
   utils.Execute(['sync'])
-  utils.Execute(['fatlabel', '/dev/sdb1', 'ESP'])
+  utils.Execute(['fatlabel', installer_disk1, 'ESP'])
   utils.Execute(['sync'])
-  utils.Execute(['mkfs.ext2', '-L', 'INSTALLER', '/dev/sdb2'])
+  utils.Execute(['mkfs.ext2', '-L', 'INSTALLER', installer_disk2])
   utils.Execute(['sync'])
 
   utils.Execute(['mkdir', '-vp', 'iso', 'installer', 'boot'])
   utils.Execute(['mount', '-o', 'ro,loop', '-t', 'iso9660', iso_file, 'iso'])
-  utils.Execute(['mount', '-t', 'vfat', '/dev/sdb1', 'boot'])
-  utils.Execute(['mount', '-t', 'ext2', '/dev/sdb2', 'installer'])
-  utils.Execute(['rsync', '-Pav', '--chown=root:root', 'iso/EFI',
-                 'iso/images', 'boot/'])
+  utils.Execute(['mount', '-t', 'vfat', installer_disk1, 'boot'])
+  utils.Execute(['mount', '-t', 'ext2', installer_disk2, 'installer'])
+  utils.Execute(['cp', '-r', 'iso/EFI', 'boot/'])
+  utils.Execute(['cp', '-r', 'iso/images', 'boot/'])
   utils.Execute(['cp', iso_file, 'installer/'])
   utils.Execute(['cp', ks_cfg, 'installer/'])
 
