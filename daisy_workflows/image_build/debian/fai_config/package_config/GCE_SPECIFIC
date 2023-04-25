@@ -33,3 +33,8 @@ grub-efi-arm64
 # Use gce-disk-expand instead of cloud-init based scripts.
 PACKAGES remove
 cloud-initramfs-growroot
+
+# No secure boot on ARM, yet.
+PACKAGES remove ARM64
+grub-efi-arm64-signed
+shim-signed
