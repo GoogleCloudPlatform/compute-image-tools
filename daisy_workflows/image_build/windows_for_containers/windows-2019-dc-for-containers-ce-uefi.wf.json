@@ -59,7 +59,11 @@
         {
           "Name": "windows-server-2019-dc-for-containers-ce-v${build_date}",
           "SourceDisk": "${install_disk}",
-          "Licenses": ["projects/windows-cloud/global/licenses/windows-for-containers"],
+          "Licenses": [
+            "projects/google.com:windows-internal/global/licenses/docker-ce",
+            "projects/windows-cloud/global/licenses/windows-for-containers",
+            "projects/windows-cloud/global/licenses/windows-server-2019-dc"
+          ],
           "Description": "Microsoft, Windows Server, 2019 Datacenter for Containers, Server Core, GPT, Secure Boot ready, x64 built on ${build_date}, Docker Community Edition",
           "GuestOsFeatures": [ "MULTI_IP_SUBNET", "UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "GVNIC", "WINDOWS"],
           "Project": "${publish_project}",

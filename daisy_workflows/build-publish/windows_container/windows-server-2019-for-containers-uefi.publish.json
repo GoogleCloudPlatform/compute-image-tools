@@ -42,7 +42,8 @@
         "projects/google.com:windows-internal/global/licenses/internal-windows"
         {{- else -}}
         "projects/windows-cloud/global/licenses/windows-for-containers",
-        "projects/windows-cloud/global/licenses/windows-server-2019"
+        "projects/windows-cloud/global/licenses/windows-server-2019",
+        "projects/windows-cloud/global/licenses/mirantis-container-runtime"
         {{- end}}
       ],
       "GuestOsFeatures": [
