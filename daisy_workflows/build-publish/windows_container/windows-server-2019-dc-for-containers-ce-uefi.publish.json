@@ -37,12 +37,9 @@
       "Description": "Microsoft, Windows Server, 2019 Datacenter for Containers, x64 built on {{$time}}, supports Shielded VM features, Docker Community Edition",
       "Architecture": "X86_64",
       "Licenses": [
-        {{if eq .environment "internal" -}}
-        "projects/google.com:windows-internal/global/licenses/internal-windows"
-        {{- else -}}
+        "projects/google.com:windows-internal/global/licenses/docker-ce",
         "projects/windows-cloud/global/licenses/windows-for-containers",
         "projects/windows-cloud/global/licenses/windows-server-2019-dc"
-        {{- end}}
       ],
       "GuestOsFeatures": [
         "MULTI_IP_SUBNET",
