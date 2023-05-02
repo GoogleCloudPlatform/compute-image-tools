@@ -137,15 +137,24 @@ function Get-BaseContainerImageNames {
 }
 
 function Run-FirstBootSteps {
-  Write-Host 'Installing NuGet module'
-  Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
+  if ((Get-WindowsFeature Containers).Installed) {
+    Write-Host 'Containers feature already installed, skipping feature installation'
+  }
+  else {
+    Write-Host 'Installing/Enabling Windows feature: Containers'
+    Add-WindowsFeature Containers
+    return
+  }
 
-  Write-Host 'Installing DockerMsftProvider module'
-  Install-Module -Name DockerMsftProvider -Repository PSGallery -Force
-
-  $docker_version = "19.03"
-  Write-Host "Installing Docker EE ${docker_version}"
-  Install-Package -Name docker -ProviderName DockerMsftProvider -Force -RequiredVersion ${docker_version}
+  Write-Host 'Fetching Docker CE install script'
+  Invoke-WebRequest -Uri https://info.mirantis.com/l/530892/install-ps1/21cy985 -o $env:TEMP\install-docker-ce.ps1
+  Write-Host 'Running docker install script'
+  $dockerwait = Start-Process -PassThru -FilePath "powershell.exe" -ArgumentList "$env:TEMP\install-docker-ce.ps1 -DockerVersion `"20.10.16`""
+  Wait-Process -InputObject $dockerwait
+  
+  if ($env:PATH -notlike "*$dockerPath*") {
+    [Environment]::SetEnvironmentVariable('PATH', $env:PATH + $dockerPath + ';', 'Machine')
+  }
 }
 
 function Run-SecondBootSteps {
@@ -153,6 +162,60 @@ function Run-SecondBootSteps {
     [parameter(Mandatory=$true)]
       [string]$windows_version
   )
+
+  Write-Host 'Setting host vEthernet MTU to 1460'
+  Get-NetAdapter | Where-Object {$_.Name -like 'vEthernet*'} | ForEach-Object {
+    & netsh interface ipv4 set subinterface $_.InterfaceIndex mtu=1460 store=persistent
+  }
+
+  # As most if not all Windows containers are based on one of the base images
+  # provided by Microsoft, we pull them here so that running a container using
+  # this image is quick.
+  $container_images = Get-BaseContainerImageNames $windows_version
+  ForEach ($image in $container_images) {
+    Write-Host "Pulling container image: $image"
+    & docker pull $image
+    if (!$?) {
+      throw "Error running 'docker pull $image'"
+    }
+  }
+
+  Write-Host 'Setting container vEthernet MTU to 1460'
+  $servercore_image = Get-ServerCoreImageName $windows_version
+  & docker run --rm "$servercore_image" powershell.exe "Get-NetAdapter | Where-Object {`$_.Name -like 'vEthernet*'} | ForEach-Object { & netsh interface ipv4 set subinterface `$_.InterfaceIndex mtu=1460 store=persistent }"
+  if (!$?) {
+    throw "Error running 'docker run $servercore_image'"
+  }
+}
+
+& googet -noconfirm update
+& ping 127.0.0.1 -n 60
+$dockerStatus = Get-Service -Name 'docker' -ErrorAction SilentlyContinue
+try {
+  $windows_version = Get-MetadataValue 'version'
+  Write-Host "Windows version: $windows_version"
+  if (-not $windows_version) {
+    throw 'Error retrieving "version" from metadata'
+  }
+
+  if ($dockerStatus -eq $null) {
+    Run-FirstBootSteps
+    Write-Host 'Restarting computer to finish install'
+    Restart-Computer -Force
+  }
+  else {
+    Run-SecondBootSteps $windows_version
+    Write-Host 'Launching sysprep.'
+    & 'C:\Program Files\Google\Compute Engine\sysprep\gcesysprep.bat'
+  }
+}
+catch {
+  Write-Host 'Exception caught in script:'
+  Write-Host $_.InvocationInfo.PositionMessage
+  Write-Host "Windows build failed: $($_.Exception.Message)"
+  exit 1
+}
+
 
   # For some reason the docker service may not be started automatically on the
   # first reboot, although it seems to work fine on subsequent reboots. The
