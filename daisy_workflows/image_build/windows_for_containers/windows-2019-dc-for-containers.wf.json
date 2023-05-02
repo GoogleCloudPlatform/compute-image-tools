@@ -59,7 +59,10 @@
         {
           "Name": "windows-server-2019-dc-for-containers-v${build_date}",
           "SourceDisk": "${install_disk}",
-          "Licenses": ["projects/windows-cloud/global/licenses/windows-for-containers"],
+          "Licenses": [
+            "projects/windows-cloud/global/licenses/windows-for-containers",
+            "projects/windows-cloud/global/licenses/mirantis-container-runtime"
+          ],
           "Description": "Microsoft, Windows Server, 2019 Datacenter for Containers, x64 built on ${build_date}",
           "GuestOsFeatures": ["MULTI_IP_SUBNET", "VIRTIO_SCSI_MULTIQUEUE", "GVNIC", "WINDOWS"],
           "Family": "windows-2019-for-containers",

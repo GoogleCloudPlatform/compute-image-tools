@@ -18,12 +18,7 @@
   "WorkProject": {{$work_project}},
   "PublishProject": "windows-cloud",
   "ComputeEndpoint": {{$endpoint}},
-  {{- else if eq .environment "staging" -}}
-  "WorkProject": "bct-staging-images",
-  "PublishProject": "bct-staging-images",
-  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
-  "DeleteAfter": {{$delete_after}},
-    {{- else if eq .environment "internal" -}}
+  {{- else if eq .environment "internal" -}}
   "WorkProject": {{$work_project}},
   "PublishProject": "google.com:windows-internal",
   "ComputeEndpoint": {{$endpoint}},
@@ -43,17 +38,14 @@
       "Description": "Microsoft, Windows Server, 2019 Core for Containers, Server Core, x64 built on {{$time}}, supports Shielded VM features",
       "Architecture": "X86_64",
       "Licenses": [
-        {{if eq .environment "staging" -}}
-        "projects/bct-staging-functional/global/licenses/windows-for-containers",
-        "projects/bct-staging-functional/global/licenses/windows-server-2019",
-        "projects/bct-staging-functional/global/licenses/windows-server-core"
-        {{- else if eq .environment "internal" -}}
+        {{- if eq .environment "internal" -}}
         "projects/google.com:windows-internal/global/licenses/internal-windows",
         "projects/windows-cloud/global/licenses/windows-server-core"
         {{- else -}}
         "projects/windows-cloud/global/licenses/windows-for-containers",
         "projects/windows-cloud/global/licenses/windows-server-2019",
-        "projects/windows-cloud/global/licenses/windows-server-core"
+        "projects/windows-cloud/global/licenses/windows-server-core",
+        "projects/windows-cloud/global/licenses/mirantis-container-runtime"
         {{- end}}
       ],
       "GuestOsFeatures": [

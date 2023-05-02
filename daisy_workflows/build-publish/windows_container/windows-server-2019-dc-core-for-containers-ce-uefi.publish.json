@@ -18,12 +18,7 @@
   "WorkProject": {{$work_project}},
   "PublishProject": "windows-cloud",
   "ComputeEndpoint": {{$endpoint}},
-  {{- else if eq .environment "staging" -}}
-  "WorkProject": "bct-staging-images",
-  "PublishProject": "bct-staging-images",
-  "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
-  "DeleteAfter": {{$delete_after}},
-    {{- else if eq .environment "internal" -}}
+  {{- else if eq .environment "internal" -}}
   "WorkProject": {{$work_project}},
   "PublishProject": "google.com:windows-internal",
   "ComputeEndpoint": {{$endpoint}},
@@ -42,18 +37,9 @@
       "Description": "Microsoft, Windows Server, 2019 Datacenter Core for Containers, Server Core, x64 built on {{$time}}, supports Shielded VM features, Docker Community Edition",
       "Architecture": "X86_64",
       "Licenses": [
-        {{if eq .environment "staging" -}}
-        "projects/bct-staging-functional/global/licenses/windows-for-containers",
-        "projects/bct-staging-functional/global/licenses/windows-server-2019-dc",
-        "projects/bct-staging-functional/global/licenses/windows-server-core"
-        {{- else if eq .environment "internal" -}}
-        "projects/google.com:windows-internal/global/licenses/internal-windows",
-        "projects/windows-cloud/global/licenses/windows-server-core"
-        {{- else -}}
+        "projects/google.com:windows-internal/global/licenses/docker-ce",
         "projects/windows-cloud/global/licenses/windows-for-containers",
-        "projects/windows-cloud/global/licenses/windows-server-2019-dc",
-        "projects/windows-cloud/global/licenses/windows-server-core"
-        {{- end}}
+        "projects/windows-cloud/global/licenses/windows-server-2019-dc"
       ],
       "GuestOsFeatures": [
         "MULTI_IP_SUBNET",
