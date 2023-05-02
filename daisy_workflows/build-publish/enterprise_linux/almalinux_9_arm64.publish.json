@@ -1,0 +1,42 @@
+{{/*
+  Template to publish UEFI-enabled AlmaLinux images.
+  By default this template is setup to publish to the 'gce-image-builder'
+  project, the 'environment' variable can be used to publish to 'test', 'prod'
+  DeleteAfter is set to 180 days for all environments other than prod where no
+  time period is set.
+*/}}
+{
+  "Name": "almalinux-9-arm64",
+  {{$work_project := printf "%q" "gce-image-builder" -}}
+  {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
+  {{$delete_after := `"24h*30*6"` -}}
+  {{if eq .environment "test" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "bct-prod-images",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- else if eq .environment "prod" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "almalinux-cloud",
+  "ComputeEndpoint": {{$endpoint}},
+  {{- else -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": {{$work_project}},
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- end}}
+  {{$guest_features := `["UEFI_COMPATIBLE", "GVNIC"]` -}}
+  {{$time := trimPrefix .publish_version "v"}}
+  "Images": [
+    {
+      "Family": "almalinux-9-arm64",
+      "Prefix": "almalinux-9-arm64",
+      "Description": "AlmaLinux, AlmaLinux, 9, aarch64 built on {{$time}}",
+      "Architecture": "ARM64",
+      "Licenses": [
+        "projects/almalinux-cloud/global/licenses/almalinux-9"
+      ],
+      "GuestOsFeatures": {{$guest_features}}
+    }
+  ]
+}
