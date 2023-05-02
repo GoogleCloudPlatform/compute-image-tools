@@ -146,7 +146,7 @@ function Run-FirstBootSteps {
     return
   }
 
-  Write-Host 'Fetching Docker CE install script'
+  Write-Host 'Fetching Mirantis Docker Runtime install script'
   Invoke-WebRequest -Uri https://info.mirantis.com/l/530892/install-ps1/21cy985 -o $env:TEMP\install-docker-ce.ps1
   Write-Host 'Running docker install script'
   $dockerwait = Start-Process -PassThru -FilePath "powershell.exe" -ArgumentList "$env:TEMP\install-docker-ce.ps1 -DockerVersion `"20.10.16`""
