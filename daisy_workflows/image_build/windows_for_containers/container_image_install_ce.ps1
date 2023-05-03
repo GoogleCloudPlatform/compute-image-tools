@@ -148,8 +148,8 @@ function Run-FirstBootSteps {
 
   Write-Host 'Fetching Docker CE install script'
   Invoke-WebRequest -UseBasicParsing "https://raw.githubusercontent.com/microsoft/Windows-Containers/Main/helpful_tools/Install-DockerCE/install-docker-ce.ps1" -o $env:TEMP\install-docker-ce.ps1
-  Write-Host 'Running docker install script'
-  $dockerwait = Start-Process -PassThru -FilePath "powershell.exe" -ArgumentList "$env:TEMP\install-docker-ce.ps1"
+  Write-Host 'Installing Docker 20.10.16'
+  $dockerwait = Start-Process -PassThru -FilePath "powershell.exe" -ArgumentList "$env:TEMP\install-docker-ce.ps1 -DockerVersion `"20.10.16`""
   Wait-Process -InputObject $dockerwait
 
   Write-Host 'Copying Docker license information'
