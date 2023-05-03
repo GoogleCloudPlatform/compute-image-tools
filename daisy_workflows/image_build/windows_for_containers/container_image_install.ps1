@@ -163,6 +163,12 @@ function Run-SecondBootSteps {
       [string]$windows_version
   )
 
+  # For some reason the docker service may not be started automatically on the
+  # first reboot, although it seems to work fine on subsequent reboots. The
+  # docker service must be running or else the vEthernet interface may not be
+  # present.
+  Restart-Service docker
+
   Write-Host 'Setting host vEthernet MTU to 1460'
   Get-NetAdapter | Where-Object {$_.Name -like 'vEthernet*'} | ForEach-Object {
     & netsh interface ipv4 set subinterface $_.InterfaceIndex mtu=1460 store=persistent
@@ -199,65 +205,6 @@ try {
   }
 
   if ($dockerStatus -eq $null) {
-    Run-FirstBootSteps
-    Write-Host 'Restarting computer to finish install'
-    Restart-Computer -Force
-  }
-  else {
-    Run-SecondBootSteps $windows_version
-    Write-Host 'Launching sysprep.'
-    & 'C:\Program Files\Google\Compute Engine\sysprep\gcesysprep.bat'
-  }
-}
-catch {
-  Write-Host 'Exception caught in script:'
-  Write-Host $_.InvocationInfo.PositionMessage
-  Write-Host "Windows build failed: $($_.Exception.Message)"
-  exit 1
-}
-
-
-  # For some reason the docker service may not be started automatically on the
-  # first reboot, although it seems to work fine on subsequent reboots. The
-  # docker service must be running or else the vEthernet interface may not be
-  # present.
-  Restart-Service docker
-
-  Write-Host 'Setting host vEthernet MTU to 1460'
-  Get-NetAdapter | Where-Object {$_.Name -like 'vEthernet*'} | ForEach-Object {
-    & netsh interface ipv4 set subinterface $_.InterfaceIndex mtu=1460 store=persistent
-  }
-
-  # As most if not all Windows containers are based on one of the base images
-  # provided by Microsoft, we pull them here so that running a container using
-  # this image is quick.
-  $container_images = Get-BaseContainerImageNames $windows_version
-  ForEach ($image in $container_images) {
-    Write-Host "Pulling container image: $image"
-    & docker pull $image
-    if (!$?) {
-      throw "Error running 'docker pull $image'"
-    }
-  }
-
-  Write-Host 'Setting container vEthernet MTU to 1460'
-  $servercore_image = Get-ServerCoreImageName $windows_version
-  & docker run --rm "$servercore_image" powershell.exe "Get-NetAdapter | Where-Object {`$_.Name -like 'vEthernet*'} | ForEach-Object { & netsh interface ipv4 set subinterface `$_.InterfaceIndex mtu=1460 store=persistent }"
-  if (!$?) {
-    throw "Error running 'docker run $servercore_image'"
-  }
-}
-
-& googet -noconfirm update
-& ping 127.0.0.1 -n 60
-try {
-  $windows_version = Get-MetadataValue 'version'
-  Write-Host "Windows version: $windows_version"
-  if (-not $windows_version) {
-    throw 'Error retrieving "version" from metadata'
-  }
-
-  if (!(Get-Package -ProviderName DockerMsftProvider -ErrorAction SilentlyContinue| Where-Object {$_.Name -eq 'docker'})) {
     Run-FirstBootSteps
     Write-Host 'Restarting computer to finish install'
     Restart-Computer -Force
