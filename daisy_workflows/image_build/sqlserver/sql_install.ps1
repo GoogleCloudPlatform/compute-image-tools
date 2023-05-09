@@ -234,7 +234,7 @@ function Install-SqlServer {
 
   Write-Host 'Installing SQL Server'
   
-  $process = Start-Process "${sql_install}\setup.exe" -ArgumentList "/ConfigurationFile=${sql_config}" -Wait
+  $process = Start-Process "${sql_install}\setup.exe" -ArgumentList "/ConfigurationFile=${sql_config}" -PassThru -Wait
   if ($process.ExitCode -ne 0) {
     throw "SQL Server installer returned non-zero exit code. Exit Code: $($process.ExitCode)"
   }
@@ -253,7 +253,7 @@ function Install-SSMS {
   $ssms_exe = 'D:\SSMS-Setup-ENU.exe'
   & 'gsutil' -m cp "${gs_path}/SSMS-Setup-ENU.exe" $ssms_exe
 
-  $process = Start-Process $ssms_exe -ArgumentList @('/install','/quiet','/norestart') -Wait
+  $process = Start-Process $ssms_exe -ArgumentList @('/install','/quiet','/norestart') -Passthru -Wait
   if ($process.ExitCode -ne 0) {
     throw "SSMS installer returned non-zero exit code. Exit Code: $($process.ExitCode)"
   }
