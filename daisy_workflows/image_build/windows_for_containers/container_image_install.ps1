@@ -152,8 +152,20 @@ function Run-FirstBootSteps {
   $dockerwait = Start-Process -PassThru -FilePath "powershell.exe" -ArgumentList "$env:TEMP\install-docker-ce.ps1 -DockerVersion `"20.10.16`""
   Wait-Process -InputObject $dockerwait
   
+  $dockerpath = 'C:\Program Files\docker'
   if ($env:PATH -notlike "*$dockerPath*") {
+    Write-Host 'Updating system path to include Docker'
     [Environment]::SetEnvironmentVariable('PATH', $env:PATH + $dockerPath + ';', 'Machine')
+  }
+
+  Write-Host 'Fetching Mirantis Container Runtime license file'
+  $gs_path = Get-MetadataValue -key 'daisy-sources-path'
+  $dockerLicensePath = "${gs_path}/docker_license_file.lic"
+  $dockerLicense = "$dockerPath\license.lic"
+  gsutil -m cp $dockerLicensepath $dockerLicense
+
+  if (-Not (Test-Path -Path $dockerLicense)) {
+    throw 'Docker license file could not be verified or is missing.'
   }
 }
 

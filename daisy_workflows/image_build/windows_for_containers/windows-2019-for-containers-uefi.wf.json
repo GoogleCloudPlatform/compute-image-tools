@@ -4,10 +4,12 @@
     "build_date": "${TIMESTAMP}",
     "publish_project": "${PROJECT}",
     "install_disk": {"Value": "disk-install", "Description": "Name of the disk to use for the installation."},
-    "source_image_project": {"Value": "windows-cloud", "Description": "Project to source base image from."}
+    "source_image_project": {"Value": "windows-cloud", "Description": "Project to source base image from."},
+    "docker_license_file": {"Description": "Path to license file for Docker (Mirantis) runtime."}
   },
   "Sources": {
-    "container_image_install.ps1": "./container_image_install.ps1"
+    "container_image_install.ps1": "./container_image_install.ps1",
+    "docker_license_file.lic": "${docker_license_file}"
   },
   "Steps": {
     "setup-disks": {
@@ -31,7 +33,8 @@
           "Disks": [{"Source": "${install_disk}"}, {"Source": "disk-scratch"}],
           "MachineType": "e2-highcpu-4",
           "Metadata": {
-            "version": "2019"
+            "version": "2019",
+            "docker_license_file": "${docker_license_file}"
           },
           "StartupScript": "container_image_install.ps1"
         }
