@@ -163,6 +163,10 @@ function Run-FirstBootSteps {
   $dockerLicensePath = "${gs_path}/docker_license_file.lic"
   $dockerLicense = "$dockerPath\license.lic"
   gsutil -m cp $dockerLicensepath $dockerLicense
+
+  if (!Test-Path -Path $dockerLicense) {
+    throw 'Docker license file could not be verified or is missing.'
+  }
 }
 
 function Run-SecondBootSteps {
