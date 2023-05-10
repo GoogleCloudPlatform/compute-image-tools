@@ -153,8 +153,15 @@ function Run-FirstBootSteps {
   Wait-Process -InputObject $dockerwait
   
   if ($env:PATH -notlike "*$dockerPath*") {
+    Write-Host 'Updating system path to include Docker'
     [Environment]::SetEnvironmentVariable('PATH', $env:PATH + $dockerPath + ';', 'Machine')
   }
+
+  Write-Host 'Fetching Mirantis Container Runtime license file'
+  $gs_path = Get-MetadataValue -key 'daisy-sources-path'
+  $dockerLicensePath = "${gs_path}/docker_license_file.lic"
+  $dockerLicense = "$dockerPath\license.lic"
+  gsutil -m cp $dockerLicensepath $dockerLicense
 }
 
 function Run-SecondBootSteps {
