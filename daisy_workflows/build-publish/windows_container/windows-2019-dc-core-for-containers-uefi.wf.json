@@ -9,6 +9,10 @@
       "Required": true,
       "Description": "The GCS url that the image raw file is exported to."
     },
+    "docker_license_file": {
+      "Required": true,
+      "Description": "Path to license file for Docker (Mirantis) runtime."
+    },
     "sbom_destination": {
       "Description": "The GCS url that the sbom file exported to."
     },
@@ -29,7 +33,8 @@
           "build_date": "${build_date}",
           "publish_project": "${PROJECT}",
           "source_image_project": "${source_image_project}",
-          "install_disk": "${install_disk}"
+          "install_disk": "${install_disk}",
+          "docker_license_file": "${docker_license_file}"
         }
       }
     },

@@ -8,8 +8,7 @@
     "docker_license_file": {"Description": "Path to license file for Docker (Mirantis) runtime."}
   },
   "Sources": {
-    "container_image_install.ps1": "./container_image_install.ps1",
-    "docker_license_file.lic": "${docker_license_file}"
+    "container_image_install.ps1": "./container_image_install.ps1"
   },
   "Steps": {
     "setup-disks": {
