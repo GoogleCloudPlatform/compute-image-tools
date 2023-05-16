@@ -8,7 +8,8 @@
     "docker_license_file": {"Description": "Path to license file for Docker (Mirantis) runtime."}
   },
   "Sources": {
-    "container_image_install.ps1": "./container_image_install.ps1"
+    "container_image_install.ps1": "./container_image_install.ps1",
+    "docker_license_file.lic": "${docker_license_file}"
   },
   "Steps": {
     "setup-disks": {
@@ -32,8 +33,7 @@
           "Disks": [{"Source": "${install_disk}"}, {"Source": "disk-scratch"}],
           "MachineType": "e2-highcpu-4",
           "Metadata": {
-            "version": "2019",
-            "docker_license_file": "${docker_license_file}"
+            "version": "2019"
           },
           "StartupScript": "container_image_install.ps1"
         }
