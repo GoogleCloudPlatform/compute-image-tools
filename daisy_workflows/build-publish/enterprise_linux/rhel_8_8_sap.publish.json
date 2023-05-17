@@ -6,7 +6,7 @@
   time period is set.
 */}}
 {
-  "Name": "rhel-7-6-sap",
+  "Name": "rhel-8-8-sap",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*6"` -}}
@@ -25,16 +25,16 @@
   "ComputeEndpoint": {{$endpoint}},
   "DeleteAfter": {{$delete_after}},
   {{- end}}
-  {{$guest_features := `["UEFI_COMPATIBLE"]` -}}
+  {{$guest_features := `["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE", "SEV_CAPABLE", "GVNIC"]` -}}
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Prefix": "rhel-7-6-sap",
-      "Family": "rhel-7-6-sap-ha",
-      "Description": "Red Hat, Red Hat Enterprise Linux for SAP with HA and Update Services, 7.6, x86_64 built on {{$time}}, supports Shielded VM features",
+      "Prefix": "rhel-8-8-sap",
+      "Family": "rhel-8-8-sap-ha",
+      "Description": "Red Hat, Red Hat Enterprise Linux for SAP with HA and Update Services, 8.8, x86_64 built on {{$time}}, supports Shielded VM features",
       "Architecture": "X86_64",
       "Licenses": [
-        "projects/rhel-sap-cloud/global/licenses/rhel-7-sap"
+        "projects/rhel-sap-cloud/global/licenses/rhel-8-sap"
       ],
       "GuestOsFeatures": {{$guest_features}}
     }

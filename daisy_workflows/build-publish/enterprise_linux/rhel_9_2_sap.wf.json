@@ -1,5 +1,5 @@
 {
-  "Name": "rhel-7-6-sap",
+  "Name": "rhel-9-2-sap",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -26,7 +26,7 @@
     },
     "installer_iso": {
       "Required": true,
-      "Description": "The RHEL 7 installer ISO to build from."
+      "Description": "The RHEL 9 installer ISO to build from."
     },
     "syft_source": {
       "Value": "",
@@ -37,13 +37,12 @@
     "build": {
       "TimeOut": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/enterprise_linux/rhel_7_6_sap.wf.json",
+        "Path": "${workflow_root}/image_build/enterprise_linux/rhel_9_2_sap.wf.json",
         "Vars": {
           "build_date": "${build_date}",
           "google_cloud_repo": "${google_cloud_repo}",
-          "install_disk": "disk-rhel-7",
-          "installer_iso": "${installer_iso}",
-          "rhel_release": "rhel-7-6"
+          "install_disk": "disk-rhel-9",
+          "installer_iso": "${installer_iso}"
         }
       }
     },
@@ -54,14 +53,14 @@
         "Vars": {
           "destination": "${gcs_url}",
           "sbom_destination": "${sbom_destination}",
-          "source_disk": "disk-rhel-7",
+          "source_disk": "disk-rhel-9",
           "syft_source": "${syft_source}"
         }
       }
     },
     "cleanup-image": {
       "DeleteResources": {
-        "Images": ["rhel-7-6-sap-v${build_date}"]
+        "Images": ["rhel-9-2-sap-v${build_date}"]
       }
     }
   },
