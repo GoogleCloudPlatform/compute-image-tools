@@ -67,6 +67,7 @@ SBOM_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-path)
 SBOM_UTIL_EXECUTABLE=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-util-executable)
 # User passed in value for sbom-util source. If empty, do not run sbom generation.
 SBOM_UTIL_SOURCE=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-util-source)
+echo "GCEExport: SBOM Util Values are ${SBOM_UTIL_EXECUTABLE} ${SBOM_UTIL_SOURCE}"
 
 # References the tar-gz for syft, if SBOM generation will run. 
 SYFT_TAR_FILE=$(curl -f -H Metadata-Flavor:Google ${URL}/syft-tar-file)
@@ -85,7 +86,9 @@ function runSBOMGeneration() {
   EXECUTION_MODE=$1
   if [ $EXECUTION_MODE == $SBOM_UTIL_EXECUTION_MODE ]; then
     gsutil cp $SBOM_UTIL_EXECUTABLE sbomutil
+    chmod +x sbomutil
     ./sbomutil --archetype=linux-image --comp_name=$SOURCE_DISK_NAME --output=./image.sbom.json
+    echo "GCEExport: Used SBOM Util Source"
   elif [ $EXECUTION_MODE == $SYFT_EXECUTION_MODE ]; then
     gsutil cp $SYFT_TAR_FILE syft.tar.gz
     tar -xf syft.tar.gz

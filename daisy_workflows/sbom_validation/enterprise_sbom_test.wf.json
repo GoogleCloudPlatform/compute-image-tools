@@ -7,8 +7,12 @@
       "Description": "Root of workflows, should be set to parent of the export directory."
     },
     "syft_source": {
-      "Required": true,
-      "Description": "the source url for syft, required because this is a test for sbom generation"
+      "Value": "",
+      "Description": "the source url for syft for sbom generation, will soon be deprecated for this test."
+    },
+    "sbom_util_source": {
+      "Value": "",
+      "Description": "Source url for the sbomutil executable, if using this option for sbom generation."
     },
     "disk_outs_tar_file": {
       "Value": "export-image.tar.gz",
@@ -35,7 +39,8 @@
         "Vars": {
           "destination": "${OUTSPATH}/${disk_outs_tar_file}",
           "source_disk": "disk-export",
-          "syft_source": "${syft_source}"
+          "syft_source": "${syft_source}",
+          "sbom_util_source": "${sbom_util_source}"
         }
       }
     },
