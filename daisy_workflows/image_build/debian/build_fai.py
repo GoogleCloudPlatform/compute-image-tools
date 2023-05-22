@@ -89,6 +89,9 @@ def main():
   # Remove upstream test cases that won't work here.
   os.remove(config_space + 'hooks/tests.BASE')
 
+  # Remove static hostname file
+  os.remove(config_space + 'files/etc/hostname/CLOUD')
+
   # Copy our classes to the FAI config space
   mycopytree('/files/fai_config', config_space)
 
@@ -128,7 +131,7 @@ def main():
   disk_name = 'disk.raw'
 
   # Run fai-tool.
-  cmd = ['fai-diskimage', '--verbose', '--hostname', 'debian', '--class',
+  cmd = ['fai-diskimage', '--verbose', '--class',
          ','.join(fai_classes), '--size', image_size, '--cspace',
          config_space, disk_name]
   logging.info('Starting build in %s with params: %s', work_dir, ' '.join(cmd))
