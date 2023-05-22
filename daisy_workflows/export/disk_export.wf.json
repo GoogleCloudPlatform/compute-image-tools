@@ -44,6 +44,10 @@
     "syft_source": {
       "Value": "",
       "Description": "the source url for syft"
+    },
+    "sbom_util_source": {
+      "Value": "",
+      "Description": "the source url for the sbom-util executable, takes priority over syft_source"
     }
   },
   "Sources": {
@@ -75,7 +79,8 @@
             "startup-script": "${SOURCE:${NAME}_export_disk.sh}",
             "source-disk-name": "${source_disk}",
             "syft-tar-file": "${SOURCESPATH}/syft.tar.gz",
-            "syft-source": "${syft_source}"
+            "syft-source": "${syft_source}",
+            "sbom-util-source": "${sbom_util_source}"
           },
           "networkInterfaces": [
             {
