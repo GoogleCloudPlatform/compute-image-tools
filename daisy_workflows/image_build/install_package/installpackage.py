@@ -23,8 +23,8 @@ def get_mount_disk(image):
   # 1. partition 1 is the EFI system partition.
   # 2. partition 2 is the root mount for the installed system.
   #
-  # Except on debian 10, which has out-of-order partitions.
-  if gpt and 'debian-10' not in image and 'debian-11' not in image:
+  # Except on debian, which has out-of-order partitions.
+  if gpt and 'debian' not in image:
     return f'{devicepath}-part2'
   else:
     return f'{devicepath}-part1'
