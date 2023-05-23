@@ -32,9 +32,9 @@
       "Value": "",
       "Description": "Source url for the syft tar gz file, if generating SBOM. If empty no SBOM is generated."
     },
-    "sbom_util_source": {
+    "sbom_util_gcs_root": {
       "Value": "",
-      "Description": "Source url for the sbomutil executable, if using sbomutil to generate the SBOM."
+      "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
     }
   },
   "Steps": {
@@ -59,7 +59,7 @@
           "sbom_destination": "${sbom_destination}",
           "source_disk": "disk-almalinux-8",
           "syft_source": "${syft_source}",
-          "sbom_util_source": "${sbom_util_source}"
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
         }
       }
     },

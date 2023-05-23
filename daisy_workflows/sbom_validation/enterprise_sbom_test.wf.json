@@ -10,9 +10,9 @@
       "Value": "",
       "Description": "the source url for syft for sbom generation, will soon be deprecated for this test."
     },
-    "sbom_util_source": {
+    "sbom_util_gcs_root": {
       "Value": "",
-      "Description": "Source url for the sbomutil executable, if using this option for sbom generation."
+      "Description": "root gcs bucket for sbom-util, if using this option for sbom generation."
     },
     "disk_outs_tar_file": {
       "Value": "export-image.tar.gz",
@@ -40,7 +40,7 @@
           "destination": "${OUTSPATH}/${disk_outs_tar_file}",
           "source_disk": "disk-export",
           "syft_source": "${syft_source}",
-          "sbom_util_source": "${sbom_util_source}"
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
         }
       }
     },
