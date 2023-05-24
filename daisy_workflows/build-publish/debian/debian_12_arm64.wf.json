@@ -61,7 +61,7 @@
           "sbom_destination": "${sbom_destination}",
           "source_disk": "disk-debian-12",
           "syft_source": "${syft_source}",
-          "sbom_util_gcs_root": "${sbom_util_gcs_root}
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
         }
       }
     },

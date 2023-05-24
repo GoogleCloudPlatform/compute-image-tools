@@ -59,7 +59,7 @@
           "sbom_destination": "${sbom_destination}",
           "source_disk": "disk-rhel-7-byos",
           "syft_source": "${syft_source}",
-          "sbom_util_gcs_root": "${sbom_util_gcs_root}
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
         }
       }
     },
