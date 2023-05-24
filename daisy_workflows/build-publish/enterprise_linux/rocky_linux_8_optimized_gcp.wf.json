@@ -45,8 +45,7 @@
         "Vars": {
           "build_date": "${build_date}",
           "install_disk": "disk-rocky-linux-8",
-          "installer_iso": "${installer_iso}",
-          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
+          "installer_iso": "${installer_iso}"
         }
       }
     },
@@ -58,7 +57,8 @@
           "destination": "${gcs_url}",
           "sbom_destination": "${sbom_destination}",
           "source_disk": "disk-rocky-linux-8",
-          "syft_source": "${syft_source}"
+          "syft_source": "${syft_source}",
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
         }
       }
     },
