@@ -45,8 +45,7 @@
         "Vars": {
           "build_date": "${build_date}",
           "install_disk": "disk-rocky-linux-9",
-          "installer_iso": "${installer_iso}",
-          "sbom_util_gcs_root": "${sbom_util_gcs_root}
+          "installer_iso": "${installer_iso}"
         }
       }
     },
