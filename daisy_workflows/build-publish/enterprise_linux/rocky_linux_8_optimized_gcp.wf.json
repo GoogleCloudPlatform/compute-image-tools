@@ -31,6 +31,10 @@
     "syft_source": {
       "Value": "",
       "Description": "Source url for the syft tar gz file, if generating SBOM. If empty no SBOM is generated."
+    },
+    "sbom_util_gcs_root": {
+      "Value": "",
+      "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
     }
   },
   "Steps": {
@@ -41,7 +45,8 @@
         "Vars": {
           "build_date": "${build_date}",
           "install_disk": "disk-rocky-linux-8",
-          "installer_iso": "${installer_iso}"
+          "installer_iso": "${installer_iso}",
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}
         }
       }
     },
