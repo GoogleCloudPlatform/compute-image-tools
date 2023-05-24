@@ -83,6 +83,11 @@ function fetch_sbomutil() {
 
   SBOM_UTIL_GCS_ROOT="${SBOM_UTIL_GCS_ROOT}/linux"
 
+  # suffix the gcs path with arm64 if necessary
+  if [ "$(uname -m)" == "aarch64" ]; then
+    SBOM_UTIL_GCS_ROOT="${SBOM_UTIL_GCS_ROOT}_arm64"
+  fi
+
   # Determine the latest sbomutil gcs path if available
   if [ -n "${SBOM_UTIL_GCS_ROOT}" ]; then
     SBOM_UTIL_GCS_PATH=$(gsutil ls $SBOM_UTIL_GCS_ROOT | tail -1)

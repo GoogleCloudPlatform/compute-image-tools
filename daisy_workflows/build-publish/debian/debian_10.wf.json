@@ -27,6 +27,10 @@
     "syft_source": {
       "Value": "",
       "Description": "Source url for the syft tar gz file, if generating SBOM. If empty no SBOM is generated."
+    },
+    "sbom_util_gcs_root": {
+      "Value": "",
+      "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
     }
   },
   "Steps": {
@@ -57,7 +61,8 @@
           "destination": "${gcs_url}",
           "sbom_destination": "${sbom_destination}",
           "source_disk": "disk-debian-10",
-          "syft_source": "${syft_source}"
+          "syft_source": "${syft_source}",
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
         }
       }
     },
