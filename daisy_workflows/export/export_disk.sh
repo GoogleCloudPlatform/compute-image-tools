@@ -63,19 +63,57 @@ serialOutputPrefixedKeyValue "GCEExport" "target-size-gb" "${TARGET_SIZE_GB}"
 DESTINATION=$(curl -f -H Metadata-Flavor:Google ${URL}/destination)
 # Local sbom outspath
 SBOM_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-path)
+# The gcs root for sbom-util. If empty, do not run sbom generation with sbom-util.
+SBOM_UTIL_GCS_ROOT=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-util-gcs-root)
+
 # References the tar-gz for syft, if SBOM generation will run. 
 SYFT_TAR_FILE=$(curl -f -H Metadata-Flavor:Google ${URL}/syft-tar-file)
-# User passed in value for syft source, if empty then do not run SBOM generation
+# User passed in value for syft source, if empty then do not run SBOM generation.
+# Will be deprecated in favor of SBOM_UTIL_SOURCE in the future.
 SYFT_SOURCE=$(curl -f -H Metadata-Flavor:Google ${URL}/syft-source)
+# These are the execution modes for SBOM generation.
+SBOM_UTIL_EXECUTION_MODE="sbom-util"
+SYFT_EXECUTION_MODE="syft"
+# This function fetches the sbom-util executable from the gcs bucket.
+function fetch_sbomutil() {
+  if [ -z "${SBOM_UTIL_GCS_ROOT}" ]; then
+    echo "GCEExport: SBOM_UTIL_GCS_ROOT is not defined, skipping sbomutil deployment..."
+    return
+  fi
 
+  SBOM_UTIL_GCS_ROOT="${SBOM_UTIL_GCS_ROOT}/linux"
+
+  # Determine the latest sbomutil gcs path if available
+  if [ -n "${SBOM_UTIL_GCS_ROOT}" ]; then
+    SBOM_UTIL_GCS_PATH=$(gsutil ls $SBOM_UTIL_GCS_ROOT | tail -1)
+  fi
+
+  # Fetch sbomutil from gcs if available
+  if [ -n "${SBOM_UTIL_GCS_PATH}" ]; then
+    echo "GCEExport: Fetching sbomutil: ${SBOM_UTIL_GCS_PATH}"
+    gsutil cp "${SBOM_UTIL_GCS_PATH%/}/sbomutil" sbomutil
+    chmod +x sbomutil
+  fi
+}
+
+# This function runs SBOM generation using either syft or sbom-util, depending on the first argument.
 function runSBOMGeneration() {
-  # Get the partition with the largest size from the mounted disk by sorting
+  # Get the partition with the largest size from the mounted disk by sorting.
   SBOM_DISK_PARTITION=$(lsblk $SOURCE_DISK_SYMPATH --output=name -l -b --sort=size | tail -2 | head -1)
   mount /dev/$SBOM_DISK_PARTITION /mnt
   mount -o bind,ro /dev /mnt/dev
-  gsutil cp $SYFT_TAR_FILE syft.tar.gz
-  tar -xf syft.tar.gz
-  ./syft /mnt -o spdx-json > image.sbom.json
+  EXECUTION_MODE=$1
+  if [ $EXECUTION_MODE == $SBOM_UTIL_EXECUTION_MODE ]; then
+    fetch_sbomutil
+    ./sbomutil --archetype=linux-image --comp_name=$SOURCE_DISK_NAME --output=./image.sbom.json
+  elif [ $EXECUTION_MODE == $SYFT_EXECUTION_MODE ]; then
+    gsutil cp $SYFT_TAR_FILE syft.tar.gz
+    tar -xf syft.tar.gz
+    ./syft /mnt -o spdx-json > image.sbom.json
+    echo "GCEExport: SBOM generation with a syft source will soon be deprecated"
+  else
+    echo "ExportFailed: unrecognized SBOM generation execution mode: ${EXECUTION_MODE}"
+  fi
   gsutil cp image.sbom.json $SBOM_PATH
   umount /mnt/dev
   umount /mnt
@@ -85,9 +123,13 @@ function runSBOMGeneration() {
 # Always create empty sbom file so workflow copying does not fail
 touch image.sbom.json
 gsutil cp image.sbom.json $SBOM_PATH
+# If the sbom-util program location is passed in, use that instead of SYFT_SOURCE.
+if [ $SBOM_UTIL_GCS_ROOT != "" ]; then
+  runSBOMGeneration $SBOM_UTIL_EXECUTION_MODE
 # If no source for syft was passed in, do not run SBOM generation. 
-if [ $SYFT_SOURCE != "" ]; then
-  runSBOMGeneration
+# Note that this will be deprecated once other build which rely on this are updated.
+elif [ $SYFT_SOURCE != "" ]; then
+  runSBOMGeneration $SYFT_EXECUTION_MODE
 fi
 
 echo "ExportSuccess"
