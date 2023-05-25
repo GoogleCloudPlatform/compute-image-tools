@@ -89,10 +89,12 @@ function fetch_sbomutil() {
   fi
 
   echo "GCEExport: discovered root path for sbom-util at [${SBOM_UTIL_GCS_ROOT}]"
-  SBOM_UTIL_GCS_PATH=""
   # Determine the latest sbomutil gcs path if available
   if [ -n "${SBOM_UTIL_GCS_ROOT}" ]; then
-    SBOM_UTIL_GCS_PATH=$(gsutil ls ${SBOM_UTIL_GCS_ROOT} | tail -1)
+    echo "GCEExport: Listing sbom util gcs root"
+    gsutil ls $SBOM_UTIL_GCS_ROOT | tail -1
+    SBOM_UTIL_GCS_PATH=$(gsutil ls $SBOM_UTIL_GCS_ROOT | tail -1)
+    echo "GCEExport: gsutil list completed: [$?]"
   fi
 
   echo "GCEExport: searching for sbom-util at [${SBOM_UTIL_GCS_PATH}]"
