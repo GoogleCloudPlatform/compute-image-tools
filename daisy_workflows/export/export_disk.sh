@@ -96,7 +96,7 @@ function fetch_sbomutil() {
     echo "GCEExport: Listing sbom util gcs root"
     gsutil ls $SBOM_UTIL_GCS_ROOT | tail -1
     SBOM_UTIL_GCS_PATH=$(gsutil ls $SBOM_UTIL_GCS_ROOT | tail -1)
-    echo "GCEExport: gsutil list completed: [$?]"
+    echo "GCEExport: gsutil list completed: [$?] and got value [${SBOM_UTIL_GCS_PATH}]"
   fi
 
   echo "GCEExport: searching for sbom-util at [${SBOM_UTIL_GCS_PATH}]"
