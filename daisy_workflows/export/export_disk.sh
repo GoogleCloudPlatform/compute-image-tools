@@ -93,6 +93,7 @@ function fetch_sbomutil() {
     SBOM_UTIL_GCS_PATH=$(gsutil ls $SBOM_UTIL_GCS_ROOT | tail -1)
   fi
 
+  echo "GCEExport: searching for sbom-util at ${SBOM_UTIL_GCS_PATH}"
   # Fetch sbomutil from gcs if available
   if [ -n "${SBOM_UTIL_GCS_PATH}" ]; then
     echo "GCEExport: Fetching sbomutil: ${SBOM_UTIL_GCS_PATH}"
@@ -109,6 +110,7 @@ function runSBOMGeneration() {
   mount -o bind,ro /dev /mnt/dev
   EXECUTION_MODE=$1
   if [ $EXECUTION_MODE == $SBOM_UTIL_EXECUTION_MODE ]; then
+    echo "GCEExport: Running sbom generation with the sbom-util program"
     fetch_sbomutil
     ./sbomutil --archetype=linux-image --comp_name=$SOURCE_DISK_NAME --output=image.sbom.json
   elif [ $EXECUTION_MODE == $SYFT_EXECUTION_MODE ]; then
