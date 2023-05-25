@@ -76,7 +76,7 @@ SBOM_UTIL_EXECUTION_MODE="sbom-util"
 SYFT_EXECUTION_MODE="syft"
 # This function fetches the sbom-util executable from the gcs bucket.
 function fetch_sbomutil() {
-  echo "GCEExport: provided root path for sbom-util at ${SBOM_UTIL_GCS_ROOT}"
+  echo "GCEExport: provided root path for sbom-util at [${SBOM_UTIL_GCS_ROOT}]"
   if [ -z "${SBOM_UTIL_GCS_ROOT}" ]; then
     echo "GCEExport: SBOM_UTIL_GCS_ROOT is not defined, skipping sbomutil deployment..."
     return
@@ -94,7 +94,7 @@ function fetch_sbomutil() {
     SBOM_UTIL_GCS_PATH=$(gsutil ls $SBOM_UTIL_GCS_ROOT | tail -1)
   fi
 
-  echo "GCEExport: searching for sbom-util at ${SBOM_UTIL_GCS_PATH}"
+  echo "GCEExport: searching for sbom-util at [${SBOM_UTIL_GCS_PATH}]"
   # Fetch sbomutil from gcs if available
   if [ -n "${SBOM_UTIL_GCS_PATH}" ]; then
     echo "GCEExport: Fetching sbomutil: ${SBOM_UTIL_GCS_PATH}"
