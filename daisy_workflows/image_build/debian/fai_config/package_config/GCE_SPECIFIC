@@ -1,10 +1,13 @@
+PACKAGES install BOOKWORM
+# Needed for systemd-networkd to set hostnames
+polkitd
+
 PACKAGES install
 # To avoid entropy issues when intances boot.
 haveged
 
 # Useful tools not already in the EXTRAS package config
 net-tools
-polkitd
 
 # Google Cloud package keyring
 google-cloud-packages-archive-keyring
