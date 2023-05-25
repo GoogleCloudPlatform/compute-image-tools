@@ -1,3 +1,7 @@
+PACKAGES install BOOKWORM
+# Needed for systemd-networkd to set hostnames
+polkitd
+
 PACKAGES install
 # To avoid entropy issues when intances boot.
 haveged
