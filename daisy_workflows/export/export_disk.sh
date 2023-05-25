@@ -89,6 +89,7 @@ function fetch_sbomutil() {
     SBOM_UTIL_GCS_ROOT="${SBOM_UTIL_GCS_ROOT}_arm64"
   fi
 
+  echo "GCEExport: listing sbom-util versions at [${SBOM_UTIL_GCS_ROOT}]"
   # Determine the latest sbomutil gcs path if available
   if [ -n "${SBOM_UTIL_GCS_ROOT}" ]; then
     echo "GCEExport: Listing sbom util gcs root"
