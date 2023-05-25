@@ -110,7 +110,7 @@ function runSBOMGeneration() {
   EXECUTION_MODE=$1
   if [ $EXECUTION_MODE == $SBOM_UTIL_EXECUTION_MODE ]; then
     fetch_sbomutil
-    ./sbomutil --archetype=linux-image --comp_name=$SOURCE_DISK_NAME --output=./image.sbom.json
+    ./sbomutil --archetype=linux-image --comp_name=$SOURCE_DISK_NAME --output=image.sbom.json
   elif [ $EXECUTION_MODE == $SYFT_EXECUTION_MODE ]; then
     gsutil cp $SYFT_TAR_FILE syft.tar.gz
     tar -xf syft.tar.gz
