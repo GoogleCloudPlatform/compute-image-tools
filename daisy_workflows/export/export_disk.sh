@@ -66,14 +66,6 @@ SBOM_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-path)
 # The gcs root for sbom-util. If empty, do not run sbom generation with sbom-util.
 SBOM_UTIL_GCS_ROOT=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-util-gcs-root)
 
-# References the tar-gz for syft, if SBOM generation will run. 
-SYFT_TAR_FILE=$(curl -f -H Metadata-Flavor:Google ${URL}/syft-tar-file)
-# User passed in value for syft source, if empty then do not run SBOM generation.
-# Will be deprecated in favor of SBOM_UTIL_SOURCE in the future.
-SYFT_SOURCE=$(curl -f -H Metadata-Flavor:Google ${URL}/syft-source)
-# These are the execution modes for SBOM generation.
-SBOM_UTIL_EXECUTION_MODE="sbom-util"
-SYFT_EXECUTION_MODE="syft"
 # This function fetches the sbom-util executable from the gcs bucket.
 function fetch_sbomutil() {
   echo "GCEExport: provided root path for sbom-util at [${SBOM_UTIL_GCS_ROOT}]"
@@ -111,19 +103,9 @@ function runSBOMGeneration() {
   SBOM_DISK_PARTITION=$(lsblk $SOURCE_DISK_SYMPATH --output=name -l -b --sort=size | tail -2 | head -1)
   mount /dev/$SBOM_DISK_PARTITION /mnt
   mount -o bind,ro /dev /mnt/dev
-  EXECUTION_MODE=$1
-  if [ $EXECUTION_MODE == $SBOM_UTIL_EXECUTION_MODE ]; then
-    echo "GCEExport: Running sbom generation with the sbom-util program"
-    fetch_sbomutil
-    ./sbomutil --archetype=linux-image --comp_name=$SOURCE_DISK_NAME --output=image.sbom.json
-  elif [ $EXECUTION_MODE == $SYFT_EXECUTION_MODE ]; then
-    gsutil cp $SYFT_TAR_FILE syft.tar.gz
-    tar -xf syft.tar.gz
-    ./syft /mnt -o spdx-json > image.sbom.json
-    echo "GCEExport: SBOM generation with a syft source will soon be deprecated"
-  else
-    echo "ExportFailed: unrecognized SBOM generation execution mode: ${EXECUTION_MODE}"
-  fi
+  echo "GCEExport: Running sbom generation with the sbom-util program"
+  fetch_sbomutil
+  ./sbomutil --archetype=linux-image --comp_name=$SOURCE_DISK_NAME --output=image.sbom.json
   gsutil cp image.sbom.json $SBOM_PATH
   umount /mnt/dev
   umount /mnt
@@ -133,13 +115,9 @@ function runSBOMGeneration() {
 # Always create empty sbom file so workflow copying does not fail
 touch image.sbom.json
 gsutil cp image.sbom.json $SBOM_PATH
-# If the sbom-util program location is passed in, use that instead of SYFT_SOURCE.
+# If the sbom-util program location is passed in, generate the sbom.
 if [ $SBOM_UTIL_GCS_ROOT != "" ]; then
-  runSBOMGeneration $SBOM_UTIL_EXECUTION_MODE
-# If no source for syft was passed in, do not run SBOM generation. 
-# Note that this will be deprecated once other build which rely on this are updated.
-elif [ $SYFT_SOURCE != "" ]; then
-  runSBOMGeneration $SYFT_EXECUTION_MODE
+  runSBOMGeneration
 fi
 
 echo "ExportSuccess"
