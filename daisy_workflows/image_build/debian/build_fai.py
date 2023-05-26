@@ -104,7 +104,7 @@ def main():
   # Config fai-tool
   # Base classes used for everything
   fai_classes = ['BASE', 'DEBIAN', 'CLOUD', 'GCE', 'EXTRAS', 'IPV6_DHCP',
-                 'TIME_SYSTEMD', 'GCE_SPECIFIC', 'GCE_CLEAN',
+                 'TIME_CHRONY', 'GCE_SPECIFIC', 'GCE_CLEAN',
                  'LINUX_VARIANT_CLOUD']
 
   # Arch-specific classes
