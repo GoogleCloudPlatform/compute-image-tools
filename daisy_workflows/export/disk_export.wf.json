@@ -41,13 +41,9 @@
       "Value": "default",
       "Description": "Service account that will be used by the created worker instance"
     },
-    "syft_source": {
-      "Value": "",
-      "Description": "the source url for syft"
-    },
     "sbom_util_gcs_root": {
       "Value": "",
-      "Description": "the root gcs path for the sbom-util executable, takes priority over syft_source"
+      "Description": "the root gcs path for the sbom-util executable, used to generate SBOM if provided"
     }
   },
   "Sources": {
