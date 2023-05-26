@@ -75,6 +75,51 @@ function Download-Components {
   }
 }
 
+function Download-Sbomutil {
+  <#
+    .SYNOPSIS
+      Downloads sbomutil from GCE to the local components directory.
+  #>
+  $gs_path = Get-MetadataValue -key 'sbom-util-gcs-root'
+  if (!$gs_path) {
+    Write-Output "No metadata sbom-util-gcs-root set, skipping sbomutil download."
+    return
+  }
+
+  $gs_path = "${gs_path}/windows"
+  $latest = gsutil ls "${gs_path}/windows" | Select -Last 1
+  if (!$latest) {
+    Write-Output "Could not determine sbomutil's latest release, skipping sbomutil download."
+    return
+  }
+
+  Write-Output "Downloading sbomutil from $gs_path."
+  & 'gsutil' -m cp "${latest}/sbomutil" $script:components_dir
+  Write-Output 'Components download complete.'
+}
+
+function Generate-Sbom {
+  <#
+    .SYNOPSIS
+      Generates sbom and upload the result to a gcs bucket.
+  #>
+  $gs_path = Get-MetadataValue -key 'sbom-destination'
+  if (!$gs_path) {
+    Write-Output "No metadata sbom-destination set, skipping sbom generation."
+    return
+  }
+
+  if (!(Test-Path "${script:components_dir}\sbomutil")) {
+    Write-Output "Could not find sbomutil tool, skipping sbom generation."
+    return
+  }
+
+  Write-Output "Generating sbom."
+  & "${script:components_dir}\sbomutil" -archetype=windows-image -googet_path 'D:\ProgramData\GooGet' -extra_content="${script:components_dir}\windows.iso","${script:$script:driver_dir}\","${script:components_dir}\SetupComplete.cmd" -output image.sbom.json
+  & 'gsutil' -m cp image.sbom.json $gs_path
+  Write-Output "Sbom file uploaded to $gs_path."
+}
+
 function Format-InstallDiskUEFI {
   <#
     .SYNOPSIS
@@ -260,6 +305,7 @@ try {
   Write-Output 'Boostrapping Windows install disk.'
   Download-Components
   Download-Drivers
+  Download-Sbomutil
   if ($script:uefi) {
     Format-InstallDiskUEFI
   }
@@ -271,6 +317,8 @@ try {
   $repo = Get-MetadataValue -key 'google-cloud-repo'
   Write-Output "Setting up GooGet repo $repo."
   & 'C:\ProgramData\GooGet\googet.exe' -root 'D:\ProgramData\GooGet' addrepo "google-compute-engine-${repo}" "https://packages.cloud.google.com/yuck/repos/google-compute-engine-${repo}"
+
+  Generate-Sbom
 
   Write-Output 'Bootstrapping Complete, shutting down...'
   Stop-Computer
