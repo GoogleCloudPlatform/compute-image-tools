@@ -97,6 +97,7 @@ def main():
   mycopytree('/files/fai_config', config_space)
 
   # Set scripts executable (daisy doesn't preserve this)
+  os.chmod(config_space + 'scripts/BOOKWORM/10-clean', 0o755)
   os.chmod(config_space + 'scripts/GCE_CLEAN/10-gce-clean', 0o755)
   os.chmod(config_space + 'scripts/GCE_SPECIFIC/12-sshd', 0o755)
   os.chmod(config_space + 'hooks/repository.GCE_SPECIFIC', 0o755)
