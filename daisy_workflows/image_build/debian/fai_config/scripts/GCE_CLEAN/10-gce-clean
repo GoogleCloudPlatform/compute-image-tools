@@ -12,10 +12,10 @@ chroot $target apt-get clean
 chroot $target apt-get update
 
 # Cleanup logs and caches
-rm -f $target/etc/resolv.conf \
-      $target/etc/mailname \
+rm -f $target/etc/mailname \
       $target/etc/machine-id \
-      $target/usr/bin/qemu-* \
+      $target/etc/resolv.conf \
+      $target/etc/apt/sources.list.d/localdebs.list \
       $target/var/lib/dbus/machine-id \
       $target/var/log/alternatives.log \
       $target/var/log/apt/* \
@@ -24,7 +24,8 @@ rm -f $target/etc/resolv.conf \
       $target/var/log/install_packages.list
 
 # Empty file needed for on-boot generation.
-> $target/etc/machine-id
+touch $target/etc/machine-id
+touch $target/var/lib/dpkg/available
 
 rm -rf $target/var/log/fai
 

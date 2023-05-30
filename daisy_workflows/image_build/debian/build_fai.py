@@ -53,7 +53,7 @@ def main():
   # Get Parameters.
   build_date = utils.GetMetadataAttribute(
       'build_date', raise_on_not_found=True)
-  debian_cloud_images_version = '695ae0c8660d5bbfdb4e01f4a5cc2bacbc06783b'
+  debian_cloud_images_version = 'dc1efc3d60666560042ea1ef4069a8984525e5b9'
   debian_version = utils.GetMetadataAttribute(
       'debian_version', raise_on_not_found=True)
   outs_path = utils.GetMetadataAttribute('daisy-outs-path',
@@ -88,9 +88,6 @@ def main():
 
   # Remove upstream test cases that won't work here.
   os.remove(config_space + 'hooks/tests.BASE')
-
-  # Remove static hostname file
-  os.remove(config_space + 'files/etc/hostname/CLOUD')
 
   # Copy our classes to the FAI config space
   mycopytree('/files/fai_config', config_space)
