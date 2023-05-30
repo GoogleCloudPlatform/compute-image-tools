@@ -1,0 +1,21 @@
+network:
+    version: 2
+    ethernets:
+        all-en:
+            match:
+                name: en*
+            dhcp4: true
+            dhcp4-overrides:
+                use-domains: true
+            dhcp6: true
+            dhcp6-overrides:
+                use-domains: true
+        all-eth:
+            match:
+                name: eth*
+            dhcp4: true
+            dhcp4-overrides:
+                use-domains: true
+            dhcp6: true
+            dhcp6-overrides:
+                use-domains: true
