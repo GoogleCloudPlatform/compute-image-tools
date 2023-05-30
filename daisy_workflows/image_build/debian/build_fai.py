@@ -89,6 +89,10 @@ def main():
   # Remove upstream test cases that won't work here.
   os.remove(config_space + 'hooks/tests.BASE')
 
+  # Remove upstream netplan config until we can use it.
+  if debian_version == 'bookworm':
+    os.remove(config_space + 'files/etc/netplan/90-default.yaml/GCE')
+
   # Copy our classes to the FAI config space
   mycopytree('/files/fai_config', config_space)
 
