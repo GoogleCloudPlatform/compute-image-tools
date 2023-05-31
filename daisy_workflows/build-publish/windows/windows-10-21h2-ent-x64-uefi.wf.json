@@ -33,6 +33,7 @@
       "Description": "The GCS url that the image raw file exported to."
     },
     "sbom_destination": {
+      "Value": "${OUTSPATH}/export-image.sbom.json",
       "Description": "The GCS url that the sbom file exported to."
     },
     "google_cloud_repo": {

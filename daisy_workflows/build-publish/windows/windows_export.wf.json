@@ -18,6 +18,7 @@
       "Description": "Disk export step time out. Default is 50m."
     },
     "sbom_destination": {
+      "Value": "${OUTSPATH}/export-image.sbom.json",
       "Description": "The GCS url that the sbom file exported to."
     },
     "sbom_util_gcs_root": {
