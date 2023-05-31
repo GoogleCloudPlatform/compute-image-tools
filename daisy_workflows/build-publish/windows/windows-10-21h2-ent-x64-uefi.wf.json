@@ -42,6 +42,10 @@
     "workflow_root": {
       "Value": "/workflows",
       "Description": "Root of github workflows, defaults to /workflows in the container."
+    },
+    "sbom_util_gcs_root": {
+      "Value": "",
+      "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
     }
   },
   "Steps": {
@@ -68,7 +72,9 @@
         "Vars": {
           "build_date": "${build_date}",
           "gcs_url": "${gcs_url}",
-          "workflow_root": "${workflow_root}"
+          "workflow_root": "${workflow_root}",
+          "sbom_destination": "${sbom_destination}",
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
         }
       }
     }
