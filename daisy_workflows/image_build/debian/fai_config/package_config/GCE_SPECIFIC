@@ -8,6 +8,9 @@ net-tools
 # Google Cloud package keyring
 google-cloud-packages-archive-keyring
 
+# ISC DHCP client until the agent can create systemd-networkd configs
+isc-dhcp-client
+
 # GCE guest software
 google-compute-engine
 
