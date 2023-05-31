@@ -16,6 +16,14 @@
     "disk_export_time_out": {
       "Value": "50m",
       "Description": "Disk export step time out. Default is 50m."
+    },
+    "sbom_destination": {
+      "Value": "${OUTSPATH}/export-image.sbom.json",
+      "Description": "The GCS url that the sbom file exported to."
+    },
+    "sbom_util_gcs_root": {
+      "Value": "",
+      "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
     }
   },
   "Steps": {
@@ -25,7 +33,9 @@
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
           "source_disk": "${install_disk}",
-          "destination": "${gcs_url}"
+          "destination": "${gcs_url}",
+          "sbom_destination": "${sbom_destination}",
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
         }
       }
     }
