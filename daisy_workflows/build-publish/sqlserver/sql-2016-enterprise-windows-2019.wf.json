@@ -60,7 +60,10 @@
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
           "source_disk": "${install_disk}",
-          "destination": "${gcs_url}"
+          "destination": "${gcs_url}",
+          "sbom_destination": "${sbom_destination}",
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}",
+          "sbom_util_archetype": "windows-image"
         }
       }
     }
