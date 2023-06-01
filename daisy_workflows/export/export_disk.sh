@@ -65,8 +65,6 @@ DESTINATION=$(curl -f -H Metadata-Flavor:Google ${URL}/destination)
 SBOM_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-path)
 # The gcs root for sbom-util. If empty, do not run sbom generation with sbom-util.
 SBOM_UTIL_GCS_ROOT=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-util-gcs-root)
-# The archetype for runinng sbom-util. It should be either linux-image or windows-image.
-SBOM_UTIL_ARCHETYPE=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-util-archetype)
 
 # This function fetches the sbom-util executable from the gcs bucket.
 function fetch_sbomutil() {
@@ -107,7 +105,7 @@ function runSBOMGeneration() {
   mount -o bind,ro /dev /mnt/dev
   echo "GCEExport: Running sbom generation with the sbom-util program"
   fetch_sbomutil
-  ./sbomutil --archetype=$SBOM_UTIL_ARCHETYPE --comp_name=$SOURCE_DISK_NAME --output=image.sbom.json
+  ./sbomutil --archetype=linux-image --comp_name=$SOURCE_DISK_NAME --output=image.sbom.json
   gsutil cp image.sbom.json $SBOM_PATH
   umount /mnt/dev
   umount /mnt
