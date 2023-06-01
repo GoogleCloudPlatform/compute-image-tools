@@ -61,6 +61,14 @@
     },
     "wu_server_port": {
       "Description": "The port of the windows update server, such as 8530"
+    },
+    "sbom_destination": {
+      "Value": "${OUTSPATH}/export-image.sbom.json",
+      "Description": "The GCS url that the sbom file exported to."
+    },
+    "sbom_util_gcs_root": {
+      "Value": "",
+      "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
     }
   },
   "Sources": {
@@ -122,7 +130,9 @@
             "product-key": "${product_key}",
             "google-cloud-repo": "${google_cloud_repo}",
             "uefi-build": "true",
-            "x86-build": "false"
+            "x86-build": "false",
+            "sbom-destination": "${sbom_destination}",
+            "sbom-util-gcs-root": "${sbom_util_gcs_root}"
           },
           "StartupScript": "bootstrap_install.ps1"
         }
