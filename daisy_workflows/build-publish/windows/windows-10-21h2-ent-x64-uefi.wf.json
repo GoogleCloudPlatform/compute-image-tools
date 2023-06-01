@@ -62,7 +62,9 @@
           "media": "${media}",
           "cloudsdk": "${cloudsdk}",
           "google_cloud_repo": "${google_cloud_repo}",
-          "workflow_root": "${workflow_root}"
+          "workflow_root": "${workflow_root}",
+          "sbom_destination": "${sbom_destination}",
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
         }
       }
     },
