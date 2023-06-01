@@ -87,7 +87,7 @@ function Download-Sbomutil {
   }
 
   $gs_path = "${gs_path}/windows"
-  $latest = gsutil ls "${gs_path}/windows" | Select -Last 1
+  $latest = gsutil ls "${gs_path}" | Select -Last 1
   if (!$latest) {
     Write-Output "Could not determine sbomutil's latest release, skipping sbomutil download."
     return
