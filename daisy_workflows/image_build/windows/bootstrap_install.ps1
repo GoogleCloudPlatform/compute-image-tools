@@ -95,7 +95,7 @@ function Download-Sbomutil {
 
   # The variable $latest already has a backslash at the end, as a result of gsutil ls.
   Write-Output "Downloading sbomutil from $gs_path."
-  & 'gsutil' -m cp "${latest}sbomutil" $script:components_dir
+  & 'gsutil' -m cp "${latest}sbomutil.exe" $script:components_dir
   Write-Output 'Components download complete.'
 }
 
@@ -110,13 +110,13 @@ function Generate-Sbom {
     return
   }
 
-  if (!(Test-Path "${script:components_dir}\sbomutil")) {
+  if (!(Test-Path "${script:components_dir}\sbomutil.exe")) {
     Write-Output "Could not find sbomutil tool, skipping sbom generation."
     return
   }
 
   Write-Output "Generating sbom."
-  & "${script:components_dir}\sbomutil" -archetype=windows-image -googet_path 'D:\ProgramData\GooGet' -extra_content="${script:components_dir}\windows.iso","${script:$script:driver_dir}\","${script:components_dir}\SetupComplete.cmd" -output image.sbom.json
+  & "${script:components_dir}\sbomutil.exe" -archetype=windows-image -googet_path 'D:\ProgramData\GooGet' -extra_content="${script:components_dir}\windows.iso","${script:$script:driver_dir}\","${script:components_dir}\SetupComplete.cmd" -output image.sbom.json
   & 'gsutil' -m cp image.sbom.json $gs_path
   Write-Output "Sbom file uploaded to $gs_path."
 }
