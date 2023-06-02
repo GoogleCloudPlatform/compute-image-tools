@@ -87,14 +87,15 @@ function Download-Sbomutil {
   }
 
   $gs_path = "${gs_path}/windows"
-  $latest = gsutil ls "${gs_path}" | Select -Last 1
+  $latest = gsutil ls "${gs_path}" | Select-Object -Last 1
   if (!$latest) {
     Write-Output "Could not determine sbomutil's latest release, skipping sbomutil download."
     return
   }
 
+  # The variable $latest already has a backslash at the end, as a result of gsutil ls.
   Write-Output "Downloading sbomutil from $gs_path."
-  & 'gsutil' -m cp "${latest}/sbomutil" $script:components_dir
+  & 'gsutil' -m cp "${latest}sbomutil" $script:components_dir
   Write-Output 'Components download complete.'
 }
 
