@@ -93,8 +93,9 @@ function Download-Sbomutil {
     return
   }
 
+  # The variable $latest already has a backslash at the end, as a result of gsutil ls.
   Write-Output "Downloading sbomutil from $gs_path."
-  & 'gsutil' -m cp "${latest}/sbomutil" $script:components_dir
+  & 'gsutil' -m cp "${latest}sbomutil" $script:components_dir
   Write-Output 'Components download complete.'
 }
 
