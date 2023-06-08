@@ -19,6 +19,14 @@
     "timeout": {
       "Value": "2h",
       "Description": "The timeout to set for the image build."
+    },
+    "sbom_destination": {
+      "Value": "${OUTSPATH}/export-image.sbom.json",
+      "Description": "The GCS url that the sbom file exported to."
+    },
+    "sbom_util_gcs_root": {
+      "Value": "",
+      "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
     }
   },
   "Steps": {
@@ -32,7 +40,9 @@
           "source_image": "projects/${source_image_project}/global/images/family/windows-2022",
           "install_disk": "${install_disk}",
           "ssms_exe": "${ssms_exe}",
-          "timeout": "${timeout}"
+          "timeout": "${timeout}",
+          "sbom_destination": "${sbom_destination}",
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
         }
       }
     },
