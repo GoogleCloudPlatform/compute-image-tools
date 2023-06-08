@@ -63,7 +63,9 @@
           "StartupScript": "sql_install.ps1",
           "MetaData": {
             "sql-server-config": "${sql_server_config}",
-            "sql-server-media": "${sql_server_media}"
+            "sql-server-media": "${sql_server_media}",
+            "sbom-util-gcs-root": "${sbom_util_gcs_root}",
+            "sbom-destination": "${sbom_destination}"
           }
         }
       ]
