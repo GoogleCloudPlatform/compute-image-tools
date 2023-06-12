@@ -120,7 +120,7 @@ function Generate-Sbom {
 
   Write-Output "Generating sbom."
   & "${script:components_dir}\sbomutil.exe" -archetype=windows-image -googet_path 'D:\ProgramData\GooGet' -extra_content="${script:components_dir}\windows.iso","${script:$script:driver_dir}\","${script:components_dir}\SetupComplete.cmd" -comp_name="${comp_name}" -output image.sbom.json
-  & 'gsutil' -m cp image.sbom.json $gs_path
+  & 'gsutil' cp image.sbom.json $gs_path
   Write-Output "Sbom file uploaded to $gs_path."
 }
 
