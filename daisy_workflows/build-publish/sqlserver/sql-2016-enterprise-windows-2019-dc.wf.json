@@ -36,6 +36,10 @@
     "timeout": {
       "Value": "4h",
       "Description": "The timeout to set for the image build."
+    },
+    "sbom_util_gcs_root": {
+      "Value": "",
+      "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
     }
   },
   "Steps": {
