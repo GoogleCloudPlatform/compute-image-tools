@@ -89,8 +89,8 @@ function Download-Sbomutil {
   }
 
   # The variable $latest already has a backslash at the end, as a result of gsutil ls.
-  Write-Output "Downloading sbomutil from $gs_path."
-  & 'gsutil' -m cp "${latest}sbomutil.exe" $script:components_dir
+  Write-Output "Downloading sbomutil from $latest."
+  & 'gsutil' -m cp "${latest}sbomutil.exe" C:\sbomutil.exe
   Write-Output 'Components download complete.'
 }
 
@@ -105,16 +105,16 @@ function Generate-Sbom {
     return
   }
 
-  if (!(Test-Path "${script:components_dir}\sbomutil.exe")) {
+  if (!(Test-Path "C:\sbomutil.exe")) {
     Write-Output "Could not find sbomutil tool, skipping sbom generation."
     return
   }
 
   # Comp name is a short descriptor at the top of the sbom file for the software.
-  $comp_name = Get-MetadataValue -key 'edition'
+  $comp_name = Get-MetadataValue -key 'img-family'
 
   Write-Output "Generating sbom."
-  & "${script:components_dir}\sbomutil.exe" -archetype=windows-image -googet_path 'D:\ProgramData\GooGet' -extra_content="${script:components_dir}\windows.iso","${script:$script:driver_dir}\","${script:components_dir}\SetupComplete.cmd" -comp_name="${comp_name}" -output image.sbom.json
+  & "C:\sbomutil.exe" -archetype=windows-image -googet_path 'C:\ProgramData\GooGet' -comp_name="${comp_name}" -output image.sbom.json
   & 'gsutil' -m cp image.sbom.json $gs_path
   Write-Output "Sbom file uploaded to $gs_path."
 }
@@ -334,6 +334,10 @@ function Configure-Power {
 }
 
 try {
+
+  Download-Sbomutil
+  Generate-Sbom
+
   if (!(Test-Path 'D:\')) {
     $sysprep = 'c:\Windows\System32\Sysprep'
     Remove-Item "${sysprep}\Panther\*" -Recurse -Force -ErrorAction Continue
@@ -345,9 +349,6 @@ try {
     Configure-Power
 
   }
-
-  Download-Sbomutil
-  Generate-Sbom
 
   $reboot_required = Install-WindowsUpdates
   if ($reboot_required) {

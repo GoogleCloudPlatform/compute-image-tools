@@ -55,7 +55,9 @@
           "sql_server_media": "${sql_server_media}",
           "source_image_project": "${source_image_project}",
           "ssms_exe": "${ssms_exe}",
-          "timeout": "${timeout}"
+          "timeout": "${timeout}",
+          "sbom_destination": "${sbom_destination}",
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
         }
       }
     },
@@ -65,9 +67,7 @@
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
           "source_disk": "${install_disk}",
-          "destination": "${gcs_url}",
-          "sbom_destination": "${sbom_destination}",
-          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
+          "destination": "${gcs_url}"
         }
       }
     }
