@@ -70,6 +70,55 @@ function Get-MetadataValue {
   }
 }
 
+function Download-Sbomutil {
+  <#
+    .SYNOPSIS
+      Downloads sbomutil from GCE to the local components directory.
+  #>
+  $gs_path = Get-MetadataValue -key 'sbom-util-gcs-root'
+  if (!$gs_path) {
+    Write-Output "No metadata sbom-util-gcs-root set, skipping sbomutil download."
+    return
+  }
+
+  $gs_path = "${gs_path}/windows"
+  $latest = gsutil ls "${gs_path}" | Select -Last 1
+  if (!$latest) {
+    Write-Output "Could not determine sbomutil's latest release, skipping sbomutil download."
+    return
+  }
+
+  # The variable $latest already has a backslash at the end, as a result of gsutil ls.
+  Write-Output "Downloading sbomutil from $gs_path."
+  & 'gsutil' -m cp "${latest}sbomutil.exe" $script:components_dir
+  Write-Output 'Components download complete.'
+}
+
+function Generate-Sbom {
+  <#
+    .SYNOPSIS
+      Generates sbom and upload the result to a gcs bucket.
+  #>
+  $gs_path = Get-MetadataValue -key 'sbom-destination'
+  if (!$gs_path) {
+    Write-Output "No metadata sbom-destination set, skipping sbom generation."
+    return
+  }
+
+  if (!(Test-Path "${script:components_dir}\sbomutil.exe")) {
+    Write-Output "Could not find sbomutil tool, skipping sbom generation."
+    return
+  }
+
+  # Comp name is a short descriptor at the top of the sbom file for the software.
+  $comp_name = Get-MetadataValue -key 'edition'
+
+  Write-Output "Generating sbom."
+  & "${script:components_dir}\sbomutil.exe" -archetype=windows-image -googet_path 'D:\ProgramData\GooGet' -extra_content="${script:components_dir}\windows.iso","${script:$script:driver_dir}\","${script:components_dir}\SetupComplete.cmd" -comp_name="${comp_name}" -output image.sbom.json
+  & 'gsutil' -m cp image.sbom.json $gs_path
+  Write-Output "Sbom file uploaded to $gs_path."
+}
+
 function Install-WindowsUpdates {
   <#
     .SYNOPSIS
@@ -294,7 +343,11 @@ try {
     Install-SSMS
     Enable-MicrosoftUpdate
     Configure-Power
+
   }
+
+  Download-Sbomutil
+  Generate-Sbom
 
   $reboot_required = Install-WindowsUpdates
   if ($reboot_required) {
