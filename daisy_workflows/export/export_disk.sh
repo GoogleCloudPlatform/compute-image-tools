@@ -105,7 +105,8 @@ function runSBOMGeneration() {
   mount -o bind,ro /dev /mnt/dev
   echo "GCEExport: Running sbom generation with the sbom-util program"
   fetch_sbomutil
-  ./sbomutil --archetype=linux-image --comp_name=$SOURCE_DISK_NAME --output=image.sbom.json
+  # gid and uid are empty so that the sqlite3 dependency compiles
+  ./sbomutil --gid= --uid= --archetype=linux-image --comp_name=$SOURCE_DISK_NAME --output=image.sbom.json
   gsutil cp image.sbom.json $SBOM_PATH
   umount /mnt/dev
   umount /mnt
