@@ -31,6 +31,10 @@
     "sbom_util_gcs_root": {
       "Value": "",
       "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
+    },
+    "img_family": {
+      "Value": "sql-server",
+      "Description": "The image family, which is used as the component name for the sbom."
     }
   },
   "Sources": {
@@ -60,12 +64,16 @@
           "Name": "inst-install",
           "Disks": [{"Source": "${install_disk}"}, {"Source": "disk-scratch"}],
           "MachineType": "e2-standard-4",
+          "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_write"
+          ],
           "StartupScript": "sql_install.ps1",
           "MetaData": {
             "sql-server-config": "${sql_server_config}",
             "sql-server-media": "${sql_server_media}",
             "sbom-util-gcs-root": "${sbom_util_gcs_root}",
-            "sbom-destination": "${sbom_destination}"
+            "sbom-destination": "${sbom_destination}",
+            "img-family": "${img_family}"
           }
         }
       ]
