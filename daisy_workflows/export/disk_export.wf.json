@@ -44,6 +44,10 @@
     "sbom_util_gcs_root": {
       "Value": "",
       "Description": "the root gcs path for the sbom-util executable, used to generate SBOM if provided"
+    },
+    "sbom_already_generated": {
+      "Value": "false",
+      "Description": "true if the sbom has already been generated earlier in the super-workflow"
     }
   },
   "Sources": {
@@ -73,7 +77,8 @@
             "sbom-path": "${OUTSPATH}/${NAME}.sbom.json",
             "startup-script": "${SOURCE:${NAME}_export_disk.sh}",
             "source-disk-name": "${source_disk}",
-            "sbom-util-gcs-root": "${sbom_util_gcs_root}"
+            "sbom-util-gcs-root": "${sbom_util_gcs_root}",
+            "sbom-already-generated": "${sbom_already_generated}"
           },
           "networkInterfaces": [
             {
