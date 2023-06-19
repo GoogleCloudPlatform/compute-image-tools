@@ -18,8 +18,7 @@
   {{- else if eq .environment "prod" -}}
   "WorkProject": {{$work_project}},
   "PublishProject": "rhel-sap-cloud",
-  "ComputeEndpoint": {{$endpoint}},
-  "DeleteAfter": {{$delete_after}},
+  "ComputeEndpoint": {{$endpoint}}
   {{- else -}}
   "WorkProject": {{$work_project}},
   "PublishProject": {{$work_project}},
