@@ -237,7 +237,7 @@ function Install-NetFrameworkCore {
   $productBuildNumber = [Environment]::OSVersion.Version.Build
   $productMajorVersion = [Environment]::OSVersion.Version.Major
   $productMinorVersion = [Environment]::OSVersion.Version.Minor
-  if($productMajorVersion -eq 6 -and $productMinorVersion -eq 3 -and $productBuildNumber -ge 9600) {
+  if($productMajorVersion -eq 6 -and $productMinorVersion -eq 3 -and $productBuildNumber -eq 9600) {
     Write-Host 'Install-NetFrameworkCore: Enabling .Net Framework version 3.5.'
     Install-WindowsFeature Net-Framework-Core
   }
