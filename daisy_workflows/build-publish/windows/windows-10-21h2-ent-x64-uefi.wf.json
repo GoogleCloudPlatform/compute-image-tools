@@ -75,9 +75,7 @@
         "Vars": {
           "build_date": "${build_date}",
           "gcs_url": "${gcs_url}",
-          "workflow_root": "${workflow_root}",
-          "sbom_destination": "${sbom_destination}",
-          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
+          "workflow_root": "${workflow_root}"
         }
       }
     }
