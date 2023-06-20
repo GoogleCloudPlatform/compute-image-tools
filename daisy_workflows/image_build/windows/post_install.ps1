@@ -228,6 +228,24 @@ function Install-WindowsUpdates {
   return $true
 }
 
+# Remove with Win2012 R2 EOL in Oct 2023. Temporary fix for issue following June 2023 .Net update.
+function Install-NetFrameworkCore {
+  <#
+    .SYNOPSIS
+      Checks for Windows Server 2012 and enables the .Net version 3.5 Framework.
+  #>
+  $productBuildNumber = [Environment]::OSVersion.Version.Build
+  $productMajorVersion = [Environment]::OSVersion.Version.Major
+  $productMinorVersion = [Environment]::OSVersion.Version.Minor
+  if($productMajorVersion -eq 6 -and $productMinorVersion -eq 3 -and $productBuildNumber -eq 9600) {
+    Write-Host 'Install-NetFrameworkCore: Enabling .Net Framework version 3.5.'
+    Install-WindowsFeature Net-Framework-Core
+  }
+  else {
+    Write-Host 'Install-NetFrameworkCore: Windows Server 2012 R2 not detected. Skipping .Net 3.5 install.'
+  }
+}
+
 function Get-ResultCodeDescription {
   <#
     .SYNOPSIS
@@ -691,6 +709,9 @@ try {
   $pn = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name ProductName).ProductName
 
   Install-PowerShell
+
+  # Remove with Win2012 R2 EOL in Oct 2023. Temporary fix for issue following June 2023 .Net update.
+  Install-NetFrameworkCore
 
   if ($script:wu_server_url.StartsWith('http') -and $script:wu_server_port -notlike '0') {
     Set-WindowsUpdateServer
