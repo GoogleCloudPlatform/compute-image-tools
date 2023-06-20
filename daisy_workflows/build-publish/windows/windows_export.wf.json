@@ -34,7 +34,7 @@
         "Vars": {
           "source_disk": "${install_disk}",
           "destination": "${gcs_url}",
-          "sbom_already_generated": "true"
+          "sbom_destination": "${sbom_destination}"
         }
       }
     }

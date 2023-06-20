@@ -65,8 +65,6 @@ DESTINATION=$(curl -f -H Metadata-Flavor:Google ${URL}/destination)
 SBOM_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-path)
 # The gcs root for sbom-util. If empty, do not run sbom generation with sbom-util.
 SBOM_UTIL_GCS_ROOT=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-util-gcs-root)
-# Mostly used for windows workflows, set to true if the sbom is already generated and non-empty.
-SBOM_ALREADY_GENERATED=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-already-generated)
 
 # This function fetches the sbom-util executable from the gcs bucket.
 function fetch_sbomutil() {
@@ -114,11 +112,9 @@ function runSBOMGeneration() {
   echo "GCEExport: SBOM export success"
 }
 
-# Always create empty sbom file so workflow copying does not fail, if the sbom is not already generated.
-if [ $SBOM_ALREADY_GENERATED != "true" ]; then
-  touch image.sbom.json
-  gsutil cp image.sbom.json $SBOM_PATH
-fi
+# Always create empty sbom file so workflow copying does not fail
+touch image.sbom.json
+gsutil cp image.sbom.json $SBOM_PATH
 # If the sbom-util program location is passed in, generate the sbom.
 if [ $SBOM_UTIL_GCS_ROOT != "" ]; then
   runSBOMGeneration
