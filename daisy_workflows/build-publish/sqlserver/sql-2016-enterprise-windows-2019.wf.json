@@ -36,6 +36,10 @@
     "timeout": {
       "Value": "4h",
       "Description": "The timeout to set for the image build."
+    },
+    "sbom_util_gcs_root": {
+      "Value": "",
+      "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
     }
   },
   "Steps": {
@@ -50,7 +54,9 @@
           "sql_server_media": "${sql_server_media}",
           "source_image_project": "${source_image_project}",
           "ssms_exe": "${ssms_exe}",
-          "timeout": "${timeout}"
+          "timeout": "${timeout}",
+          "sbom_destination": "${sbom_destination}",
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
         }
       }
     },
@@ -60,7 +66,9 @@
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
           "source_disk": "${install_disk}",
-          "destination": "${gcs_url}"
+          "destination": "${gcs_url}",
+          "existing_sbom_file_name": "${sbom_destination}",
+          "sbom_already_generated": "true"
         }
       }
     }
