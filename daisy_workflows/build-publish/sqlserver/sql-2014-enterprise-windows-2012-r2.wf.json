@@ -67,7 +67,9 @@
         "Path": "${workflow_root}/export/disk_export.wf.json",
         "Vars": {
           "source_disk": "${install_disk}",
-          "destination": "${gcs_url}"
+          "destination": "${gcs_url}",
+          "existing_sbom_file_name": "${sbom_destination}",
+          "sbom_already_generated": "true"
         }
       }
     }
