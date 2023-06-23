@@ -114,7 +114,7 @@ function Generate-Sbom {
   $comp_name = Get-MetadataValue -key 'img-family'
 
   Write-Output "Generating sbom."
-  & "C:\sbomutil.exe" -archetype=windows-image -googet_path 'C:\ProgramData\GooGet' -comp_name="${comp_name}" -output image.sbom.json
+  & "C:\sbomutil.exe" -archetype=windows-image -googet_path 'C:\ProgramData\GooGet' -extra_content="${script:sbom_dir}\" -comp_name="${comp_name}" -output image.sbom.json
   & 'gsutil' -m cp image.sbom.json $gs_path
   Write-Output "Sbom file uploaded to $gs_path."
 }
@@ -255,7 +255,7 @@ function Install-SqlServer {
 
   if ($sql_server_media -like '*.iso') {
     Write-Host 'Downloading SQL Server ISO'
-    $iso = 'D:\sql_server.iso'
+    $iso = "${script:sbom_dir}\sql_server.iso"
     & 'gsutil' -m cp "${gs_path}/sql_installer.media" $iso
     Write-Host 'Mount ISO'
     $mount_result = Mount-DiskImage -ImagePath $iso -PassThru
@@ -270,7 +270,7 @@ function Install-SqlServer {
   }
   elseif ($sql_server_media -like '*.exe') {
     Write-Host 'Downloading SQL Server exe'
-    $exe = 'D:\sql_server.exe'
+    $exe = "${script:sbom_dir}\sql_server.exe"
     & 'gsutil' -m cp "${gs_path}/sql_installer.media" $exe
     Start-Process $exe -ArgumentList @("/x:${sql_install}",'/u') -Wait
   }
@@ -299,7 +299,7 @@ function Install-SSMS {
   Write-Host 'Installing SSMS'
 
   $gs_path = Get-MetadataValue -key 'daisy-sources-path'
-  $ssms_exe = 'D:\SSMS-Setup-ENU.exe'
+  $ssms_exe = "${script:sbom_dir}\SSMS-Setup-ENU.exe"
   & 'gsutil' -m cp "${gs_path}/SSMS-Setup-ENU.exe" $ssms_exe
 
   $process = Start-Process $ssms_exe -ArgumentList @('/install','/quiet','/norestart') -Passthru -Wait
@@ -335,16 +335,18 @@ function Configure-Power {
 
 try {
 
-  Download-Sbomutil
-  Generate-Sbom
 
   if (!(Test-Path 'D:\')) {
+    # Any file which should be included in the sbom is stored in the sbom directory.
+    $script:sbom_dir = "D:\sbomcontents"
     $sysprep = 'c:\Windows\System32\Sysprep'
     Remove-Item "${sysprep}\Panther\*" -Recurse -Force -ErrorAction Continue
     Remove-Item "${sysprep}\Sysprep_succeeded.tag" -Recurse -Force -ErrorAction Continue
     Format-ScratchDisk
     Install-SqlServer
     Install-SSMS
+    Download-Sbomutil
+    Generate-Sbom
     Enable-MicrosoftUpdate
     Configure-Power
 
