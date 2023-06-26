@@ -119,7 +119,7 @@ function Generate-Sbom {
   $comp_name = Get-MetadataValue -key 'edition'
 
   Write-Output "Generating sbom."
-  & "${script:components_dir}\sbomutil.exe" -archetype=windows-image -googet_path 'D:\ProgramData\GooGet' -extra_content="${script:components_dir}\windows.iso","${script:driver_dir}\","${script:components_dir}\SetupComplete.cmd" -comp_name="${comp_name}" -output image.sbom.json
+  & "${script:components_dir}\sbomutil.exe" -archetype=windows-image -googet_path 'D:\ProgramData\GooGet' -extra_content="${script:sbom_dir}\" -comp_name="${comp_name}" -output image.sbom.json
   & 'gsutil' cp image.sbom.json $gs_path
   Write-Output "Sbom file uploaded to $gs_path."
 }
@@ -294,12 +294,12 @@ function Bootstrap-InstallDisk {
 }
 
 try {
-  # Setup builder directories.
-  $script:builder_dir = 'C:\builder'
-  $script:components_dir = "$script:builder_dir\components"
+  # Setup directories to store files which are added to the sbom.
+  $script:sbom_dir = 'C:\sbomcomponents'
+  $script:components_dir = "$script:sbom_dir\components"
   $script:updates_dir = "$script:components_dir\updates"
-  $script:driver_dir = "$script:components_dir\drivers"
-  New-Item $script:builder_dir -Type directory
+  $script:driver_dir = "$script:sbom_dir\drivers"
+  New-Item $script:sbom_dir -Type directory
   New-Item $script:updates_dir -Type directory
   New-Item $script:driver_dir -Type directory
 
