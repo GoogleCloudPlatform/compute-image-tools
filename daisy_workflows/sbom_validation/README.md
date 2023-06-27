@@ -7,5 +7,3 @@ daisy -project {project name} -var:sbom_util_gcs_root=root_of_gcs_filesystem ent
 ```
 
 The root of sbom util should point to a bucket including folders such as "linux", "linux_arm64", and "windows", corresponding to the operating systems of the images which we want to generate the SBOM for. 
-
-To run the current test up locally, the sbomutil executable should be located at the path linux/**some_folder_name**/sbomutil relative to the sbom_util_gcs_root, where some_folder_name can have any value.
