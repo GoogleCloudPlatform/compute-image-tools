@@ -338,7 +338,7 @@ try {
 
   if (!(Test-Path 'D:\')) {
     # Any file which should be included in the sbom is stored in the sbom directory.
-    $script:sbom_dir = "D:\sbomcontents"
+    $script:sbom_dir = "D:\sbomcomponents"
     $sysprep = 'c:\Windows\System32\Sysprep'
     Remove-Item "${sysprep}\Panther\*" -Recurse -Force -ErrorAction Continue
     Remove-Item "${sysprep}\Sysprep_succeeded.tag" -Recurse -Force -ErrorAction Continue
