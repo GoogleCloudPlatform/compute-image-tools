@@ -32,7 +32,7 @@ It is best to install updates in the following order:
 
 1. All of the provided files are uploaded to a GSC bucket that will be used with the workflow.
 1. A new installation disk of the specified size is created and attached to a Windows Server 2019 "bootstrap instance".
-1. The WIM image from the media, the provided Windows updates, GCE drivers, and installation files are applied to the installation disk. This is all done in the [bootstrap_install.ps1](https://github.com/GoogleCloudPlatform/compute-image-tools/blob/master/daisy_workflows/image_build/windows/bootstrap_install.ps1).
+1. The WIM image from the media, the provided Windows updates, GCE drivers, and installation files are applied to the installation disk. Optionally, the SBOM is also generated and exported. This is all done in the [bootstrap_install.ps1](https://github.com/GoogleCloudPlatform/compute-image-tools/blob/master/daisy_workflows/image_build/windows/bootstrap_install.ps1).
 1. The "bootstrap instance" is stopped and a new "install instance" is created that boots the installation disk.
 1. The "install instance" is started and will run the [SetupComplete.cmd](https://github.com/GoogleCloudPlatform/compute-image-tools/blob/master/daisy_workflows/image_build/windows/components/SetupComplete.cmd) and then the [post_install.ps1](https://github.com/GoogleCloudPlatform/compute-image-tools/blob/master/daisy_workflows/image_build/windows/post_install.ps1).
 1. The "install instance" is stopped and a GCE Image is created from the installation disk with the appropriate [on-demand licenses for Windows Server](https://cloud.google.com/compute/docs/instances/windows/ms-licensing) and features.
@@ -53,6 +53,8 @@ any required variable will need to be provided when calling daisy using the -var
 | cloudsdk | Absolute path to or GCS resource name of the [Google Cloud SDK Installer](https://dl.google.com/dl/cloudsdk/channels/rapid/GoogleCloudSDKInstaller.exe) |
 | updates | (Optional) Directory or GCS location containing updates to be included in install |
 | product_key | (Optional) Windows product key to use. Volume license media by default include the Generic Volume License Key. |
+| sbom_destination | (Optional) The path to which the SBOM file will be exported, if generating the SBOM. |
+| sbom_util_gcs_root | (Optional) The path to where the sbomutil executable is located, if generating the SBOM. |
 
 ### Selecting a workflow
 
