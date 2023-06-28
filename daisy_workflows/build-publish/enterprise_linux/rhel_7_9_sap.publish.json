@@ -18,7 +18,12 @@
   {{- else if eq .environment "prod" -}}
   "WorkProject": {{$work_project}},
   "PublishProject": "rhel-sap-cloud",
-  "ComputeEndpoint": {{$endpoint}}
+  "ComputeEndpoint": {{$endpoint}},
+  {{- else if eq .environment "autopush" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "artifact-releaser-autopush",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": "3h",
   {{- else -}}
   "WorkProject": {{$work_project}},
   "PublishProject": {{$work_project}},
