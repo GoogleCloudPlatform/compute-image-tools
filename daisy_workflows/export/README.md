@@ -1,7 +1,7 @@
 # Daisy image/disk export workflows
 Exports a GCE disk to a GCS location.
 
-There are two types of export worklfows depending on the required output 
+There are two types of export workflows depending on the required output 
 format. 
 
 ## GCE raw disk image
@@ -12,6 +12,13 @@ be imported directly to GCE.
 Required vars:
 + `source_image` GCE image to export
 + `destination` GCS path to export image to
+
+Optional vars:
++ `sbom_destination` Path to export the SBOM for the image to
++ `sbom_util_gcs_root` Path to where the sbomutil binary is located
+
+Note that `disk_export.wf.json` will usually be called from another image workflow,
+which will pass down these SBOM variables for generation of the SBOM.
 
 ### Command line example
 This will export the disk `project/PROJECT/gloabl/images/MYIMAGE` to `gs://some/bucket/image.tar.gz`.
