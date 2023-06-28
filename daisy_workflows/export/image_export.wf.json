@@ -38,6 +38,14 @@
     "compute_service_account": {
       "Value": "default",
       "Description": "Service account that will be used by the created worker instance"
+    },
+    "sbom_destination": {
+      "Value": "${OUTSPATH}/${NAME}.sbom.json",
+      "Description": "GCS path to export sbom to, does nothing by default"
+    },
+    "sbom_util_gcs_root": {
+      "Value": "",
+      "Description": "the root gcs path for the sbom-util executable, used to generate SBOM if provided"
     }
   },
   "Steps": {
@@ -63,7 +71,9 @@
           "licenses": "${licenses}",
           "export_network": "${export_network}",
           "export_subnet": "${export_subnet}",
-          "compute_service_account": "${compute_service_account}"
+          "compute_service_account": "${compute_service_account}",
+          "sbom_destination": "${sbom_destination}",
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
         }
       }
     }
