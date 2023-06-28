@@ -10,6 +10,8 @@ Required vars:
 Optional vars:
 + `ssms_exe` GCS or local path to SSMS installer for SQL 2016 installs
 + `install_disk` Name of the GCE disk to use for the SQL install
++ `sbom_destination` The path to export the SBOM file, if it is generated
++ `sbom_util_gcs_root` The path where the sbomutil executable is stored
 
 ### SQL 2016 Express workflow example
 This workflow builds a SQl Server 2016 Express image on the latest Server 2016 GCE image.
@@ -43,7 +45,9 @@ https://docs.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-
           "sql_server_media": "gs://PATH/TO/SQLEXPRADV_x64_ENU.exe",
           "source_image": "projects/windows-cloud/global/images/family/windows-2016",
           "install_disk": "${install_disk}",
-          "ssms_exe": "gs://PATH/TO/SSMS-Setup-ENU.exe"
+          "ssms_exe": "gs://PATH/TO/SSMS-Setup-ENU.exe",
+          "sbom_destination": "gs://EXPORT_PATH",
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
         }
       }
     },
