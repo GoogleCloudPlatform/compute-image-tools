@@ -129,9 +129,10 @@ D:\builder\components\GoogleCloudSDKInstaller.exe /S /allusers > COM1: 2>&1
 if NOT %ERRORLEVEL%==0 (
   echo Google Cloud SDK exited with error level %ERRORLEVEL%, retrying... > COM1:
   timeout /t 10
-  D:\builder\components\GoogleCloudSDKInstaller.exe /S /allusers > COM1: 2>&1
+  D:\builder\components\GoogleCloudSDKInstaller.exe /S /allusers /logtofile > COM1: 2>&1
   if NOT %ERRORLEVEL%==0 (
     echo Windows build failed: Google Cloud SDK exited with error level %ERRORLEVEL% > COM1:
+    type  D:\builder\components\CloudSDKInstall.log > COM1:
     exit 1
   )
 )
