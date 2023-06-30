@@ -31,7 +31,7 @@ steps:
   dir: 'cli_tools/gce_image_publish'
   args: ['go', 'build', '-o=/workspace/darwin/gce_image_publish']
   env: ['GOOS=darwin']
-- name: 'gcr.io/kaniko-project/executor:v1.0.0'
+- name: 'gcr.io/kaniko-project/executor:v1.12.1'
   args:
   - --destination=gcr.io/$_IMAGE_PROJECT/gce_image_publish:$_RELEASE
   - --destination=gcr.io/$_IMAGE_PROJECT/gce_image_publish:$COMMIT_SHA
@@ -48,7 +48,7 @@ steps:
   dir: 'cli_tools/gce_export'
   args: ['go', 'build', '-o=/workspace/windows/gce_export']
   env: ['GOOS=windows']
-- name: 'gcr.io/kaniko-project/executor:v1.0.0'
+- name: 'gcr.io/kaniko-project/executor:v1.12.1'
   args:
   - --destination=gcr.io/$_IMAGE_PROJECT/gce_export:$_RELEASE
   - --destination=gcr.io/$_IMAGE_PROJECT/gce_export:$COMMIT_SHA
@@ -61,7 +61,7 @@ steps:
   dir: 'cli_tools/gce_windows_upgrade'
   args: ['go', 'build', '-o=/workspace/linux/gce_windows_upgrade']
   env: ['CGO_ENABLED=0']
-- name: 'gcr.io/kaniko-project/executor:v1.1.0'
+- name: 'gcr.io/kaniko-project/executor:v1.12.1'
   args:
   - --destination=gcr.io/$_IMAGE_PROJECT/gce_windows_upgrade:$_RELEASE
   - --destination=gcr.io/$_IMAGE_PROJECT/gce_windows_upgrade:$COMMIT_SHA
