@@ -2,6 +2,8 @@
 
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 OUTS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/outs-path)
+# If set to false, do not check if the disk tar file is present
+CHECK_DISK_TAR=$(curl -f -H Metadata-Flavor:Google ${URL}/check-disk-tar)
 DISK_FILE_NAME=$(curl -f -H Metadata-Flavor:Google ${URL}/disk-file-name)
 
 # expected GCS path for the sbom file ending in .sbom.json
@@ -26,14 +28,18 @@ else
   echo "SBOMTesting: non-empty SBOM file found"
 fi
 
-# Check that the disk export succeeded
-gsutil -q stat $GCS_PATH_OUTDISK
-status=$?
-if [[ $status -eq 0 ]]; then
-  echo "SBOMTesting: Disk tar file successfully found"
+# Check that the disk export succeeded, if the flag is not false
+if [[ $CHECK_DISK_TAR == "false" ]]; then
+  echo "SBOMTesting: skipping check for Disk tar file"
 else
-  echo "SBOMFailed: Disk tar file not found"
-  exit 1
+  gsutil -q stat $GCS_PATH_OUTDISK
+  status=$?
+  if [[ $status -eq 0 ]]; then
+    echo "SBOMTesting: Disk tar file successfully found"
+  else
+    echo "SBOMFailed: Disk tar file not found"
+    exit 1
+  fi
 fi
 
 echo "SBOMTesting: All tests passed"
