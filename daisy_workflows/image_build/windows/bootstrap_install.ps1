@@ -294,11 +294,12 @@ function Bootstrap-InstallDisk {
 }
 
 try {
-  # Setup directories to store files which are added to the sbom.
+  # Setup directories to store files which are added to the sbom, by storing files in sbom_dir. 
+  # Changing this path requires changing the path in image_build/windows/components/SetupComplete.cmd as well.
   $script:sbom_dir = 'C:\sbomcomponents'
   $script:components_dir = "$script:sbom_dir\components"
   $script:updates_dir = "$script:components_dir\updates"
-  $script:driver_dir = "$script:sbom_dir\drivers"
+  $script:driver_dir = "$script:components_dir\drivers"
   New-Item $script:sbom_dir -Type directory
   New-Item $script:updates_dir -Type directory
   New-Item $script:driver_dir -Type directory

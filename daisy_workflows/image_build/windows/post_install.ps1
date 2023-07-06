@@ -6,7 +6,7 @@ $ErrorActionPreference = 'Stop'
 
 $script:gce_install_dir = 'C:\Program Files\Google\Compute Engine'
 $script:hosts_file = "$env:windir\system32\drivers\etc\hosts"
-$script:components_path = 'D:\builder\components'
+$script:components_path = 'D:\sbomcomponents\components'
 
 # Windows Updates Registry Key Paths
 $windows_update_path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
