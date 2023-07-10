@@ -31,7 +31,7 @@
     {
       "Prefix": "rhel-8-8-sap",
       "Family": "rhel-8-8-sap-ha",
-      "Description": "Red Hat, Red Hat Enterprise Linux for SAP with HA and Update Services, 8.8, x86_64 built on {{$time}}, supports Shielded VM features",
+      "Description": "Red Hat, Red Hat Enterprise Linux for SAP with HA and Update Services, 8.8, x86_64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         "projects/rhel-sap-cloud/global/licenses/rhel-8-sap"

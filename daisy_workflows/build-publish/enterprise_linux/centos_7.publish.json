@@ -36,7 +36,7 @@
     {
       "Family": "centos-7",
       "Prefix": "centos-7",
-      "Description": "CentOS, CentOS, 7, x86_64 built on {{$time}}, supports Shielded VM features",
+      "Description": "CentOS, CentOS, 7, x86_64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         "projects/centos-cloud/global/licenses/centos-7"

@@ -33,7 +33,7 @@
     {
       "Prefix": "sql-2014-web-windows-2012-r2",
       "Family": "sql-web-2014-win-2012-r2-standard",
-      "Description": "Microsoft, SQL Server 2014 Web, on Windows Server 2012 R2 Standard, x64 built on {{$time}}, supports Shielded VM features",
+      "Description": "Microsoft, SQL Server 2014 Web, on Windows Server 2012 R2 Standard, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         "projects/windows-sql-cloud/global/licenses/sql-server-2014-web",

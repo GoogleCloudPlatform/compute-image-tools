@@ -19,7 +19,7 @@
       "Description": "GCS or local path to Cloud SDK installer"
     },
     "description": {
-      "Value": "Microsoft, Windows 8.1 Enterprise, x64 built on ${TIMESTAMP}, supports Shielded VM features"
+      "Value": "Microsoft, Windows 8.1 Enterprise, x64 built on ${TIMESTAMP}"
     },
     "family": {
       "Value": "windows-81",

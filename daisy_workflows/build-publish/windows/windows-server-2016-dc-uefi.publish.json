@@ -32,7 +32,7 @@
     {
       "Prefix": "windows-server-2016-dc",
       "Family": "windows-2016",
-      "Description": "Microsoft, Windows Server, 2016 Datacenter, Server with Desktop Experience, x64 built on {{$time}}, supports Shielded VM features",
+      "Description": "Microsoft, Windows Server, 2016 Datacenter, Server with Desktop Experience, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "internal" -}}

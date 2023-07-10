@@ -59,7 +59,7 @@
           "Licenses": [
             "projects/windows-sql-cloud/global/licenses/sql-server-2019-web"
           ],
-          "Description": "Microsoft, SQL Server 2019 Web, on Windows Server 2019, x64 built on ${build_date}, supports Shielded VM features",
+          "Description": "Microsoft, SQL Server 2019 Web, on Windows Server 2019, x64 built on ${build_date}",
           "GuestOsFeatures": ["MULTI_IP_SUBNET", "UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "WINDOWS", "GVNIC"],
           "Family": "${img_family}",
           "Project": "${publish_project}",

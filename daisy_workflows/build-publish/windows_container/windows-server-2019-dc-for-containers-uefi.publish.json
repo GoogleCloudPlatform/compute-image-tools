@@ -35,7 +35,7 @@
       {{/* Version here is important because of container incompatibilities */}}
       "Prefix": "windows-server-2019-dc-for-containers",
       "Family": "windows-2019-for-containers",
-      "Description": "Microsoft, Windows Server, 2019 Datacenter for Containers, x64 built on {{$time}}, supports Shielded VM features",
+      "Description": "Microsoft, Windows Server, 2019 Datacenter for Containers, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "internal" -}}
