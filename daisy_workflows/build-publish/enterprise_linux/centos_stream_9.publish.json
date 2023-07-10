@@ -36,7 +36,7 @@
     {
       "Family": "centos-stream-9",
       "Prefix": "centos-stream-9",
-      "Description": "CentOS, CentOS, Stream 9, x86_64 built on {{$time}}, supports Shielded VM features",
+      "Description": "CentOS, CentOS, Stream 9, x86_64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         "projects/centos-cloud/global/licenses/centos-stream-9"

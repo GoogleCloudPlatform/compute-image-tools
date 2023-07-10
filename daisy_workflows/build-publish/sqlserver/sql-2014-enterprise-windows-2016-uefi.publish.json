@@ -33,7 +33,7 @@
     {
       "Prefix": "sql-2014-enterprise-windows-2016",
       "Family": "sql-ent-2014-win-2016-standard",
-      "Description": "Microsoft, SQL Server 2014 Enterprise, on Windows Server 2016 Standard, x64 built on {{$time}}, supports Shielded VM features",
+      "Description": "Microsoft, SQL Server 2014 Enterprise, on Windows Server 2016 Standard, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         "projects/windows-sql-cloud/global/licenses/sql-server-2014-enterprise",

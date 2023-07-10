@@ -33,7 +33,7 @@
     {
       "Prefix": "sql-2016-web-windows-2012-r2-dc",
       "Family": "sql-web-2016-win-2012-r2",
-      "Description": "Microsoft, SQL Server 2016 Web, on Windows Server 2012 R2 Datacenter, x64 built on {{$time}}, supports Shielded VM features",
+      "Description": "Microsoft, SQL Server 2016 Web, on Windows Server 2012 R2 Datacenter, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         "projects/windows-sql-cloud/global/licenses/sql-server-2016-web",

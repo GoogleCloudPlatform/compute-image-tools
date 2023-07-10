@@ -19,7 +19,7 @@
       "Description": "GCS or local path to Cloud SDK installer"
     },
     "description": {
-      "Value": "Microsoft, Windows 11 Enterprise 21h2, x64 built on ${TIMESTAMP}, supports Shielded VM features"
+      "Value": "Microsoft, Windows 11 Enterprise 21h2, x64 built on ${TIMESTAMP}"
     },
     "family": {
       "Value": "windows-11-21h2-ent-x64",

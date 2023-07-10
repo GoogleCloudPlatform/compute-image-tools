@@ -36,7 +36,7 @@
     {
       "Family": "rhel-7-byos",
       "Prefix": "rhel-7-byos",
-      "Description": "Red Hat, Red Hat Enterprise Linux, 7, BYOS x86_64 built on {{$time}}, supports Shielded VM features",
+      "Description": "Red Hat, Red Hat Enterprise Linux, 7, BYOS x86_64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         "projects/rhel-cloud/global/licenses/rhel-7-byos"

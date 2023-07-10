@@ -38,7 +38,7 @@
     {
       "Prefix": "sql-2022-enterprise-windows-2022-dc",
       "Family": "sql-ent-2022-win-2022",
-      "Description": "Microsoft, SQL Server 2022 Enterprise, on Windows Server 2022 Datacenter, x64 built on {{$time}}, supports Shielded VM features",
+      "Description": "Microsoft, SQL Server 2022 Enterprise, on Windows Server 2022 Datacenter, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "staging" -}}

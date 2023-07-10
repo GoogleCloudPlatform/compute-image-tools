@@ -32,7 +32,7 @@
     {
       "Prefix": "windows-11-21h2-ent-x64",
       "Family": "windows-11-21h2-x64",
-      "Description": "Microsoft, Windows 11 Enterprise, 21h2 Update, x64 built on {{$time}}, supports Shielded VM features",
+      "Description": "Microsoft, Windows 11 Enterprise, 21h2 Update, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "staging" -}}

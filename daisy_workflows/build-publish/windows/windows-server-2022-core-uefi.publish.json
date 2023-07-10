@@ -32,7 +32,7 @@
     {
       "Prefix": "windows-server-2022-core",
       "Family": "windows-2022-core-standard",
-      "Description": "Microsoft, Windows Server, 2022 Core, Server Core, x64 built on {{$time}}, supports Shielded VM features",
+      "Description": "Microsoft, Windows Server, 2022 Core, Server Core, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "internal" -}}

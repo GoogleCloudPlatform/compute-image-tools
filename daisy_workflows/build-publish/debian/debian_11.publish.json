@@ -35,7 +35,7 @@
     {
       "Prefix": "debian-11-bullseye",
       "Family": "debian-11",
-      "Description": "Debian, Debian GNU/Linux, 11 (bullseye), amd64 built on {{$time}}, supports Shielded VM features",
+      "Description": "Debian, Debian GNU/Linux, 11 (bullseye), amd64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         "projects/debian-cloud/global/licenses/debian-11-bullseye"

@@ -38,7 +38,7 @@
     {
       "Prefix": "sql-2019-web-windows-2019",
       "Family": "sql-web-2019-win-2019-standard",
-      "Description": "Microsoft, SQL Server 2019 Web, on Windows Server 2019 Standard, x64 built on {{$time}}, supports Shielded VM features",
+      "Description": "Microsoft, SQL Server 2019 Web, on Windows Server 2019 Standard, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "staging" -}}

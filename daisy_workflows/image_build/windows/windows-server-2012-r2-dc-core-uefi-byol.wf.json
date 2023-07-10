@@ -19,7 +19,7 @@
       "Description": "GCS or local path to Cloud SDK installer"
     },
     "description": {
-      "Value": "Microsoft, Windows Server, 2012 R2 Datacenter Core, Server Core, x64 built on ${TIMESTAMP}, supports Shielded VM features"
+      "Value": "Microsoft, Windows Server, 2012 R2 Datacenter Core, Server Core, x64 built on ${TIMESTAMP}"
     },
     "family": {
       "Value": "windows-2012-r2-core-byol",

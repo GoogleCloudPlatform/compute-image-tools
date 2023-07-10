@@ -33,7 +33,7 @@
           "RawDisk": {
             "Source": "${OUTSPATH}/root.tar.gz"
           },
-          "Description": "Debian, Debian GNU/Linux, 11 (bullseye), amd64 built on ${build_date}, supports Shielded VM features",
+          "Description": "Debian, Debian GNU/Linux, 11 (bullseye), amd64 built on ${build_date}",
           "Family": "debian-11",
           "Project": "${publish_project}",
           "NoCleanup": true,

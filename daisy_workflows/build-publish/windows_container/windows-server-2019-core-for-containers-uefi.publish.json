@@ -35,7 +35,7 @@
       {{/* Version here is important because of container incompatibilities */}}
       "Prefix": "windows-server-2019-core-for-containers",
       "Family": "windows-2019-standard-core-for-containers",
-      "Description": "Microsoft, Windows Server, 2019 Core for Containers, Server Core, x64 built on {{$time}}, supports Shielded VM features",
+      "Description": "Microsoft, Windows Server, 2019 Core for Containers, Server Core, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         {{- if eq .environment "internal" -}}

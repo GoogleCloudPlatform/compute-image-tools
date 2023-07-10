@@ -35,7 +35,7 @@
     {
       "Prefix": "debian-10-buster",
       "Family": "debian-10",
-      "Description": "Debian, Debian GNU/Linux, 10 (buster), amd64 built on {{$time}}, supports Shielded VM features",
+      "Description": "Debian, Debian GNU/Linux, 10 (buster), amd64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         "projects/debian-cloud/global/licenses/debian-10-buster"
