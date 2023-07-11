@@ -1,0 +1,195 @@
+{
+  "Name": "windows-validation",
+  "Zone": "us-central1-b",
+  "Vars": {
+    "install_disk": "install-disk",
+    "media": {
+      "Required": true,
+      "Description": "GCS or local path to Windows Server ISO."
+    },
+    "pwsh": {
+      "Required": true,
+      "Description": "GCS or local path to PowerShell v7+ installer"
+    },
+    "dotnet48": {
+      "Required": true,
+      "Description": "GCS or local path to Microsoft .NET Framework 4.8 offline installer"
+    },
+    "cloudsdk": {
+      "Required": true,
+      "Description": "GCS or local path to Cloud SDK installer"
+    },
+    "google_cloud_repo": {
+      "Value": "stable",
+      "Description": "Google Cloud repo to retrieve packages from during the build."
+    },
+    "drivers_bucket": {
+      "Value": "gs://gce-windows-drivers-public/release/win6.3-signed-stornvme/",
+      "Description": "GCS location containing the GCP Windows driver files."
+    },
+     "install_disk": {
+      "Value": "disk-install",
+      "Description": "Name of the disk to install windows to"
+    },
+    "install_disk_size": {
+      "Value": "50",
+      "Description": "The size of disk to provision for the image in GB."
+    },
+    "workflow_root": {
+      "Value": "/workflows",
+      "Description": "Root of github workflows, defaults to /workflows in the container."
+    },
+    "sbom_destination": {
+      "Value": "${OUTSPATH}/export-image.sbom.json",
+      "Description": "The GCS url that the sbom file exported to."
+    },
+    "sbom_util_gcs_root": {
+      "Value": "",
+      "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
+    }
+  },
+  "Sources": {
+    "bootstrap_install.ps1": "${workflow_root}/image_build/windows/bootstrap_install.ps1",
+    "test-sbom-export": "./test_sbom_export.sh",
+    "components": "${workflow_root}/image_build/windows/components/",
+    "components/windows.iso": "${media}",
+    "components/GoogleCloudSDKInstaller.exe": "${cloudsdk}",
+    "drivers/": "${drivers_bucket}",
+    "components/PowerShell.msi": "${pwsh}",
+    "components/dotnet48-offline-installer.exe": "${dotnet48}"
+  },
+  "Steps": {
+    "setup-disks": {
+      "CreateDisks": [
+        {
+          "Name": "bootstrap-disk",
+          "SourceImage": "projects/windows-cloud/global/images/family/windows-2019-core",
+          "SizeGb": "200",
+          "Type": "pd-ssd",
+          "GuestOsFeatures": [
+            {
+              "type": "UEFI_COMPATIBLE"
+            }
+          ]
+        },
+        {
+          "Name": "${install_disk}",
+          "SourceImage": "projects/windows-cloud/global/images/family/windows-2019-core",
+          "SizeGb": "${install_disk_size}",
+          "Type": "pd-ssd",
+          "GuestOsFeatures": [
+            {
+              "type": "UEFI_COMPATIBLE"
+            }
+          ]
+        }
+      ]
+    },
+    "run-bootstrap": {
+      "CreateInstances": [
+        {
+          "Name": "bootstrap",
+          "Disks": [
+            {
+              "Source": "bootstrap-disk"
+            },
+            {
+              "Source": "${install_disk}"
+            }
+          ],
+          "MachineType": "e2-standard-4",
+          "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_write"
+          ],
+          "Metadata": {
+            "components-path": "${SOURCESPATH}/components",
+            "drivers-path": "${SOURCESPATH}/drivers",
+            "edition": "Windows Server 2019 SERVERDATACENTERCORE",
+            "google-cloud-repo": "${google_cloud_repo}",
+            "uefi-build": "true",
+            "x86-build": "false",
+            "sbom-destination": "${sbom_destination}",
+            "sbom-util-gcs-root": "${sbom_util_gcs_root}"
+          },
+          "StartupScript": "bootstrap_install.ps1"
+        }
+      ]
+    },
+    "wait-for-bootstrap": {
+      "Timeout": "120m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "bootstrap",
+          "Stopped": true,
+          "SerialOutput": {
+            "Port": 1,
+            "FailureMatch": "Windows build failed"
+          }
+        }
+      ]
+    },
+    "delete-bootstrap": {
+      "DeleteResources": {
+        "Instances": [
+          "bootstrap"
+        ]
+      }
+    },
+    "setup-test-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-test",
+          "SourceImage": "projects/compute-image-tools/global/images/family/debian-10-worker",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "run-tests": {
+      "CreateInstances": [
+        {
+          "Name": "enterprise-tester",
+          "Disks": [{"Source": "disk-test"}],
+          "MachineType": "n1-highcpu-4",
+          "Metadata": {
+            "outs-path": "${OUTSPATH}",
+            "startup-script": "${SOURCE:test-sbom-export}",
+            "check-disk-tar": "false"
+          },
+          "ServiceAccounts": [
+            {
+              "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"]
+            }
+          ]
+        }
+      ]
+    },
+    "wait-for-tests": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "enterprise-tester",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "SBOMSuccess",
+            "FailureMatch": "SBOMFailed",
+            "StatusMatch": "SBOMTesting"
+          }
+        }
+      ]
+    },
+    "delete-instances": {
+      "DeleteResources": {
+        "Instances": ["enterprise-tester"],
+        "GCSPaths":["${SCRATCHPATH}/"]
+      }
+    }
+  },
+  "Dependencies": {
+    "run-bootstrap": ["setup-disks"],
+    "wait-for-bootstrap": ["run-bootstrap"],
+    "delete-bootstrap": ["wait-for-bootstrap"],
+    "setup-test-disk": ["delete-bootstrap"],
+    "run-tests": ["setup-test-disk"],
+    "wait-for-tests": ["run-tests"],
+    "delete-instances": ["wait-for-tests"]
+  }
+}

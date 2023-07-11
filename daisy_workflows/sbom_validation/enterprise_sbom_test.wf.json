@@ -57,6 +57,7 @@
           "Metadata": {
             "outs-path": "${OUTSPATH}",
             "startup-script": "${SOURCE:test-sbom-export}",
+            "check-disk-tar": "true",
             "disk-file-name": "${disk_outs_tar_file}"
           },
           "ServiceAccounts": [
