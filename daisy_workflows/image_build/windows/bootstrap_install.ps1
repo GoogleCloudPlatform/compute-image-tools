@@ -320,6 +320,7 @@ try {
   Bootstrap-InstallDisk
 
   $repo = Get-MetadataValue -key 'google-cloud-repo'
+  Write-Output "testing."
   Write-Output "Setting up GooGet repo $repo."
   & 'C:\ProgramData\GooGet\googet.exe' -root 'D:\ProgramData\GooGet' addrepo "google-compute-engine-${repo}" "https://packages.cloud.google.com/yuck/repos/google-compute-engine-${repo}"
 
