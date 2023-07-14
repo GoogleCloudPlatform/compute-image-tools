@@ -24,7 +24,6 @@ if [[ $? -ne 0 ]]; then
   exit
 fi
 
-echo "Testing"
 BYTES_1GB=1073741824
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
@@ -68,6 +67,8 @@ SBOM_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-path)
 SBOM_UTIL_GCS_ROOT=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-util-gcs-root)
 # Mostly used for windows workflows, set to true if the sbom is already generated and non-empty.
 SBOM_ALREADY_GENERATED=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-already-generated)
+
+echo "GCEExport: SBOM root is $SBOM_UTIL_GCS_ROOT"
 
 # This function fetches the sbom-util executable from the gcs bucket.
 function fetch_sbomutil() {
