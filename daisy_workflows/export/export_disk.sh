@@ -24,6 +24,7 @@ if [[ $? -ne 0 ]]; then
   exit
 fi
 
+echo "Testing"
 BYTES_1GB=1073741824
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
