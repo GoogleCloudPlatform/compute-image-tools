@@ -36,7 +36,7 @@
       "Description": "The size of disk to provision for the image in GB."
     },
     "workflow_root": {
-      "Value": "/workflows",
+      "Value": "../../daisy_workflows",
       "Description": "Root of github workflows, defaults to /workflows in the container."
     },
     "sbom_destination": {
