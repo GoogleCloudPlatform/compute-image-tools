@@ -576,14 +576,13 @@ function Install-Packages {
     Write-Host 'Installing GCE VSS agent and provider...'
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-vss
   }
-
+  }
   Configure-BGInfo
 
   # makecert.exe is only used in 2008R2 images.
   if (Test-Path "${script:components_path}\makecert.exe") {
     Copy-Item "${script:components_path}\makecert.exe" "${script:gce_install_dir}\tools\makecert.exe"
   }
-}
 
 function Set-Repos {
   Write-Host 'Setting GooGet repos to stable.'
@@ -676,14 +675,14 @@ function Export-ImageMetadata {
                       'packages' = @()}
 
   # Get Googet packages.
-  $out = & 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed'
+  $out = Run-Command -ErrorAction Continue 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed'
   $out = $out[1..$out.length]
   [array]::sort($out)
 
   foreach ($package_line in $out) {
     $name = $package_line.Trim().Split(' ')[0]
     # Get Package Info for each package
-    $info = Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed' '-info' $name
+    $info = Run-Command -ErrorAction Continue 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed' '-info' $name
     $version = $info[2]
     $source = $info[6]
     $package_metadata = @{'name' = $name;
@@ -700,7 +699,7 @@ function Export-ImageMetadata {
 try {
   Write-Host 'Beginning post install powershell script.'
 
-  $script:x86 = (Get-MetadataValue -key 'x86-build').ToLower() -eq 'true'
+  $script:x86 = (Get-MetadataValue -key 'x86-build')
   $script:outs_dir = Get-MetadataValue -key 'daisy-outs-path'
   $script:wu_server_url = Get-MetadataValue -key 'wu_server_url' -default 'none'
   $script:wu_server_port = Get-MetadataValue -key 'wu_server_port' -default '0'
