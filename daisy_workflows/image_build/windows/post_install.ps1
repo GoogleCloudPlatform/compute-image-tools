@@ -576,13 +576,14 @@ function Install-Packages {
     Write-Host 'Installing GCE VSS agent and provider...'
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-vss
   }
-  }
+
   Configure-BGInfo
 
   # makecert.exe is only used in 2008R2 images.
   if (Test-Path "${script:components_path}\makecert.exe") {
     Copy-Item "${script:components_path}\makecert.exe" "${script:gce_install_dir}\tools\makecert.exe"
   }
+}
 
 function Set-Repos {
   Write-Host 'Setting GooGet repos to stable.'
