@@ -1,5 +1,5 @@
 {
-    "Name": "windows-10-22h2-ent-x86-bios-byol",
+    "Name": "windows-10-21h2-ent-x86-bios-byol",
     "Vars": {
       "install_disk": "install-disk",
       "media": {
@@ -19,10 +19,10 @@
         "Description": "GCS or local path to Cloud SDK installer"
       },
       "description": {
-        "Value": "Microsoft, Windows 10 Enterprise 22h2, x86 built on ${TIMESTAMP}"
+        "Value": "Microsoft, Windows 10 Enterprise 21h2, x86 built on ${TIMESTAMP}"
       },
       "family": {
-        "Value": "windows-10-22h2-ent-x86-byol",
+        "Value": "windows-10-21h2-ent-x86-byol",
         "Description": "Desired image family of the output image."
       },
       "google_cloud_repo": {
@@ -30,7 +30,7 @@
         "Description": "Google Cloud repo to retrieve packages from during the build."
       },
       "name": {
-        "Value": "windows-10-22h2-ent-x86-byol-v${TIMESTAMP}",
+        "Value": "windows-10-21h2-ent-x86-byol-v${TIMESTAMP}",
         "Description": "The name of the output image."
       },
       "project": {
