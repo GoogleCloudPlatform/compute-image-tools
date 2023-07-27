@@ -26,6 +26,20 @@ function Run-Command {
   $out.Trim()
 }
 
+function Run-Googet {
+  [CmdletBinding(SupportsShouldProcess=$true)]
+   param (
+    [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+      [string]$Executable, 
+    [Parameter(ValueFromRemainingArguments=$true,
+               ValueFromPipelineByPropertyName=$true)]
+      $Arguments = $null
+   )
+   Write-Host "Running Googet with arguments $Arguments."
+   $out = &'C:\ProgramData\GooGet\googet.exe' $arguments 2>&1
+   $out.Trim()
+ }  
+
 function Get-MetadataValue {
   <#
     .SYNOPSIS
@@ -676,21 +690,21 @@ function Export-ImageMetadata {
                       'packages' = @()}
 
   # Get Googet packages.
-  $out = Run-Command -ErrorAction Continue 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed'
+  $out = Run-Googet -ErrorAction SilentlyContinue 'C:\Users\jjerger\Desktop\googet_32.exe' -root 'C:\ProgramData\Googet' 'installed'
   $out = $out[1..$out.length]
   [array]::sort($out)
 
   foreach ($package_line in $out) {
     $name = $package_line.Trim().Split(' ')[0]
     # Get Package Info for each package
-    $info = Run-Command -ErrorAction Continue 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed' '-info' $name
-    $version = $info[2]
-    $source = $info[6]
+    $info = Run-Googet -ErrorAction SilentlyContinue 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed' '-info' $name
+    $version = $info[4].Split(':').Trim()[1]
+    $source = $info[7].Split(':').Trim()[1]
     $package_metadata = @{'name' = $name;
                           'version' = $version;
                           'commmit_hash' = $source}
     $image_metadata['packages'] += $package_metadata
-  }
+  } 
 
   # Save the JSON image_metadata.
   $image_metadata_json = $image_metadata | ConvertTo-Json -Compress
@@ -735,7 +749,7 @@ try {
   Setup-NTP
 
   # Install script diverges here, since 32-bit googet packages are not in Rapture
-  if ($script:x86) {
+  if ($script:x86 -eq 'true') {
     # Skip package install and repo setup, these two sections are still needed
     Configure-BGInfo
 
