@@ -13,32 +13,23 @@ $windows_update_path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
 $windows_update_au_path = "$windows_update_path\AU"
 
 function Run-Command {
- [CmdletBinding(SupportsShouldProcess=$true)]
-  param (
-    [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-      [string]$Executable,
-    [Parameter(ValueFromRemainingArguments=$true,
-               ValueFromPipelineByPropertyName=$true)]
-      $Arguments = $null
-  )
-  Write-Host "Running $Executable with arguments $Arguments."
-  $out = &$executable $arguments 2>&1 | Out-String
-  $out.Trim()
-}
-
-function Run-Googet {
-  [CmdletBinding(SupportsShouldProcess=$true)]
    param (
-    [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-      [string]$Executable, 
-    [Parameter(ValueFromRemainingArguments=$true,
-               ValueFromPipelineByPropertyName=$true)]
-      $Arguments = $null
+     [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+       [string]$Executable,
+     [Parameter(ValueFromRemainingArguments=$true,
+                ValueFromPipelineByPropertyName=$true)]
+       $Arguments = $null,
+       [switch]$NoOutString
    )
-   Write-Host "Running Googet with arguments $Arguments."
-   $out = &'C:\ProgramData\GooGet\googet.exe' $arguments 2>&1
+   Write-Host "Running $Executable with arguments $Arguments."
+   if ($NoOutString) {
+    $out = &$executable $arguments 2>&1
+   }
+   else {
+    $out = &$executable $arguments 2>&1 | Out-String
+   }
    $out.Trim()
- }  
+ }
 
 function Get-MetadataValue {
   <#
@@ -588,7 +579,7 @@ function Install-Packages {
 
   if ($pn -match 'Windows (Web )?Server (2008 R2|2012 R2|2016|2019|2022|Standard|Datacenter)') {
     Write-Host 'Installing GCE VSS agent and provider...'
-    Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-vss
+    Run-Command -OutString False 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-vss
   }
 
   Configure-BGInfo
@@ -690,21 +681,21 @@ function Export-ImageMetadata {
                       'packages' = @()}
 
   # Get Googet packages.
-  $out = Run-Googet -ErrorAction SilentlyContinue 'C:\Users\jjerger\Desktop\googet_32.exe' -root 'C:\ProgramData\Googet' 'installed'
+  $out = Run-Command -NoOutString 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed'
   $out = $out[1..$out.length]
   [array]::sort($out)
 
   foreach ($package_line in $out) {
     $name = $package_line.Trim().Split(' ')[0]
     # Get Package Info for each package
-    $info = Run-Googet -ErrorAction SilentlyContinue 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed' '-info' $name
+    $info = Run-Command -NoOutString 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed' '-info' $name
     $version = $info[4].Split(':').Trim()[1]
     $source = $info[7].Split(':').Trim()[1]
     $package_metadata = @{'name' = $name;
                           'version' = $version;
                           'commmit_hash' = $source}
     $image_metadata['packages'] += $package_metadata
-  } 
+  }
 
   # Save the JSON image_metadata.
   $image_metadata_json = $image_metadata | ConvertTo-Json -Compress
@@ -761,10 +752,10 @@ try {
   else {
     Install-Packages
     Set-Repos
+    Export-ImageMetadata
   }
   Enable-WinRM
   Generate-NativeImage
-  Export-ImageMetadata
 
   # Only needed and applicable for 2008.
   & netsh interface ipv4 set dnsservers 'Local Area Connection' source=dhcp | Out-Null
