@@ -667,41 +667,6 @@ function Install-PowerShell {
   }
 }
 
-function Export-ImageMetadata {
-  $computer_info = Get-ComputerInfo
-  $version = $computer_info.OsVersion
-  $family = 'windows-' + $computer_info.windowsversion
-  $name =  $computer_info.OSName
-  $release_date = (Get-Date).ToUniversalTime()
-  $image_metadata = @{'family' = $family;
-                      'version' = $edition;
-                      'name' = $name;
-                      'location' = ${script:outs_dir};
-                      'build_date' = $release_date;
-                      'packages' = @()}
-
-  # Get Googet packages.
-  $out = Run-Command -NoOutString 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed'
-  $out = $out[1..$out.length]
-  [array]::sort($out)
-
-  foreach ($package_line in $out) {
-    $name = $package_line.Trim().Split(' ')[0]
-    # Get Package Info for each package
-    $info = Run-Command -NoOutString 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed' '-info' $name
-    $version = $info[4].Split(':').Trim()[1]
-    $source = $info[7].Split(':').Trim()[1]
-    $package_metadata = @{'name' = $name;
-                          'version' = $version;
-                          'commmit_hash' = $source}
-    $image_metadata['packages'] += $package_metadata
-  }
-
-  # Save the JSON image_metadata.
-  $image_metadata_json = $image_metadata | ConvertTo-Json -Compress
-  $image_metadata_json | & 'gsutil' -m cp - "${script:outs_dir}/metadata.json"
-}
-
 try {
   Write-Host 'Beginning post install powershell script.'
 
@@ -752,7 +717,6 @@ try {
   else {
     Install-Packages
     Set-Repos
-    Export-ImageMetadata
   }
   Enable-WinRM
   Generate-NativeImage
