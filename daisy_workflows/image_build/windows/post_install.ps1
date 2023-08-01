@@ -577,11 +577,6 @@ function Install-Packages {
   }
 
   Configure-BGInfo
-
-  # makecert.exe is only used in 2008R2 images.
-  if (Test-Path "${script:components_path}\makecert.exe") {
-    Copy-Item "${script:components_path}\makecert.exe" "${script:gce_install_dir}\tools\makecert.exe"
-  }
 }
 
 function Set-Repos {
@@ -702,11 +697,6 @@ try {
   if ($script:x86 -eq 'true') {
     # Skip package install and repo setup, these two sections are still needed
     Configure-BGInfo
-
-    # makecert.exe is only used in 2008R2 images.
-    if (Test-Path "${script:components_path}\makecert.exe") {
-      Copy-Item "${script:components_path}\makecert.exe" "${script:gce_install_dir}\tools\makecert.exe"
-    }
   }
   else {
     Install-Packages
