@@ -19,15 +19,9 @@ function Run-Command {
      [Parameter(ValueFromRemainingArguments=$true,
                 ValueFromPipelineByPropertyName=$true)]
        $Arguments = $null,
-       [switch]$NoOutString
    )
    Write-Host "Running $Executable with arguments $Arguments."
-   if ($NoOutString) {
-    $out = &$executable $arguments 2>&1
-   }
-   else {
-    $out = &$executable $arguments 2>&1 | Out-String
-   }
+   $out = &$executable $arguments 2>&1 | Out-String
    $out.Trim()
  }
 
