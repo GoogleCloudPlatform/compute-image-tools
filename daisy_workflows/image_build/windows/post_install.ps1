@@ -593,7 +593,7 @@ function Install-PowerShell {
 try {
   Write-Host 'Beginning post install powershell script.'
 
-  $script:x86 = (Get-MetadataValue -key 'x86-build')
+  $script:x86 = (Get-MetadataValue -key 'x86-build').ToLower() -eq 'true'
   $script:outs_dir = Get-MetadataValue -key 'daisy-outs-path'
   $script:wu_server_url = Get-MetadataValue -key 'wu_server_url' -default 'none'
   $script:wu_server_port = Get-MetadataValue -key 'wu_server_port' -default '0'
@@ -628,7 +628,7 @@ try {
   Setup-NTP
 
   # Install script diverges here, since 32-bit googet packages are not in Rapture
-  if ($script:x86 -ne 'true') {
+  if (!$script:x86) {
     Install-Packages
     Set-Repos
   }
