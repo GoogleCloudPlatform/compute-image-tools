@@ -628,7 +628,7 @@ try {
   Setup-NTP
 
   # Install script diverges here, since 32-bit googet packages are not in Rapture
-  if ($script:x86 -eq 'false') {
+  if ($script:x86 -ne 'true') {
     Install-Packages
     Set-Repos
   }
