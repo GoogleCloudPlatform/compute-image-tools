@@ -53,9 +53,6 @@
       "Value": "projects/windows-cloud/global/images/family/windows-2019-core",
       "Description": "Source image to use for the bootstrap disk"
     },
-    "bginfo": {
-      "Description": "GCS or local path to BGInfo installer"
-    },
     "uefi_build": {
       "Value": "true",
       "Description": "Is this a UEFI build"
@@ -87,7 +84,6 @@
     "components/windows.iso": "${media}",
     "components/GoogleCloudSDKInstaller.exe": "${cloud_sdk}",
     "drivers/": "${drivers_bucket}",
-    "components/Bginfo.exe": "${bginfo}",
     "components/PowerShell.msi": "${pwsh}",
     "components/dotnet48-offline-installer.exe": "${dotnet48}"
   },

@@ -18,7 +18,7 @@ function Run-Command {
        [string]$Executable,
      [Parameter(ValueFromRemainingArguments=$true,
                 ValueFromPipelineByPropertyName=$true)]
-       $Arguments = $null,
+       $Arguments = $null
    )
    Write-Host "Running $Executable with arguments $Arguments."
    $out = &$executable $arguments 2>&1 | Out-String
@@ -466,70 +466,6 @@ function Change-InstanceProperties {
   #New-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management' -Name 'FeatureSettingsOverrideMask' -Value 3  -PropertyType DWORD -Force
 }
 
-function Configure-BGInfo {
-  <#
-    .SYNOPSIS
-      Configure the information displayed by BGInfo.
-  #>
-
-  New-Item "${script:gce_install_dir}\tools" -Type Directory -ErrorAction SilentlyContinue
-  $bginfo_src = "${script:components_path}\BGInfo.exe"
-  if (-not (Test-Path $bginfo_src)) {
-    return
-  }
-  Write-Host 'Setting up BGInfo.'
-
-  $bginfo_exe = "${script:gce_install_dir}\tools\BGInfo.exe"
-  Copy-Item $bginfo_src $bginfo_exe
-
-  $config = @"
-{\rtf1\ansi\ansicpg1252\deff0\deflang1033{\fonttbl{\f0\fnil\fcharset0 Arial;}}
-{\colortbl ;\red255\green255\blue255;}
-\viewkind4\uc1\pard\fi-2880\li2880\tx2880\cf1\b\fs24 Boot Time:\tab\protect <Boot Time>\protect0\par
-CPU:\tab\protect <CPU>\protect0\par
-Default Gateway:\tab\protect <Default Gateway>\protect0\par
-DHCP Server:\tab\protect <DHCP Server>\protect0\par
-DNS Server:\tab\protect <DNS Server>\protect0\par
-Free Space:\tab\protect <Free Space>\protect0\par
-Host Name:\tab\protect <Host Name>\protect0\par
-IE Version:\tab\protect <IE Version>\protect0\par
-IP Address:\tab\protect <IP Address>\protect0\par
-Logon Domain:\tab\protect <Logon Domain>\protect0\par
-Logon Server:\tab\protect <Logon Server>\protect0\par
-MAC Address:\tab\protect <MAC Address>\protect0\par
-Machine Domain:\tab\protect <Machine Domain>\protect0\par
-Memory:\tab\protect <Memory>\protect0\par
-Network Card:\tab\protect <Network Card>\protect0\par
-Network Type:\tab\protect <Network Type>\protect0\par
-OS Version:\tab\protect <OS Version>\protect0\par
-Service Pack:\tab\protect <Service Pack>\protect0\par
-Snapshot Time:\tab\protect <Snapshot Time>\protect0\par
-Subnet Mask:\tab\protect <Subnet Mask>\protect0\par
-System Type:\tab\protect <System Type>\protect0\par
-User Name:\tab\protect <User Name>\protect0\par
-Volumes:\tab\protect <Volumes>\protect0\par
-\par
-}
-"@
-
-  # Mount default user registry hive at HKLM:\DefaultUser.
-  Run-Command reg load 'HKLM\DefaultUser' 'C:\Users\Default\NTUSER.DAT'
-
-  # Remove network speed from the background info text.
-  Run-Command reg add 'HKLM\DefaultUser\Software\Winternals\BGInfo' /v 'RTF' /d $config /t REG_SZ /f
-
-  # Unmount default user hive.
-  Run-Command reg unload 'HKLM\DefaultUser'
-
-  # Set BGinfo to startup.
-  $bginfo_lnk = $env:ProgramData + '\Microsoft\Windows\Start Menu\Programs\Startup\BGInfo.lnk'
-  $ws_shell = New-Object -COM WScript.Shell
-  $shortcut = $ws_shell.CreateShortcut($bginfo_lnk)
-  $shortcut.TargetPath = $bginfo_exe
-  $shortcut.Arguments = '/accepteula /timer:0 /silent'
-  $shortcut.Save()
-}
-
 function Configure-RDP {
   Write-Host 'Modifying RDP settings.'
   $ts_path = 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server'
@@ -575,8 +511,6 @@ function Install-Packages {
     Write-Host 'Installing GCE VSS agent and provider...'
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-vss
   }
-
-  Configure-BGInfo
 }
 
 function Set-Repos {
@@ -659,7 +593,7 @@ function Install-PowerShell {
 try {
   Write-Host 'Beginning post install powershell script.'
 
-  $script:x86 = (Get-MetadataValue -key 'x86-build')
+  $script:x86 = (Get-MetadataValue -key 'x86-build').ToLower() -eq 'true'
   $script:outs_dir = Get-MetadataValue -key 'daisy-outs-path'
   $script:wu_server_url = Get-MetadataValue -key 'wu_server_url' -default 'none'
   $script:wu_server_port = Get-MetadataValue -key 'wu_server_port' -default '0'
@@ -694,14 +628,11 @@ try {
   Setup-NTP
 
   # Install script diverges here, since 32-bit googet packages are not in Rapture
-  if ($script:x86 -eq 'true') {
-    # Skip package install and repo setup, these two sections are still needed
-    Configure-BGInfo
-  }
-  else {
+  if (!$script:x86) {
     Install-Packages
     Set-Repos
   }
+
   Enable-WinRM
   Generate-NativeImage
 
