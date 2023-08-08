@@ -1,0 +1,49 @@
+{{/*
+  Template to publish Windows server bios images.
+  By default this template is setup to publish to the 'gce-image-builder'
+  project, the 'environment' variable can be used to publish to 'test', 'prod',
+  or 'staging'.
+  DeleteAfter is set to 180 days for all environments other than prod where no
+  time period is set.
+*/}}
+{
+  "Name": "windows-10-22h2-ent-x86-bios",
+  {{$work_project := printf "%q" "gce-image-builder" -}}
+  {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
+  {{$delete_after := `"24h*30*6"` -}}
+  {{if eq .environment "client" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "gce-windows-client-images",
+  "DeleteAfter": {{$delete_after}},
+  {{- else if eq .environment "internal" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "google.com:windows-internal",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- else -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "bct-prod-images",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- end}}
+  {{$guest_features := `["MULTI_IP_SUBNET","VIRTIO_SCSI_MULTIQUEUE","WINDOWS"]` -}}
+  {{$time := trimPrefix .publish_version "v"}}
+  "Images": [
+    {
+      "Prefix": "windows-10-22h2-ent-x86",
+      "Family": "windows-10-22h2-x86",
+      "Description": "Microsoft, Windows 10 Enterprise, 22h2 Update, x86 built on {{$time}}",
+      "Architecture": "X86_32",
+      "Licenses": [
+        {{if eq .environment "staging" -}}
+        "projects/bct-staging-functional/global/licenses/windows-ent"
+        {{- else if eq .environment "internal" -}}
+        "projects/google.com:windows-internal/global/licenses/internal-windows"
+        {{- else -}}
+        "projects/windows-cloud/global/licenses/windows-10-x86-byol"
+        {{- end}}
+      ],
+      "GuestOsFeatures": {{$guest_features}}
+    }
+  ]
+}
