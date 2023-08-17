@@ -102,8 +102,13 @@ def main():
   # Config fai-tool
   # Base classes used for everything
   fai_classes = ['BASE', 'DEBIAN', 'CLOUD', 'GCE', 'EXTRAS', 'IPV6_DHCP',
-                 'TIME_CHRONY', 'GCE_SPECIFIC', 'GCE_CLEAN',
-                 'LINUX_VARIANT_CLOUD']
+                 'GCE_SPECIFIC', 'GCE_CLEAN', 'LINUX_VARIANT_CLOUD']
+
+  # Debian switched to systemd-timesyncd for ntp starting with bookworm
+  if debian_version == 'buster' or debian_version == 'bullseye':
+      fai_classes += ['TIME_CHRONY']
+  else:
+      fai_classes += ['TIME_SYSTEMD']
 
   # Arch-specific classes
   if platform.machine() == 'aarch64':
