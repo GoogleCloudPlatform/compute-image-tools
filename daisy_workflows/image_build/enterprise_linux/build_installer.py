@@ -32,6 +32,7 @@ def main():
   # Get Parameters
   release = utils.GetMetadataAttribute('el_release', raise_on_not_found=True)
   savelogs = utils.GetMetadataAttribute('el_savelogs') == 'true'
+  install_disk = 'scsi-0Google_PersistentDisk_' + utils.GetMetadataAttribute('install_disk', raise_on_not_found=True)
 
   logging.info('EL Release: %s' % release)
   logging.info('Build working directory: %s' % os.getcwd())
@@ -108,6 +109,15 @@ def main():
         oldcfg.splitlines(1),
         cfg.splitlines(1))
     logging.info('Modified grub.cfg:\n%s' % '\n'.join(diff))
+
+    f.seek(0)
+    f.write(cfg)
+    f.truncate()
+
+  # Modify kickstart config
+  with open('installer/ks.cfg', 'r+') as f:
+    oldcfg = f.read()
+    cfg = re.sub(r'sub-install-disk-id', install_disk, oldcfg)
 
     f.seek(0)
     f.write(cfg)

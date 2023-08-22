@@ -85,7 +85,8 @@
             "el_savelogs": "${el_savelogs}",
             "google_cloud_repo": "${google_cloud_repo}",
             "rhel_byos": "${rhel_byos}",
-            "rhel_sap": "${rhel_sap}"
+            "rhel_sap": "${rhel_sap}",
+            "install_disk": "${install_disk}"
           },
           "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
           "StartupScript": "installerprep_startup_script"
