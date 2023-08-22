@@ -33,7 +33,7 @@ def main():
   release = utils.GetMetadataAttribute('el_release', raise_on_not_found=True)
   savelogs = utils.GetMetadataAttribute('el_savelogs') == 'true'
   install_disk = 'scsi-0Google_PersistentDisk_'
-  install_disk = utils.GetMetadataAttribute('install_disk',
+  install_disk += utils.GetMetadataAttribute('install_disk',
   raise_on_not_found=True)
 
   logging.info('EL Release: %s' % release)
