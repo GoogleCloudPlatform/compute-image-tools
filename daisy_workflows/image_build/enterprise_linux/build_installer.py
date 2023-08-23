@@ -80,7 +80,8 @@ def main():
   utils.Execute(['cp', '-r', 'iso/images', 'boot/'])
   utils.Execute(['cp', iso_file, 'installer/'])
   utils.Execute(['cp', ks_cfg, 'installer/'])
-  utils.Execute(['cp', '-L', '/usr/lib/udev/rules.d/65-gce-disk-naming.rules', 'installer/'])
+  utils.Execute(['cp', '-L', '/usr/lib/udev/rules.d/65-gce-disk-naming.rules',
+  'installer/'])
   utils.Execute(['cp', '-L', '/usr/lib/udev/google_nvme_id', 'installer/'])
 
   # Modify boot config.
@@ -122,7 +123,7 @@ def main():
   with open('installer/ks.cfg', 'r+') as f:
     oldcfg = f.read()
     cfg = re.sub(r'sub-install-disk-id', install_disk, oldcfg)
-    logging.info('Modified ks.cfg with disk id '+install_disk)
+    logging.info('Modified ks.cfg with disk id ' + install_disk)
     f.seek(0)
     f.write(cfg)
     f.truncate()
@@ -143,6 +144,7 @@ def main():
   utils.Execute(['umount', 'boot'])
 
 if __name__ == '__main__':
+
   try:
     main()
     logging.success('EL Installer build successful!')
