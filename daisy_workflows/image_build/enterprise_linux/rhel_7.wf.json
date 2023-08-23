@@ -13,10 +13,6 @@
       "Value": "${TIMESTAMP}",
       "Description": "Build datestamp used to version the image."
     },
-    "install_disk": {
-      "Value": "disk-rhel-7",
-      "Description": "Name of the disk to install onto."
-    },
     "publish_project": {
       "Value": "${PROJECT}",
       "Description": "A project to publish the resulting image to."
@@ -31,7 +27,6 @@
           "el_release": "rhel-7",
           "kickstart_config": "./kickstart/rhel_7.cfg",
           "google_cloud_repo": "${google_cloud_repo}",
-          "install_disk": "${install_disk}",
           "installer_iso": "${installer_iso}"
         }
       }
@@ -40,7 +35,7 @@
       "CreateImages": [
         {
           "Name": "rhel-7-v${build_date}",
-          "SourceDisk": "${install_disk}",
+          "SourceDisk": "el-install-disk",
           "Licenses": [
             "projects/rhel-cloud/global/licenses/rhel-7-server"
           ],

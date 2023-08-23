@@ -32,9 +32,6 @@ def main():
   # Get Parameters
   release = utils.GetMetadataAttribute('el_release', raise_on_not_found=True)
   savelogs = utils.GetMetadataAttribute('el_savelogs') == 'true'
-  install_disk = 'google-'
-  install_disk += utils.GetMetadataAttribute('install_disk',
-  raise_on_not_found=True)
 
   logging.info('EL Release: %s' % release)
   logging.info('Build working directory: %s' % os.getcwd())
@@ -80,6 +77,14 @@ def main():
   utils.Execute(['cp', '-r', 'iso/images', 'boot/'])
   utils.Execute(['cp', iso_file, 'installer/'])
   utils.Execute(['cp', ks_cfg, 'installer/'])
+
+  # The kickstart config contains a preinstall script copying, reloading, and
+  # triggering this rule in the install environment. This allows us to use
+  # predictable names for block devices. It would be perferable to take a
+  # simpler approach such as selecting the disk with an unkown partition table
+  # but kickstart does not believe the default google nvme device names are
+  # are deterministic and refuses to use them without user input.
+
   utils.Execute(['cp', '-L', '/usr/lib/udev/rules.d/65-gce-disk-naming.rules',
   'installer/'])
   utils.Execute(['cp', '-L', '/usr/lib/udev/google_nvme_id', 'installer/'])
@@ -115,15 +120,6 @@ def main():
         cfg.splitlines(1))
     logging.info('Modified grub.cfg:\n%s' % '\n'.join(diff))
 
-    f.seek(0)
-    f.write(cfg)
-    f.truncate()
-
-  # Modify kickstart config
-  with open('installer/ks.cfg', 'r+') as f:
-    oldcfg = f.read()
-    cfg = re.sub(r'sub-install-disk-id', install_disk, oldcfg)
-    logging.info('Modified ks.cfg with disk id ' + install_disk)
     f.seek(0)
     f.write(cfg)
     f.truncate()

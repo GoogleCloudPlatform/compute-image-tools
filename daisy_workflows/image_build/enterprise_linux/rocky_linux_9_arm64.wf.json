@@ -13,10 +13,6 @@
       "Value": "${TIMESTAMP}",
       "Description": "Build datestamp used to version the image."
     },
-    "install_disk": {
-      "Value": "disk-rocky-linux-9",
-      "Description": "Name of the disk to install onto."
-    },
     "publish_project": {
       "Value": "${PROJECT}",
       "Description": "A project to publish the resulting image to."
@@ -32,7 +28,6 @@
           "kickstart_config": "./kickstart/rocky_linux_9_arm64.cfg",
           "machine_type": "t2a-standard-4",
           "google_cloud_repo": "${google_cloud_repo}",
-          "install_disk": "${install_disk}",
           "installer_iso": "${installer_iso}"
         }
       }
@@ -41,7 +36,7 @@
       "CreateImages": [
         {
           "Name": "rocky-linux-9-arm64-v${build_date}",
-          "SourceDisk": "${install_disk}",
+          "SourceDisk": "el-install-disk",
           "Licenses": [
             "projects/rocky-linux-cloud/global/licenses/rocky-linux-9"
           ],

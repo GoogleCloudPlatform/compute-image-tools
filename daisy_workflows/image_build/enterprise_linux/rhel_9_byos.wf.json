@@ -13,10 +13,6 @@
       "Value": "${TIMESTAMP}",
       "Description": "Build datestamp used to version the image."
     },
-    "install_disk": {
-      "Value": "disk-rhel-9",
-      "Description": "Name of the disk to install onto."
-    },
     "publish_project": {
       "Value": "${PROJECT}",
       "Description": "A project to publish the resulting image to."
@@ -31,7 +27,6 @@
           "el_release": "rhel-9",
           "kickstart_config": "./kickstart/rhel_9_byos.cfg",
           "google_cloud_repo": "${google_cloud_repo}",
-          "install_disk": "${install_disk}",
           "installer_iso": "${installer_iso}",
           "rhel_byos": "true"
         }
@@ -41,7 +36,7 @@
       "CreateImages": [
         {
           "Name": "rhel-9-byos-v${build_date}",
-          "SourceDisk": "${install_disk}",
+          "SourceDisk": "el-install-disk",
           "Licenses": [
             "projects/rhel-cloud/global/licenses/rhel-9-byos"
           ],

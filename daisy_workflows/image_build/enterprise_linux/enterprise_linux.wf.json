@@ -22,10 +22,6 @@
       "Value": "stable",
       "Description": "The Google Cloud Repo branch to use."
     },
-    "install_disk": {
-      "Required": true,
-      "Description": "Name of the disk to install onto."
-    },
     "installer_iso": {
       "Required": true,
       "Description": "The path to the EL installation ISO."
@@ -62,7 +58,7 @@
           "GuestOsFeatures": [{"type": "UEFI_COMPATIBLE"}]
         },
         {
-          "Name": "${install_disk}",
+          "Name": "el-install-disk",
           "SizeGb": "20",
           "Type": "pd-ssd",
           "GuestOsFeatures": [{"type": "UEFI_COMPATIBLE"}]
@@ -85,8 +81,7 @@
             "el_savelogs": "${el_savelogs}",
             "google_cloud_repo": "${google_cloud_repo}",
             "rhel_byos": "${rhel_byos}",
-            "rhel_sap": "${rhel_sap}",
-            "install_disk": "${install_disk}"
+            "rhel_sap": "${rhel_sap}"
           },
           "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
           "StartupScript": "installerprep_startup_script"
@@ -116,7 +111,7 @@
       "CreateInstances": [
         {
           "Name": "inst-build",
-          "Disks": [{"Source": "disk-installer"}, {"Source": "${install_disk}"}],
+          "Disks": [{"Source": "disk-installer"}, {"Source": "el-install-disk"}],
           "MachineType": "${machine_type}"
         }
       ]
