@@ -32,7 +32,7 @@ def main():
   # Get Parameters
   release = utils.GetMetadataAttribute('el_release', raise_on_not_found=True)
   savelogs = utils.GetMetadataAttribute('el_savelogs') == 'true'
-  install_disk = 'scsi-0Google_PersistentDisk_'
+  install_disk = 'google-'
   install_disk += utils.GetMetadataAttribute('install_disk',
   raise_on_not_found=True)
 
@@ -80,6 +80,8 @@ def main():
   utils.Execute(['cp', '-r', 'iso/images', 'boot/'])
   utils.Execute(['cp', iso_file, 'installer/'])
   utils.Execute(['cp', ks_cfg, 'installer/'])
+  utils.Execute(['cp', '-L', '/usr/lib/udev/rules.d/65-gce-disk-naming.rules', 'installer/'])
+  utils.Execute(['cp', '-L', '/usr/lib/udev/google_nvme_id', 'installer/'])
 
   # Modify boot config.
   with open('boot/EFI/BOOT/grub.cfg', 'r+') as f:
@@ -120,15 +122,25 @@ def main():
   with open('installer/ks.cfg', 'r+') as f:
     oldcfg = f.read()
     cfg = re.sub(r'sub-install-disk-id', install_disk, oldcfg)
-
+    logging.info('Modified ks.cfg with disk id '+install_disk)
     f.seek(0)
     f.write(cfg)
+    f.truncate()
+
+  # Update google_nvme_id to remove xxd dependency, if necessary
+  # The current worker uses an older version
+  with open('installer/google_nvme_id', 'r+') as f:
+    old = f.read()
+    new = re.sub(r'xxd -p -seek 384 \| xxd -p -r',
+    'dd bs=1 skip=384 2>/dev/null',
+    old)
+    f.seek(0)
+    f.write(new)
     f.truncate()
 
   utils.Execute(['umount', 'installer'])
   utils.Execute(['umount', 'iso'])
   utils.Execute(['umount', 'boot'])
-
 
 if __name__ == '__main__':
   try:
