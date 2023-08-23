@@ -143,8 +143,8 @@ def main():
   utils.Execute(['umount', 'iso'])
   utils.Execute(['umount', 'boot'])
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
   try:
     main()
     logging.success('EL Installer build successful!')
