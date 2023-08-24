@@ -51,7 +51,7 @@
         "Vars": {
           "destination": "${gcs_url}",
           "sbom_destination": "${sbom_destination}",
-          "source_disk": "disk-rhel-9",
+          "source_disk": "el-install-disk",
           "sbom_util_gcs_root": "${sbom_util_gcs_root}"
         }
       }

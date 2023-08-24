@@ -2,7 +2,7 @@
   "Name": "rocky-linux-9",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
-  "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
+  "GCSPath": "gs://acrate-dev-build/daisy/${USERNAME}",
   "Vars": {
     "build_date": {
       "Value": "${TIMESTAMP}",
@@ -52,7 +52,7 @@
         "Vars": {
           "destination": "${gcs_url}",
           "sbom_destination": "${sbom_destination}",
-          "source_disk": "disk-rocky-linux-9",
+          "source_disk": "el-install-disk",
           "sbom_util_gcs_root": "${sbom_util_gcs_root}"
         }
       }
