@@ -52,7 +52,7 @@
         "Vars": {
           "destination": "${gcs_url}",
           "sbom_destination": "${sbom_destination}",
-          "source_disk": "disk-centos-stream-8",
+          "source_disk": "el-install-disk",
           "sbom_util_gcs_root": "${sbom_util_gcs_root}"
         }
       }
