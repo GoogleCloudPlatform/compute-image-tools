@@ -40,7 +40,6 @@
         "Path": "${workflow_root}/image_build/enterprise_linux/rhel_9_arm64.wf.json",
         "Vars": {
           "build_date": "${build_date}",
-          "install_disk": "disk-rhel-9",
           "installer_iso": "${installer_iso}"
         }
       }
