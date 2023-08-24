@@ -41,7 +41,6 @@
         "Vars": {
           "build_date": "${build_date}",
           "google_cloud_repo": "${google_cloud_repo}",
-          "install_disk": "disk-rhel-9",
           "installer_iso": "${installer_iso}"
         }
       }
