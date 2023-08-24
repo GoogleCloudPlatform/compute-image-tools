@@ -2,7 +2,7 @@
   "Name": "rocky-linux-9",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
-  "GCSPath": "gs://acrate-dev-build/daisy/${USERNAME}",
+  "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
   "Vars": {
     "build_date": {
       "Value": "${TIMESTAMP}",
