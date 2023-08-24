@@ -13,10 +13,6 @@
       "Value": "${TIMESTAMP}",
       "Description": "Build datestamp used to version the image."
     },
-    "install_disk": {
-      "Value": "disk-centos-7",
-      "Description": "Name of the disk to install onto."
-    },
     "publish_project": {
       "Value": "${PROJECT}",
       "Description": "A project to publish the resulting image to."
@@ -30,8 +26,7 @@
         "Vars": {
           "el_release": "centos-7",
           "kickstart_config": "./kickstart/centos_7.cfg",
-          "google_cloud_repo": "${google_cloud_repo}",
-          "install_disk": "${install_disk}",
+          "google_cloud_repo": "${google_cloud_repo}", 
           "installer_iso": "${installer_iso}"
         }
       }
@@ -40,7 +35,7 @@
       "CreateImages": [
         {
           "Name": "centos-7-v${build_date}",
-          "SourceDisk": "${install_disk}",
+          "SourceDisk": "el-install-disk",
           "Licenses": [
             "projects/centos-cloud/global/licenses/centos-7"
           ],

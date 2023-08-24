@@ -22,10 +22,6 @@
       "Value": "stable",
       "Description": "The Google Cloud Repo branch to use."
     },
-    "install_disk": {
-      "Required": true,
-      "Description": "Name of the disk to install onto."
-    },
     "installer_iso": {
       "Required": true,
       "Description": "The path to the EL installation ISO."
@@ -62,7 +58,7 @@
           "GuestOsFeatures": [{"type": "UEFI_COMPATIBLE"}]
         },
         {
-          "Name": "${install_disk}",
+          "Name": "el-install-disk",
           "SizeGb": "20",
           "Type": "pd-ssd",
           "GuestOsFeatures": [{"type": "UEFI_COMPATIBLE"}]
@@ -115,7 +111,7 @@
       "CreateInstances": [
         {
           "Name": "inst-build",
-          "Disks": [{"Source": "disk-installer"}, {"Source": "${install_disk}"}],
+          "Disks": [{"Source": "disk-installer"}, {"Source": "el-install-disk"}],
           "MachineType": "${machine_type}"
         }
       ]

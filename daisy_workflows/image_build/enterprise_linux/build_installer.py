@@ -78,6 +78,17 @@ def main():
   utils.Execute(['cp', iso_file, 'installer/'])
   utils.Execute(['cp', ks_cfg, 'installer/'])
 
+  # The kickstart config contains a preinstall script copying, reloading, and
+  # triggering this rule in the install environment. This allows us to use
+  # predictable names for block devices. It would be perferable to take a
+  # simpler approach such as selecting the disk with an unkown partition table
+  # but kickstart does not believe the default google nvme device names are
+  # are deterministic and refuses to use them without user input.
+
+  utils.Execute(['cp', '-L', '/usr/lib/udev/rules.d/65-gce-disk-naming.rules',
+  'installer/'])
+  utils.Execute(['cp', '-L', '/usr/lib/udev/google_nvme_id', 'installer/'])
+
   # Modify boot config.
   with open('boot/EFI/BOOT/grub.cfg', 'r+') as f:
     oldcfg = f.read()
@@ -111,6 +122,17 @@ def main():
 
     f.seek(0)
     f.write(cfg)
+    f.truncate()
+
+  # Update google_nvme_id to remove xxd dependency, if necessary
+  # The current worker uses an older version
+  with open('installer/google_nvme_id', 'r+') as f:
+    old = f.read()
+    new = re.sub(r'xxd -p -seek 384 \| xxd -p -r',
+    'dd bs=1 skip=384 2>/dev/null',
+    old)
+    f.seek(0)
+    f.write(new)
     f.truncate()
 
   utils.Execute(['umount', 'installer'])

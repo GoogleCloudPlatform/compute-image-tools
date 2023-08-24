@@ -17,10 +17,6 @@
       "Value": "rhel-8",
       "Description": "RHEL release version to use."
     },
-    "install_disk": {
-      "Value": "disk-rhel-8",
-      "Description": "Name of the disk to install onto."
-    },
     "publish_project": {
       "Value": "${PROJECT}",
       "Description": "A project to publish the resulting image to."
@@ -35,7 +31,6 @@
           "el_release": "${rhel_release}",
           "kickstart_config": "./kickstart/rhel_8_8_sap.cfg",
           "google_cloud_repo": "${google_cloud_repo}",
-          "install_disk": "${install_disk}",
           "installer_iso": "${installer_iso}",
           "rhel_sap": "true"
         }
@@ -45,7 +40,7 @@
       "CreateImages": [
         {
           "Name": "${rhel_release}-sap-v${build_date}",
-          "SourceDisk": "${install_disk}",
+          "SourceDisk": "el-install-disk",
           "Licenses": [
             "projects/rhel-sap-cloud/global/licenses/rhel-8-sap"
           ],
