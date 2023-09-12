@@ -30,14 +30,13 @@ shim-signed
 grub-efi-amd64-signed
 
 PACKAGES install ARM64
-# Unsigned grub on arm64
+# Secure boot on ARM64
+# Will not work on debian 10 or 11, but will not hamper non-secure boot
 grub-efi-arm64
+grub-efi-arm64-signed
+shim-signed
 
 # Use gce-disk-expand instead of cloud-init based scripts.
 PACKAGES remove
 cloud-initramfs-growroot
 
-# No secure boot on ARM, yet.
-PACKAGES remove ARM64
-grub-efi-arm64-signed
-shim-signed
