@@ -177,6 +177,6 @@ func main() {
 	os.RemoveAll(tmpFolder)
 
 	if nonFatalErrorsPresent {
-		log.Fatal("Errors occured while collecting and zipping some logs.\nUnaffected logs were still packaged and available.")
+		log.Fatal("Errors occurred while collecting and zipping some logs.\nUnaffected logs were still packaged and available.")
 	}
 }
