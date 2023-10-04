@@ -112,6 +112,10 @@ def main():
 
   # Arch-specific classes
   if platform.machine() == 'aarch64':
+    if debian_version == 'buster' or debian_version == 'bullseye':
+        fai_classes += ['ARM64_NO_SECURE_BOOT']
+    else:
+        fai_classes += ['ARM64_SECURE_BOOT']
     fai_classes += ['ARM64', 'GRUB_EFI_ARM64']
   else:
     fai_classes += ['AMD64', 'GRUB_CLOUD_AMD64']
