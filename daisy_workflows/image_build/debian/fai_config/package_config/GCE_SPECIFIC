@@ -30,9 +30,13 @@ shim-signed
 grub-efi-amd64-signed
 
 PACKAGES install ARM64
-# Secure boot on ARM64
-# Will not work on debian 10 or 11, but will not hamper non-secure boot
 grub-efi-arm64
+
+PACKAGES remove ARM64_NO_SECURE_BOOT
+grub-efi-arm64-signed
+shim-signed
+
+PACKAGES install ARM64_SECURE_BOOT
 grub-efi-arm64-signed
 shim-signed
 
