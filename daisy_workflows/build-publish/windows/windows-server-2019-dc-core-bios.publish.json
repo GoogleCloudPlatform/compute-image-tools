@@ -11,21 +11,10 @@
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*6"` -}}
-  {{if eq .environment "prod" -}}
-  "WorkProject": {{$work_project}},
-  "PublishProject": "windows-cloud",
-  "ComputeEndpoint": {{$endpoint}},
-  {{- else if eq .environment "internal" -}}
-  "WorkProject": {{$work_project}},
-  "PublishProject": "google.com:windows-internal",
-  "ComputeEndpoint": {{$endpoint}},
-  "DeleteAfter": {{$delete_after}},
-  {{- else -}}
   "WorkProject": {{$work_project}},
   "PublishProject": "bct-prod-images",
   "ComputeEndpoint": {{$endpoint}},
   "DeleteAfter": {{$delete_after}},
-  {{- end}}
   {{$guest_features := `["MULTI_IP_SUBNET","UEFI_COMPATIBLE","VIRTIO_SCSI_MULTIQUEUE","GVNIC","WINDOWS"]` -}}
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
@@ -35,13 +24,9 @@
       "Description": "Microsoft, Windows Server, 2019 Datacenter Core, Server Core, MBR format x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
-        {{if eq .environment "internal" -}}
         "projects/google.com:windows-internal/global/licenses/internal-windows",
+        "projects/windows-cloud/global/licenses/windows-server-2019-dc-byol",
         "projects/windows-cloud/global/licenses/windows-server-core"
-        {{- else -}}
-        "projects/windows-cloud/global/licenses/windows-server-2019-dc",
-        "projects/windows-cloud/global/licenses/windows-server-core"
-        {{- end}}
       ],
       "GuestOsFeatures": {{$guest_features}}
     }
