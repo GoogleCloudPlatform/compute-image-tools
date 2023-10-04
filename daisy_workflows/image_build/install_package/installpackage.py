@@ -63,7 +63,7 @@ def main():
 
   distribution = get_distro_from_image(image)
   if distribution == 'debian':
-    install_cmd = 'apt-get install -y --ignore-missing'
+    install_cmd = 'dpkg --force-all -i'
   elif distribution == 'enterprise_linux':
     install_cmd = 'rpm --nodeps -Uvh'
   else:
