@@ -63,14 +63,14 @@ def main():
 
   distribution = get_distro_from_image(image)
   if distribution == 'debian':
-    util = 'apt-get'
+    install_cmd = 'apt-get install -y --ignore-missing'
   elif distribution == 'enterprise_linux':
-    util = 'yum'
+    install_cmd = 'rpm --nodeps -Uvh'
   else:
     raise Exception('Unknown Linux distribution.')
 
   logging.info('Installing package %s', package_name)
-  run(f'chroot /mnt {util} install -y /tmp/{package_name}')
+  run(f'chroot /mnt {install_cmd} /tmp/{package_name}')
   if distribution == 'enterprise_linux':
     run('chroot /mnt /sbin/setfiles -v -F '
         '/etc/selinux/targeted/contexts/files/file_contexts /')
