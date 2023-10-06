@@ -1,0 +1,34 @@
+{{/*
+  Template to publish Windows server UEFI images.
+  By default this template is setup to publish to the 'gce-image-builder'
+  project, the 'environment' variable can be used to publish to 'test', 'prod',
+  or 'staging'.
+  DeleteAfter is set to 180 days for all environments other than prod where no
+  time period is set.
+*/}}
+{
+  "Name": "windows-server-2022-dc-bios",
+  {{$work_project := printf "%q" "gce-image-builder" -}}
+  {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
+  {{$delete_after := `"24h*30*6"` -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "bct-prod-images",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{$guest_features := `["MULTI_IP_SUBNET","UEFI_COMPATIBLE","VIRTIO_SCSI_MULTIQUEUE","GVNIC","WINDOWS"]` -}}
+  {{$time := trimPrefix .publish_version "v"}}
+  "Images": [
+    {
+      "Prefix": "windows-server-2022-dc-mbr",
+      "Family": "windows-2022-mbr",
+      "Description": "Microsoft, Windows Server, 2022 Datacenter, Server with Desktop Experience, MBR format x64 built on {{$time}}",
+      "Architecture": "X86_64",
+      "Licenses": [
+        "projects/google.com:windows-internal/global/licenses/internal-windows",
+        "projects/windows-cloud/global/licenses/windows-server-2022-dc"
+
+      ],
+      "GuestOsFeatures": {{$guest_features}}
+    }
+  ]
+}
