@@ -19,10 +19,10 @@
       "Description": "GCS or local path to Cloud SDK installer"
     },
     "description": {
-      "Value": "Microsoft, Windows Server, 2022 Datacenter, Server with Desktop Experience, MBR format x64 built on ${TIMESTAMP}"
+      "Value": "Microsoft, Windows Server, 2022 Datacenter, Server with Desktop Experience, x64 built on ${TIMESTAMP}"
     },
     "family": {
-      "Value": "windows-2022-mbr",
+      "Value": "windows-2022-bios",
       "Description": "Desired image family of the output image."
     },
     "google_cloud_repo": {
@@ -30,7 +30,7 @@
       "Description": "Google Cloud repo to retrieve packages from during the build."
     },
     "name": {
-      "Value": "windows-server-2022-dc-mbr-v${TIMESTAMP}",
+      "Value": "windows-server-2022-dc-bios-v${TIMESTAMP}",
       "Description": "The name of the output image."
     },
     "project": {
