@@ -19,9 +19,9 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Prefix": "windows-server-2012-r2-dc-mbr",
-      "Family": "windows-2012-r2-mbr",
-      "Description": "Microsoft, Windows Server, 2012 R2 Datacenter, Server with Desktop Experience, MBR format x64 built on {{$time}}",
+      "Prefix": "windows-server-2012-r2-dc-bios",
+      "Family": "windows-2012-r2-bios",
+      "Description": "Microsoft, Windows Server, 2012 R2 Datacenter, Server with Desktop Experience, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         "projects/google.com:windows-internal/global/licenses/internal-windows",
