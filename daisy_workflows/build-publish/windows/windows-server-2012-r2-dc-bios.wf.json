@@ -53,7 +53,7 @@
     "build": {
       "Timeout": "5h",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/windows/windows-server-2012-r2-dc-bios-byol.wf.json",
+        "Path": "${workflow_root}/image_build/windows/windows-server-2012-r2-dc-bios.wf.json",
         "Vars": {
           "install_disk": "disk-install",
           "updates": "${updates}",

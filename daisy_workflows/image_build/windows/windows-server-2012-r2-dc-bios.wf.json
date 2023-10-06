@@ -1,5 +1,5 @@
 {
-  "Name": "windows-2022-dc-bios",
+  "Name": "windows-2012-r2-dc-bios",
   "Vars": {
     "install_disk": "install-disk",
     "media": {
@@ -19,10 +19,10 @@
       "Description": "GCS or local path to Cloud SDK installer"
     },
     "description": {
-      "Value": "Microsoft, Windows Server, 2022 Datacenter, Server with Desktop Experience, MBR format x64 built on ${TIMESTAMP}"
+      "Value": "Microsoft, Windows Server, 2012 R2 Datacenter, Server with Desktop Experience, MBR format x64 built on ${TIMESTAMP}"
     },
     "family": {
-      "Value": "windows-2022-mbr-byol",
+      "Value": "windows-2012-r2-mbr",
       "Description": "Desired image family of the output image."
     },
     "google_cloud_repo": {
@@ -30,7 +30,7 @@
       "Description": "Google Cloud repo to retrieve packages from during the build."
     },
     "name": {
-      "Value": "windows-server-2022-dc-mbr-byol-v${TIMESTAMP}",
+      "Value": "windows-server-2012-r2-dc-mbr-v${TIMESTAMP}",
       "Description": "The name of the output image."
     },
     "project": {
@@ -64,7 +64,7 @@
   },
   "Steps": {
     "windows-build": {
-      "Timeout": "4h",
+      "Timeout": "5h",
       "IncludeWorkflow": {
         "Path": "./windows-build-bios.wf.json",
         "Vars": {
@@ -74,10 +74,9 @@
           "drivers_bucket": "${drivers_bucket}",
           "dotnet48": "${dotnet48}",
           "pwsh": "${pwsh}",
-          "edition": "Windows Server 2022 SERVERDATACENTER",
+          "edition": "Windows Server 2012 R2 SERVERDATACENTER",
           "media": "${media}",
           "cloud_sdk": "${cloudsdk}",
-          "product_key": "WX4NM-KYWYW-QJJR4-XV3QB-6VM33",
           "google_cloud_repo": "${google_cloud_repo}",
           "workflow_root": "${workflow_root}",
           "sbom_destination": "${sbom_destination}",
@@ -94,7 +93,7 @@
           "Family": "${family}",
           "Description": "${description}",
           "Licenses": [
-            "projects/windows-cloud/global/licenses/windows-server-2022-byol"
+            "projects/windows-cloud/global/licenses/windows-server-2012-r2"
           ],
           "GuestOsFeatures": [
             {
@@ -105,9 +104,6 @@
             },
             {
               "Type": "MULTI_IP_SUBNET"
-            },
-            {
-              "Type": "UEFI_COMPATIBLE"
             },
             {
               "Type": "GVNIC"

@@ -1,5 +1,5 @@
 {
-  "Name": "windows-2019-dc-bios-byol",
+  "Name": "windows-2019-dc-bios",
   "Vars": {
     "install_disk": "install-disk",
     "media": {
@@ -22,7 +22,7 @@
       "Value": "Microsoft, Windows Server, 2019 Datacenter, Server with Desktop Experience, MBR format x64 built on ${TIMESTAMP}"
     },
     "family": {
-      "Value": "windows-2019-mbr-byol",
+      "Value": "windows-2019-mbr",
       "Description": "Desired image family of the output image."
     },
     "google_cloud_repo": {
@@ -30,7 +30,7 @@
       "Description": "Google Cloud repo to retrieve packages from during the build."
     },
     "name": {
-      "Value": "windows-server-2019-dc-mbr-byol-v${TIMESTAMP}",
+      "Value": "windows-server-2019-dc-mbr-v${TIMESTAMP}",
       "Description": "The name of the output image."
     },
     "project": {
@@ -94,7 +94,7 @@
           "Family": "${family}",
           "Description": "${description}",
           "Licenses": [
-            "projects/windows-cloud/global/licenses/windows-server-2019-byol"
+            "projects/windows-cloud/global/licenses/windows-server-2019"
           ],
           "GuestOsFeatures": [
             {

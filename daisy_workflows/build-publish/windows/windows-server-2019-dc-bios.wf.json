@@ -53,7 +53,7 @@
     "build": {
       "Timeout": "4h",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/windows/windows-server-2019-dc-bios-byol.wf.json",
+        "Path": "${workflow_root}/image_build/windows/windows-server-2019-dc-bios.wf.json",
         "Vars": {
           "install_disk": "disk-install",
           "updates": "${updates}",
