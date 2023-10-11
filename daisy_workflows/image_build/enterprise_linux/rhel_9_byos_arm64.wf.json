@@ -25,23 +25,24 @@
         "Path": "./enterprise_linux.wf.json",
         "Vars": {
           "el_release": "rhel-9",
-          "kickstart_config": "./kickstart/rhel_9_arm64.cfg",
+          "kickstart_config": "./kickstart/rhel_9_byos_arm64.cfg",
           "machine_type": "t2a-standard-4",
           "google_cloud_repo": "${google_cloud_repo}",
-          "installer_iso": "${installer_iso}"
+          "installer_iso": "${installer_iso}",
+          "rhel_byos": "true"
         }
       }
     },
     "create-image": {
       "CreateImages": [
         {
-          "Name": "rhel-9-arm64-v${build_date}",
+          "Name": "rhel-9-byos-arm64-v${build_date}",
           "SourceDisk": "el-install-disk",
           "Licenses": [
-            "projects/rhel-cloud/global/licenses/rhel-9-server"
+            "projects/rhel-cloud/global/licenses/rhel-9-byos"
           ],
-          "Description": "Red Hat, Red Hat Enterprise Linux, 9, aarch64 built on ${build_date}",
-          "Family": "rhel-9-arm64",
+          "Description": "Red Hat, Red Hat Enterprise Linux BYOS, 9, aarch64 built on ${build_date}",
+          "Family": "rhel-9-byos-arm64",
           "GuestOsFeatures": ["UEFI_COMPATIBLE", "GVNIC"],
           "Project": "${publish_project}",
           "NoCleanup": true,
