@@ -13,6 +13,10 @@
       "Value": "${TIMESTAMP}",
       "Description": "Build datestamp used to version the image."
     },
+    "rhel_release": {
+      "Value": "rhel-8",
+      "Description": "RHEL release version to use."
+    },
     "publish_project": {
       "Value": "${PROJECT}",
       "Description": "A project to publish the resulting image to."
