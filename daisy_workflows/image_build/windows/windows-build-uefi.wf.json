@@ -99,9 +99,11 @@
           "SizeGb": "${install_disk_size}",
           "Type": "pd-ssd",
           "GuestOsFeatures": [
-            {
-              "type": "UEFI_COMPATIBLE"
-            }
+            { "type": "UEFI_COMPATIBLE" },
+            { "type": "MULTI_IP_SUBNET" },
+            { "type": "VIRTIO_SCSI_MULTIQUEUE" },
+            { "type": "GVNIC" },
+            { "type": "WINDOWS" }
           ]
         }
       ]

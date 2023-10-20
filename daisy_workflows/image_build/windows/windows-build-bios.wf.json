@@ -100,7 +100,13 @@
           "Name": "${install_disk}",
           "SourceImage": "${install_source_image}",
           "SizeGb": "${install_disk_size}",
-          "Type": "pd-ssd"
+          "Type": "pd-ssd",
+          "GuestOsFeatures": [
+            { "type": "MULTI_IP_SUBNET" },
+            { "type": "VIRTIO_SCSI_MULTIQUEUE" },
+            { "type": "GVNIC" },
+            { "type": "WINDOWS" }
+          ]
         }
       ]
     },
