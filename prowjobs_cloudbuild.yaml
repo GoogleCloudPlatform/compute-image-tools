@@ -7,7 +7,7 @@ options:
 
 steps:
 - id: gce-windows-upgrade-tests
-  name: 'gcr.io/kaniko-project/executor:v0.22.0'
+  name: 'gcr.io/kaniko-project/executor:v1.12.1'
   volumes:
   - name: go-pkg
     path: /go/pkg
