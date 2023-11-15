@@ -1,0 +1,89 @@
+{
+  "Name": "windows-2016-dc-bios",
+  "Project": "gce-image-builder",
+  "Zone": "us-central1-b",
+  "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
+  "Vars": {
+    "build_date": {
+      "Value": "${TIMESTAMP}",
+      "Description": "Build datestamp used to version the image."
+    },
+    "media": {
+      "Required": true,
+      "Description": "GCS or local path to Windows ISO."
+    },
+    "pwsh": {
+      "Required": true,
+      "Description": "GCS or local path to PowerShell v7+ installer"
+    },
+    "dotnet48": {
+      "Required": true,
+      "Description": "GCS or local path to Microsoft .NET Framework 4.8 offline installer"
+    },
+    "cloudsdk": {
+      "Required": true,
+      "Description": "GCS or local path to Cloud SDK installer"
+    },
+    "updates": {
+      "Required": true,
+      "Description": "GCS or local filesystem location containing Windows update files."
+    },
+    "gcs_url": {
+      "Required": true,
+      "Description": "The GCS url that the image raw file exported to."
+    },
+    "sbom_destination": {
+      "Value": "${OUTSPATH}/export-image.sbom.json",
+      "Description": "The GCS url that the sbom file exported to."
+    },
+    "google_cloud_repo": {
+      "Value": "stable",
+      "Description": "The Google Cloud Repo branch to use."
+    },
+    "workflow_root": {
+      "Value": "/workflows",
+      "Description": "Root of github workflows, defaults to /workflows in the container."
+    },
+    "sbom_util_gcs_root": {
+      "Value": "",
+      "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
+    }
+  },
+  "Steps": {
+    "build": {
+      "Timeout": "6h",
+      "IncludeWorkflow": {
+        "Path": "${workflow_root}/image_build/windows/windows-server-2016-dc-bios.wf.json",
+        "Vars": {
+          "install_disk": "disk-install",
+          "updates": "${updates}",
+          "dotnet48": "${dotnet48}",
+          "pwsh": "${pwsh}",
+          "media": "${media}",
+          "cloudsdk": "${cloudsdk}",
+          "google_cloud_repo": "${google_cloud_repo}",
+          "workflow_root": "${workflow_root}",
+          "sbom_destination": "${sbom_destination}",
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
+        }
+      }
+    },
+    "windows-export": {
+      "Timeout": "60m",
+      "IncludeWorkflow": {
+        "Path": "./windows_export.wf.json",
+        "Vars": {
+          "build_date": "${build_date}",
+          "gcs_url": "${gcs_url}",
+          "workflow_root": "${workflow_root}",
+          "existing_sbom_file_name": "${sbom_destination}"
+        }
+      }
+    }
+  },
+  "Dependencies": {
+    "windows-export": [
+      "build"
+    ]
+  }
+}

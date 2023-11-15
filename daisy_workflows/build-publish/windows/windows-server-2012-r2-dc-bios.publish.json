@@ -1,0 +1,33 @@
+{{/*
+  Template to publish Windows server UEFI images.
+  By default this template is setup to publish to the 'gce-image-builder'
+  project, the 'environment' variable can be used to publish to 'test', 'prod',
+  or 'staging'.
+  DeleteAfter is set to 180 days for all environments other than prod where no
+  time period is set.
+*/}}
+{
+  "Name": "windows-server-2012-r2-dc-bios",
+  {{$work_project := printf "%q" "gce-image-builder" -}}
+  {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
+  {{$delete_after := `"24h*30*6"` -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "bct-prod-images",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{$guest_features := `["MULTI_IP_SUBNET","VIRTIO_SCSI_MULTIQUEUE","GVINC","WINDOWS"]` -}}
+  {{$time := trimPrefix .publish_version "v"}}
+  "Images": [
+    {
+      "Prefix": "windows-server-2012-r2-dc-bios",
+      "Family": "windows-2012-r2-bios",
+      "Description": "Microsoft, Windows Server, 2012 R2 Datacenter, Server with Desktop Experience, x64 built on {{$time}}",
+      "Architecture": "X86_64",
+      "Licenses": [
+        "projects/google.com:windows-internal/global/licenses/internal-windows",
+        "projects/windows-cloud/global/licenses/windows-server-2012-r2-dc"
+      ],
+      "GuestOsFeatures": {{$guest_features}}
+    }
+  ]
+}
