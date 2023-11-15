@@ -16,11 +16,11 @@ FROM golang
 
 # Build test runner
 COPY / /kaniko/build
-RUN CGO_ENABLED=0 go build -C /kaniko/build/cli_tools_tests/e2e/gce_windows_upgrade -o /gce_windows_upgrade_test_runner
+RUN CGO_ENABLED=0 go build -C /kaniko/build/cli_tools_tests/e2e/gce_windows_upgrade -buildvcs=false -o /gce_windows_upgrade_test_runner
 RUN chmod +x /gce_windows_upgrade_test_runner
 
 # Build binaries to test
-RUN CGO_ENABLED=0 go build -C /kaniko/build/cli_tools/gce_windows_upgrade -o /gce_windows_upgrade
+RUN CGO_ENABLED=0 go build -C /kaniko/build/cli_tools/gce_windows_upgrade -buildvcs=false -o /gce_windows_upgrade
 RUN chmod +x /gce_windows_upgrade
 
 # Build test container
