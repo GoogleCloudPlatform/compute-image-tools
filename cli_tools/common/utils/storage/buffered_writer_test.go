@@ -182,7 +182,7 @@ func TestUploadErrorWhenInvalidFile(t *testing.T) {
 	prefix = "not_an_existing_file.go"
 	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj, "GCEExport")
 	rescueStdout := os.Stdout
-	defer func(){ os.Stdout = rescueStdout }()
+	defer func() { os.Stdout = rescueStdout }()
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 	buf.upload <- prefix
@@ -208,7 +208,7 @@ func TestUploadErrorWhenCopyError(t *testing.T) {
 	prefix = "//"
 	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj, "GCEExport")
 	rescueStdout := os.Stdout
-	defer func(){ os.Stdout = rescueStdout }()
+	defer func() { os.Stdout = rescueStdout }()
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 	buf.upload <- prefix
@@ -472,7 +472,7 @@ func TestClientErrorWhenUploadFailed(t *testing.T) {
 	ctx := context.Background()
 	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClientError, oauth, prefix, bkt, obj, "GCEExport")
 	rescueStdout := os.Stdout
-	defer func(){ os.Stdout = rescueStdout }()
+	defer func() { os.Stdout = rescueStdout }()
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 	buf.upload <- "file"
