@@ -36,17 +36,18 @@ const (
 
 // Distro denotes a product line of operating systems, using the following
 // test:
-//   If two operating systems at the same version and CPU architecture can be
-//   imported using the same logic, then they have the same Distro. For example,
-//   if Ubuntu 20.04 and xubuntu 20.04 are importable using
-//   the same logic, then they'd both be categorized as Distro.UBUNTU.
+//
+//	If two operating systems at the same version and CPU architecture can be
+//	imported using the same logic, then they have the same Distro. For example,
+//	if Ubuntu 20.04 and xubuntu 20.04 are importable using
+//	the same logic, then they'd both be categorized as Distro.UBUNTU.
 //
 // When adding new members, keep in mind:
-//  - Group distros by family, using buckets of size 1000.
-//  - The following properties are orthogonal and should not be encoded here:
-//      - CPU architecture
-//      - Major or minor versions
-//      - GCE licensing (such as BYOL)
+//   - Group distros by family, using buckets of size 1000.
+//   - The following properties are orthogonal and should not be encoded here:
+//   - CPU architecture
+//   - Major or minor versions
+//   - GCE licensing (such as BYOL)
 type Distro int32
 
 const (

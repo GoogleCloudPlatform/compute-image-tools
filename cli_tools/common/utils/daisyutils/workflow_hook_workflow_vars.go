@@ -64,7 +64,8 @@ Loop:
 // network from the GCE project.
 //
 // For more information on this inference, see:
-//   https://cloud.google.com/compute/docs/reference/rest/v1/instances
+//
+//	https://cloud.google.com/compute/docs/reference/rest/v1/instances
 func (t *ApplyAndValidateVars) updateNetworkAndSubnet(wf *daisy.Workflow) {
 	if t.env.Subnet != "" {
 		t.backfillVar(subnetVarPattern, t.env.Subnet, wf)

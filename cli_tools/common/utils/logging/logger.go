@@ -32,6 +32,7 @@ import (
 // Structured metrics are accumulated over the lifespan of the logger.
 //
 // To rebuild the mock, run `go generate ./...`
+//
 //go:generate go run github.com/golang/mock/mockgen -package mocks -source $GOFILE -destination ../../../mocks/mock_logger.go
 type Logger interface {
 	// User messages appear in the following places:
@@ -87,16 +88,18 @@ type ToolLogger interface {
 // It has the following behavior for each level:
 //
 // User:
-//  - Writes to the underlying log.Logger with an optional prefix. The prefix is used by
-//    gcloud and the web console for filtering which logs are shown to the user.
-//  - In addition to writing to the underlying log.Logger, the messages are buffered for
-//    inclusion in OutputInfo.SerialOutputs.
+//   - Writes to the underlying log.Logger with an optional prefix. The prefix is used by
+//     gcloud and the web console for filtering which logs are shown to the user.
+//   - In addition to writing to the underlying log.Logger, the messages are buffered for
+//     inclusion in OutputInfo.SerialOutputs.
+//
 // Debug:
-//  - Writes to the underlying log.Logger with an optional prefix.
-//  - In addition to writing to the underlying log.Logger, the messages are buffered for
-//    inclusion in OutputInfo.SerialOutputs.
+//   - Writes to the underlying log.Logger with an optional prefix.
+//   - In addition to writing to the underlying log.Logger, the messages are buffered for
+//     inclusion in OutputInfo.SerialOutputs.
+//
 // Trace:
-//  - Included in OutputInfo.SerialOutputs
+//   - Included in OutputInfo.SerialOutputs
 type defaultToolLogger struct {
 	// userPrefix and debugPrefix are strings that are prepended to user and debug messages.
 	// The userPrefix string should be kept in sync with the matcher used by gcloud and the
@@ -164,6 +167,7 @@ func (l *defaultToolLogger) Metric(metric *pb.OutputInfo) {
 //   - Calls to Metric
 //   - All user, debug, and trace logs. User and debug logs are appended into a single
 //     member of OutputInfo.SerialLogs; each trace log is a separate member.
+//
 // All buffers are cleared when this is called. In other words, a subsequent call to
 // ReadOutputInfo will return an empty object.
 func (l *defaultToolLogger) ReadOutputInfo() *pb.OutputInfo {

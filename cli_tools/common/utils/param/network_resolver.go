@@ -26,12 +26,13 @@ import (
 
 // NetworkResolver standardizes and validates network and subnet fields. It follows the
 // rules from the `networkInterfaces[].network` section of instances.insert:
-//    https://cloud.google.com/compute/docs/reference/rest/v1/instances/insert
 //
-//  - When both subnet and network are empty, explicitly use the default network.
-//  - If the subnet is empty, leave it empty to allow the compute backend to infer it.
-//  - Similarly, if only the network is empty, leave it empty to allow inference.
-//  - Backfill project and region resource properties if they are omitted in the network and subnet URIs.
+//	  https://cloud.google.com/compute/docs/reference/rest/v1/instances/insert
+//
+//	- When both subnet and network are empty, explicitly use the default network.
+//	- If the subnet is empty, leave it empty to allow the compute backend to infer it.
+//	- Similarly, if only the network is empty, leave it empty to allow inference.
+//	- Backfill project and region resource properties if they are omitted in the network and subnet URIs.
 type NetworkResolver interface {
 	// Resolve returns the URI representation of network and subnet
 	// within a given region.

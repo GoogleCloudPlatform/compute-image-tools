@@ -133,11 +133,11 @@ func ValidateProjectID(value string) error {
 // Use the syntax from <https://github.com/go-playground/validator>.  In addition,
 // the following is supported:
 //
-//  New validators:
-//    gce_disk_image_name:  Validates using `ValidateImageName`
+//	New validators:
+//	  gce_disk_image_name:  Validates using `ValidateImageName`
 //
-//  Field names:
-//    To customize the field name in the error message, include a tag named 'name'.
+//	Field names:
+//	  To customize the field name in the error message, include a tag named 'name'.
 func ValidateStruct(s interface{}) error {
 	validate := validator.New()
 

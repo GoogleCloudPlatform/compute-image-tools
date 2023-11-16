@@ -24,7 +24,8 @@ import (
 // daisy workflow such that they won't be created with an external IP address.
 //
 // For more info on external IPs, see the `--no-address` flag:
-//   https://cloud.google.com/sdk/gcloud/reference/compute/instances/create
+//
+//	https://cloud.google.com/sdk/gcloud/reference/compute/instances/create
 type RemoveExternalIPHook struct{}
 
 // PreRunHook updates the CreateInstances steps so that they won't have an external IP.

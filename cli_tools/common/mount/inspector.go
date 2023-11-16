@@ -81,12 +81,12 @@ func (mi *defaultMountInspector) isDeviceVirtual(device string) (bool, error) {
 
 // getPhysicalDisks returns the list of physical disks that are used for the blockDevice.
 // For example:
-//   1. blockDevice is an MBR-style partition:
-//         blockDevice: /dev/sdb1
-//         getPhysicalDisks:  [/dev/sdb]
-//   2. blockDevice is an LVM logical volume that is spread across three disks:
-//         blockDevice:  /dev/mapper/vg-lv
-//         getPhysicalDisks:  [/dev/sda, /dev/sdb, /dev/sdc]
+//  1. blockDevice is an MBR-style partition:
+//     blockDevice: /dev/sdb1
+//     getPhysicalDisks:  [/dev/sdb]
+//  2. blockDevice is an LVM logical volume that is spread across three disks:
+//     blockDevice:  /dev/mapper/vg-lv
+//     getPhysicalDisks:  [/dev/sda, /dev/sdb, /dev/sdc]
 func (mi *defaultMountInspector) getPhysicalDisks(blockDevice string) (disksForDevice []string, err error) {
 	disks, err := mi.getAllPhysicalDisks()
 	if err != nil {
