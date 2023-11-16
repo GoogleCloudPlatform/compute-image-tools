@@ -43,6 +43,7 @@ func (m protoMatcher) String() string {
 	return proto.MarshalTextString(m.expected)
 }
 
+// ProtoEquals returns a protoMatcher for the proto.Message
 func ProtoEquals(expected proto.Message) gomock.Matcher {
 	return protoMatcher{expected}
 }
