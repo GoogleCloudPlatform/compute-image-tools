@@ -104,7 +104,7 @@ func (rl *ResourceLabeler) updateResourceLabels(labels map[string]string, imageT
 	return labels
 }
 
-//Extend labels with image import related labels
+// Extend labels with image import related labels
 func (rl *ResourceLabeler) extendWithImageImportLabels(labels map[string]string, imageTypeLabel string) map[string]string {
 	if labels == nil {
 		labels = make(map[string]string)

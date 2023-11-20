@@ -46,7 +46,7 @@ type BucketIteratorCreatorInterface interface {
 		projectID string) BucketIteratorInterface
 }
 
-//BucketIteratorInterface represents GCS bucket iterator
+// BucketIteratorInterface represents GCS bucket iterator
 type BucketIteratorInterface interface {
 	Next() (*storage.BucketAttrs, error)
 }
@@ -56,7 +56,7 @@ type ObjectIteratorCreatorInterface interface {
 	CreateObjectIterator(bucket string, objectPath string) ObjectIteratorInterface
 }
 
-//ObjectIteratorInterface represents GCS Object iterator
+// ObjectIteratorInterface represents GCS Object iterator
 type ObjectIteratorInterface interface {
 	Next() (*storage.ObjectAttrs, error)
 }

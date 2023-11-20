@@ -26,11 +26,13 @@ import (
 // not found, gcloud is queried using `gcloud config get-value $gcloudConfig`.
 //
 // Examples:
-//  GetConfig("GOOGLE_CLOUD_PROJECT", "project")
-//  GetConfig("GOOGLE_CLOUD_ZONE", "compute/zone")
+//
+//	GetConfig("GOOGLE_CLOUD_PROJECT", "project")
+//	GetConfig("GOOGLE_CLOUD_ZONE", "compute/zone")
 //
 // For more info on using configurations with gcloud, see:
-//  https://cloud.google.com/sdk/docs/configurations
+//
+//	https://cloud.google.com/sdk/docs/configurations
 func GetConfig(envKey, gcloudConfig string) string {
 	if v := strings.TrimSpace(os.Getenv(envKey)); v != "" {
 		return v

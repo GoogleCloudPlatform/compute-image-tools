@@ -365,8 +365,8 @@ func PostProcessDErrorForNetworkFlag(action string, err error, network string, w
 }
 
 // RunWorkflowWithCancelSignal runs a Daisy workflow, and allows for cancellation from two sources:
-//   1. The user types Ctrl-C on their keyboard.
-//   2. The caller sends a cancellation reason on the cancel channel (or closes it).
+//  1. The user types Ctrl-C on their keyboard.
+//  2. The caller sends a cancellation reason on the cancel channel (or closes it).
 func RunWorkflowWithCancelSignal(w *daisy.Workflow, cancel <-chan string) error {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)

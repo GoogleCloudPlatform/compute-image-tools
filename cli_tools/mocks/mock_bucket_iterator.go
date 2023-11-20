@@ -17,7 +17,8 @@
 
 // Package mocks is a generated GoMock package.
 
-//+build !test
+//go:build !test
+// +build !test
 
 package mocks
 
