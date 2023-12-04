@@ -3,6 +3,14 @@ $RDPServerPath = 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server'
 
 $items= @(
   @{
+    description="Verify that the Ethernet adapter is active, expect [Enabled]:";
+    cmd="netsh interface show interface"
+  },
+  @{
+    description="Verify that DHCP is enabled and IP configuration is correct, expect [DHCP Enabled: Yes]:";
+    cmd="netsh interface ipv4 show addresses"
+  },
+  @{
     description="Check the Remote Desktop Service status, expect [Running]:";
     cmd="(Get-Service -Name TermService).Status"
   },
@@ -25,6 +33,14 @@ $items= @(
   @{
     description="Verify that MTU size is no greater than 1460, expect [MTU <= 1460, Interface:Ethernet]:";
     cmd="netsh interface ipv4 show subinterfaces"
+  },
+  @{
+    description="Verify that client-server seecurity negotiation is set to default value, expect [SecurityLayer REG_DWORD 0x1]:";
+    cmd="reg query 'HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' /v SecurityLayer"
+  },
+  @{
+    description="Verify that Network-level UserAuthentication is set to default value, expect [UserAuthentication REG_DWORD 0x0]:";
+    cmd="reg query 'HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' /v UserAuthentication"
   }
 )
 
