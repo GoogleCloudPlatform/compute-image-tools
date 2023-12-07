@@ -27,7 +27,7 @@ gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
 EOM
 
 zypper -n --no-gpg-checks ref
-zypper install -y kernel-source git google-cloud-sdk
+zypper install -y kernel-source git google-cloud-cli
 rm -rf /files/distro_kernel && mkdir -p /files/distro_kernel
 cp -R /usr/src/linux/* /files/distro_kernel
 
