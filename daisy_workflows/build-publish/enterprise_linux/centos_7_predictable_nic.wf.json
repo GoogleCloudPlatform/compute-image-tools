@@ -37,7 +37,7 @@
     "build": {
       "TimeOut": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/enterprise_linux/centos_7.wf.json",
+        "Path": "${workflow_root}/image_build/enterprise_linux/centos_7_predictable_nic.wf.json",
         "Vars": {
           "build_date": "${build_date}",
           "google_cloud_repo": "${google_cloud_repo}",
