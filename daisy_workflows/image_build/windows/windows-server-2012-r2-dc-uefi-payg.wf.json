@@ -107,6 +107,9 @@
             },
             {
               "Type": "UEFI_COMPATIBLE"
+            },
+            {
+              "Type": "GVNIC"
             }
           ],
           "NoCleanup": true,

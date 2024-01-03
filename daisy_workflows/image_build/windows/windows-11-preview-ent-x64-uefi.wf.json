@@ -1,5 +1,5 @@
 {
-  "Name": "windows-11-next-ent-x64-uefi",
+  "Name": "windows-11-preview-ent-x64-uefi",
   "Vars": {
     "install_disk": "install-disk",
     "media": {
@@ -22,7 +22,7 @@
       "Value": "Microsoft, Windows 11 Enterprise 21h2, x64 built on ${TIMESTAMP}"
     },
     "family": {
-      "Value": "windows-11-next-ent-x64",
+      "Value": "windows-11-preview-ent-x64",
       "Description": "Desired image family of the output image."
     },
     "google_cloud_repo": {
@@ -30,7 +30,7 @@
       "Description": "Google Cloud repo to retrieve packages from during the build."
     },
     "name": {
-      "Value": "windows-11-next-ent-x64-v${TIMESTAMP}",
+      "Value": "windows-11-preview-ent-x64-v${TIMESTAMP}",
       "Description": "The name of the output image."
     },
     "project": {
