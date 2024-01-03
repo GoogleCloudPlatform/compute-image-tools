@@ -7,14 +7,14 @@
   time period is set.
 */}}
 {
-  "Name": "windows-server-preview-dc-uefi",
+  "Name": "windows-11-preview-ent-x64-uefi",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*6"` -}}
-  {{if eq .environment "prod" -}}
+  {{if eq .environment "client" -}}
   "WorkProject": {{$work_project}},
-  "PublishProject": "windows-cloud",
-  "ComputeEndpoint": {{$endpoint}},
+  "PublishProject": "gce-windows-client-images",
+  "DeleteAfter": {{$delete_after}},
   {{- else if eq .environment "internal" -}}
   "WorkProject": {{$work_project}},
   "PublishProject": "google.com:windows-internal",
@@ -30,15 +30,17 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Prefix": "windows-server-preview-dc",
-      "Family": "windows-preview",
-      "Description": "Microsoft, Windows Server, preview Datacenter, Server with Desktop Experience, x64 built on {{$time}}",
+      "Prefix": "windows-11-preview-ent-x64",
+      "Family": "windows-11-preview-x64",
+      "Description": "Microsoft, Windows 11 Enterprise, preview release, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
-        {{if eq .environment "internal" -}}
+        {{if eq .environment "staging" -}}
+        "projects/bct-staging-functional/global/licenses/windows-ent"
+        {{- else if eq .environment "internal" -}}
         "projects/google.com:windows-internal/global/licenses/internal-windows"
         {{- else -}}
-        "projects/windows-cloud/global/licenses/windows-server-2022"
+        "projects/windows-cloud/global/licenses/windows-11-x64-byol"
         {{- end}}
       ],
       "GuestOsFeatures": {{$guest_features}}

@@ -1,5 +1,5 @@
 {
-  "Name": "windows-preview-dc-uefi",
+  "Name": "windows-11-23h2-ent-x64-uefi",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -51,9 +51,9 @@
   },
   "Steps": {
     "build": {
-      "Timeout": "4h",
+      "Timeout": "5h",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/windows/windows-server-preview-dc-uefi-payg.wf.json",
+        "Path": "${workflow_root}/image_build/windows/windows-11-23h2-ent-x64-uefi.wf.json",
         "Vars": {
           "install_disk": "disk-install",
           "updates": "${updates}",

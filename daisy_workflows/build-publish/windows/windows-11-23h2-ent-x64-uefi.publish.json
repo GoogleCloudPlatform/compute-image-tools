@@ -7,7 +7,7 @@
   time period is set.
 */}}
 {
-  "Name": "windows-11-next-ent-x64-uefi",
+  "Name": "windows-11-23h2-ent-x64-uefi",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*6"` -}}
@@ -30,9 +30,9 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Prefix": "windows-11-next-ent-x64",
-      "Family": "windows-11-next-x64",
-      "Description": "Microsoft, Windows 11 Enterprise, next Update, x64 built on {{$time}}",
+      "Prefix": "windows-11-23h2-ent-x64",
+      "Family": "windows-11-23h2-x64",
+      "Description": "Microsoft, Windows 11 Enterprise, 23h2 Update, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "staging" -}}
