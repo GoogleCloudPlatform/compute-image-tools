@@ -185,10 +185,7 @@ function Install-WindowsUpdates {
   # This is an intended behavior by Microsoft for backwards compatibility.
   # As such we skip the KB here instead of trying to target by $pn.
   if ($updates.Count -eq 1) {
-    $productBuildNumber = [Environment]::OSVersion.Version.Build
-    $productMajorVersion = [Environment]::OSVersion.Version.Major
-    $productMinorVersion = [Environment]::OSVersion.Version.Minor
-    if($productMajorVersion -eq 10 -and $productMinorVersion -eq 0 -and $productBuildNumber -ge 22000) {
+    if([Environment]::OSVersion.Version.Major -eq 10 -and [Environment]::OSVersion.Version.Minor -eq 0 -and [Environment]::OSVersion.Version.Build -ge 22000) {
       foreach ($update in $updates) {
         if ($update.Title -like '*KB5007651*') {
           Write-Host 'Install-WindowsUpdates: KB5007651 detected as a single update remaining. Skipping known issue KB.'
@@ -227,16 +224,12 @@ function Install-WindowsUpdates {
   return $true
 }
 
-# Remove with Win2012 R2 EOL in Oct 2023. Temporary fix for issue following June 2023 .Net update.
 function Install-NetFrameworkCore {
   <#
     .SYNOPSIS
-      Checks for Windows Server 2012 and enables the .Net version 3.5 Framework.
+      Checks for Windows Server 2012 R2 and enables the .Net version 3.5 Framework.
   #>
-  $productBuildNumber = [Environment]::OSVersion.Version.Build
-  $productMajorVersion = [Environment]::OSVersion.Version.Major
-  $productMinorVersion = [Environment]::OSVersion.Version.Minor
-  if($productMajorVersion -eq 6 -and $productMinorVersion -eq 3 -and $productBuildNumber -eq 9600) {
+  if([Environment]::OSVersion.Version.Major -eq 6 -and [Environment]::OSVersion.Version.Minor -eq 3) {
     Write-Host 'Install-NetFrameworkCore: Enabling .Net Framework version 3.5.'
     Install-WindowsFeature Net-Framework-Core
   }
@@ -343,20 +336,28 @@ function Configure-Network {
 
   Write-Host 'Changing firewall settings.'
   # Change Windows Server firewall settings.
-  # Enable ping in Windows Server 2008.
-  Run-Command netsh advfirewall firewall add rule `
-      name='ICMP Allow incoming V4 echo request' `
-      protocol='icmpv4:8,any' dir=in action=allow
+  # Allow ICMP ping for IPv4 and IPv6 for Win10/2016 and above using Powershell or IPv4 only for older operating systems using netsh.
+  if ([System.Environment]::OSVersion.Version.Major -ge 10 -and [System.Environment]::OSVersion.Version.Build -ge 10240) {
+    Write-Host "Creating firewall rules to allow incoming IPv4 & IPv6 ICMP Echo Request using PowerShell."
+    New-NetFirewallRule -DisplayName 'ICMP Allow incoming IPv4 echo request' -Enabled True -Direction Inbound -Action Allow -Protocol ICMPv4 -IcmpType "8"
+    New-NetFirewallRule -DisplayName 'ICMP Allow incoming IPv6 echo request' -Enabled True -Direction Inbound -Action Allow -Protocol ICMPv6 -IcmpType "128"
+  } 
+  else {
+    Write-Host "Creating firewall rules to allow incoming V4 ICMP Echo Request using netsh."
+    Run-Command netsh advfirewall firewall add rule name='ICMP Allow incoming IPv4 echo request' protocol='icmpv4:8,any' dir=in action=allow
+  }
 
-  # Enable inbound communication from the metadata server.
-  Run-Command netsh advfirewall firewall add rule `
-      name='Allow incoming from GCE metadata server' `
-      protocol=ANY remoteip=169.254.169.254 dir=in action=allow
-
-  # Enable outbound communication to the metadata server.
-  Run-Command netsh advfirewall firewall add rule `
-      name='Allow outgoing to GCE metadata server' `
-      protocol=ANY remoteip=169.254.169.254 dir=out action=allow
+  # Allow inbound/outbound communication from the metadata server. Win10/2016 and above set using PowerShell and older versions set using netsh.
+  if ([System.Environment]::OSVersion.Version.Major -ge 10 -and [System.Environment]::OSVersion.Version.Build -ge 10240) {
+    Write-Host "Creating firewall rules to allow inbound/outbound to metadata using PowerShell."
+    New-NetFirewallRule -DisplayName 'Allow incoming from GCE metadata server' -Enabled True -Action Allow -Protocol ANY -RemoteAddress 169.254.169.254 -Direction Inbound
+    New-NetFirewallRule -DisplayName 'Allow outgoing to GCE metadata server' -Enabled True  -Action Allow -Protocol ANY -RemoteAddress 169.254.169.254 -Direction Outbound
+  } 
+  else {
+    Write-Host "Creating firewall rules to allow incoming V4 ICMP Echo Request using netsh."
+    Run-Command netsh advfirewall firewall add rule name='Allow incoming from GCE metadata server' protocol=ANY remoteip=169.254.169.254 dir=in action=allow
+    Run-Command netsh advfirewall firewall add rule name='Allow outgoing to GCE metadata server' protocol=ANY remoteip=169.254.169.254 dir=out action=allow
+  }
 
   # Change KeepAliveTime to 5 minutes.
   $tcp_params = 'HKLM:\System\CurrentControlSet\Services\Tcpip\Parameters'
@@ -484,7 +485,16 @@ function Configure-RDP {
 
   # Disable Ctrl + Alt + Del.
   Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'DisableCAD' -Value 1 -Force
-  Run-Command netsh advfirewall firewall set rule group='remote desktop' new enable=Yes
+
+  # Allow RPD inbound. Win10/2016 and above set using PowerShell and older versions set using netsh.
+  if ([System.Environment]::OSVersion.Version.Major -ge 10 -and [System.Environment]::OSVersion.Version.Build -ge 10240) {
+    Write-Log "Enabling RDP firewall rules using PowerShell."
+    Set-NetFirewallRule -DisplayGroup 'Remote Desktop' -Enabled True
+  } 
+  else {
+    Write-Log "Enabling RDP firewall rules using netsh."
+    Run-Command netsh advfirewall firewall set rule group='remote desktop' new enable=Yes
+  }
 }
 
 function Install-Packages {
@@ -637,7 +647,11 @@ try {
   Generate-NativeImage
 
   # Only needed and applicable for 2008.
-  & netsh interface ipv4 set dnsservers 'Local Area Connection' source=dhcp | Out-Null
+  if([Environment]::OSVersion.Version.Major -eq 6 -and [Environment]::OSVersion.Version.Minor -le 1) {
+    Write-Host 'Windows Server 2008/2008R2 detected. Setting IPv4 DNS Server source to DHCP.'
+    & netsh interface ipv4 set dnsservers 'Local Area Connection' source=dhcp | Out-Null
+  }
+  
 
   # Required for WMF 5.1 on Windows Server 2008R2
   # https://sccm-zone.com/fix-sysprep-error-on-windows-2008-r2-after-windows-management-framework-5-0-installation-b9e86b4c41e4
