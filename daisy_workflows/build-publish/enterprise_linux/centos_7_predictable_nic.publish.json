@@ -6,7 +6,7 @@
   time period is set.
 */}}
 {
-  "Name": "centos-7",
+  "Name": "centos-7-predictable-nic",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*6"` -}}
@@ -18,8 +18,8 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Family": "centos-7",
-      "Prefix": "centos-7",
+      "Family": "centos-7-predictable-nic",
+      "Prefix": "centos-7-predictable-nic",
       "Description": "CentOS, CentOS, 7, x86_64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
