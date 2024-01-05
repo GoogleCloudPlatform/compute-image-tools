@@ -488,11 +488,11 @@ function Configure-RDP {
 
   # Allow RPD inbound. Win10/2016 and above set using PowerShell and older versions set using netsh.
   if ([System.Environment]::OSVersion.Version.Major -ge 10 -and [System.Environment]::OSVersion.Version.Build -ge 10240) {
-    Write-Log "Enabling RDP firewall rules using PowerShell."
+    Write-Host "Enabling RDP firewall rules using PowerShell."
     Set-NetFirewallRule -DisplayGroup 'Remote Desktop' -Enabled True
   } 
   else {
-    Write-Log "Enabling RDP firewall rules using netsh."
+    Write-Host "Enabling RDP firewall rules using netsh."
     Run-Command netsh advfirewall firewall set rule group='remote desktop' new enable=Yes
   }
 }
