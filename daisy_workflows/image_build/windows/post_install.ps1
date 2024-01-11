@@ -195,6 +195,19 @@ function Install-WindowsUpdates {
     }
   }
 
+  # As of Jan 2024, Server 2022 may get stuck installing KB5034439.
+  # Temporarily work around this to let the build continue.
+  if ($updates.Count -eq 1) {
+    if([Environment]::OSVersion.Version.Major -eq 10 -and [Environment]::OSVersion.Version.Minor -eq 0 -and [Environment]::OSVersion.Version.Build -eq 20348) {
+      foreach ($update in $updates) {
+        if ($update.Title -like '*KB5034439*') {
+          Write-Host 'Install-WindowsUpdates: KB5034439 detected as a single update remaining. Skipping known issue KB.'
+          return $false
+        }
+      }
+    }
+  }
+
   foreach ($update in $updates) {
     if (-not ($update.EulaAccepted)) {
       Write-Host 'The following update required a EULA to be accepted:'
