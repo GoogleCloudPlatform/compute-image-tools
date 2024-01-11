@@ -15,6 +15,10 @@ $items= @(
     cmd="(Get-Service -Name TermService).Status"
   },
   @{
+    description="Verify that Remote Desktop Gateway is enabled, expect [Running]:";
+    cmd="(Get-Service -Name TSGateway).Status"
+  },
+  @{
     description="Check that Remote Connections are enabled, expect [fDenyTSConnections: 0]:";
     cmd="Write-Host $RDPServerPath'\fDenyTSConnections: '(Get-ItemProperty -Path '$RDPServerPath' -Name fDenyTSConnections -ErrorAction SilentlyContinue).fDenyTSConnections"
   },
