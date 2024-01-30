@@ -15,8 +15,8 @@ $items= @(
     cmd="(Get-Service -Name TermService).Status"
   },
   @{
-    description="Verify that Remote Desktop Gateway is enabled, expect [Running]:";
-    cmd="(Get-Service -Name TSGateway).Status"
+    description="Verify that Remote Desktop Session Host is enabled for multi-user connection, expect [installed]:";
+    cmd="(Get-WindowsFeature -Name RDS-RD-Server).InstallState"
   },
   @{
     description="Check that Remote Connections are enabled, expect [fDenyTSConnections: 0]:";
