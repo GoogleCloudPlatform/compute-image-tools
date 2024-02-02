@@ -7,7 +7,7 @@
   time period is set.
 */}}
 {
-  "Name": "windows-server-2022-uefi",
+  "Name": "windows-server-2025-uefi",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*6"` -}}
@@ -30,9 +30,9 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Prefix": "windows-server-2022",
-      "Family": "windows-2022-standard",
-      "Description": "Microsoft, Windows Server, 2022, Server with Desktop Experience, x64 built on {{$time}}",
+      "Prefix": "windows-server-2025",
+      "Family": "windows-2025-standard",
+      "Description": "Microsoft, Windows Server, 2025 Preview, Server with Desktop Experience, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "internal" -}}
