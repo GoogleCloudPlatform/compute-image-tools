@@ -96,13 +96,13 @@ def main():
     cfg = re.sub(r'timeout=60', 'timeout=1', cfg)
     cfg = re.sub(r'set default=.*', 'set default="0"', cfg)
     cfg = re.sub(r'load_video\n',
-           r'serial --speed=38400 --unit=0 --word=8 --parity=no\n'
+           r'serial --speed=115200 --unit=0 --word=8 --parity=no\n'
            'terminal_input serial\nterminal_output serial\n', cfg)
 
     # Change boot args.
     args = ' '.join([
       'inst.text', 'inst.ks=hd:LABEL=INSTALLER:/%s' % ks_cfg,
-      'console=ttyS0,38400n8', 'inst.gpt', 'inst.loglevel=debug'
+      'console=ttyS0,115200', 'inst.gpt', 'inst.loglevel=debug'
     ])
 
     # Tell Anaconda not to store its logs in the installed image,
