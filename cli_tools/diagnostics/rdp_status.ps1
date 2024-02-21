@@ -39,7 +39,7 @@ $items= @(
     cmd="netsh interface ipv4 show subinterfaces"
   },
   @{
-    description="Verify that client-server seecurity negotiation is set to default value, expect [SecurityLayer REG_DWORD 0x1]:";
+    description="Verify that client-server seecurity negotiation is set to default value, expect [SecurityLayer REG_DWORD 0x0, 0x1, 0x2] depending on Security Layer configuration:";
     cmd="reg query 'HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' /v SecurityLayer"
   },
   @{
