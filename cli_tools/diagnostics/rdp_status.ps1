@@ -43,7 +43,7 @@ $items= @(
     cmd="reg query 'HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' /v SecurityLayer"
   },
   @{
-    description="Verify that Network-level UserAuthentication is set to default value, expect [UserAuthentication REG_DWORD 0x0]:";
+    description="Verify that Network-level UserAuthentication is set to default value, expect [UserAuthentication REG_DWORD 0x0 or 0x1]:";
     cmd="reg query 'HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' /v UserAuthentication"
   }
 )
