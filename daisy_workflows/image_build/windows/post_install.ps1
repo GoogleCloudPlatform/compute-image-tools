@@ -511,11 +511,6 @@ function Configure-RDP {
 }
 
 function Install-Packages {
-  # Workaround until packaged are updated to specify 'Import-Module Microsoft.PowerShell.Security'
-  Write-Host 'Limiting PowerShell Module Path'
-  $backupPSModulePath = $env:PSModulePath
-  $env:PSModulePath = 'C:\Windows\system32\WindowsPowerShell\v1.0\Modules'
-
   Write-Host 'Installing GCE packages...'
   # Install each individually in order to catch individual errors
   Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-windows
@@ -529,10 +524,6 @@ function Install-Packages {
   Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-driver-balloon
   Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-diagnostics
   Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-osconfig-agent
-
-  # Restoring original PSModulePath 
-  $env:PSModulePath = $backupPSModulePath
-  Write-Host 'PowerShell Module Path Restored.'
 
   # Google Graphics Array not supported on 2008R2/7 (6.1)
   if ($pn -notlike 'Windows Server 2008*' -or $pn -notlike 'Windows 7*') {
@@ -634,6 +625,12 @@ try {
   # Windows Product Name https://renenyffenegger.ch/notes/Windows/versions/index
   $pn = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name ProductName).ProductName
 
+  # Install script diverges here, since 32-bit googet packages are not in Rapture
+  if (!$script:x86) {
+    Install-Packages
+    Set-Repos
+  }
+
   Install-PowerShell
 
   # Remove with Win2012 R2 EOL in Oct 2023. Temporary fix for issue following June 2023 .Net update.
@@ -659,12 +656,6 @@ try {
   Configure-Power
   Configure-RDP
   Setup-NTP
-
-  # Install script diverges here, since 32-bit googet packages are not in Rapture
-  if (!$script:x86) {
-    Install-Packages
-    Set-Repos
-  }
 
   Enable-WinRM
   Generate-NativeImage
