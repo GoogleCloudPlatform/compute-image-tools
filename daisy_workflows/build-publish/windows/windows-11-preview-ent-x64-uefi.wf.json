@@ -51,7 +51,7 @@
   },
   "Steps": {
     "build": {
-      "Timeout": "5h",
+      "Timeout": "7h",
       "IncludeWorkflow": {
         "Path": "${workflow_root}/image_build/windows/windows-11-preview-ent-x64-uefi.wf.json",
         "Vars": {
