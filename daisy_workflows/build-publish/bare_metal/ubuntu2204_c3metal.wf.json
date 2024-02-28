@@ -1,0 +1,26 @@
+{
+  "Name": "ubuntu-2204-c3metal-preview",
+  "Project": "gce-image-builder",
+  "Zone": "us-central1-a",
+  "GCSPath": "gs://diskimgs/daisy/${USERNAME}",
+  "Vars": {
+    "source_image_project": "ubuntu-os-cloud",
+    "build_date": "${DATE}",
+    "workflow_root": {"Value": "../..", "Description": "Root of github workflows, defaults to /workflows in the container."},
+    "gcs_url": {"Value": "gs://diskimgs/ubuntu2204-c3metal-preview-v${DATE}.tar.gz", "Description": "The GCS path that image raw file exported to."}
+
+  },
+  "Steps": {
+    "build-bare-metal": {
+      "Timeout": "70m",
+      "IncludeWorkflow": {
+        "Path": "../../image_build/bare_metal/c3metal-ubuntu.wf.json",
+        "Vars": {
+          "base_image": "projects/${source_image_project}/global/images/family/ubuntu-2204-lts",
+          "workflow_root": "${workflow_root}",
+          "gcs_url": "${gcs_url}"
+        }
+      }
+    }
+  }
+}
