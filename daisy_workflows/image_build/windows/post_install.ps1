@@ -395,7 +395,25 @@ function Configure-Network {
   Run-Command reg unload 'HKLM\DefaultUser'
 }
 
-function Configure-Power {
+function Set-PowerProfile {
+  <#
+    .SYNOPSIS
+      Change power plan to High-performance.
+  #>
+  Write-Host 'Changing power plan to High performance'
+  $power_plan = Get-CimInstance -Namespace 'root\cimv2\power' -ClassName 'win32_PowerPlan' -OperationTimeoutSec 5 -Filter "ElementName = 'High performance'" -ErrorAction SilentlyContinue
+  powercfg /setactive $power_plan.InstanceID.ToString().Replace("Microsoft:PowerPlan\{","").Replace("}","")
+  
+  $active_plan = powercfg /getactivescheme
+  if ($active_plan -like '*High performance*') {
+    Write-Host 'Power plan updated successfully'
+  }
+  else {
+     throw 'Failed to update the power plan'
+  }
+}
+
+function Configure-PowerProfiles {
   <#
     .SYNOPSIS
       Change power settings to never turn off monitor.
@@ -627,6 +645,9 @@ try {
   $script:wu_server_url = Get-MetadataValue -key 'wu_server_url' -default 'none'
   $script:wu_server_port = Get-MetadataValue -key 'wu_server_port' -default '0'
 
+  # Set to High Performance Power Profile so the machines never go to sleep on their own.
+  Set-PowerProfile
+
   # Windows Product Name https://renenyffenegger.ch/notes/Windows/versions/index
   $pn = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name ProductName).ProductName
 
@@ -657,7 +678,7 @@ try {
   Reset-WindowsUpdateServer
   Change-InstanceProperties
   Configure-Network
-  Configure-Power
+  Configure-PowerProfiles
   Configure-RDP
   Setup-NTP
 
