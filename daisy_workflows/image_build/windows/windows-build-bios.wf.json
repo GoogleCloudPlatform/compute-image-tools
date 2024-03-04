@@ -122,6 +122,9 @@
               "Source": "${install_disk}"
             }
           ],
+          "DisplayDevice": {
+            "enableDisplay": true
+          },
           "MachineType": "e2-standard-4",
           "Metadata": {
             "components-path": "${SOURCESPATH}/components",

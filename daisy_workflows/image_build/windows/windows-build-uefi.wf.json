@@ -171,6 +171,9 @@
               "Source": "bootstrap-disk"
             }
           ],
+          "DisplayDevice": {
+            "enableDisplay": true
+          },
           "MachineType": "e2-standard-4",
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_write"
