@@ -463,7 +463,7 @@ function Change-InstanceProperties {
   if (-not (Test-Path $vioscsi_path)) {
     New-Item -Path $vioscsi_path
   }
-  New-ItemProperty -Path $vioscsi_path -Name EnableQueryAccessAlignment -Value 1 -PropertyType DWord
+  New-ItemProperty -Path $vioscsi_path -Name EnableQueryAccessAlignment -Value 1 -PropertyType DWord -Force
 
   # Change SanPolicy. Setting is persistent even after sysprep. This helps in
   # ensuring all attached disks are online when instance is built.
