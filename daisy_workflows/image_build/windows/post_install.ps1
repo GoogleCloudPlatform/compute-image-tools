@@ -704,6 +704,16 @@ try {
     New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\StreamProvider' -Name LastFullPayloadTime -Value 0 -PropertyType DWord -Force
   }
 
+  # Remove netsh helpers on Windows 11
+  if ((Get-WmiObject Win32_OperatingSystem).Caption -Match "Windows 11") {
+    if  ((Get-Item -Path 'HKLM:\SOFTWARE\Microsoft\NetSh').GetValue('gvnichelper',$null) -ne $null) {
+      Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NetSh' -Name 'gvnichelper' -Force
+    }
+    if  ((Get-Item -Path 'HKLM:\SOFTWARE\Microsoft\NetSh').GetValue('NetKVM',$null) -ne $null) {
+      Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NetSh' -Name 'NetKVM' -Force
+    }
+  }
+
   Optimize-Image
 
   Write-Host 'Launching sysprep.'
