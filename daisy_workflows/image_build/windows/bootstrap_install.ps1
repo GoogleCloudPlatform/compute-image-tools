@@ -193,7 +193,7 @@ function Bootstrap-InstallDisk {
       7. Setup bootloader.
       8. Disable login animation.
   #>
-  $slipstream_max_attemps = 2
+  $slipstream_max_attemps = 3
   $edition = Get-MetadataValue -key 'edition'
 
   # Disable Defender real time monitoring to greatly increase image
@@ -211,11 +211,15 @@ function Bootstrap-InstallDisk {
       for ($i=1; $i -le $slipstream_max_attemps; $i++) {
         try {
           Add-WindowsPackage -Path D:\ -PackagePath $path -ErrorAction Stop
-          Write-Output "Successfully slipstreamed update $($_.Name) on attempt $i."
+          Write-Output "Successfully slipstreamed update $path on attempt $i."
           break
         }
         catch {
-          Write-Output "Failed to slipstream update '$($_.Name)' on attempt $i of $slipstream_max_attemps attempts."
+          Write-Output "Failed to slipstream update $path on attempt $i of $slipstream_max_attemps attempts."
+
+          if ($i -eq 3) {
+            throw "ERROR: Failed to slipstream update $path with max retry count exceeded."
+          }
         }
       }
     }
