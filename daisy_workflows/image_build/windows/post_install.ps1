@@ -688,6 +688,14 @@ try {
     Set-Repos
   }
 
+  $taskExistEdgeUpdate = Get-ScheduledTask | Where-Object {$_.TaskName -like 'MicrosoftEdgeUpdateTaskMachineCore' }
+  if($taskExistEdgeUpdate) {
+    Start-ScheduledTask -TaskName MicrosoftEdgeUpdateTaskMachineCore
+    Write-Host 'Microsoft Edge updater started.'
+  } else {
+    Write-Host 'Microsoft Edge updater task MicrosoftEdgeUpdateTaskMachineCore not present.'
+  }
+
   Enable-WinRM
   Generate-NativeImage
 
