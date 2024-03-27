@@ -15,7 +15,7 @@
   "PublishProject": "bct-prod-images",
   "ComputeEndpoint": {{$endpoint}},
   "DeleteAfter": {{$delete_after}},
-  {{$guest_features := `["MULTI_IP_SUBNET","UEFI_COMPATIBLE","VIRTIO_SCSI_MULTIQUEUE","GVNIC","WINDOWS"]` -}}
+  {{$guest_features := `["MULTI_IP_SUBNET","VIRTIO_SCSI_MULTIQUEUE","GVNIC","WINDOWS"]` -}}
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
