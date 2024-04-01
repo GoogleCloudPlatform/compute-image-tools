@@ -35,7 +35,6 @@ import (
 )
 
 var (
-	bucketNameRegex   = `[a-z0-9][-_.a-z0-9]*`
 	gsPathRegex       = regexp.MustCompile(fmt.Sprintf(`^gs://(%s)(\/.*)?$`, bucketNameRegex))
 	slashCounterRegex = regexp.MustCompile("/")
 )
