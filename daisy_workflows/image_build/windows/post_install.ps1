@@ -395,6 +395,14 @@ function Configure-Network {
   Run-Command reg unload 'HKLM\DefaultUser'
 }
 
+function Disable-Hibernate {
+  Write-Host 'Disabling Hibernate, Hybrid Sleep, and Fast Startup'
+  powercfg /HIBERNATE OFF
+
+  Write-Host 'All avaiable sleep states:'
+  powercfg /a
+}
+
 function Set-PowerProfile {
   <#
     .SYNOPSIS
@@ -647,6 +655,9 @@ try {
 
   # Set to High Performance Power Profile so the machines never go to sleep on their own.
   Set-PowerProfile
+
+  # Disable Hibernate
+  Disable-Hibernate
 
   # Windows Product Name https://renenyffenegger.ch/notes/Windows/versions/index
   $pn = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name ProductName).ProductName
