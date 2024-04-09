@@ -691,9 +691,17 @@ try {
   $taskExistEdgeUpdate = Get-ScheduledTask | Where-Object {$_.TaskName -like 'MicrosoftEdgeUpdateTaskMachineCore' }
   if($taskExistEdgeUpdate) {
     Start-ScheduledTask -TaskName MicrosoftEdgeUpdateTaskMachineCore
-    Write-Host 'Microsoft Edge updater started.'
+    Write-Host 'Microsoft Edge Core updater started.'
   } else {
     Write-Host 'Microsoft Edge updater task MicrosoftEdgeUpdateTaskMachineCore not present.'
+  }
+
+  $taskExistEdgeUpdate = Get-ScheduledTask | Where-Object {$_.TaskName -like 'MicrosoftEdgeUpdateTaskMachineUA' }
+  if($taskExistEdgeUpdate) {
+    Start-ScheduledTask -TaskName 'MicrosoftEdgeUpdateTaskMachineUA'
+    Write-Host 'Microsoft Edge UA updater started.'
+  } else {
+    Write-Host 'Microsoft Edge updater task MicrosoftEdgeUpdateTaskMachineUA not present.'
   }
 
   Enable-WinRM
