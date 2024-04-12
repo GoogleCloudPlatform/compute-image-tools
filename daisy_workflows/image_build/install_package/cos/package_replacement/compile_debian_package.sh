@@ -79,10 +79,12 @@ install_go(){
 
 upstream_tarball() {
   # Create the build directory and the upstream tarball.
+  # $VERSION is an arbitrary value used for tarball naming.
+  # It can be formatted as any date (2 digit): [month][day][year] eg. 010124
   cd guest-agent
   mkdir /tmp/debpackage
   export BUILD_DIR="/tmp/debpackage"
-  export VERSION="112723"
+  export VERSION="041224"
   export TAR="${PKGNAME}_${VERSION}.orig.tar.gz"
   echo -e "\nATTENTION: Creating build dir and upstream tarball...\n"
   tar czvf "${BUILD_DIR}/${TAR}" --exclude .git --exclude packaging \
@@ -107,8 +109,8 @@ unpack_binaries(){
   # Unpack the binaries into a local directory that contains 1) the .deb files
   # (which provide installation paths) and 2) binaries in a localized dir format.
   echo -e "\nATTENTION: Unpacking binaries in a directory...\n"
-  dpkg-deb -x google-guest-agent_112723-g111_amd64.deb debian_binaries
-  dpkg-deb -c google-guest-agent_112723-g111_amd64.deb >> google-guest-agent-readable-deb.txt
+  dpkg-deb -x google-guest-agent_${VERSION}-g111_amd64.deb debian_binaries
+  dpkg-deb -c google-guest-agent_${VERSION}-g111_amd64.deb >> google-guest-agent-readable-deb.txt
   echo -e "\nATTENTION: google-guest-agent.deb file contents below...\n"
   cat google-guest-agent-readable-deb.txt
   mv debian_binaries /workspace/upload
