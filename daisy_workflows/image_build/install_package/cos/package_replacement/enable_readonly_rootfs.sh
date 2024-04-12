@@ -7,10 +7,12 @@ set -o pipefail
 set -x
 
 enable_vboot(){
+
+  # Make a temp dir.
   local dir
-  
   dir="$(mktemp -d)"
 
+  # Mount EFI on tempdir and modify the grub.cfg...
   mount /dev/disk/by-label/EFI-SYSTEM "${dir}"
   grub="${dir}/efi/boot/grub.cfg"
 
