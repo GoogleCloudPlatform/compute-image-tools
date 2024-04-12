@@ -1,4 +1,15 @@
 # This cloudbuild file performs the preloading process from start to finish.
+#
+# This file is what manages the replacement process of the guest agent pkg in COS images.
+# This cloudbuild can be invoked using 'gcloud builds submit --config=dev_cloudbuild.yaml'.
+# The script does the following:
+#   1) Executes the debian compilation script in a docker container (this generates the
+#   list of binaries and their installation paths for the guest agent pkg).
+#   2) Uses COS-CUSTOMIZER to start a custom COS image...
+#   3) Executes a script that disables the read-only root fs of COS.
+#   4) Executes a script that performs pre-loading (pkg replacement).
+#   5) Executes a script that re-enables the read-only root fs of COS.
+#   6) Finishes COS-CUSTOMIZER by creating a custom image.
 
 substitutions:
   '_COS_CUSTOMIZER': 'gcr.io/cos-cloud/cos-customizer:latest'
