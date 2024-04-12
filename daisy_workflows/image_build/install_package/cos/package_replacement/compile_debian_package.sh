@@ -13,11 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script compiles the debian packaging for google guest agent and creates a list of files to replace during COS guest agent package replacement.
+# This script is responsible for generating a list of binaries and their
+# installation paths for the guest agent package. This will be consumed by the
+# replacement algorithm (dev_cloudbuild.yaml) that will be responsible for
+# performing the replacement process for the guest agent package in COS images.
+# The script does the following:
+#    1) Downloads the COS specific patches for guest agent (based on COS
+#    milestone).
+#    2) Downloads the guest agent repository and compiles the debian packaging.
+#    3) Parses through the .deb file to determine which files should be replaced
+#    (skip licenses).
+#
 # Most of the code here is sourced from: https://github.com/GoogleCloudPlatform/guest-test-infra/blob/master/packagebuild/daisy_startupscript_deb.sh
-# Compiling the debian package produces a set of binaries to be installed and their respective installation paths. Then we mark the binaries and
-# service files for replacement (skipping licenses for testing purposes).
-
+#
 # Args: ./compile_debian_package [overlays_branch] [guest_agent_version]
 # Example: ./compile_debian_package master 20231214.00
 #     $1 [overlays_branch]: the COS milestone version (to apply the correct patches).
@@ -108,6 +116,8 @@ build_tarball(){
 unpack_binaries(){
   # Unpack the binaries into a local directory that contains 1) the .deb files
   # (which provide installation paths) and 2) binaries in a localized dir format.
+  # .deb file naming convention follows that in "upstream_tarball" function.
+  # g111 is an arbitrary value given to the .deb file.
   echo -e "\nATTENTION: Unpacking binaries in a directory...\n"
   dpkg-deb -x google-guest-agent_${VERSION}-g111_amd64.deb debian_binaries
   dpkg-deb -c google-guest-agent_${VERSION}-g111_amd64.deb >> google-guest-agent-readable-deb.txt
