@@ -1,9 +1,22 @@
 #!/bin/bash
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-# This script compiles the debian packaging for google guest agent. Most of the
-# code here is sourced from: https://github.com/GoogleCloudPlatform/guest-test-infra/blob/master/packagebuild/daisy_startupscript_deb.sh
-# Compiling the debian package produces a set of binaries to be installed and
-# their respective installation paths.
+# This script compiles the debian packaging for google guest agent and creates a list of files to replace during COS guest agent package replacement.
+# Most of the code here is sourced from: https://github.com/GoogleCloudPlatform/guest-test-infra/blob/master/packagebuild/daisy_startupscript_deb.sh
+# Compiling the debian package produces a set of binaries to be installed and their respective installation paths. Then we mark the binaries and
+# service files for replacement (skipping licenses for testing purposes).
 
 # Args: ./compile_debian_package [overlays_branch] [guest_agent_version]
 # Example: ./compile_debian_package master 20231214.00
@@ -126,22 +139,6 @@ identify_replacement_files(){
     fi
   done <$file
   cat $repl_file
-}
-
-validate_env() {
-  local error=false
-  local v
-
-  for v in "${REQUIRED_ENV_VARS[@]}"; do
-    if [[ -z "${!v+x}" || -z "${!v}" ]]; then
-      info "ERROR: ${v} is not set"
-      error=true
-    fi
-  done
-
-  if $error; then
-    return 1
-  fi
 }
 
 main() {
