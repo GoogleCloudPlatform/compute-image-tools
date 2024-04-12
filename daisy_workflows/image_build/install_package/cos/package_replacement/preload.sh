@@ -1,4 +1,11 @@
 #!/bin/bash
+#
+# This script is responsible for performing the preloading (guest agent pkg
+# replacement on COS images). It does the following:
+#   1) Go through the repl_files.txt: contains list of files to be replaced...
+#   2) Find the file name on the system, if it exists, replace the file at the
+#   same lcoation.
+#   3) Delete all temp folders/files that are no longer needed.
 
 set -o errexit
 set -o pipefail
