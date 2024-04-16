@@ -30,6 +30,7 @@ fi
 APT_PACKAGES="
 debootstrap
 dosfstools
+fdisk
 kpartx
 libguestfs-tools
 parted
@@ -43,6 +44,10 @@ qemu-utils
 
 PIP3_PACKAGES="google-api-python-client google-cloud-storage"
 
+# Get the major Debian version we are running on.
+DEBIAN_VERSION=10
+read -d . DEBIAN_VERSION < /etc/debian_version
+
 echo "BuildStatus: Installing packages."
 export DEBIAN_FRONTEND="noninteractive"
 apt-get -y install ${APT_PACKAGES}
@@ -52,7 +57,11 @@ if [[ $? -ne 0 ]]; then
 fi
 
 echo "BuildStatus: Installing python3 libraries from pip."
-pip3 install -U ${PIP3_PACKAGES}
+if [[ ${DEBIAN_VERSION} -ge 12 ]]; then
+  pip3 install --break-system-packages -U ${PIP3_PACKAGES}
+else
+  pip3 install -U ${PIP3_PACKAGES}
+fi
 if [[ $? -ne 0 ]]; then
   echo "BuildFailed: python3 pip library install failed."
   exit 1

@@ -1,0 +1,39 @@
+{{/*
+  Template to publish Debian worker images.
+  By default this template is setup to publish to the 'gce-image-builder'
+  project, the 'environment' variable can be used to publish to 'test', or 'prod'.
+  DeleteAfter is set to 180 days for all environments.
+*/}}
+{
+  "Name": "debian-12-worker",
+  {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
+  {{if eq .environment "test" -}}
+  "WorkProject": "gce-image-builder",
+  "PublishProject": "compute-image-tools-test",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": "24h*30*6",
+  {{- else if eq .environment "prod" -}}
+  "WorkProject": "gce-image-builder",
+  "PublishProject": "compute-image-tools",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": "24h*30*6",
+  {{- else -}}
+  "WorkProject": "gce-image-builder",
+  "PublishProject": "gce-image-builder",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": "24h*30*6",
+  {{- end}}
+  {{$time := trimPrefix .publish_version "v"}}
+  "Images": [
+    {
+      "Prefix": "debian-12-worker",
+      "Family": "debian-12-worker",
+      "Description": "Debian 12 worker image built on {{$time}}",
+      "Architecture": "X86_64",
+      "Licenses": [
+        "projects/debian-cloud/global/licenses/debian-12-bullseye"
+      ],
+      "GuestOsFeatures": ["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "GVNIC"]
+    }
+  ]
+}
