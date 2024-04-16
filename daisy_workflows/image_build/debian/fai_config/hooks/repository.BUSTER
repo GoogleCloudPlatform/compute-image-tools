@@ -1,5 +1,0 @@
-#!/bin/sh
-set -eu
-
-# Debian 10 backports is now in the archive.
-sed -i s'+deb.debian.org/debian buster-backports+archive.debian.org/debian buster-backports+g' $FAI_ROOT/etc/apt/sources.list

@@ -1,0 +1,6 @@
+deb {%apt_cdn%}/debian {%SUITE%} main
+deb-src {%apt_cdn%}/debian {%SUITE%} main
+deb {%security_cdn%}/debian-security {%SUITE_SECURITY%} main
+deb-src {%security_cdn%}/debian-security {%SUITE_SECURITY%} main
+deb {%apt_cdn%}/debian {%SUITE%}-updates main
+deb-src {%apt_cdn%}/debian {%SUITE%}-updates main
