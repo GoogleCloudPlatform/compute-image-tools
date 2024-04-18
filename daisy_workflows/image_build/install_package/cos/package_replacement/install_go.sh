@@ -27,7 +27,7 @@ install_go() {
   fi
 
   # See header file for version specifics.
-  local GOLANG="go1.21.4.linux-${arch}.tar.gz"
+  local GOLANG="go1.22.2.linux-${arch}.tar.gz"
   export GOPATH=/usr/share/gocode
   export GOCACHE=/tmp/.cache
 
