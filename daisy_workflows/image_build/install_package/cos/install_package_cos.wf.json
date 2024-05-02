@@ -1,0 +1,99 @@
+{
+  "Name": "image-replace-package",
+  "Zone": "us-central1-a",
+  "DefaultTimeout": "30m",
+  "Vars": {
+    "source_image": {
+      "Required": true,
+      "Description": "source image"
+    },
+    "dest_image": {
+      "Required": true,
+      "Description": "dest image"
+    },
+    "package_version": {
+      "Required": true,
+      "Description": "package version"
+    },
+    "cos_branch": {
+      "Required": true,
+      "Description": "cos_branch"
+    },
+    "worker_image": {
+      "Value": "projects/compute-image-tools/global/images/family/debian-10-worker",
+      "Description": "worker image"
+    },
+    "machine_type": {
+      "Value": "e2-medium",
+      "Description": "machine type"
+    }
+  },
+  "Sources": {
+    "work/utils": "../../../linux_common/utils",
+    "work/package_replacement": "package_replacement",
+    "work/replacepackage.sh": "replacepackage.sh",
+    "startup_script": "../../../linux_common/bootstrap.sh"
+  },
+  "Steps": {
+    "create-disks": {
+      "CreateDisks": [
+        {
+          "Name": "disk-worker",
+          "SourceImage": "${worker_image}",
+          "Type": "pd-ssd"
+	}
+      ]
+    },
+    "create-inst": {
+      "CreateInstances": [
+        {
+          "Name": "inst-worker",
+          "Disks": [{"Source": "disk-worker"}],
+          "MachineType": "${machine_type}",
+          "Metadata": {
+	    "files_gcs_dir": "${SOURCESPATH}/work",
+            "prefix": "ReplacePackage",
+            "script": "replacepackage.sh",
+	    "source_image": "${source_image}",
+	    "dest_image": "${dest_image}",
+	    "cos_branch": "${cos_branch}",
+	    "package_version": "${package_version}"
+          },
+          "StartupScript": "startup_script",
+	  "Scopes": [
+	    "https://www.googleapis.com/auth/cloud-platform",
+            "https://www.googleapis.com/auth/devstorage.read_write",
+	    "https://www.googleapis.com/auth/compute",
+	    "https://www.googleapis.com/auth/servicecontrol"
+          ]
+        }
+      ]
+    },
+    "wait": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-worker",
+          "Timeout": "15m",
+          "SerialOutput": {
+            "Port": 1,
+            "FailureMatch": "ReplacePackageFailed:",
+            "SuccessMatch": "ReplacePackageSuccess:",
+            "StatusMatch": "ReplacePackageStatus:"
+          }
+        }
+      ]
+    },
+    "delete-inst": {
+      "DeleteResources": {
+        "Instances": ["inst-worker"],
+        "Disks":["disk-worker"]
+      }
+    }
+
+  },
+  "Dependencies": {
+    "create-inst": ["create-disks"],
+    "wait": ["create-inst"],
+    "delete-inst": ["wait"]
+  }
+}
