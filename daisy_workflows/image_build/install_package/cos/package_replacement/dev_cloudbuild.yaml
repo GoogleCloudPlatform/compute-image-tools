@@ -49,9 +49,9 @@ steps:
 - name: '${_COS_CUSTOMIZER}'
   args: ['finish-image-build',
          '-zone=us-west1-b',
-         '-project=${PROJECT_ID}',
+         '-project=${_DEST_PROJECT}',
          '-image-name=${_NEW_IMAGE}',
          '-image-family=${_NEW_IMAGE_FAMILY}',
-         '-image-project=${PROJECT_ID}',
+         '-image-project=${_DEST_PROJECT}',
          '-labels=base_image=${_BASE_IMAGE}']
 timeout: '1800s'  # 30 minutes
