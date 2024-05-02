@@ -1,0 +1,42 @@
+{{/*
+  Template to publish UEFI-enabled Red Hat Enterprise Linux images.
+  By default this template is setup to publish to the 'gce-image-builder'
+  project, the 'environment' variable can be used to publish to 'test', 'prod'
+  DeleteAfter is set to 180 days for all environments other than prod where no
+  time period is set.
+*/}}
+{
+  "Name": "rhel-9-4-sap-byos",
+  {{$work_project := printf "%q" "gce-image-builder" -}}
+  {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
+  {{$delete_after := `"24h*30*6"` -}}
+  {{if eq .environment "test" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "bct-prod-images",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- else if eq .environment "prod" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "rhel-byos-cloud",
+  "ComputeEndpoint": {{$endpoint}},
+  {{- else -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": {{$work_project}},
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- end}}
+  {{$guest_features := `["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "SEV_CAPABLE", "SEV_SNP_CAPABLE", "GVNIC", "SEV_LIVE_MIGRATABLE", "SEV_LIVE_MIGRATABLE_V2", "IDPF"]` -}}
+  {{$time := trimPrefix .publish_version "v"}}
+  "Images": [
+    {
+      "Family": "rhel-9-4-sap-byos",
+      "Prefix": "rhel-9-4-sap-byos",
+      "Description": "Red Hat, Red Hat Enterprise Linux for SAP BYOS, 9.4, x86_64 built on {{$time}}",
+      "Architecture": "X86_64",
+      "Licenses": [
+        "projects/rhel-sap-cloud/global/licenses/rhel-9-sap-byos"
+      ],
+      "GuestOsFeatures": {{$guest_features}}
+    }
+  ]
+}
