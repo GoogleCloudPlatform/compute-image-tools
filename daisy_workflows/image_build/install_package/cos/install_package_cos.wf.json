@@ -20,7 +20,7 @@
       "Description": "cos_branch"
     },
     "worker_image": {
-      "Value": "projects/compute-image-tools/global/images/family/debian-10-worker",
+      "Value": "projects/compute-image-tools/global/images/family/debian-11-worker",
       "Description": "worker image"
     },
     "machine_type": {
