@@ -23,11 +23,13 @@ steps:
     - '-c'
     - |
       ./compile_debian_package.sh $_OVERLAYS_BRANCH $_GUEST_AGENT_VERSION
+# _DEST_PROJECT in the 'finish-image-build' step should should have access
+# to the gcs-bucket path specified here.
 - name: '${_COS_CUSTOMIZER}'
   args: ['start-image-build',
-         '-image-name=${_BASE_IMAGE}',
+         '-image-family=${_BASE_IMAGE}',
          '-image-project=${_BASE_IMAGE_PROJECT}',
-         '-gcs-bucket=${_CLOUD_BUILD_BUCKET}',
+         '-gcs-bucket=${_DEST_PROJECT}_cloudbuild',
          '-gcs-workdir=customizer-$BUILD_ID']
 - name: '${_COS_CUSTOMIZER}'
   args: ["disable-auto-update"]
