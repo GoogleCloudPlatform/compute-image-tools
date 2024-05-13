@@ -5,7 +5,7 @@
 #   1) The script sets all the preloading scripts as executable (located in
 #   /cos/package_replacement).
 #   2) Then, collects all passed in data through metadata API (name of source
-#   image, dest image, package version, cos branch).
+#   image, dest image, commit sha, cos branch).
 #     - cos_branch: the name of the branch associated with a COS milestone (ie
 #     for cos-113, cos_branch=release-R113).
 #   3) Runs a gcloud submit command to invoke the cloudbuild responsible for
@@ -28,7 +28,7 @@ set_files_executable(){
 get_vars(){
   export SOURCE_IMAGE=$(curl -H "Metadata-Flavor:Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/source_image)
   export DEST_IMAGE=$(curl -H "Metadata-Flavor:Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/dest_image)
-  export PACKAGE_VERSION=$(curl -H "Metadata-Flavor:Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/package_version)
+  export COMMIT_SHA=$(curl -H "Metadata-Flavor:Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/commit_sha)
   export COS_BRANCH=$(curl -H "Metadata-Flavor:Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/cos_branch)
 }
 
@@ -39,7 +39,7 @@ get_vars(){
 #   _NEW_IMAGE: The name of the resulting preloaded image.
 #   _NEW_IMAGE_FAMILY: The new image family for the preloaded image.
 create_preloaded_image(){
-  gcloud builds submit --config=dev_cloudbuild.yaml --disk-size=200 . --substitutions=_NEW_IMAGE_FAMILY="cos-preloaded-images",_BASE_IMAGE_PROJECT="cos-cloud",_BASE_IMAGE="${SOURCE_IMAGE}",_OVERLAYS_BRANCH="${COS_BRANCH}",_GUEST_AGENT_VERSION="${PACKAGE_VERSION}",_NEW_IMAGE="${DEST_IMAGE}",_DEST_PROJECT="gcp-guest"
+  gcloud builds submit --config=dev_cloudbuild.yaml --disk-size=200 . --substitutions=_NEW_IMAGE_FAMILY="cos-preloaded-images",_BASE_IMAGE_PROJECT="cos-cloud",_BASE_IMAGE="${SOURCE_IMAGE}",_OVERLAYS_BRANCH="${COS_BRANCH}",_COMMIT_SHA="${COMMIT_SHA}",_NEW_IMAGE="${DEST_IMAGE}",_DEST_PROJECT="gcp-guest"
 }
 
 main (){

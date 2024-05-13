@@ -22,7 +22,7 @@ steps:
   args:
     - '-c'
     - |
-      ./compile_debian_package.sh $_OVERLAYS_BRANCH $_GUEST_AGENT_VERSION
+      ./compile_debian_package.sh $_OVERLAYS_BRANCH $_COMMIT_SHA
 # _DEST_PROJECT in the 'finish-image-build' step should should have access
 # to the gcs-bucket path specified here.
 - name: '${_COS_CUSTOMIZER}'

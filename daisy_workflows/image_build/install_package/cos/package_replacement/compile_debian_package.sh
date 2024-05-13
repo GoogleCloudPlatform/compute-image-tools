@@ -27,9 +27,9 @@
 # Most of the code here is sourced from: https://github.com/GoogleCloudPlatform/guest-test-infra/blob/master/packagebuild/daisy_startupscript_deb.sh
 #
 # Args: ./compile_debian_package [overlays_branch] [guest_agent_version]
-# Example: ./compile_debian_package master 20231214.00
+# Example: ./compile_debian_package release-R113 094ef227ddf92165abcb7b1241ca44728c3086d1
 #     $1 [overlays_branch]: the COS milestone version (to apply the correct patches).
-#     $2 [guest_agent_version]: the guest agent version (to upgrade to).
+#     $2 [commit_sha]: the guest agent commit sha (to upgrade to).
 
 set -o errexit
 set -o pipefail
@@ -39,7 +39,10 @@ apply_patches() {
   # Download the repositories and apply COS specific patches.
   echo -e "\nATTENTION: Downloading the board-overlays and guest-agent repos...\n"
   git clone https://cos.googlesource.com/cos/overlays/board-overlays --branch ${overlays_branch}
-  git clone https://github.com/GoogleCloudPlatform/guest-agent.git --branch ${guest_agent_version}
+  git clone https://github.com/GoogleCloudPlatform/guest-agent.git
+  cd guest-agent
+  git checkout ${commit_sha}
+  cd ..
   mv ./board-overlays/project-lakitu/app-admin/google-guest-agent/files ./guest-agent
   cd guest-agent
 
@@ -47,7 +50,7 @@ apply_patches() {
   search_dir=./files
   for file in "$search_dir"/*
   do
-    if [[ "$file" == *"patch"* ]]; then
+    if ! [[ "$file" == *"homedir"* ]] && [[ "$file" == *"patch"* ]]; then
       git apply "$file"
     fi
   done
@@ -160,7 +163,7 @@ main() {
   fi
 
   overlays_branch=$1
-  guest_agent_version=$2
+  commit_sha=$2
 
   echo -e "\nATTENTION: Starting compile_debian_package.sh...\n"
   apply_patches

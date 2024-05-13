@@ -11,9 +11,9 @@
       "Required": true,
       "Description": "dest image"
     },
-    "package_version": {
+    "commit_sha": {
       "Required": true,
-      "Description": "package version"
+      "Description": "commit sha"
     },
     "cos_branch": {
       "Required": true,
@@ -57,7 +57,7 @@
 	    "source_image": "${source_image}",
 	    "dest_image": "${dest_image}",
 	    "cos_branch": "${cos_branch}",
-	    "package_version": "${package_version}"
+	    "commit_sha": "${commit_sha}"
           },
           "StartupScript": "startup_script",
 	  "Scopes": [
