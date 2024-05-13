@@ -5,7 +5,7 @@
 #   1) The script sets all the preloading scripts as executable (located in
 #   /cos/package_replacement).
 #   2) Then, collects all passed in data through metadata API (name of source
-#   image, dest image, package version, cos branch).
+#   image, dest image, commit sha, cos branch).
 #     - cos_branch: the name of the branch associated with a COS milestone (ie
 #     for cos-113, cos_branch=release-R113).
 #   3) Runs a gcloud submit command to invoke the cloudbuild responsible for
