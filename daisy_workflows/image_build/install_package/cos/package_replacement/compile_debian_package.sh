@@ -27,7 +27,7 @@
 # Most of the code here is sourced from: https://github.com/GoogleCloudPlatform/guest-test-infra/blob/master/packagebuild/daisy_startupscript_deb.sh
 #
 # Args: ./compile_debian_package [overlays_branch] [guest_agent_version]
-# Example: ./compile_debian_package master 20231214.00
+# Example: ./compile_debian_package release-R113 094ef227ddf92165abcb7b1241ca44728c3086d1
 #     $1 [overlays_branch]: the COS milestone version (to apply the correct patches).
 #     $2 [commit_sha]: the guest agent commit sha (to upgrade to).
 
