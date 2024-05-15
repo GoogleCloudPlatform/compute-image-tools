@@ -66,6 +66,10 @@
     "sbom_util_gcs_root": {
       "Value": "",
       "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
+    },
+    "machine_family": {
+      "Value": "e2-standard-4",
+      "Description": "The machine family used to boot the new image."
     }
   },
   "Sources": {
@@ -174,7 +178,7 @@
           "DisplayDevice": {
             "enableDisplay": true
           },
-          "MachineType": "n2-standard-4",
+          "MachineType": "${machine_family}",
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_write"
           ],
