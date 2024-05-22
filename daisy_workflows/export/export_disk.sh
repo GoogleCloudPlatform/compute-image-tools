@@ -108,6 +108,11 @@ function runSBOMGeneration() {
   echo "GCEExport: Running sbom generation with the sbom-util program"
   fetch_sbomutil
   ./sbomutil --archetype=linux-image --comp_name=$SOURCE_DISK_NAME --output=image.sbom.json
+  sbom_error_code=$?
+  if [ $sbom_error_code != 0 ]; then 
+    echo "ExportFailed: sbom generation failed with code $sbom_error_code"
+    exit
+  fi
   gsutil cp image.sbom.json $SBOM_PATH
   umount /mnt/dev
   umount /mnt
