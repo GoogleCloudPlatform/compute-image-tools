@@ -47,6 +47,12 @@ replace_files(){
       # Remove the pre-installed file.
       sudo rm -rf "${INSTALLATION_PATH}${file_name}"
 
+      # If this is the startup script service file, enable logging so CIT tests
+      # can exit successfully after 'finished-test' is written.
+      if [[ "$file_name" == "google-startup-scripts.service" ]]; then
+        sudo sed -i '/KillMode=process/a StandardOutput=journal+console\nStandardError=journal+console' /temp_debian_upload/upload$dest/$file_name
+      fi
+      
       # Move the deb file to the correct installation path.
       sudo mv /temp_debian_upload/upload$dest/$file_name $INSTALLATION_PATH
     fi
