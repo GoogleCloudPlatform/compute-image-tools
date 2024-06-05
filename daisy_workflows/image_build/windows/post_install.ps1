@@ -551,7 +551,8 @@ function Install-DriverPackages {
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-driver-gga
   }
 
-  if ($pn -match 'Windows (Web )?Server (2008 R2|2012 R2|2016|2019|2022|Standard|Datacenter)') {
+  # todo: Change this to exclude clients OS instead of allowlist server versions. (Get-ComputerInfo).OsProductType -eq "Server", but needs to be validated.
+  if ($pn -match 'Windows (Web )?Server (2008 R2|2012 R2|2016|2019|2022|2025|Standard|Datacenter)') {
     Write-Host 'Installing GCE VSS agent and provider...'
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-vss
   }
