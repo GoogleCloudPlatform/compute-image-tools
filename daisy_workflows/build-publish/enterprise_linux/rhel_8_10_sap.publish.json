@@ -25,7 +25,7 @@
   "ComputeEndpoint": {{$endpoint}},
   "DeleteAfter": {{$delete_after}},
   {{- end}}
-  {{$guest_features := `["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE", "SEV_CAPABLE", "GVNIC", "IDPF"]` -}}
+  {{$guest_features := `["VIRTIO_SCSI_MULTIQUEUE", "UEFI_COMPATIBLE", "SEV_CAPABLE", "SEV_LIVE_MIGRATABLE", "SEV_LIVE_MIGRATABLE_V2", "GVNIC", "IDPF"]` -}}
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
