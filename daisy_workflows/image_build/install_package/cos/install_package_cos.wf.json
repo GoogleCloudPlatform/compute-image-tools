@@ -15,10 +15,6 @@
       "Required": true,
       "Description": "commit sha"
     },
-    "cos_branch": {
-      "Required": true,
-      "Description": "cos_branch"
-    },
     "worker_image": {
       "Value": "projects/compute-image-tools/global/images/family/debian-11-worker",
       "Description": "worker image"
@@ -56,7 +52,6 @@
             "script": "replacepackage.sh",
 	    "source_image": "${source_image}",
 	    "dest_image": "${dest_image}",
-	    "cos_branch": "${cos_branch}",
 	    "commit_sha": "${commit_sha}"
           },
           "StartupScript": "startup_script",
