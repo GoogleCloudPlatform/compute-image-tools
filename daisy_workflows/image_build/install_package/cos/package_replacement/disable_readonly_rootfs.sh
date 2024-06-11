@@ -41,6 +41,7 @@ disable_vboot() {
     reboot
     # Hang after reboot: the script should not continue executing (return) after
     # the reboot call due to COS customizer design.
+    echo "NOTE: infinite loop to prevent this script from continuing execution after the reboot call"
     while true; do sleep 1; done
   else
     umount "${dir}"
