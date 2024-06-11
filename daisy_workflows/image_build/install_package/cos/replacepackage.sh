@@ -52,6 +52,7 @@ main (){
   echo "Creating COS image with the new guest agent version..."
   set_files_executable
   get_vars
+  set_machine_type
   create_preloaded_image
 }
 
