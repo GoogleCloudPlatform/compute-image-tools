@@ -44,6 +44,7 @@ set_machine_type(){
 #   _DEST_PROJECT: The project that contains the resulting preloaded image.
 #   _NEW_IMAGE: The name of the resulting preloaded image.
 #   _NEW_IMAGE_FAMILY: The new image family for the preloaded image.
+#   _MACHINE_TYPE: The machine type for the source image: default (n1-standard-1) or t2a-standard-1 for ARM.
 create_preloaded_image(){
   gcloud builds submit . --config=dev_cloudbuild.yaml --disk-size=200 --gcs-log-dir="${DAISY_LOGS_PATH}" --substitutions=_NEW_IMAGE_FAMILY="cos-preloaded-images",_BASE_IMAGE_PROJECT="cos-cloud",_BASE_IMAGE="${SOURCE_IMAGE}",_COMMIT_SHA="${COMMIT_SHA}",_NEW_IMAGE="${DEST_IMAGE}",_DEST_PROJECT="gcp-guest",_MACHINE_TYPE="${MACHINE_TYPE}"
 }
