@@ -32,6 +32,12 @@ get_vars(){
   export DAISY_LOGS_PATH=$(curl -H "Metadata-Flavor:Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/daisy-logs-path)
 }
 
+set_machine_type(){
+  export MACHINE_TYPE="n1-standard-1"
+  if [[ "$SOURCE_IMAGE" == *"arm"* ]]; then
+      export MACHINE_TYPE="t2a-standard-1"
+  fi
+}
 # The following additional parameters are passed into the cloudbuild script:
 #   _BASE_IMAGE_PROJECT: The project that contains the base/source image.
 #   _BASE_IMAGE: The name of the base/source image.
@@ -39,7 +45,7 @@ get_vars(){
 #   _NEW_IMAGE: The name of the resulting preloaded image.
 #   _NEW_IMAGE_FAMILY: The new image family for the preloaded image.
 create_preloaded_image(){
-  gcloud builds submit . --config=dev_cloudbuild.yaml --disk-size=200 --gcs-log-dir="${DAISY_LOGS_PATH}" --substitutions=_NEW_IMAGE_FAMILY="cos-preloaded-images",_BASE_IMAGE_PROJECT="cos-cloud",_BASE_IMAGE="${SOURCE_IMAGE}",_COMMIT_SHA="${COMMIT_SHA}",_NEW_IMAGE="${DEST_IMAGE}",_DEST_PROJECT="gcp-guest"
+  gcloud builds submit . --config=dev_cloudbuild.yaml --disk-size=200 --gcs-log-dir="${DAISY_LOGS_PATH}" --substitutions=_NEW_IMAGE_FAMILY="cos-preloaded-images",_BASE_IMAGE_PROJECT="cos-cloud",_BASE_IMAGE="${SOURCE_IMAGE}",_COMMIT_SHA="${COMMIT_SHA}",_NEW_IMAGE="${DEST_IMAGE}",_DEST_PROJECT="gcp-guest",_MACHINE_TYPE="${MACHINE_TYPE}"
 }
 
 main (){
