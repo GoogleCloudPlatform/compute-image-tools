@@ -26,9 +26,8 @@
 #
 # Most of the code here is sourced from: https://github.com/GoogleCloudPlatform/guest-test-infra/blob/master/packagebuild/daisy_startupscript_deb.sh
 #
-# Args: ./compile_debian_package [overlays_branch] [guest_agent_version]
-# Example: ./compile_debian_package release-R113 094ef227ddf92165abcb7b1241ca44728c3086d1
-#     $1 [overlays_branch]: the COS milestone version (to apply the correct patches).
+# Args: ./compile_debian_package [guest_agent_version]
+# Example: ./compile_debian_package 094ef227ddf92165abcb7b1241ca44728c3086d1
 #     $2 [commit_sha]: the guest agent commit sha (to upgrade to).
 
 set -o errexit
@@ -36,9 +35,11 @@ set -o pipefail
 set -o nounset
 
 apply_patches() {
-  # Download the repositories and apply COS specific patches.
+  # Download the repositories and apply COS specific patches. NOTE: The patches will be
+  # pulled from the master branch in COS. This is based on the assumption that master
+  # will have the most recent guest agent version, and therefore the most recent patches.
   echo -e "\nATTENTION: Downloading the board-overlays and guest-agent repos...\n"
-  git clone https://cos.googlesource.com/cos/overlays/board-overlays --branch ${overlays_branch}
+  git clone https://cos.googlesource.com/cos/overlays/board-overlays --branch master
   git clone https://github.com/GoogleCloudPlatform/guest-agent.git
   cd guest-agent
   git checkout ${commit_sha}
@@ -157,13 +158,12 @@ identify_replacement_files(){
 }
 
 main() {
-  if [ "$#" -ne 2 ]; then
-    echo "Arguments 'overlays_branch' and 'guest_agent_version' must be provided."
+  if [ "$#" -ne 1 ]; then
+    echo "Argument 'guest_agent_version' must be provided."
     exit 1
   fi
 
-  overlays_branch=$1
-  commit_sha=$2
+  commit_sha=$1
 
   echo -e "\nATTENTION: Starting compile_debian_package.sh...\n"
   apply_patches

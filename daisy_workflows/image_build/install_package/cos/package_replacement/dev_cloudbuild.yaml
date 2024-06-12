@@ -22,7 +22,7 @@ steps:
   args:
     - '-c'
     - |
-      ./compile_debian_package.sh $_OVERLAYS_BRANCH $_COMMIT_SHA
+      ./compile_debian_package.sh $_COMMIT_SHA
 # _DEST_PROJECT in the 'finish-image-build' step should should have access
 # to the gcs-bucket path specified here.
 - name: '${_COS_CUSTOMIZER}'
@@ -31,8 +31,13 @@ steps:
          '-image-project=${_BASE_IMAGE_PROJECT}',
          '-gcs-bucket=${_DEST_PROJECT}_cloudbuild',
          '-gcs-workdir=customizer-$BUILD_ID']
+# This step disables auto updates on the machine. This replaces the
+# disable-auto-update step in COS Customizer since that step is not
+# compatible with ARM images.
 - name: '${_COS_CUSTOMIZER}'
-  args: ["disable-auto-update"]
+  args: ['run-script',
+         '-script=disable_auto_updates.sh',
+         '-env=KERNEL_PKG=${_KERNEL_PKG}']
 # This step disables the read-only root fs.
 - name: '${_COS_CUSTOMIZER}'
   args: ['run-script',
@@ -50,8 +55,9 @@ steps:
          '-env=KERNEL_PKG=${_KERNEL_PKG}']
 - name: '${_COS_CUSTOMIZER}'
   args: ['finish-image-build',
-         '-zone=us-west1-b',
+         '-zone=us-central1-a',
          '-project=${_DEST_PROJECT}',
+         '-machine-type=${_MACHINE_TYPE}',
          '-image-name=${_NEW_IMAGE}',
          '-image-family=${_NEW_IMAGE_FAMILY}',
          '-image-project=${_DEST_PROJECT}',
