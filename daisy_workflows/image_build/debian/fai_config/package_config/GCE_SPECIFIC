@@ -44,3 +44,13 @@ shim-signed
 PACKAGES remove
 cloud-initramfs-growroot
 
+# Temporary fix for https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1064235 until we merge back to the usptream config.
+# https://lists.debian.org/debian-cloud/2024/03/msg00018.html
+PACKAGES install-norec BOOKWORM BOOKWORM_BACKPORTS
+libpam-systemd
+systemd-resolved
+libnss-resolve
+libnss-myhostname
+
+PACKAGES remove BOOKWORM BOOKWORM_BACKPORTS
+libnss-resolve
