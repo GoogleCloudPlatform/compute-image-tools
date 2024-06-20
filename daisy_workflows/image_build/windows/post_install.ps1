@@ -630,7 +630,7 @@ function Generate-NativeImage {
 }
 
 function Enable-WinRM {
-  if ($pn -like '*Enterprise') {
+  if ($pn -like '*Enterprise' -Or $pn -like '*Pro') {
     Write-Host 'Windows Client detected, enabling WinRM (including on Public networks).'
     & winrm quickconfig -quiet -force
   }
