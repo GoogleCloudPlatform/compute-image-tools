@@ -51,6 +51,10 @@
     "x86_build" : {
       "Value": "",
       "Description": "Marks the build for a 32 bit image."
+    },
+    "sha256_txt": {
+       "Value": "",
+       "Description": "The file where the sha256 sum is stored."
     }
   },
   "Steps": {
@@ -81,7 +85,8 @@
           "build_date": "${build_date}",
           "gcs_url": "${gcs_url}",
           "workflow_root": "${workflow_root}",
-          "existing_sbom_file_name": "${sbom_destination}"
+          "existing_sbom_file_name": "${sbom_destination}",
+          "sha256_txt": "${sha256_txt}"
         }
       }
     }
