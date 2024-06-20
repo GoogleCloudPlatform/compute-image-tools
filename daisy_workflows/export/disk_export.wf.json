@@ -52,6 +52,10 @@
     "existing_sbom_file_name": {
       "Value": "${OUTSPATH}/${NAME}.sbom.json",
       "Description": "Name of the existing sbom file, should only be passed in from windows workflows"
+    },
+    "sha256_txt": {
+       "Value": "",
+       "Description": "The file where the sha256 sum is stored."
     }
   },
   "Sources": {
@@ -82,7 +86,8 @@
             "startup-script": "${SOURCE:${NAME}_export_disk.sh}",
             "source-disk-name": "${source_disk}",
             "sbom-util-gcs-root": "${sbom_util_gcs_root}",
-            "sbom-already-generated": "${sbom_already_generated}"
+            "sbom-already-generated": "${sbom_already_generated}",
+            "sha256-txt": "${sha256_txt}"
           },
           "networkInterfaces": [
             {

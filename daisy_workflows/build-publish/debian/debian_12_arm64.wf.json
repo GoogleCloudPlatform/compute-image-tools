@@ -26,6 +26,10 @@
     "sbom_util_gcs_root": {
       "Value": "",
       "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
+    },
+    "sha256_txt": {
+       "Value": "",
+       "Description": "The file where the sha256 sum is stored."
     }
   },
   "Steps": {
@@ -56,7 +60,8 @@
           "destination": "${gcs_url}",
           "sbom_destination": "${sbom_destination}",
           "source_disk": "disk-debian-12",
-          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}",
+          "sha256_txt": "${sha256_txt}"
         }
       }
     },
