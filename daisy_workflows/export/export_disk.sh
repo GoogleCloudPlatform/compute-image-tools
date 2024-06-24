@@ -123,11 +123,15 @@ function generateHash() {
   # According to https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/cli_tools/gce_export#compute-engine-image-export,
   # no local image file is stored when gce_export is called. We must copy the image file to calculate the sha256 sum.
   gsutil cp $GCS_PATH img.tar.gz
-  if [ $? != 0 ]; then exit 1
+  if [ $? != 0 ]; then
     echo "ExportFailed: copying the image tar file locally from ${GCS_PATH} failed"
     exit 1
   fi
-  imghash=$(sha256sum ((localfile)).tar.gz | awk '{print $1;}')
+  imghash=$(sha256sum img.tar.gz | awk '{print $1;}')
+  if [ $? != 0 ]; then
+    echo "ExportFailed: generating the image hash failed"
+    exit 1
+  fi
   echo "GCEExport: got imghash ${imghash}"
   echo $imghash | tee sha256.txt
   gsutil cp sha256.txt $SHA256_PATH
