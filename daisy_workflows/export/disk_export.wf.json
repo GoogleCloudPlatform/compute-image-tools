@@ -54,7 +54,7 @@
       "Description": "Name of the existing sbom file, should only be passed in from windows workflows"
     },
     "sha256_txt": {
-       "Value": "",
+       "Value": "${OUTSPATH}/${NAME}-shasum.txt",
        "Description": "The file where the sha256 sum is stored."
     }
   },
