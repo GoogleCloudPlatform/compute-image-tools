@@ -133,7 +133,7 @@ function generateHash() {
     exit 1
   fi
   echo "GCEExport: got imghash ${imghash}"
-  echo $imghash | tee sha256.txt
+  echo $imghash > sha256.txt
   gsutil cp sha256.txt $SHA256_PATH
   rm img.tar.gz
   echo "GCEExport: successfully stored sha256 sum in ${SHA256_PATH}"
