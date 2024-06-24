@@ -118,15 +118,16 @@ function Generate-Sbom {
   # Comp name is a short descriptor at the top of the sbom file for the software.
   $comp_name = Get-MetadataValue -key 'edition'
 
+  $local_sbom_file = "image.sbom.json"
   Write-Output "Generating sbom."
-  & "C:\sbomutil.exe" -archetype=windows-image -googet_path 'D:\ProgramData\GooGet' -extra_content="${script:sbom_dir}\" -comp_name="${comp_name}" -output image.sbom.json
+  & "C:\sbomutil.exe" -archetype=windows-image -googet_path 'D:\ProgramData\GooGet' -extra_content="${script:sbom_dir}\" -comp_name="${comp_name}" -output "${local_sbom_file}"
 
-  if (!(Test-Path "image.sbom.json")) {
+  if (!(Test-Path $local_sbom_file)) {
     Write-Output "sbom generation failed, file not found"
     return
   }
 
-  & 'gsutil' cp image.sbom.json $gs_path
+  & 'gsutil' cp $local_sbom_file $gs_path
 
   Write-Output "Sbom file uploaded to $gs_path."
 }
