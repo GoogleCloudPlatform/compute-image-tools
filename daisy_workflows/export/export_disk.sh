@@ -144,10 +144,11 @@ if [ $SBOM_UTIL_GCS_ROOT != "" ]; then
   runSBOMGeneration
 fi
 
-# Always create the empty sha256 sum text file so workflow copying does not fail.
-touch sha256_sum.txt
-gsutil cp sha256_sum.txt $SHA256_TXT
-if [ $SHA256_TXT != "" ]; then
+
+if [ $SHA256_PATH != "" ]; then
+  # Always create the empty sha256 sum text file so workflow copying does not fail.
+  touch sha256_sum.txt
+  gsutil cp sha256_sum.txt $SHA256_PATH
   generateHash
 else
   echo "GCEExport: sha256 text file destination not passed in"

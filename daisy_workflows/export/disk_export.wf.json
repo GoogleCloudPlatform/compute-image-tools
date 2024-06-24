@@ -87,7 +87,7 @@
             "source-disk-name": "${source_disk}",
             "sbom-util-gcs-root": "${sbom_util_gcs_root}",
             "sbom-already-generated": "${sbom_already_generated}",
-            "sha256-path": "${OUTSPATH}/${NAME}.txt"
+            "sha256-path": "${OUTSPATH}/${NAME}-shasum.txt"
           },
           "networkInterfaces": [
             {
