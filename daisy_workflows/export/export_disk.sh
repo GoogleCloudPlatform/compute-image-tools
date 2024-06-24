@@ -68,8 +68,8 @@ SBOM_UTIL_GCS_ROOT=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-util-gcs-root
 # Mostly used for windows workflows, set to true if the sbom is already generated and non-empty.
 SBOM_ALREADY_GENERATED=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-already-generated)
 
-# The sha256 sum for the image tar gz file: used for the sbom
-SHA256_TXT=$(curl -f -H Metadata-Flavor:Google ${URL}/sha256-txt)
+# The sha256 sum local text file path used for the sbom: same functionality as $SBOM_PATH.
+SHA256_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/sha256-path)
 
 # This function fetches the sbom-util executable from the gcs bucket.
 function fetch_sbomutil() {
@@ -120,6 +120,8 @@ function runSBOMGeneration() {
 # This function generates the sha256 hash of the image, used for the sbom.
 function generateHash() {
   echo "GCEExport: sha256 text file destination passed in as ${SHA256_TXT}"
+  # According to https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/cli_tools/gce_export#compute-engine-image-export,
+  # no local image file is stored when gce_export is called. We must copy the image file to calculate the sha256 sum.
   gsutil cp $GCS_PATH img.tar.gz
   if [ $? != 0 ]; then exit 1
     echo "ExportFailed: copying the image tar file locally from ${GCS_PATH} failed"
@@ -127,12 +129,12 @@ function generateHash() {
   fi
   imghash=$(sha256sum ((localfile)).tar.gz | awk '{print $1;}')
   echo $imghash | tee sha256.txt
-  gsutil cp sha256.txt $SHA256_TXT
+  gsutil cp sha256.txt $SHA256_PATH
   rm img.tar.gz
   echo "GCEExport: successfully stored sha256 sum in ${SHA256_TXT}"
 }
 
-# Always create empty sbom file so workflow copying does not fail
+# Always create empty sbom file so workflow copying does not fail.
 if [ $SBOM_ALREADY_GENERATED != "true" ]; then
   touch image.sbom.json
   gsutil cp image.sbom.json $SBOM_PATH
@@ -142,8 +144,9 @@ if [ $SBOM_UTIL_GCS_ROOT != "" ]; then
   runSBOMGeneration
 fi
 
-# According to https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/cli_tools/gce_export#compute-engine-image-export,
-# no local image file is stored when gce_export is called. We must copy the image file back to calculate the sha256 sum.
+# Always create the empty sha256 sum text file so workflow copying does not fail.
+touch sha256_sum.txt
+gsutil cp sha256_sum.txt $SHA256_TXT
 if [ $SHA256_TXT != "" ]; then
   generateHash
 else

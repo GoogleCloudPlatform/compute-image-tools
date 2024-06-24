@@ -87,7 +87,7 @@
             "source-disk-name": "${source_disk}",
             "sbom-util-gcs-root": "${sbom_util_gcs_root}",
             "sbom-already-generated": "${sbom_already_generated}",
-            "sha256-txt": "${sha256_txt}"
+            "sha256-path": "${OUTSPATH}/${NAME}.txt"
           },
           "networkInterfaces": [
             {
@@ -136,6 +136,14 @@
         {
           "Source": "${existing_sbom_file_name}",
           "Destination": "${sbom_destination}"
+        }
+      ]
+    },
+    "copy-shasum-object": {
+      "CopyGCSObjects": [
+        {
+          "Source": "${OUTSPATH}/${NAME}.txt",
+          "Destination": "${sha256_txt}"
         }
       ]
     }
