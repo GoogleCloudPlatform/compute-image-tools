@@ -142,7 +142,7 @@
     "copy-shasum-object": {
       "CopyGCSObjects": [
         {
-          "Source": "${OUTSPATH}/${NAME}.txt",
+          "Source": "${OUTSPATH}/${NAME}-shasum.txt",
           "Destination": "${sha256_txt}"
         }
       ]
