@@ -28,7 +28,7 @@
       "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
     },
     "sha256_txt": {
-       "Value": "",
+       "Value": "${OUTSPATH}/export-image-shasum.txt",
        "Description": "The file where the sha256 sum is stored."
     }
   },

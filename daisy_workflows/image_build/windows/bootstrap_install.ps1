@@ -120,12 +120,13 @@ function Generate-Sbom {
 
   Write-Output "Generating sbom."
   & "C:\sbomutil.exe" -archetype=windows-image -googet_path 'D:\ProgramData\GooGet' -extra_content="${script:sbom_dir}\" -comp_name="${comp_name}" -output image.sbom.json
-  & 'gsutil' cp image.sbom.json $gs_path
 
   if (!(Test-Path "image.sbom.json")) {
     Write-Output "sbom generation failed, file not found"
     return
   }
+
+  & 'gsutil' cp image.sbom.json $gs_path
 
   Write-Output "Sbom file uploaded to $gs_path."
 }
