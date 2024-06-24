@@ -154,6 +154,10 @@ if [ $SHA256_PATH != "" ]; then
   # Always create the empty sha256 sum text file so workflow copying does not fail.
   touch sha256_sum.txt
   gsutil cp sha256_sum.txt $SHA256_PATH
+  if [ $? != 0 ]; then
+    echo "ExportFailed: failed to copy empty text file"
+    exit 1
+  fi
   generateHash
 else
   echo "GCEExport: sha256 text file destination not passed in"
