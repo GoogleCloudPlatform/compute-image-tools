@@ -71,6 +71,11 @@ SBOM_ALREADY_GENERATED=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-already-g
 # The sha256 sum local text file path used for the sbom: same functionality as $SBOM_PATH.
 SHA256_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/sha256-path)
 
+if SBOM_PATH == "" || SHA256_PATH == ""; then
+  echo "ExportFailed: sbom path or sha256 text file path was not passed in"
+  exit 1
+fi
+
 # This function fetches the sbom-util executable from the gcs bucket.
 function fetch_sbomutil() {
   echo "GCEExport: provided root path for sbom-util at [${SBOM_UTIL_GCS_ROOT}]"
@@ -111,6 +116,11 @@ function runSBOMGeneration() {
   echo "GCEExport: Running sbom generation with the sbom-util program"
   fetch_sbomutil
   ./sbomutil --archetype=linux-image --comp_name=$SOURCE_DISK_NAME --output=image.sbom.json
+  sbom_error_code=$?
+  if [ $sbom_error_code != 0 ]; then 
+    echo "ExportFailed: sbom generation failed with code $sbom_error_code"
+    exit
+  fi
   gsutil cp image.sbom.json $SBOM_PATH
   umount /mnt/dev
   umount /mnt
@@ -123,15 +133,8 @@ function generateHash() {
   # According to https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/cli_tools/gce_export#compute-engine-image-export,
   # no local image file is stored when gce_export is called. We must copy the image file to calculate the sha256 sum.
   gsutil cp $GCS_PATH img.tar.gz
-  if [ $? != 0 ]; then
-    echo "ExportFailed: copying the image tar file locally from ${GCS_PATH} failed"
-    exit 1
-  fi
   imghash=$(sha256sum img.tar.gz | awk '{print $1;}')
-  if [ $? != 0 ]; then
-    echo "ExportFailed: generating the image hash failed"
-    exit 1
-  fi
+  echo $imghash | tee sha256.txt
   echo "GCEExport: got imghash ${imghash}"
   echo $imghash > sha256.txt
   gsutil cp sha256.txt $SHA256_PATH
@@ -149,19 +152,10 @@ if [ $SBOM_UTIL_GCS_ROOT != "" ]; then
   runSBOMGeneration
 fi
 
-
-if [ $SHA256_PATH != "" ]; then
-  # Always create the empty sha256 sum text file so workflow copying does not fail.
-  touch sha256_sum.txt
-  gsutil cp sha256_sum.txt $SHA256_PATH
-  if [ $? != 0 ]; then
-    echo "ExportFailed: failed to copy empty text file"
-    exit 1
-  fi
-  generateHash
-else
-  echo "GCEExport: sha256 text file destination not passed in"
-fi
+# Always create the empty sha256 sum text file so workflow copying does not fail.
+touch sha256_sum.txt
+gsutil cp sha256_sum.txt $SHA256_PATH
+generateHash
 
 echo "ExportSuccess"
 sync

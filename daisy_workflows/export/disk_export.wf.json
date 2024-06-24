@@ -153,6 +153,7 @@
     "wait-for-inst-${NAME}": ["run-${NAME}"],
     "delete-inst": ["wait-for-inst-${NAME}"],
     "copy-image-object": ["wait-for-inst-${NAME}"],
-    "copy-sbom-object": ["copy-image-object"]
+    "copy-sbom-object": ["copy-image-object"],
+    "copy-shasum-object": ["copy-sbom-object"]
   }
 }
