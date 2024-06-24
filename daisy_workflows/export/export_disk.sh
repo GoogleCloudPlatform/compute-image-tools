@@ -119,7 +119,7 @@ function runSBOMGeneration() {
 
 # This function generates the sha256 hash of the image, used for the sbom.
 function generateHash() {
-  echo "GCEExport: sha256 text file destination passed in as ${SHA256_TXT}"
+  echo "GCEExport: sha256 text file destination passed in as ${SHA256_PATH}"
   # According to https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/cli_tools/gce_export#compute-engine-image-export,
   # no local image file is stored when gce_export is called. We must copy the image file to calculate the sha256 sum.
   gsutil cp $GCS_PATH img.tar.gz
@@ -131,7 +131,7 @@ function generateHash() {
   echo $imghash | tee sha256.txt
   gsutil cp sha256.txt $SHA256_PATH
   rm img.tar.gz
-  echo "GCEExport: successfully stored sha256 sum in ${SHA256_TXT}"
+  echo "GCEExport: successfully stored sha256 sum in ${SHA256_PATH}"
 }
 
 # Always create empty sbom file so workflow copying does not fail.
