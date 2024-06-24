@@ -83,8 +83,7 @@
     },
     "delete-instances": {
       "DeleteResources": {
-        "Instances": ["enterprise-tester"],
-        "GCSPaths":["${SCRATCHPATH}/"]
+        "Instances": ["enterprise-tester"]
       }
     }
   },

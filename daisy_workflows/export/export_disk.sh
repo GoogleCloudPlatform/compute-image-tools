@@ -128,6 +128,7 @@ function generateHash() {
     exit 1
   fi
   imghash=$(sha256sum ((localfile)).tar.gz | awk '{print $1;}')
+  echo "GCEExport: got imghash ${imghash}"
   echo $imghash | tee sha256.txt
   gsutil cp sha256.txt $SHA256_PATH
   rm img.tar.gz
