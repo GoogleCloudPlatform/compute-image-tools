@@ -3,26 +3,17 @@
 # This file is what manages the replacement process of the guest agent pkg in COS images.
 # This cloudbuild can be invoked using 'gcloud builds submit --config=dev_cloudbuild.yaml'.
 # The script does the following:
-#   1) Executes the debian compilation script in a docker container (this generates the
-#   list of binaries and their installation paths for the guest agent pkg).
-#   2) Uses COS-CUSTOMIZER to start a custom COS image...
-#   3) Executes a script that disables the read-only root fs of COS.
-#   4) Executes a script that performs pre-loading (pkg replacement).
-#   5) Executes a script that re-enables the read-only root fs of COS.
-#   6) Finishes COS-CUSTOMIZER by creating a custom image.
+#   1) Uses COS-CUSTOMIZER to start a custom COS image...
+#   2) Executes a script that disables the read-only root fs of COS.
+#   3) Executes a script that performs pre-loading (pkg replacement).
+#   4) Executes a script that re-enables the read-only root fs of COS.
+#   5) Finishes COS-CUSTOMIZER by creating a custom image.
 
 substitutions:
   '_COS_CUSTOMIZER': 'gcr.io/cos-cloud/cos-customizer:latest'
   '_KERNEL_PKG': ''
 
 steps:
-# This step compiles the debian packaging and stores it in /var.
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: 'bash'
-  args:
-    - '-c'
-    - |
-      ./compile_debian_package.sh $_COMMIT_SHA
 # _DEST_PROJECT in the 'finish-image-build' step should should have access
 # to the gcs-bucket path specified here.
 - name: '${_COS_CUSTOMIZER}'
