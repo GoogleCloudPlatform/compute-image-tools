@@ -20,7 +20,7 @@
       "Description": "worker image"
     },
     "machine_type": {
-      "Value": "e2-medium",
+      "Required": true,
       "Description": "machine type"
     }
   },
