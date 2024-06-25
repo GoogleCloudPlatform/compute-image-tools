@@ -34,13 +34,15 @@ get_vars(){
 
 compile_debian_binaries(){
   sudo apt install -y git
-  ./compile_debian_package.sh ${COMMIT_SHA}
+  ./compile_debian_package.sh ${COMMIT_SHA} ${ARCH}
 }
 
-set_machine_type(){
+set_machine_and_arch_type(){
   export MACHINE_TYPE="n1-standard-1"
+  export ARCH="amd"
   if [[ "$SOURCE_IMAGE" == *"arm"* ]]; then
       export MACHINE_TYPE="t2a-standard-1"
+      export ARCH="arm"
   fi
 }
 # The following additional parameters are passed into the cloudbuild script:
@@ -58,8 +60,8 @@ main (){
   echo "Creating COS image with the new guest agent version..."
   set_files_executable
   get_vars
+  set_machine_and_arch_type
   compile_debian_binaries
-  set_machine_type
   create_preloaded_image
 }
 
