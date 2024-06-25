@@ -85,7 +85,7 @@ find_debian_version() {
 install_go(){
   # Install the correct version of Go.
   echo -e "\nATTENTION: Installing go...\n"
-  cd /workspace
+  cd ..
   source ./install_go.sh; install_go /tmp/go
 }
 
@@ -113,6 +113,7 @@ build_tarball(){
   export RELEASE="g1${DEB}"
   dch --create -M -v 1:${VERSION}-${RELEASE} --package $PKGNAME -D stable \
     "Debian packaging for ${PKGNAME}"
+  sudo rm -rf /etc/default/instance_configs.cfg
   debuild -us -uc
   cd ..
 }
@@ -123,18 +124,16 @@ unpack_binaries(){
   # .deb file naming convention follows that in "upstream_tarball" function.
   # g111 is an arbitrary value given to the .deb file.
   echo -e "\nATTENTION: Unpacking binaries in a directory...\n"
-  dpkg-deb -x google-guest-agent_${VERSION}-g111_amd64.deb debian_binaries
-  dpkg-deb -c google-guest-agent_${VERSION}-g111_amd64.deb >> google-guest-agent-readable-deb.txt
+  dpkg-deb -x google-guest-agent_${VERSION}-g111_${arch}64.deb debian_binaries
+  dpkg-deb -c google-guest-agent_${VERSION}-g111_${arch}64.deb >> google-guest-agent-readable-deb.txt
   echo -e "\nATTENTION: google-guest-agent.deb file contents below...\n"
   cat google-guest-agent-readable-deb.txt
-  mv debian_binaries /workspace/upload
-  mv google-guest-agent-readable-deb.txt /workspace
 }
 
 identify_replacement_files(){
   echo -e "\nATTENTION: Creating a list of files to replace...\n"
-  file="/workspace/google-guest-agent-readable-deb.txt"
-  repl_file="/workspace/repl_files.txt"
+  file="/files/package_replacement/google-guest-agent-readable-deb.txt"
+  repl_file="repl_files.txt"
 
   # Go through every line in the deb file...
   while read -r line; do
@@ -155,15 +154,17 @@ identify_replacement_files(){
     fi
   done <$file
   cat $repl_file
+  mv $repl_file /files/package_replacement
 }
 
 main() {
-  if [ "$#" -ne 1 ]; then
+  if [ "$#" -ne 2 ]; then
     echo "Argument 'guest_agent_version' must be provided."
     exit 1
   fi
 
   commit_sha=$1
+  arch=$2
 
   echo -e "\nATTENTION: Starting compile_debian_package.sh...\n"
   apply_patches
