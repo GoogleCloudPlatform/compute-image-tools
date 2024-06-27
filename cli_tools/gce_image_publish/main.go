@@ -40,6 +40,7 @@ var (
 	sourceProject  = flag.String("source_project", "", "project to source images from, should not be used with source_gcs_path, will override SourceProject in template")
 	publishVersion = flag.String("publish_version", "", "version for published image if different from source")
 	publishProject = flag.String("publish_project", "", "project to publish images to, will override PublishProject in template")
+	dateVersion    = flag.Bool("date_version", false, "will use YYYYMMDD for publish version, should not be used with -publish_version")
 	skipDup        = flag.Bool("skip_duplicates", false, "skip publishing any images that already exist, should not be used along with -replace")
 	noRoot         = flag.Bool("no_root", false, "with -source_gcs_path, append .tar.gz instead of /root.tar.gz")
 	replace        = flag.Bool("replace", false, "replace any images that already exist, should not be used along with -skip_duplicates")
@@ -121,10 +122,16 @@ func main() {
 		fmt.Println("Cannot set both -skip_duplicates and -replace")
 		os.Exit(1)
 	}
-
+	if *dateVersion && *publishVersion != "" {
+		fmt.Println("Cannot set both -date_version and -publish_version")
+		os.Exit(1)
+	}
 	if len(flag.Args()) == 0 {
 		fmt.Println("Not enough args, first arg needs to be the path to a publish template.")
 		os.Exit(1)
+	}
+	if *dateVersion {
+		*publishVersion = time.Now().UTC().Format("20060102")
 	}
 	var regex *regexp.Regexp
 	if *filter != "" {
