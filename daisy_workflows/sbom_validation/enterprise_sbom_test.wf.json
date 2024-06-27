@@ -1,5 +1,5 @@
 {
-  "Name": "export-centos-7-test",
+  "Name": "export-centos-stream-9-test",
   "Zone": "us-central1-b",
   "Vars": {
     "workflow_root": {
@@ -23,7 +23,7 @@
       "CreateDisks": [
         {
           "Name": "disk-export",
-          "SourceImage": "projects/centos-cloud/global/images/family/centos-7",
+          "SourceImage": "projects/centos-cloud/global/images/family/centos-stream-9",
           "Type": "pd-ssd"
         }
       ]
@@ -43,7 +43,7 @@
       "CreateDisks": [
         {
           "Name": "disk-test",
-          "SourceImage": "projects/compute-image-tools/global/images/family/debian-10-worker",
+          "SourceImage": "projects/compute-image-tools/global/images/family/debian-11-worker",
           "Type": "pd-ssd"
         }
       ]
