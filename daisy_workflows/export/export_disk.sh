@@ -72,7 +72,7 @@ SBOM_ALREADY_GENERATED=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-already-g
 SHA256_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/sha256-path)
 
 if SBOM_PATH == "" || SHA256_PATH == ""; then
-  echo "ExportFailed: sbom path or sha256 text file path was not passed in"
+  echo "ExportFailed: sbom path ${SBOM_PATH}, or sha256 text file path ${SHA256_PATH}, was not passed in"
   exit 1
 fi
 
@@ -119,7 +119,7 @@ function runSBOMGeneration() {
   sbom_error_code=$?
   if [ $sbom_error_code != 0 ]; then 
     echo "ExportFailed: sbom generation failed with code $sbom_error_code"
-    exit
+    exit 1
   fi
   gsutil cp image.sbom.json $SBOM_PATH
   umount /mnt/dev
