@@ -128,6 +128,8 @@ unpack_binaries(){
   dpkg-deb -c google-guest-agent_${VERSION}-g111_${arch}64.deb >> google-guest-agent-readable-deb.txt
   echo -e "\nATTENTION: google-guest-agent.deb file contents below...\n"
   cat google-guest-agent-readable-deb.txt
+  mv debian_binaries /files/package_replacement
+  mv google-guest-agent-readable-deb.txt /files/package_replacement
 }
 
 identify_replacement_files(){
