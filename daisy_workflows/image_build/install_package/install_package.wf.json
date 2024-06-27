@@ -20,11 +20,11 @@
       "Description": "dest project"
     },
     "worker_image": {
-      "Value": "projects/compute-image-tools/global/images/family/debian-10-worker",
+      "Required": true,
       "Description": "worker image"
     },
     "machine_type": {
-      "Value": "e2-medium",
+      "Required": true,
       "Description": "machine type"
     }
   },
