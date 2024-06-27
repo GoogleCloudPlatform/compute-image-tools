@@ -28,7 +28,8 @@
 #
 # Args: ./compile_debian_package [guest_agent_version]
 # Example: ./compile_debian_package 094ef227ddf92165abcb7b1241ca44728c3086d1
-#     $2 [commit_sha]: the guest agent commit sha (to upgrade to).
+#     $1 [commit_sha]: the guest agent commit sha (to upgrade to).
+#     $2 [arch]: the architecture (amd or arm).
 
 set -o errexit
 set -o pipefail
