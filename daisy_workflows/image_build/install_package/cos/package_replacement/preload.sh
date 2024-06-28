@@ -6,6 +6,7 @@
 #   2) Find the file name on the system, if it exists, replace the file at the
 #   same lcoation.
 #   3) Delete all temp folders/files that are no longer needed.
+#   4) Enables logging in google-startup-scripts.service (needed for CIT tests).
 
 set -o errexit
 set -o pipefail
@@ -17,7 +18,7 @@ replace_files(){
 
   # Move all files to a temp folder under /.
   sudo mkdir /temp_debian_upload
-  sudo mv upload /temp_debian_upload
+  sudo mv debian_binaries /temp_debian_upload
 
   # Start guest agent replacement...
   file="repl_files.txt"
@@ -50,11 +51,11 @@ replace_files(){
       # If this is the startup script service file, enable logging so CIT tests
       # can exit successfully after 'finished-test' is written.
       if [[ "$file_name" == "google-startup-scripts.service" ]]; then
-        sudo sed -i '/KillMode=process/a StandardOutput=journal+console\nStandardError=journal+console' /temp_debian_upload/upload$dest/$file_name
+        sudo sed -i '/KillMode=process/a StandardOutput=journal+console\nStandardError=journal+console' /temp_debian_upload/debian_binaries$dest/$file_name
       fi
       
       # Move the deb file to the correct installation path.
-      sudo mv /temp_debian_upload/upload$dest/$file_name $INSTALLATION_PATH
+      sudo mv /temp_debian_upload/debian_binaries$dest/$file_name $INSTALLATION_PATH
     fi
   done <$file
 
