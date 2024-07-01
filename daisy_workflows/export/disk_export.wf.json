@@ -22,7 +22,7 @@
       "Description": "image to use for the exporter instance"
     },
     "export_instance_disk_size": {
-      "Value": "20",
+      "Value": "40",
       "Description": "size of the export instances disk, must be larger than the image size in GB so it can be copied for shasum. A larger size increase PD read speed"
     },
     "export_instance_disk_type": {
