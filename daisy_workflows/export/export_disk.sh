@@ -71,7 +71,7 @@ SBOM_ALREADY_GENERATED=$(curl -f -H Metadata-Flavor:Google ${URL}/sbom-already-g
 # The sha256 sum local text file path used for the sbom: same functionality as $SBOM_PATH.
 SHA256_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/sha256-path)
 
-if SBOM_PATH == "" || SHA256_PATH == ""; then
+if $SBOM_PATH == "" || $SHA256_PATH == ""; then
   echo "ExportFailed: sbom path ${SBOM_PATH}, or sha256 text file path ${SHA256_PATH}, was not passed in"
   exit 1
 fi
