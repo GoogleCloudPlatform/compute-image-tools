@@ -22,8 +22,8 @@
       "Description": "image to use for the exporter instance"
     },
     "export_instance_disk_size": {
-      "Value": "200",
-      "Description": "size of the export instances disk, this disk is unused for the export but a larger size increase PD read speed"
+      "Value": "40",
+      "Description": "size of the export instances disk, must be larger than the image size in GB so it can be copied for shasum. A larger size increase PD read speed"
     },
     "export_instance_disk_type": {
       "Value": "pd-ssd",
@@ -54,7 +54,7 @@
       "Description": "Name of the existing sbom file, should only be passed in from windows workflows"
     },
     "sha256_txt": {
-       "Value": "",
+       "Value": "${OUTSPATH}/${NAME}-shasum.txt",
        "Description": "The file where the sha256 sum is stored."
     }
   },
@@ -66,6 +66,7 @@
       "CreateDisks": [
         {
           "Name": "disk-${NAME}",
+          "SizeGb": "${export_instance_disk_size}",
           "SourceImage": "${export_instance_disk_image}",
           "Type": "${export_instance_disk_type}"
         }
@@ -87,7 +88,7 @@
             "source-disk-name": "${source_disk}",
             "sbom-util-gcs-root": "${sbom_util_gcs_root}",
             "sbom-already-generated": "${sbom_already_generated}",
-            "sha256-txt": "${sha256_txt}"
+            "sha256-path": "${OUTSPATH}/${NAME}-shasum.txt"
           },
           "networkInterfaces": [
             {
@@ -138,6 +139,14 @@
           "Destination": "${sbom_destination}"
         }
       ]
+    },
+    "copy-shasum-object": {
+      "CopyGCSObjects": [
+        {
+          "Source": "${OUTSPATH}/${NAME}-shasum.txt",
+          "Destination": "${sha256_txt}"
+        }
+      ]
     }
   },
   "Dependencies": {
@@ -145,6 +154,7 @@
     "wait-for-inst-${NAME}": ["run-${NAME}"],
     "delete-inst": ["wait-for-inst-${NAME}"],
     "copy-image-object": ["wait-for-inst-${NAME}"],
-    "copy-sbom-object": ["copy-image-object"]
+    "copy-sbom-object": ["copy-image-object"],
+    "copy-shasum-object": ["copy-sbom-object"]
   }
 }

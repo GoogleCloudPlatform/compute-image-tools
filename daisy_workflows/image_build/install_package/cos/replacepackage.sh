@@ -32,10 +32,17 @@ get_vars(){
   export DAISY_LOGS_PATH=$(curl -H "Metadata-Flavor:Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/daisy-logs-path)
 }
 
-set_machine_type(){
+compile_debian_binaries(){
+  sudo apt install -y git
+  ./compile_debian_package.sh ${COMMIT_SHA} ${ARCH}
+}
+
+set_machine_and_arch_type(){
   export MACHINE_TYPE="n1-standard-1"
+  export ARCH="amd"
   if [[ "$SOURCE_IMAGE" == *"arm"* ]]; then
       export MACHINE_TYPE="t2a-standard-1"
+      export ARCH="arm"
   fi
 }
 # The following additional parameters are passed into the cloudbuild script:
@@ -46,14 +53,15 @@ set_machine_type(){
 #   _NEW_IMAGE_FAMILY: The new image family for the preloaded image.
 #   _MACHINE_TYPE: The machine type for the source image: default (n1-standard-1) or t2a-standard-1 for ARM.
 create_preloaded_image(){
-  gcloud builds submit . --config=dev_cloudbuild.yaml --disk-size=200 --gcs-log-dir="${DAISY_LOGS_PATH}" --substitutions=_NEW_IMAGE_FAMILY="cos-preloaded-images",_BASE_IMAGE_PROJECT="cos-cloud",_BASE_IMAGE="${SOURCE_IMAGE}",_COMMIT_SHA="${COMMIT_SHA}",_NEW_IMAGE="${DEST_IMAGE}",_DEST_PROJECT="gcp-guest",_MACHINE_TYPE="${MACHINE_TYPE}"
+  gcloud builds submit . --config=dev_cloudbuild.yaml --disk-size=200 --gcs-log-dir="${DAISY_LOGS_PATH}" --substitutions=_NEW_IMAGE_FAMILY="cos-preloaded-images",_BASE_IMAGE_PROJECT="cos-cloud",_BASE_IMAGE="${SOURCE_IMAGE}",_NEW_IMAGE="${DEST_IMAGE}",_DEST_PROJECT="gcp-guest",_MACHINE_TYPE="${MACHINE_TYPE}"
 }
 
 main (){
   echo "Creating COS image with the new guest agent version..."
   set_files_executable
   get_vars
-  set_machine_type
+  set_machine_and_arch_type
+  compile_debian_binaries
   create_preloaded_image
 }
 
