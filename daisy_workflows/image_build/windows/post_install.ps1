@@ -558,6 +558,37 @@ function Install-DriverPackages {
   }
 }
 
+function Update-Edge {
+  $taskExistEdgeUpdate = Get-ScheduledTask | Where-Object {$_.TaskName -like 'MicrosoftEdgeUpdateTaskMachineCore' }
+  if($taskExistEdgeUpdate) {
+    Start-ScheduledTask -TaskName MicrosoftEdgeUpdateTaskMachineCore
+    Write-Host 'Microsoft Edge Core updater started.'
+  } else {
+    Write-Host 'Microsoft Edge updater task MicrosoftEdgeUpdateTaskMachineCore not present.'
+  }
+
+  $taskExistEdgeUpdate = Get-ScheduledTask | Where-Object {$_.TaskName -like 'MicrosoftEdgeUpdateTaskMachineUA' }
+  if($taskExistEdgeUpdate) {
+    Start-ScheduledTask -TaskName 'MicrosoftEdgeUpdateTaskMachineUA'
+    Write-Host 'Microsoft Edge UA updater started.'
+  } else {
+    Write-Host 'Microsoft Edge updater task MicrosoftEdgeUpdateTaskMachineUA not present.'
+  }
+
+  # Check if the Edge update is finished before continuing
+  if (Test-Path "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe") {
+    $edge = (Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
+    while ($edge.LastWriteTime -lt (Get-Date).AddMonths(-2)) {
+      $edgeVersion = (Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe").VersionInfo.ProductVersion
+      Write-Host 'Microsoft Edge updater not completed; version found: '+$edgeVersion
+      Start-Sleep -s 30
+      $edge = (Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
+    }
+    $edgeVersion = (Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe").VersionInfo.ProductVersion
+    Write-Host 'Microsoft Edge updater completed; version found: '+$edgeVersion
+  }
+}
+
 function Install-GCEAppPackages {
   Write-Host 'Installing GCE Appplication packages...'
   # Install each individually in order to catch individual errors
@@ -669,6 +700,7 @@ try {
   }
 
   Install-PowerShell
+  Update-Edge
 
   # Remove with Win2012 R2 EOL in Oct 2023. Temporary fix for issue following June 2023 .Net update.
   Install-NetFrameworkCore
@@ -698,22 +730,6 @@ try {
   if (!$script:x86) {
     Install-GCEAppPackages
     Set-Repos
-  }
-
-  $taskExistEdgeUpdate = Get-ScheduledTask | Where-Object {$_.TaskName -like 'MicrosoftEdgeUpdateTaskMachineCore' }
-  if($taskExistEdgeUpdate) {
-    Start-ScheduledTask -TaskName MicrosoftEdgeUpdateTaskMachineCore
-    Write-Host 'Microsoft Edge Core updater started.'
-  } else {
-    Write-Host 'Microsoft Edge updater task MicrosoftEdgeUpdateTaskMachineCore not present.'
-  }
-
-  $taskExistEdgeUpdate = Get-ScheduledTask | Where-Object {$_.TaskName -like 'MicrosoftEdgeUpdateTaskMachineUA' }
-  if($taskExistEdgeUpdate) {
-    Start-ScheduledTask -TaskName 'MicrosoftEdgeUpdateTaskMachineUA'
-    Write-Host 'Microsoft Edge UA updater started.'
-  } else {
-    Write-Host 'Microsoft Edge updater task MicrosoftEdgeUpdateTaskMachineUA not present.'
   }
 
   Enable-WinRM
