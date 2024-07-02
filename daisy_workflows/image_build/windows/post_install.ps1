@@ -578,12 +578,10 @@ function Update-Edge {
   # Check if the Edge update is finished before continuing
   if (Test-Path "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe") {
     while ((Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe").LastWriteTime -lt (Get-Date).AddMonths(-2)) {
-      $edgeVersion = (Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe").VersionInfo.ProductVersion
-      Write-Host 'Microsoft Edge updater not completed; version found: '+$edgeVersion
+      Write-Host 'Microsoft Edge updater not completed; version found: '+(Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe").VersionInfo.ProductVersion
       Start-Sleep -s 30
     }
-    $edgeVersion = (Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe").VersionInfo.ProductVersion
-    Write-Host 'Microsoft Edge updater completed; version found: '+$edgeVersion
+    Write-Host 'Microsoft Edge updater completed; version found: '+(Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe").VersionInfo.ProductVersion
   }
 }
 
