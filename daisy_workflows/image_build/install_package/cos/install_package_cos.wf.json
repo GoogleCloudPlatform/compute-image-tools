@@ -16,7 +16,7 @@
       "Description": "commit sha"
     },
     "worker_image": {
-      "Value": "projects/compute-image-tools/global/images/family/debian-11-worker",
+      "Required": true,
       "Description": "worker image"
     },
     "machine_type": {
