@@ -559,17 +559,17 @@ function Install-DriverPackages {
 }
 
 function Update-Edge {
-  $taskExistEdgeUpdate = Get-ScheduledTask | Where-Object {$_.TaskName -like 'MicrosoftEdgeUpdateTaskMachineCore' }
-  if($taskExistEdgeUpdate) {
-    Start-ScheduledTask -TaskName MicrosoftEdgeUpdateTaskMachineCore
+  $taskExistEdgeUpdateCore = Get-ScheduledTask | Where-Object {$_.TaskName -like 'MicrosoftEdgeUpdateTaskMachineCore*' }
+  if($taskExistEdgeUpdateCore) {
+    Start-ScheduledTask -TaskName $taskExistEdgeUpdateCore.TaskName
     Write-Host 'Microsoft Edge Core updater started.'
   } else {
     Write-Host 'Microsoft Edge updater task MicrosoftEdgeUpdateTaskMachineCore not present.'
   }
 
-  $taskExistEdgeUpdate = Get-ScheduledTask | Where-Object {$_.TaskName -like 'MicrosoftEdgeUpdateTaskMachineUA' }
-  if($taskExistEdgeUpdate) {
-    Start-ScheduledTask -TaskName 'MicrosoftEdgeUpdateTaskMachineUA'
+  $taskExistEdgeUpdateUA = Get-ScheduledTask | Where-Object {$_.TaskName -like 'MicrosoftEdgeUpdateTaskMachineUA*' }
+  if($taskExistEdgeUpdateUA) {
+    Start-ScheduledTask -TaskName $taskExistEdgeUpdateUA.TaskName
     Write-Host 'Microsoft Edge UA updater started.'
   } else {
     Write-Host 'Microsoft Edge updater task MicrosoftEdgeUpdateTaskMachineUA not present.'
@@ -577,7 +577,7 @@ function Update-Edge {
 
   # Check if the Edge update is finished before continuing
   if (Test-Path "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe") {
-    while ((Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe").LastWriteTime -lt (Get-Date).AddMonths(-2)) {
+    while ((Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe").LastWriteTime -lt (Get-Date).AddMonths(-1)) {
       Write-Host "Microsoft Edge updater not completed; version found: $((Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe").VersionInfo.ProductVersion)"
       Start-Sleep -s 30
     }
