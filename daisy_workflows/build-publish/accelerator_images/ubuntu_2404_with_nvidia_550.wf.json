@@ -1,5 +1,5 @@
 {
-  "Name": "ubuntu-2204-with-nvidia-550",
+  "Name": "ubuntu-2404-with-nvidia-550",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -37,7 +37,7 @@
     "build": {
       "TimeOut": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/accelerator_images/ubuntu/ubuntu-2204-with-nvidia-550.json",
+        "Path": "${workflow_root}/image_build/accelerator_images/ubuntu-2404-with-nvidia-550.json",
         "Vars": {
           "build_date": "${build_date}"
         }
@@ -46,8 +46,8 @@
     "create-disk": {
       "CreateDisks": [
         {
-          "Name": "disk-ubuntu-2204-with-nvidia-550",
-          "SourceImage": "ubuntu-2204-with-nvidia-550-v${build_date}",
+          "Name": "disk-ubuntu-2404-amd64-with-nvidia-550",
+          "SourceImage": "ubuntu-2404-amd64-with-nvidia-550-v${build_date}",
           "SizeGb": "30",
           "Type": "pd-ssd"
         }
@@ -60,7 +60,7 @@
         "Vars": {
           "destination": "${gcs_url}",
           "sbom_destination": "${sbom_destination}",
-          "source_disk": "disk-ubuntu-2204-with-nvidia-550",
+          "source_disk": "disk-ubuntu-2404-amd64-with-nvidia-550",
           "sbom_util_gcs_root": "${sbom_util_gcs_root}",
           "sha256_txt": "${sha256_txt}"
         }
@@ -68,7 +68,7 @@
     },
     "cleanup-image": {
       "DeleteResources": {
-        "Images": ["ubuntu-2204-with-nvidia-550-v${build_date}"]
+        "Images": ["ubuntu-2404-amd64-with-nvidia-550-v${build_date}"]
       }
     }
   },
