@@ -20,7 +20,7 @@
     }
   },
   "Sources": {
-    "installer_startup_script": "./build-ubuntu-${ubuntu_version}-accelerated.sh"
+    "installer_startup_script": "./build_ubuntu_${ubuntu_version}_accelerated.sh"
   },
   "Steps": {
     "setup-disks": {
