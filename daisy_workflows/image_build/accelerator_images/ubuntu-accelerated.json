@@ -1,0 +1,75 @@
+{
+  "Name": "build-ubuntu-accelerated",
+  "DefaultTimeout": "60m",
+  "Vars": {
+    "nvidia_driver_version": {
+      "Required": true,
+      "Description": "Nvidia driver version (eg 550 or 535-lts)"
+    },
+    "source_image": {
+      "Required": true,
+      "Description": "The partial url for the image to build from"
+    },
+    "ubuntu_version": {
+      "Required": true,
+      "Description": "Ubuntu version in the source image (eg 2404)"
+    },
+    "machine_type": {
+      "Value": "e2-standard-4",
+      "Description": "The machine type to use during build."
+    }
+  },
+  "Sources": {
+    "installer_startup_script": "./build-ubuntu-${ubuntu_version}-accelerated.sh"
+  },
+  "Steps": {
+    "setup-disks": {
+      "CreateDisks": [
+        {
+          "Name": "ubuntu-accelerated-installer",
+          "SizeGb": "30",
+          "SourceImage": "${source_image}",
+          "Type": "pd-ssd",
+          "GuestOsFeatures": [{"type": "UEFI_COMPATIBLE"}]
+        }
+      ]
+    },
+    "run-installer": {
+      "CreateInstances": [
+        {
+          "Name": "ubuntu-accelerated-installer",
+          "Disks": [{"Source": "ubuntu-accelerated-installer"}],
+          "MachineType": "${machine_type}",
+          "Metadata": {
+            "nvidia_driver_version": "${nvidia_driver_version}"
+          },
+          "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
+          "StartupScript": "installer_startup_script"
+        }
+      ]
+    },
+    "wait-installer": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "ubuntu-accelerated-installer",
+          "SerialOutput": {
+                "Port": 1,
+                "SuccessMatch": "BuildSuccess",
+                "FailureMatch": "BuildFailure",
+                "StatusMatch": "startup-script-url"
+            }
+        }
+      ]
+    },
+    "stop-installer": {
+      "StopInstances": {
+        "Instances": ["ubuntu-accelerated-installer"]
+      }
+    }
+  },
+  "Dependencies": {
+    "run-installer": ["setup-disks"],
+    "wait-installer": ["run-installer"],
+    "stop-installer": ["wait-installer"]
+  }
+}
