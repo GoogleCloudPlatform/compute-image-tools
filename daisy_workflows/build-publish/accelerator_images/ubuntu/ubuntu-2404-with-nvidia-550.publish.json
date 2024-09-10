@@ -17,7 +17,7 @@
   "DeleteAfter": {{$delete_after}},
   {{- else if eq .environment "prod" -}}
   "WorkProject": {{$work_project}},
-  "PublishProject": "accelerator-base-image-prototypes",
+  "PublishProject": "accelerator-preview-images",
   "ComputeEndpoint": {{$endpoint}},
   {{- else if eq .environment "autopush" -}}
   "WorkProject": {{$work_project}},
