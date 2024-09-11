@@ -29,7 +29,7 @@
     "build-ubuntu2404": {
       "Timeout": "60m",
       "IncludeWorkflow": {
-        "Path": "./ubuntu-accelerated.json",
+        "Path": "./ubuntu-accelerated.wf.json",
         "Vars": {
           "source_image": "${source_image}",
           "ubuntu_version": "${ubuntu_version}",
