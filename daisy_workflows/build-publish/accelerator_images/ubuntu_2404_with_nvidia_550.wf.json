@@ -37,7 +37,7 @@
     "build": {
       "TimeOut": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/accelerator_images/ubuntu_2404_with_nvidia_550.json",
+        "Path": "${workflow_root}/image_build/accelerator_images/ubuntu_2404_with_nvidia_550.wf.json",
         "Vars": {
           "build_date": "${build_date}"
         }
