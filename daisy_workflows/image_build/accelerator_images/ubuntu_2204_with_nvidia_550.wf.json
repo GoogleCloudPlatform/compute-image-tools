@@ -6,7 +6,7 @@
       "Description": "The machine type to use during build."
     },
     "source_image": {
-      "Value": "projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts-amd64",
+      "Value": "projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts",
       "Description": "The image to use for the build"
     },
     "ubuntu_version": {
