@@ -31,7 +31,7 @@
       "Description": "Debian 12 worker arm64 image built on {{$time}}",
       "Architecture": "ARM64",
       "Licenses": [
-        "projects/debian-cloud/global/licenses/debian-12-bullseye"
+        "projects/debian-cloud/global/licenses/debian-12-bookworm"
       ],
       "GuestOsFeatures": ["UEFI_COMPATIBLE", "GVNIC"]
     }
