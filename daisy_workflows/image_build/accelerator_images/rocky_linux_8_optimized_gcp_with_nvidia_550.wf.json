@@ -41,10 +41,10 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "rocky-8-optimized-gcp-with-nvidia-${nvidia_driver_version}-v${build_date}",
+          "Name": "rocky-linux-8-optimized-gcp-with-nvidia-${nvidia_driver_version}-v${build_date}",
           "SourceDisk": "rocky-optimized-gcp-accelerated-installer",
           "Description": "Rocky Linux 8 optimized for gcp with Nvidia ${nvidia_driver_version} built on ${build_date}",
-          "Family": "rocky-8-optimized-gcp-accelerated-with-nvidia-${nvidia_driver_version}",
+          "Family": "rocky-linux-8-optimized-gcp-accelerated-with-nvidia-${nvidia_driver_version}",
           "Project": "${publish_project}",
           "NoCleanup": true,
           "ExactName": true,
