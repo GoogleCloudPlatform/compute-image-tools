@@ -1,0 +1,75 @@
+{
+  "Name": "build-rocky-optimized-gcp-accelerated",
+  "DefaultTimeout": "60m",
+  "Vars": {
+    "nvidia_driver_version": {
+      "Required": true,
+      "Description": "Nvidia driver version (eg 550 or 535-lts)"
+    },
+    "source_image": {
+      "Required": true,
+      "Description": "The partial url for the image to build from"
+    },
+    "rocky_version": {
+      "Required": true,
+      "Description": "rocky version in the source image (eg 8, 9)"
+    },
+    "machine_type": {
+      "Value": "e2-standard-4",
+      "Description": "The machine type to use during build."
+    }
+  },
+  "Sources": {
+    "installer_startup_script": "./build_rocky_${rocky_version}_optimized_gcp_accelerated.sh"
+  },
+  "Steps": {
+    "setup-disks": {
+      "CreateDisks": [
+        {
+          "Name": "rocky-optimized-gcp-accelerated-installer",
+          "SizeGb": "30",
+          "SourceImage": "${source_image}",
+          "Type": "pd-ssd",
+          "GuestOsFeatures": [{"type": "UEFI_COMPATIBLE"}]
+        }
+      ]
+    },
+    "run-installer": {
+      "CreateInstances": [
+        {
+          "Name": "rocky-optimized-gcp-accelerated-installer",
+          "Disks": [{"Source": "rocky-optimized-gcp-accelerated-installer"}],
+          "MachineType": "${machine_type}",
+          "Metadata": {
+            "nvidia_driver_version": "${nvidia_driver_version}"
+          },
+          "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
+          "StartupScript": "installer_startup_script"
+        }
+      ]
+    },
+    "wait-installer": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "rocky-optimized-gcp-accelerated-installer",
+          "SerialOutput": {
+                "Port": 1,
+                "SuccessMatch": "BuildSuccess",
+                "FailureMatch": "BuildFailure",
+                "StatusMatch": "startup-script-url"
+            }
+        }
+      ]
+    },
+    "stop-installer": {
+      "StopInstances": {
+        "Instances": ["rocky-optimized-gcp-accelerated-installer"]
+      }
+    }
+  },
+  "Dependencies": {
+    "run-installer": ["setup-disks"],
+    "wait-installer": ["run-installer"],
+    "stop-installer": ["wait-installer"]
+  }
+}
