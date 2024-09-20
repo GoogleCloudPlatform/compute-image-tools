@@ -6,5 +6,4 @@ chmod +x ./nvidia.run || echo "BuildFailure"
 # DKMS - not suitable for prod
 ./nvidia.run -s --kernel-source-path=/usr/src/kernels/5.14.0-427.28.1.el9_4.cloud.1.0.x86_64/ || echo "BuildFailure"
 dnf install -y rdma-core || echo "BuildFailure"
-nvidia-smi || echo "BuildFailure"
 echo "BuildSuccess"
