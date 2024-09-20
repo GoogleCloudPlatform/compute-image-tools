@@ -1,4 +1,5 @@
 #!/bin/bash
+dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/cuda-rhel9.repo || echo "BuildFailure"
 dnf install -y gcc make kernel-devel || echo "BuildFailure"
 curl -L -o nvidia.run https://us.download.nvidia.com/tesla/550.90.12/NVIDIA-Linux-x86_64-550.90.12.run || echo "BuildFailure"
 chmod +x ./nvidia.run || echo "BuildFailure"

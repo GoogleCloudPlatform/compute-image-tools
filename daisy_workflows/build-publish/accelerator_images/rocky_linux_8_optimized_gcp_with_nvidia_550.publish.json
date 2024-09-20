@@ -1,12 +1,12 @@
 {{/*
-  Template to publish Rocky 9 optimized for GCP/Nvidia images.
+  Template to publish Rocky 8 optimized for GCP/Nvidia images.
   By default this template is setup to publish to the 'gce-image-builder'
   project, the 'environment' variable can be used to publish to 'test', 'prod'
   DeleteAfter is set to 180 days for all environments other than prod where no
   time period is set.
 */}}
 {
-  "Name": "rocky-linux-9-optimized-gcp-with-nvidia-550",
+  "Name": "rocky-linux-8-optimized-gcp-with-nvidia-550",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*6"` -}}
@@ -33,13 +33,13 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Prefix": "rocky-linux-9-optimized-gcp-with-nvidia-550",
-      "Family": "rocky-linux-9-optimized-gcp-with-nvidia-550",
-      "Description": "Rocky Linux 9 optimized for GCP with Nvidia 550 built on {{$time}}",
+      "Prefix": "rocky-linux-8-optimized-gcp-with-nvidia-550",
+      "Family": "rocky-linux-8-optimized-gcp-with-nvidia-550",
+      "Description": "Rocky Linux 8 optimized for GCP with Nvidia 550 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         "https://www.googleapis.com/compute/v1/projects/accelerator-preview-images/global/licenses/accelerator-preview-image",
-        "https://www.googleapis.com/compute/v1/projects/rocky-linux-cloud/global/licenses/rocky-linux-9-optimized-gcp"
+        "https://www.googleapis.com/compute/v1/projects/rocky-linux-cloud/global/licenses/rocky-linux-8-optimized-gcp"
       ],
       "GuestOsFeatures": ["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "GVNIC"]
     }
