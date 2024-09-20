@@ -20,7 +20,7 @@
     }
   },
   "Sources": {
-    "installer_startup_script": "./build_rocky_${rocky_version}_optimized_gcp_accelerated.sh"
+    "installer_startup_script": "./build_rocky_linux_${rocky_version}_optimized_gcp_accelerated.sh"
   },
   "Steps": {
     "setup-disks": {
