@@ -1,5 +1,5 @@
 {{/*
-  Template to publish Debian images.
+  Template to publish Rocky 8 optimized for GCP/Nvidia images.
   By default this template is setup to publish to the 'gce-image-builder'
   project, the 'environment' variable can be used to publish to 'test', 'prod'
   DeleteAfter is set to 180 days for all environments other than prod where no
@@ -17,7 +17,7 @@
   "DeleteAfter": {{$delete_after}},
   {{- else if eq .environment "prod" -}}
   "WorkProject": {{$work_project}},
-  "PublishProject": "accelerator-preview-imagess",
+  "PublishProject": "accelerator-preview-images",
   "ComputeEndpoint": {{$endpoint}},
   {{- else if eq .environment "autopush" -}}
   "WorkProject": {{$work_project}},
