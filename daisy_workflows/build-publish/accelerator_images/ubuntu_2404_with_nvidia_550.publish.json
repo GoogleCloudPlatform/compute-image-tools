@@ -38,7 +38,7 @@
       "Description": "Ubuntu 24.04 AMD64 with Nvidia 550 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
-        "https://www.googleapis.com/compute/v1/projects/projects/accelerator-base-image-prototypes/global/licenses/accelerator-preview-image",
+        "https://www.googleapis.com/compute/v1/projects/projects/accelerator-preview-images/global/licenses/accelerator-preview-image",
         "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/licenses/ubuntu-2404-lts"
       ],
       "GuestOsFeatures": ["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "GVNIC"]

@@ -41,10 +41,10 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "ubuntu-2404-amd64-with-nvidia-${nvidia_driver_version}-v${build_date}",
+          "Name": "ubuntu-2404-with-nvidia-${nvidia_driver_version}-v${build_date}",
           "SourceDisk": "ubuntu-accelerated-installer",
           "Description": "Ubuntu 24.04 AMD64 with Nvidia ${nvidia_driver_version} built on ${build_date}",
-          "Family": "ubuntu-2404-amd64-accelerated-with-nvidia-${nvidia_driver_version}",
+          "Family": "ubuntu-2404-accelerated-with-nvidia-${nvidia_driver_version}",
           "Project": "${publish_project}",
           "NoCleanup": true,
           "ExactName": true,
