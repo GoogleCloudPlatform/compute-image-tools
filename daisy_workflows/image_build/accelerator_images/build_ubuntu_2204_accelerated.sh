@@ -12,6 +12,7 @@ tee /usr/bin/add-nvidia-repositories << EOF
 set -e
 curl https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb -o /tmp/cuda-keyring_1.1-1_all.deb
 dpkg -i /tmp/cuda-keyring_1.1-1_all.deb
+rm -f /tmp/cuda-keyring_1.1-1_all.deb
 EOF
 chmod +x /usr/bin/add-nvidia-repositories || echo "BuildFailure"
 echo "BuildSuccess"
