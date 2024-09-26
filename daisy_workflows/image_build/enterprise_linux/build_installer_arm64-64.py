@@ -47,8 +47,10 @@ def main():
 
   installer_disk = ('/dev/' + os.path.basename(
       os.readlink('/dev/disk/by-id/google-disk-installer')))
-  # installer_disk1 = installer_disk + '1' # this works for pd disk, below p1,p2 for new disks types
-  # installer_disk2 = installer_disk + '2' # TODO just make one script that checks what kind of disks
+  # installer_disk1 = installer_disk + '1' # this works for pd disk,
+                                   # below p1,p2 for new disks types
+  # installer_disk2 = installer_disk + '2' # TODO just make one script
+                                    # that checks what kind of disks
   installer_disk1 = installer_disk + 'p1'
   installer_disk2 = installer_disk + 'p2'
 
