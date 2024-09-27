@@ -5,5 +5,11 @@ curl -L -o nvidia.run https://us.download.nvidia.com/tesla/550.90.12/NVIDIA-Linu
 chmod +x ./nvidia.run || echo "BuildFailure"
 # DKMS - not suitable for prod
 ./nvidia.run -s --kernel-source-path=/usr/src/kernels/4.18.0-553.8.1.el8_10.cloud.0.1.x86_64/ || echo "BuildFailure"
-dnf install -y rdma-core || echo "BuildFailure"
+dnf install -y createrepo gdb-headless libtool autoconf rpm-build kernel-rpm-macros patch automake wget lsof tk gcc-gfortran tcl pciutils || echo "BuildFailure"
+wget https://content.mellanox.com/ofed/MLNX_OFED-23.10-3.2.2.0/MLNX_OFED_LINUX-23.10-3.2.2.0-rhel8.9-x86_64.tgz || echo "BuildFailure"
+tar xf MLNX_OFED_LINUX-23.10-3.2.2.0-rhel8.9-x86_64.tgz || echo "BuildFailure"
+cd MLNX_OFED_LINUX-23.10-3.2.2.0-rhel8.9-x86_64 || echo "BuildFailure"
+./mlnxofedinstall --guest --force --skip-distro-check --add-kernel-support || echo "BuildFailure"
+cd ..
+rm -rf MLNX_OFED_LINUX-23.10-3.2.2.0-rhel8.9-x86_64 MLNX_OFED_LINUX-23.10-3.2.2.0-rhel8.9-x86_64.tgz
 echo "BuildSuccess"
