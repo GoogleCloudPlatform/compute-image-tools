@@ -6,7 +6,7 @@ apt upgrade -y || echo "BuildFailure"
 # DKMS - not suitable for prod
 apt -y install nvidia-utils-550 linux-modules-nvidia-550-open-gcp rdma-core || echo "BuildFailure"
 # This is only for mlx5_ib - once that's in the main package stop including it
-apt -y install linux-modules-extra-cp || echo "BuildFailure"
+apt -y install linux-modules-extra-gcp || echo "BuildFailure"
 tee /usr/bin/add-nvidia-repositories << EOF
 #!/bin/bash
 set -e
