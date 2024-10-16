@@ -2,6 +2,7 @@
 
 
 import logging
+import os
 import subprocess
 
 import utils
@@ -59,13 +60,18 @@ def main():
   logging.info('Mount dev filesystem in chroot')
   run('mount -o bind /dev /mnt/dev')
 
+  # Enable DNS resolution in the chroot, for fetching dependencies.
+  if os.path.isfile('/mnt/etc/resolv.conf'):
+    os.rename('/mnt/etc/resolv.conf', '/mnt/etc/resolv.conf.bak')
+  utils.WriteFile('/mnt/etc/resolv.conf', utils.ReadFile('/etc/resolv.conf'))
+
   utils.DownloadFile(package, f'/mnt/tmp/{package_name}')
 
   distribution = get_distro_from_image(image)
   if distribution == 'debian':
-    install_cmd = 'dpkg --force-all -i'
+    install_cmd = 'apt install -y '
   elif distribution == 'enterprise_linux':
-    install_cmd = 'rpm --nodeps -Uvh'
+    install_cmd = 'dnf install -y'
   else:
     raise Exception('Unknown Linux distribution.')
 
@@ -74,6 +80,11 @@ def main():
   if distribution == 'enterprise_linux':
     run('chroot /mnt /sbin/setfiles -v -F '
         '/etc/selinux/targeted/contexts/files/file_contexts /')
+
+  os.remove('/mnt/etc/resolv.conf')
+  # Restore resolv.conf if necessary
+  if os.path.isfile('/mnt/etc/resolv.conf.bak'):
+    os.rename('/mnt/etc/resolv.conf.bak', '/mnt/etc/resolv.conf')
 
   # Best effort to unmount prior to shutdown.
   run('sync', check=False)
