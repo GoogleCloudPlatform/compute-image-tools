@@ -43,7 +43,7 @@
       "CreateDisks": [
         {
           "Name": "disk-test",
-          "SourceImage": "projects/compute-image-tools/global/images/family/debian-11-worker",
+          "SourceImage": "projects/compute-image-tools/global/images/family/debian-12-worker",
           "Type": "pd-ssd"
         }
       ]
