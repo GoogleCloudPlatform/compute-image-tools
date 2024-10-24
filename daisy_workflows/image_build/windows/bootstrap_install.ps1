@@ -23,7 +23,7 @@ function Get-MetadataValue {
   )
 
   # Returns the provided metadata value for a given key.
-  $url = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/$key"
+  $url = "http://169.254.169.254/computeMetadata/v1/instance/attributes/$key"
   try {
     $client = New-Object Net.WebClient
     $client.Headers.Add('Metadata-Flavor', 'Google')
