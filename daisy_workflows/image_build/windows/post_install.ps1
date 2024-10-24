@@ -47,7 +47,7 @@ function Get-MetadataValue {
   )
 
   # Returns the provided metadata value for a given key.
-  $url = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/$key"
+  $url = "http://169.254.169.254/computeMetadata/v1/instance/attributes/$key"
   try {
     $client = New-Object Net.WebClient
     $client.Headers.Add('Metadata-Flavor', 'Google')
@@ -302,7 +302,7 @@ function Setup-NTP {
   Run-Command $w32tm /register
 
   # Get time from GCE NTP server every 15 minutes.
-  Run-Command $w32tm /config '/manualpeerlist:metadata.google.internal,0x1' /syncfromflags:manual
+  Run-Command $w32tm /config '/manualpeerlist:169.254.169.254,0x1' /syncfromflags:manual
   Start-Sleep -s 300
   Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders\NtpClient' `
     -Name SpecialPollInterval -Value 900
@@ -310,7 +310,7 @@ function Setup-NTP {
   $server_key = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DateTime\Servers'
   $server_item = Get-Item $server_key
   $server_num = ($server_item.GetValueNames() | Measure-Object -Maximum).Maximum + 1
-  Set-ItemProperty -Path $server_key -Name $server_num -Value 'metadata.google.internal'
+  Set-ItemProperty -Path $server_key -Name $server_num -Value '169.254.169.254'
   Set-ItemProperty -Path $server_key -Name '(Default)' -Value $server_num
   # Configure to run automatically on every start.
   Set-Service W32Time -StartupType Automatic
