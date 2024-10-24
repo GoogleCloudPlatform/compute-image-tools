@@ -15,7 +15,7 @@
       "Description": "Format to export disk as"
     },
     "export_instance_disk_image": {
-      "Value": "projects/compute-image-tools/global/images/family/debian-10-worker",
+      "Value": "projects/compute-image-tools/global/images/family/debian-12-worker",
       "Description": "image to use for the exporter instance"
     },
     "export_instance_disk_size": {

@@ -17,7 +17,7 @@ a GCE Image in the build project.
 The specific image build workflows all include the base
 `enterprise_linux.wf.json` workflow. This workflow takes the following steps:
 
-1. Create an instance using the `debian-10-worker` image for the boot disk, an
+1. Create an instance using the `debian-12-worker` image for the boot disk, an
    empty second disk attached, and the startup script set in metadata to use the
    `linux\_common` bootstrap script and the `build\_installer.py` script on boot.
 

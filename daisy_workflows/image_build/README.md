@@ -37,6 +37,6 @@ It is a common practice to use the bootstrap shell script located in the
 eliminates the need for scripts which have to bootstrap themselves.
 
 It is a common practice to use a pre-prepared 'worker' image, most often the
-Debian 10 or Debian 11 worker images, which are publicly available in the
+Debian 12 worker image, which is publicly available in the
 `compute-image-tools` GCP project. The workflows for building these worker
 images are also present in the `debian/` directory.
