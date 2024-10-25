@@ -36,12 +36,11 @@
   "Images": [
     {
       {{- if eq .environment "byol" -}}
-      "Prefix": "windows-server-2016-byol",
       "Family": "windows-2016-byol",
       {{- else -}}
-      "Prefix": "windows-server-2016-dc",
       "Family": "windows-2016",
       {{- end}}
+      "Prefix": "windows-server-2016-dc",
       "Description": "Microsoft, Windows Server, 2016 Datacenter, Server with Desktop Experience, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
