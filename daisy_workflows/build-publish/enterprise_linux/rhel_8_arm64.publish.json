@@ -1,0 +1,47 @@
+{{/*
+  Template to publish UEFI-enabled Red Hat Enterprise Linux images.
+  By default this template is setup to publish to the 'gce-image-builder'
+  project, the 'environment' variable can be used to publish to 'test', 'prod'
+  DeleteAfter is set to 180 days for all environments other than prod where no
+  time period is set.
+*/}}
+{
+  "Name": "rhel-8-arm64",
+  {{$work_project := printf "%q" "gce-image-builder" -}}
+  {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
+  {{$delete_after := `"24h*30*6"` -}}
+  {{if eq .environment "test" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "bct-prod-images",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- else if eq .environment "prod" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "rhel-cloud",
+  "ComputeEndpoint": {{$endpoint}},
+  {{- else if eq .environment "autopush" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "artifact-releaser-autopush",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": "3h",
+  {{- else -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": {{$work_project}},
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
+  {{- end}}
+  {{$guest_features := `["UEFI_COMPATIBLE", "GVNIC"]` -}}
+  {{$time := trimPrefix .publish_version "v"}}
+  "Images": [
+    {
+      "Family": "rhel-8-arm64",
+      "Prefix": "rhel-8-arm64",
+      "Description": "Red Hat, Red Hat Enterprise Linux, 8, aarch64 built on {{$time}}",
+      "Architecture": "ARM64",
+      "Licenses": [
+        "projects/rhel-cloud/global/licenses/rhel-8-server"
+      ],
+      "GuestOsFeatures": {{$guest_features}}
+    }
+  ]
+}

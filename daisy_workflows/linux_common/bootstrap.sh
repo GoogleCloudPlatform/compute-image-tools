@@ -26,7 +26,7 @@ DebianInstallGoogleApiPythonClient() {
     logger -p daemon.info "Status: Installing google-api-python-client"
 
     apt -y update && DEBIAN_FRONTEND=noninteractive apt-get -q -y install python3-pip
-    pip3 install -U google-api-python-client google-cloud-storage
+    pip3 install --break-system-packages -U google-api-python-client google-cloud-storage
 }
 
 DebianInstallNetaddrPythonLibrary() {

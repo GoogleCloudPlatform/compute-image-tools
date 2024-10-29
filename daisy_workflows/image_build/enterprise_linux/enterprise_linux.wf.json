@@ -11,7 +11,7 @@
       "Description": "Path to kickstart config file."
     },
     "machine_type": {
-      "Value": "e2-standard-4",
+      "Value": "c3-standard-4",
       "Description": "The machine type to use during build."
     },
     "el_savelogs": {
@@ -47,21 +47,21 @@
       "CreateDisks": [
         {
           "Name": "disk-installerprep",
-          "SourceImage": "projects/compute-image-tools/global/images/family/debian-11-worker",
+          "SourceImage": "projects/compute-image-tools/global/images/family/debian-12-worker",
           "SizeGb": "50",
-          "Type": "pd-ssd"
+          "Type": "hyperdisk-balanced"
         },
         {
           "Name": "disk-installer",
           "SizeGb": "50",
-          "Type": "pd-ssd",
-          "GuestOsFeatures": [{"type": "UEFI_COMPATIBLE"}]
+          "Type": "hyperdisk-balanced",
+          "GuestOsFeatures": [{"type": "UEFI_COMPATIBLE"}, {"type": "GVNIC"}]
         },
         {
           "Name": "el-install-disk",
           "SizeGb": "20",
-          "Type": "pd-ssd",
-          "GuestOsFeatures": [{"type": "UEFI_COMPATIBLE"}]
+          "Type": "hyperdisk-balanced",
+          "GuestOsFeatures": [{"type": "UEFI_COMPATIBLE"}, {"type": "GVNIC"}]
         }
       ]
     },
@@ -70,7 +70,7 @@
         {
           "Name": "inst-installerprep",
           "Disks": [{"Source": "disk-installerprep"}, {"Source": "disk-installer"}],
-          "MachineType": "e2-standard-4",
+          "MachineType": "c3-standard-4",
           "Metadata": {
             "files_gcs_dir": "${SOURCESPATH}/build_files",
             "debian_install_google_api_python_client": "yes",
