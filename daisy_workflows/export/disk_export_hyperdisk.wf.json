@@ -23,11 +23,11 @@
     },
     "export_instance_disk_size": {
       "Value": "40",
-      "Description": "size of the export instances disk, must be larger than the image size in GB so it can be copied for shasum. A larger size increase PD read speed"
+      "Description": "size of the export instances disk, must be larger than the image size in GB so it can be copied for shasum."
     },
     "export_instance_disk_type": {
-      "Value": "pd-ssd",
-      "Description": "Disk type of the buffer. By default it's pd-ssd for higher speed. pd-standard can be used when pd-ssd quota is not enough"
+      "Value": "hyperdisk-balanced",
+      "Description": "Disk type of the export instance."
     },
     "export_network": {
       "Value": "global/networks/default",
@@ -76,8 +76,8 @@
       "CreateInstances": [
         {
           "Name": "inst-${NAME}",
-          "Disks": [{"Source": "disk-${NAME}"}, {"Source": "${source_disk}", "Mode": "READ_ONLY"}],
-          "MachineType": "e2-standard-4",
+          "Disks": [{"Source": "disk-${NAME}"}, {"Source": "${source_disk}"}],
+          "MachineType": "c3-standard-4",
           "Metadata": {
             "block-project-ssh-keys": "true",
             "destination": "${destination}",

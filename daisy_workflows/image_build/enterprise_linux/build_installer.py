@@ -47,8 +47,6 @@ def main():
 
   installer_disk = ('/dev/' + os.path.basename(
       os.readlink('/dev/disk/by-id/google-disk-installer')))
-  installer_disk1 = installer_disk + '1'
-  installer_disk2 = installer_disk + '2'
 
   utils.Execute(['parted', installer_disk, 'mklabel', 'gpt'])
   utils.Execute(['sync'])
@@ -62,17 +60,23 @@ def main():
   utils.Execute(['sync'])
   utils.Execute(['parted', installer_disk, 'set', '1', 'esp', 'on'])
   utils.Execute(['sync'])
+
+  installer_disk1 = ('/dev/' + os.path.basename(
+      os.readlink('/dev/disk/by-id/google-disk-installer-part1')))
+  installer_disk2 = ('/dev/' + os.path.basename(
+      os.readlink('/dev/disk/by-id/google-disk-installer-part2')))
+
   utils.Execute(['mkfs.vfat', '-F', '32', installer_disk1])
   utils.Execute(['sync'])
   utils.Execute(['fatlabel', installer_disk1, 'ESP'])
   utils.Execute(['sync'])
-  utils.Execute(['mkfs.ext2', '-L', 'INSTALLER', installer_disk2])
+  utils.Execute(['mkfs.ext4', '-L', 'INSTALLER', installer_disk2])
   utils.Execute(['sync'])
 
   utils.Execute(['mkdir', '-vp', 'iso', 'installer', 'boot'])
   utils.Execute(['mount', '-o', 'ro,loop', '-t', 'iso9660', iso_file, 'iso'])
   utils.Execute(['mount', '-t', 'vfat', installer_disk1, 'boot'])
-  utils.Execute(['mount', '-t', 'ext2', installer_disk2, 'installer'])
+  utils.Execute(['mount', '-t', 'ext4', installer_disk2, 'installer'])
   utils.Execute(['cp', '-r', 'iso/EFI', 'boot/'])
   utils.Execute(['cp', '-r', 'iso/images', 'boot/'])
   utils.Execute(['cp', iso_file, 'installer/'])
