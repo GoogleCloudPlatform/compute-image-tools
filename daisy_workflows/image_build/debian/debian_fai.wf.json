@@ -6,7 +6,7 @@
     "debian_version": {"Required": true, "Description": "Debian version to build."},
     "builder_machine_type": {"Value": "e2-standard-4", "Description": "Machine type for builder instance."},
     "builder_source_image": {
-      "Value": "projects/compute-image-tools/global/images/family/debian-11-worker",
+      "Value": "projects/compute-image-tools/global/images/family/debian-12-worker",
       "Description": "Base image for builder instance."
     }
   },
