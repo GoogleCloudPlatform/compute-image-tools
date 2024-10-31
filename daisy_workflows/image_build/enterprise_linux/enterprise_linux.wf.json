@@ -53,18 +53,18 @@
           "Name": "disk-installerprep",
           "SourceImage": "projects/compute-image-tools/global/images/family/debian-12-worker",
           "SizeGb": "50",
-          "Type": "{disk_type}"
+          "Type": "${disk_type}"
         },
         {
           "Name": "disk-installer",
           "SizeGb": "50",
-          "Type": "{disk_type}",
+          "Type": "${disk_type}",
           "GuestOsFeatures": [{"type": "UEFI_COMPATIBLE"}, {"type": "GVNIC"}]
         },
         {
           "Name": "el-install-disk",
           "SizeGb": "20",
-          "Type": "{disk_type}",
+          "Type": "${disk_type}",
           "GuestOsFeatures": [{"type": "UEFI_COMPATIBLE"}, {"type": "GVNIC"}]
         }
       ]
