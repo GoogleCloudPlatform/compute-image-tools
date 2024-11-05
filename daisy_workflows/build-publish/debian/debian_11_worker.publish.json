@@ -11,7 +11,7 @@
   "WorkProject": "gce-image-builder",
   "PublishProject": "compute-image-tools-test",
   "ComputeEndpoint": {{$endpoint}},
-  "DeleteAfter": "24h*30*6",
+  "DeleteAfter": "24h*30*4",
   {{- else if eq .environment "prod" -}}
   "WorkProject": "gce-image-builder",
   "PublishProject": "compute-image-tools",

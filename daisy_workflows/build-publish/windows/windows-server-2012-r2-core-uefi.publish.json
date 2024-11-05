@@ -10,7 +10,7 @@
   "Name": "windows-server-2012-r2-core-uefi",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
-  {{$delete_after := `"24h*30*6"` -}}
+  {{$delete_after := `"24h*30*4"` -}}
   {{if eq .environment "prod" -}}
   "WorkProject": {{$work_project}},
   "PublishProject": "windows-cloud",
