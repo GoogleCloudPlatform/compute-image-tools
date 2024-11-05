@@ -9,7 +9,7 @@
   "Name": "rhel-8-8-sap",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
-  {{$delete_after := `"24h*30*6"` -}}
+  {{$delete_after := `"24h*30*4"` -}}
   {{if eq .environment "test" -}}
   "WorkProject": {{$work_project}},
   "PublishProject": "bct-prod-images",
