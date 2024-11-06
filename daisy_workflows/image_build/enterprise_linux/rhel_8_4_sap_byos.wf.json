@@ -32,6 +32,7 @@
           "kickstart_config": "./kickstart/rhel_8_4_sap_byos.cfg",
           "google_cloud_repo": "${google_cloud_repo}",
           "installer_iso": "${installer_iso}",
+          "machine_type": "e2-standard-4",
           "rhel_sap": "true",
           "rhel_byos": "true"
         }
