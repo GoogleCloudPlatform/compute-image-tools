@@ -37,7 +37,7 @@
     "build": {
       "TimeOut": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/accelerator_images/rocky_linux_9_optimized_gcp_with_nvidia_550.wf.json",
+        "Path": "${workflow_root}/image_build/enterprise_linux/rocky_linux_9_optimized_gcp_with_nvidia_550.wf.json",
         "Vars": {
           "build_date": "${build_date}"
         }
