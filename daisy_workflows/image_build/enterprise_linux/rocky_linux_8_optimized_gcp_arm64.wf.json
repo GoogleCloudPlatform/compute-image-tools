@@ -22,8 +22,9 @@
         "Vars": {
           "el_release": "rocky-linux-8-optimized-gcp-arm64",
           "kickstart_config": "./kickstart/rocky_linux_8_optimized_gcp_arm64.cfg",
+          "installer_iso": "${installer_iso}",
           "machine_type": "t2a-standard-4",
-          "installer_iso": "${installer_iso}"
+          "worker_image": "projects/compute-image-tools/global/images/family/debian-12-worker-arm64"
         }
       }
     },

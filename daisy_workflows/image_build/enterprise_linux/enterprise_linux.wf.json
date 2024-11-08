@@ -14,6 +14,10 @@
       "Value": "e2-standard-4",
       "Description": "The machine type to use during build."
     },
+    "worker_image": {
+      "Value": "projects/compute-image-tools/global/images/family/debian-12-worker",
+      "Description": "The worker image to use for the build."
+    },
     "el_savelogs": {
       "Value": "false",
       "Description": "Save anaconda logs to the image (useful for debugging)."
@@ -51,7 +55,7 @@
       "CreateDisks": [
         {
           "Name": "disk-installerprep",
-          "SourceImage": "projects/compute-image-tools/global/images/family/debian-12-worker",
+          "SourceImage": "${worker_image}",
           "SizeGb": "50",
           "Type": "${disk_type}"
         },
