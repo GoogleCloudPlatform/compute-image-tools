@@ -539,8 +539,8 @@ function Configure-RDP {
 function Install-DriverPackages {
   Write-Host 'Installing GCE Driver Packages...'
   # Install each individually in order to catch individual errors
-  # Install GVNIC DQ on 2016, for all other versions install GQ
-  if ([System.Environment]::OSVersion.Version.Major -ge 10 -and [System.Environment]::OSVersion.Version.Build -ne 14393) {
+  # if 2019/2022 install GQ else Install GVNIC DQ (2016/2025) 
+  if (([System.Environment]::OSVersion.Version.Major -ge 10 -and [System.Environment]::OSVersion.Version.Build -gt 14393) -and ([System.Environment]::OSVersion.Version.Major -ge 10 -and [System.Environment]::OSVersion.Version.Build -lt 26100)) {
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-compute-engine-driver-gvnic-gq-stable google-compute-engine-driver-gvnic
   }
   else {
