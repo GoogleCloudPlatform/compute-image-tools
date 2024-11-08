@@ -29,6 +29,7 @@
           "google_cloud_repo": "${google_cloud_repo}",
           "installer_iso": "${installer_iso}",
           "rhel_byos": "true",
+          "disk_type": "hyperdisk-balanced",
           "machine_type": "c4a-standard-4",
           "worker_image": "projects/compute-image-tools/global/images/family/debian-12-worker-arm64"
         }
