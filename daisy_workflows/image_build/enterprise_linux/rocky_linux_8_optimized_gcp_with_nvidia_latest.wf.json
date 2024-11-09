@@ -1,10 +1,6 @@
 {
-  "Name": "build-rocky-8-optimized-gcp-2204-with-nvidia-550-ks",
+  "Name": "build-rocky-8-optimized-gcp-2204-nvidia-550-ks",
   "Vars": {
-    "nvidia_driver_version": {
-      "Value": "550",
-      "Description": "The nvidia driver version to install"
-    },
     "installer_iso": {
       "Required": true,
       "Description": "The Rocky Linux 8 installer ISO to build from."
@@ -33,10 +29,10 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "rocky-linux-8-optimized-gcp-with-nvidia-${nvidia_driver_version}-v${build_date}",
+          "Name": "rocky-linux-8-optimized-gcp-nvidia-latest-v${build_date}",
           "SourceDisk": "el-install-disk",
-          "Description": "Rocky Linux 8 optimized for gcp with Nvidia ${nvidia_driver_version} built on ${build_date}",
-          "Family": "rocky-linux-8-optimized-gcp-accelerated-with-nvidia-${nvidia_driver_version}",
+          "Description": "Rocky Linux 8 optimized for gcp with Nvidia latest built on ${build_date}",
+          "Family": "rocky-linux-8-optimized-gcp-accelerated-nvidia-latest}",
           "Project": "${publish_project}",
           "NoCleanup": true,
           "ExactName": true,
