@@ -1,0 +1,51 @@
+{
+  "Name": "build-rocky-8-optimized-gcp-2204-with-nvidia-550-ks",
+  "Vars": {
+    "nvidia_driver_version": {
+      "Value": "550",
+      "Description": "The nvidia driver version to install"
+    },
+    "installer_iso": {
+      "Required": true,
+      "Description": "The Rocky Linux 8 installer ISO to build from."
+    },
+    "build_date": {
+      "Value": "${TIMESTAMP}",
+      "Description": "Build datestamp used to version the image."
+    },
+    "publish_project": {
+      "Value": "${PROJECT}",
+      "Description": "A project to publish the resulting image to."
+    }
+  },
+  "Steps": {
+    "build-rocky": {
+      "Timeout": "60m",
+      "IncludeWorkflow": {
+        "Path": "./enterprise_linux.wf.json",
+        "Vars": {
+          "el_release": "rocky-linux-8-optimized-gcp",
+          "kickstart_config": "./kickstart/rocky_linux_8_optimized_gcp_accelerator.cfg",
+          "installer_iso": "${installer_iso}"
+        }
+      }
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "rocky-linux-8-optimized-gcp-with-nvidia-${nvidia_driver_version}-v${build_date}",
+          "SourceDisk": "el-install-disk",
+          "Description": "Rocky Linux 8 optimized for gcp with Nvidia ${nvidia_driver_version} built on ${build_date}",
+          "Family": "rocky-linux-8-optimized-gcp-accelerated-with-nvidia-${nvidia_driver_version}",
+          "Project": "${publish_project}",
+          "NoCleanup": true,
+          "ExactName": true,
+          "GuestOsFeatures": []
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-image": ["build-rocky"]
+  }
+}
