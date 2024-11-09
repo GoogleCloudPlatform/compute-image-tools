@@ -9,8 +9,8 @@
       "Description": "Build datestamp used to version the image."
     },
     "google_cloud_repo": {
-      "Value": "stable",
-      "Description": "The Google Cloud Repo branch to use."
+      "Value": "DEPRECATED",
+      "Description": "DEPRECATED. Included to ease transition of our pipelines, but not used."
     },
     "workflow_root": {
       "Value": "/workflows",
