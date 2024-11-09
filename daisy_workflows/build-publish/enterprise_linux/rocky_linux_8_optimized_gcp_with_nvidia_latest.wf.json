@@ -1,5 +1,5 @@
 {
-  "Name": "rocky-linux-8-optimized-gcp-with-nvidia-550",
+  "Name": "rocky-linux-8-optimized-gcp-nvidia-latest",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -24,6 +24,10 @@
       "Value": "${OUTSPATH}/export-image.sbom.json",
       "Description": "SBOM final export destination, copies in place by default"
     },
+    "installer_iso": {
+      "Required": true,
+      "Description": "The Rocky Linux 8 installer ISO to build from."
+    },
     "sbom_util_gcs_root": {
       "Value": "",
       "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
@@ -37,21 +41,12 @@
     "build": {
       "TimeOut": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/enterprise_linux/rocky_linux_8_optimized_gcp_with_nvidia_550.wf.json",
+        "Path": "${workflow_root}/image_build/enterprise_linux/rocky_linux_8_optimized_gcp_with_nvidia_latest.wf.json",
         "Vars": {
-          "build_date": "${build_date}"
+          "build_date": "${build_date}",
+          "installer_iso": "${installer_iso}"
         }
       }
-    },
-    "create-disk": {
-      "CreateDisks": [
-        {
-          "Name": "disk-rocky-linux-8-optimized-gcp-with-nvidia-550",
-          "SourceImage": "rocky-linux-8-optimized-gcp-with-nvidia-550-v${build_date}",
-          "SizeGb": "30",
-          "Type": "pd-ssd"
-        }
-      ]
     },
     "export-image": {
       "Timeout": "60m",
@@ -60,7 +55,7 @@
         "Vars": {
           "destination": "${gcs_url}",
           "sbom_destination": "${sbom_destination}",
-          "source_disk": "disk-rocky-linux-8-optimized-gcp-with-nvidia-550",
+          "source_disk": "el-install-disk",
           "sbom_util_gcs_root": "${sbom_util_gcs_root}",
           "sha256_txt": "${sha256_txt}"
         }
@@ -68,13 +63,12 @@
     },
     "cleanup-image": {
       "DeleteResources": {
-        "Images": ["rocky-linux-8-optimized-gcp-with-nvidia-550-v${build_date}"]
+        "Images": ["rocky-linux-8-optimized-gcp-nvidia-latest-v${build_date}"]
       }
     }
   },
   "Dependencies": {
-    "create-disk": ["build"],
-    "export-image": ["create-disk"],
+    "export-image": ["build"],
     "cleanup-image": ["export-image"]
   }
 }
