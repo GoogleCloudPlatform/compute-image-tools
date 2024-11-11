@@ -32,7 +32,7 @@
           "Name": "rocky-linux-8-optimized-gcp-nvidia-latest-v${build_date}",
           "SourceDisk": "el-install-disk",
           "Description": "Rocky Linux 8 optimized for gcp with latest Nvidia driver built on ${build_date}",
-          "Family": "rocky-linux-8-optimized-gcp-accelerated-nvidia-latest}",
+          "Family": "rocky-linux-8-optimized-gcp-nvidia-latest}",
           "Project": "${publish_project}",
           "NoCleanup": true,
           "ExactName": true,
