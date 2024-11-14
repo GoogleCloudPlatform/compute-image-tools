@@ -1,0 +1,47 @@
+{
+  "Name": "build-rocky-9-optimized-gcp-2204-nvidia-latest",
+  "Vars": {
+    "installer_iso": {
+      "Required": true,
+      "Description": "The Rocky Linux 9 installer ISO to build from."
+    },
+    "build_date": {
+      "Value": "${TIMESTAMP}",
+      "Description": "Build datestamp used to version the image."
+    },
+    "publish_project": {
+      "Value": "${PROJECT}",
+      "Description": "A project to publish the resulting image to."
+    }
+  },
+  "Steps": {
+    "build-rocky": {
+      "Timeout": "60m",
+      "IncludeWorkflow": {
+        "Path": "./enterprise_linux.wf.json",
+        "Vars": {
+          "el_release": "rocky-linux-9-optimized-gcp",
+          "kickstart_config": "./kickstart/rocky_linux_9_optimized_gcp_accelerator.cfg",
+          "installer_iso": "${installer_iso}"
+        }
+      }
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "rocky-linux-9-optimized-gcp-nvidia-latest-v${build_date}",
+          "SourceDisk": "el-install-disk",
+          "Description": "Rocky Linux 9 optimized for gcp with latest Nvidia driver built on ${build_date}",
+          "Family": "rocky-linux-9-optimized-gcp-nvidia-latest",
+          "Project": "${publish_project}",
+          "NoCleanup": true,
+          "ExactName": true,
+          "GuestOsFeatures": []
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-image": ["build-rocky"]
+  }
+}
