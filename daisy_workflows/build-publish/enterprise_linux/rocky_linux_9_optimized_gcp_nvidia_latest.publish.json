@@ -2,11 +2,11 @@
   Template to publish Rocky 9 optimized for GCP/Nvidia images.
   By default this template is setup to publish to the 'gce-image-builder'
   project, the 'environment' variable can be used to publish to 'test', 'prod'
-  DeleteAfter is set to 180 days for all environments other than prod where no
+  DeleteAfter is set to 190 days for all environments other than prod where no
   time period is set.
 */}}
 {
-  "Name": "rocky-linux-9-optimized-gcp-with-nvidia-550",
+  "Name": "rocky-linux-9-optimized-gcp-nvidia-latest",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*4"` -}}
@@ -33,9 +33,9 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Prefix": "rocky-linux-9-optimized-gcp-with-nvidia-550",
-      "Family": "rocky-linux-9-optimized-gcp-with-nvidia-550",
-      "Description": "Rocky Linux 9 optimized for GCP with Nvidia 550 built on {{$time}}",
+      "Prefix": "rocky-linux-9-optimized-gcp-nvidia-latest",
+      "Family": "rocky-linux-9-optimized-gcp-nvidia-latest",
+      "Description": "Rocky Linux 9 optimized for GCP with latest Nvidia driver built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         "https://www.googleapis.com/compute/v1/projects/accelerator-preview-images/global/licenses/accelerator-preview-image",

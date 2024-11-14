@@ -1,5 +1,5 @@
 {
-  "Name": "build-rocky-8-optimized-gcp-2204-nvidia-latest",
+  "Name": "build-rocky-8-optimized-gcp-nvidia-latest",
   "Vars": {
     "installer_iso": {
       "Required": true,
