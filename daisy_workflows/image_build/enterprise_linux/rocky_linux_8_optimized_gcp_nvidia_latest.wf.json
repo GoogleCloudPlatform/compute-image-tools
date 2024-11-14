@@ -1,9 +1,9 @@
 {
-  "Name": "build-rocky-9-optimized-gcp-2204-nvidia-latest",
+  "Name": "build-rocky-8-optimized-gcp-nvidia-latest",
   "Vars": {
     "installer_iso": {
       "Required": true,
-      "Description": "The Rocky Linux 9 installer ISO to build from."
+      "Description": "The Rocky Linux 8 installer ISO to build from."
     },
     "build_date": {
       "Value": "${TIMESTAMP}",
@@ -20,8 +20,8 @@
       "IncludeWorkflow": {
         "Path": "./enterprise_linux.wf.json",
         "Vars": {
-          "el_release": "rocky-linux-9-optimized-gcp",
-          "kickstart_config": "./kickstart/rocky_linux_9_optimized_gcp_accelerator.cfg",
+          "el_release": "rocky-linux-8-optimized-gcp",
+          "kickstart_config": "./kickstart/rocky_linux_8_optimized_gcp_accelerator.cfg",
           "installer_iso": "${installer_iso}"
         }
       }
@@ -29,10 +29,10 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "rocky-linux-9-optimized-gcp-nvidia-latest-v${build_date}",
+          "Name": "rocky-linux-8-optimized-gcp-nvidia-latest-v${build_date}",
           "SourceDisk": "el-install-disk",
-          "Description": "Rocky Linux 9 optimized for gcp with latest Nvidia driver built on ${build_date}",
-          "Family": "rocky-linux-9-optimized-gcp-nvidia-latest",
+          "Description": "Rocky Linux 8 optimized for gcp with latest Nvidia driver built on ${build_date}",
+          "Family": "rocky-linux-8-optimized-gcp-nvidia-latest",
           "Project": "${publish_project}",
           "NoCleanup": true,
           "ExactName": true,

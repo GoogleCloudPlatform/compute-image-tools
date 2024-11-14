@@ -1,5 +1,5 @@
 {
-  "Name": "rocky-linux-8-optimized-gcp-nvidia-latest",
+  "Name": "rocky-linux-9-optimized-gcp-nvidia-latest",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -26,7 +26,7 @@
     },
     "installer_iso": {
       "Required": true,
-      "Description": "The Rocky Linux 8 installer ISO to build from."
+      "Description": "The Rocky Linux 9 installer ISO to build from."
     },
     "sbom_util_gcs_root": {
       "Value": "",
@@ -41,7 +41,7 @@
     "build": {
       "TimeOut": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/enterprise_linux/rocky_linux_8_optimized_gcp_with_nvidia_latest.wf.json",
+        "Path": "${workflow_root}/image_build/enterprise_linux/rocky_linux_9_optimized_gcp_nvidia_latest.wf.json",
         "Vars": {
           "build_date": "${build_date}",
           "installer_iso": "${installer_iso}"
@@ -63,7 +63,7 @@
     },
     "cleanup-image": {
       "DeleteResources": {
-        "Images": ["rocky-linux-8-optimized-gcp-nvidia-latest-v${build_date}"]
+        "Images": ["rocky-linux-9-optimized-gcp-nvidia-latest-v${build_date}"]
       }
     }
   },
