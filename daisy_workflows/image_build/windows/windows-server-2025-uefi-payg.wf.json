@@ -93,7 +93,7 @@
           "Family": "${family}",
           "Description": "${description}",
           "Licenses": [
-            "projects/windows-cloud/global/licenses/windows-server-2022"
+            "projects/windows-cloud/global/licenses/windows-server-2025"
           ],
           "GuestOsFeatures": [
             {
