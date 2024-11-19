@@ -32,13 +32,13 @@
     {
       "Prefix": "windows-server-2025",
       "Family": "windows-2025-standard",
-      "Description": "Microsoft, Windows Server, 2025 Preview, Server with Desktop Experience, x64 built on {{$time}}",
+      "Description": "Microsoft, Windows Server, 2025, Server with Desktop Experience, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "internal" -}}
         "projects/google.com:windows-internal/global/licenses/internal-windows"
         {{- else -}}
-        "projects/windows-cloud/global/licenses/windows-server-2022"
+        "projects/windows-cloud/global/licenses/windows-server-2025"
         {{- end}}
       ],
       "GuestOsFeatures": {{$guest_features}}

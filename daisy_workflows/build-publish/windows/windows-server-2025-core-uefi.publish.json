@@ -32,14 +32,14 @@
     {
       "Prefix": "windows-server-2025-core",
       "Family": "windows-2025-core-standard",
-      "Description": "Microsoft, Windows Server, 2025 Core Preview, Server Core, x64 built on {{$time}}",
+      "Description": "Microsoft, Windows Server, 2025 Core, Server Core, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "internal" -}}
         "projects/google.com:windows-internal/global/licenses/internal-windows",
         "projects/windows-cloud/global/licenses/windows-server-core"
         {{- else -}}
-        "projects/windows-cloud/global/licenses/windows-server-2022",
+        "projects/windows-cloud/global/licenses/windows-server-2025",
         "projects/windows-cloud/global/licenses/windows-server-core"
         {{- end}}
       ],
