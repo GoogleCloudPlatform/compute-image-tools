@@ -1,5 +1,5 @@
 {
-  "Name": "sql-2022-web-windows-2025-dc-image-build",
+  "Name": "sql-2017-web-windows-2025-dc-image-build",
   "Vars": {
     "build_date": "${TIMESTAMP}",
     "install_disk": "disk-install",
@@ -29,7 +29,7 @@
       "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
     },
     "img_family": {
-      "Value": "sql-web-2022-win-2025",
+      "Value": "sql-web-2017-win-2025",
       "Description": "The image family and component name for the sbom."
     }
   },
@@ -39,7 +39,7 @@
       "IncludeWorkflow": {
         "Path": "./sqlserver.wf.json",
         "Vars": {
-          "sql_server_config": "./configs/sql_server_2022.ini",
+          "sql_server_config": "./configs/sql_server_2017.ini",
           "sql_server_media": "${sql_server_media}",
           "source_image": "projects/${source_image_project}/global/images/family/windows-2025",
           "install_disk": "${install_disk}",
@@ -54,12 +54,12 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "sql-2022-web-windows-2022-dc-v${build_date}",
+          "Name": "sql-2017-web-windows-2025-dc-v${build_date}",
           "SourceDisk": "${install_disk}",
           "Licenses": [
-            "projects/windows-sql-cloud/global/licenses/sql-server-2025-web"
+            "projects/windows-sql-cloud/global/licenses/sql-server-2017-web"
           ],
-          "Description": "Microsoft, SQL Server 2022 Web, on Windows Server 2025, x64 built on ${build_date}",
+          "Description": "Microsoft, SQL Server 2017 Web, on Windows Server 2025, x64 built on ${build_date}",
           "GuestOsFeatures": ["MULTI_IP_SUBNET", "UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "WINDOWS", "GVNIC"],
           "Family": "${img_family}",
           "Project": "${publish_project}",

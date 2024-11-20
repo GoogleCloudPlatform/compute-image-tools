@@ -36,16 +36,16 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Prefix": "sql-2022-standard-windows-2025-dc",
-      "Family": "sql-std-2022-win-2025",
-      "Description": "Microsoft, SQL Server 2022 Standard, on Windows Server 2025 Datacenter, x64 built on {{$time}}",
+      "Prefix": "sql-2019-standard-windows-2025-dc",
+      "Family": "sql-std-2019-win-2025",
+      "Description": "Microsoft, SQL Server 2019 Standard, on Windows Server 2025 Datacenter, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "staging" -}}
-        "projects/bct-staging-functional/global/licenses/sql-server-2022-standard",
+        "projects/bct-staging-functional/global/licenses/sql-server-2019-standard",
         "projects/bct-staging-functional/global/licenses/windows-server-2025-dc"
         {{- else -}}
-        "projects/windows-sql-cloud/global/licenses/sql-server-2022-standard",
+        "projects/windows-sql-cloud/global/licenses/sql-server-2019-standard",
         "projects/windows-cloud/global/licenses/windows-server-2025-dc"
         {{- end}}
       ],
