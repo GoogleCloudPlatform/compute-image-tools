@@ -16,6 +16,10 @@
 # Builds a Debian based image for import, export, and build tasks. Preloads
 # dependencies and binaries for these workflows.
 
+echo "BuildStatus: Disabling APT Daily."
+systemctl disable apt-daily.timer
+systemctl stop apt-daily.timer
+
 echo "BuildStatus: Updating package cache."
 apt -y update
 if [[ $? -ne 0 ]]; then
