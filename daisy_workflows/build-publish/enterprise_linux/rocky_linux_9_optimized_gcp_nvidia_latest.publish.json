@@ -17,7 +17,7 @@
   "DeleteAfter": {{$delete_after}},
   {{- else if eq .environment "prod" -}}
   "WorkProject": {{$work_project}},
-  "PublishProject": "accelerator-preview-images",
+  "PublishProject": "rocky-linux-accelerator-cloud",
   "ComputeEndpoint": {{$endpoint}},
   {{- else if eq .environment "autopush" -}}
   "WorkProject": {{$work_project}},
@@ -38,10 +38,11 @@
       "Description": "Rocky Linux 9 optimized for GCP with latest Nvidia driver built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
-        "https://www.googleapis.com/compute/v1/projects/accelerator-preview-images/global/licenses/accelerator-preview-image",
+        "https://www.googleapis.com/compute/v1/projects/rocky-linux-accelerator-cloud/global/licenses/nvidia-latest",
+        "https://www.googleapis.com/compute/v1/projects/rocky-linux-accelerator-cloud/global/licenses/rocky-linux-9-accelerated",
         "https://www.googleapis.com/compute/v1/projects/rocky-linux-cloud/global/licenses/rocky-linux-9-optimized-gcp"
       ],
-      "GuestOsFeatures": ["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "GVNIC"]
+      "GuestOsFeatures": ["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "GVNIC", "SEV_CAPABLE", "SEV_SNP_CAPABLE", "SEV_LIVE_MIGRATABLE", "SEV_LIVE_MIGRATABLE_V2", "IDPF", "TDX_CAPABLE"]
     }
   ]
 }
