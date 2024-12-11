@@ -81,7 +81,8 @@
             "block-project-ssh-keys": "true",
             "gcs-path": "${OUTSPATH}/${NAME}",
             "format": "${format}",
-            "buffer-disk": "disk-${NAME}-buffer-${ID}",
+            "buffer-disk-name": "disk-${NAME}-buffer-${ID}",
+            "source-disk-name": "${source_disk}",
             "resizing-script-name": "${NAME}_disk_resizing_mon.sh",
             "startup-script": "${SOURCE:${NAME}_export_disk_ext.sh}"
           },
