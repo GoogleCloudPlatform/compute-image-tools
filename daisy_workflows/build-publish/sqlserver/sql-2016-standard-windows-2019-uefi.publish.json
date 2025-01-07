@@ -39,6 +39,9 @@
         "projects/windows-sql-cloud/global/licenses/sql-server-2016-standard",
         "projects/windows-cloud/global/licenses/windows-server-2019"
       ],
+      "Labels": {
+        "public-image": "true"
+      },
       "GuestOsFeatures": {{$guest_features}}
     }
   ]

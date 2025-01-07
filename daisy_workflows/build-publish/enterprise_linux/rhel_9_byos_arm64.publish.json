@@ -41,6 +41,9 @@
       "Licenses": [
         "projects/rhel-cloud/global/licenses/rhel-9-byos"
       ],
+      "Labels": {
+        "public-image": "true"
+      },
       "GuestOsFeatures": {{$guest_features}}
     }
   ]

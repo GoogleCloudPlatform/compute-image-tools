@@ -39,6 +39,9 @@
         "projects/windows-sql-cloud/global/licenses/sql-server-2017-enterprise",
         "projects/windows-cloud/global/licenses/windows-server-2016-dc"
       ],
+      "Labels": {
+        "public-image": "true"
+      },
       "GuestOsFeatures": {{$guest_features}}
     }
   ]

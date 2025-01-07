@@ -52,6 +52,13 @@
         "projects/windows-cloud/global/licenses/windows-server-2016-dc"
         {{- end}}
       ],
+      "Labels": {
+        {{if eq .environment "prod" -}}
+        "public-image": "true"
+        {{- else if eq .environment "byol" -}}
+        "public-image": "true"
+        {{- end}}
+      },
       "GuestOsFeatures": {{$guest_features}}
     }
   ]

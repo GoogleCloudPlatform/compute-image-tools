@@ -108,6 +108,8 @@ type Image struct {
 	ShieldedInstanceInitialState *computeAlpha.InitialStateConfig `json:",omitempty"`
 	// RolloutPolicy entry for the image rollout policy.
 	RolloutPolicy *computeAlpha.RolloutPolicy `json:",omitempty"`
+	// Optional labels to add to the image.
+	Labels map[string]string `json:",omitempty"`
 }
 
 var (
@@ -298,6 +300,7 @@ func publishImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image, skipDup
 			Deprecated:                   ds,
 			ShieldedInstanceInitialState: img.ShieldedInstanceInitialState,
 			RolloutOverride:              img.RolloutPolicy,
+			Labels:                       img.Labels,
 		},
 		ImageBase: daisy.ImageBase{
 			Resource: daisy.Resource{

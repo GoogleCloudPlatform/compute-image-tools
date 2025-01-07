@@ -67,6 +67,7 @@ func TestPublishImage(t *testing.T) {
 				RolloutPolicy: &computeAlpha.RolloutPolicy{
 					DefaultRolloutTime: now.Format(time.RFC3339),
 				},
+				Labels: map[string]string{"foo": "bar"},
 			},
 			pubImgs: []*computeAlpha.Image{
 				{Name: "bar-2", Family: "bar-family"},
@@ -106,6 +107,7 @@ func TestPublishImage(t *testing.T) {
 								State:    "ACTIVE",
 								Obsolete: now.Format(time.RFC3339),
 							},
+							Labels: map[string]string{"foo": "bar"},
 						},
 						GuestOsFeatures: []string{"foo-feature", "bar-feature"},
 					},

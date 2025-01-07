@@ -41,6 +41,9 @@
       "Licenses": [
         "projects/centos-cloud/global/licenses/centos-stream-9"
       ],
+      "Labels": {
+        "public-image": "true"
+      },
       "GuestOsFeatures": {{$guest_features}}
     }
   ]
