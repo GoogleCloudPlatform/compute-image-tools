@@ -67,6 +67,7 @@ func TestPublishImage(t *testing.T) {
 				RolloutPolicy: &computeAlpha.RolloutPolicy{
 					DefaultRolloutTime: now.Format(time.RFC3339),
 				},
+				Labels: map[string]string{"foo": "bar"},
 			},
 			pubImgs: []*computeAlpha.Image{
 				{Name: "bar-2", Family: "bar-family"},
@@ -106,6 +107,7 @@ func TestPublishImage(t *testing.T) {
 								State:    "ACTIVE",
 								Obsolete: now.Format(time.RFC3339),
 							},
+							Labels: map[string]string{"foo": "bar"},
 						},
 						GuestOsFeatures: []string{"foo-feature", "bar-feature"},
 					},
@@ -766,7 +768,7 @@ func TestCreatePublishWithFile(t *testing.T) {
 		wantErr bool
 	}{
 		{"no valid path", "", true},
-		{"pass with valid path", "../../../daisy_workflows/build-publish/debian/debian_10.publish.json", false},
+		{"pass with valid path", "../../../daisy_workflows/build-publish/debian/debian_11.publish.json", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
