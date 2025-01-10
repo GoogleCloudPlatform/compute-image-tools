@@ -36,9 +36,9 @@
   "Images": [
     {
       {{- if eq .environment "byol" -}}
-      "Family": "windows-2025-byol",
+      "Family": "windows-2025-core-byol",
       {{- else -}}
-      "Family": "windows-2025",
+      "Family": "windows-2025-core",
       {{- end}}
       "Prefix": "windows-server-2025-dc-core",
       "Description": "Microsoft, Windows Server, 2025 Datacenter Core, Server Core, x64 built on {{$time}}",
