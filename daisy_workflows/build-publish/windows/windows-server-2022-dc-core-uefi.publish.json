@@ -30,13 +30,20 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Prefix": "windows-server-2022-dc-core",
+      {{- if eq .environment "byol" -}}
+      "Family": "windows-2022-core-byol",
+      {{- else -}}
       "Family": "windows-2022-core",
+      {{- end}}
+      "Prefix": "windows-server-2022-dc-core",
       "Description": "Microsoft, Windows Server, 2022 Datacenter Core, Server Core, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "internal" -}}
         "projects/google.com:windows-internal/global/licenses/internal-windows",
+        "projects/windows-cloud/global/licenses/windows-server-core"
+        {{- else if eq .environment "byol" -}}
+        "projects/windows-cloud/global/licenses/windows-server-2022-byol",
         "projects/windows-cloud/global/licenses/windows-server-core"
         {{- else -}}
         "projects/windows-cloud/global/licenses/windows-server-2022-dc",

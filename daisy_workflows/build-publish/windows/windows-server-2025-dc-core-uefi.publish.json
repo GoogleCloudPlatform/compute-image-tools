@@ -30,13 +30,20 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
+      {{- if eq .environment "byol" -}}
+      "Family": "windows-2025-byol",
+      {{- else -}}
+      "Family": "windows-2025",
+      {{- end}}
       "Prefix": "windows-server-2025-dc-core",
-      "Family": "windows-2025-core",
       "Description": "Microsoft, Windows Server, 2025 Datacenter Core, Server Core, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         {{if eq .environment "internal" -}}
         "projects/google.com:windows-internal/global/licenses/internal-windows",
+        "projects/windows-cloud/global/licenses/windows-server-core"
+        {{- else if eq .environment "byol" -}}
+        "projects/windows-cloud/global/licenses/windows-server-2025-byol",
         "projects/windows-cloud/global/licenses/windows-server-core"
         {{- else -}}
         "projects/windows-cloud/global/licenses/windows-server-2025-dc",

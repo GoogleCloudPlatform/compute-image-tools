@@ -20,11 +20,6 @@
   "PublishProject": "google.com:windows-internal",
   "ComputeEndpoint": {{$endpoint}},
   "DeleteAfter": {{$delete_after}},
-  {{- else if eq .environment "byol" -}}
-  "WorkProject": {{$work_project}},
-  "PublishProject": "bct-prod-images",
-  "ComputeEndpoint": {{$endpoint}},
-  "DeleteAfter": {{$delete_after}},
   {{- else -}}
   "WorkProject": {{$work_project}},
   "PublishProject": "bct-prod-images",
@@ -36,12 +31,11 @@
   "Images": [
     {
       {{- if eq .environment "byol" -}}
-      "Prefix": "windows-server-2019-byol",
       "Family": "windows-2019-byol",
       {{- else -}}
-      "Prefix": "windows-server-2019-dc",
       "Family": "windows-2019",
       {{- end}}
+      "Prefix": "windows-server-2019-dc",
       "Description": "Microsoft, Windows Server, 2019 Datacenter, Server with Desktop Experience, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [

@@ -20,11 +20,6 @@
   "PublishProject": "google.com:windows-internal",
   "ComputeEndpoint": {{$endpoint}},
   "DeleteAfter": {{$delete_after}},
-  {{- else if eq .environment "byol" -}}
-  "WorkProject": {{$work_project}},
-  "PublishProject": "bct-prod-images",
-  "ComputeEndpoint": {{$endpoint}},
-  "DeleteAfter": {{$delete_after}},
   {{- else -}}
   "WorkProject": {{$work_project}},
   "PublishProject": "bct-prod-images",
