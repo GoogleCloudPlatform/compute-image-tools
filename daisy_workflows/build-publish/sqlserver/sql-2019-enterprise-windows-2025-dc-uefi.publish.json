@@ -49,6 +49,11 @@
         "projects/windows-cloud/global/licenses/windows-server-2025-dc"
         {{- end}}
       ],
+      "Labels": {
+        {{if eq .environment "prod" -}}
+        "public-image": "true"
+        {{- end}}
+      },
       "GuestOsFeatures": {{$guest_features}}
     }
   ]

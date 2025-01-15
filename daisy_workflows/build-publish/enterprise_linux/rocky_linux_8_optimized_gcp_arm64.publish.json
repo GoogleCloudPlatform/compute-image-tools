@@ -41,6 +41,9 @@
       "Licenses": [
         "projects/rocky-linux-cloud/global/licenses/rocky-linux-8-optimized-gcp"
       ],
+      "Labels": {
+        "public-image": "true"
+      },
       "GuestOsFeatures": {{$guest_features}}
     }
   ]

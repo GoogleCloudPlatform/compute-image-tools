@@ -41,6 +41,9 @@
       "Licenses": [
         "projects/rhel-cloud/global/licenses/rhel-8-server"
       ],
+      "Labels": {
+        "public-image": "true"
+      },
       "GuestOsFeatures": {{$guest_features}}
     }
   ]

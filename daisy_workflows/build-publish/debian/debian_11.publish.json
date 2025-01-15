@@ -40,6 +40,9 @@
       "Licenses": [
         "projects/debian-cloud/global/licenses/debian-11-bullseye"
       ],
+      "Labels": {
+        "public-image": "true"
+      },
       "GuestOsFeatures": ["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "GVNIC"]
     }
   ]

@@ -43,6 +43,11 @@
         "projects/windows-cloud/global/licenses/windows-server-core"
         {{- end}}
       ],
+      "Labels": {
+        {{if eq .environment "prod" -}}
+        "public-image": "true"
+        {{- end}}
+      },
       "GuestOsFeatures": {{$guest_features}}
     }
   ]
