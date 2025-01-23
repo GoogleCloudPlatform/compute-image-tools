@@ -8,7 +8,7 @@
   "Name": "windows-server-2019-dc-core-for-containers-uefi",
   {{$work_project := `"gce-image-builder"` -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
-  {{$delete_after := `"24h*30*4"` -}}
+  {{$delete_after := `"24h*30*2"` -}}
   {{if eq .environment "test" -}}
   "WorkProject": {{$work_project}},
   "PublishProject": "bct-prod-images",
