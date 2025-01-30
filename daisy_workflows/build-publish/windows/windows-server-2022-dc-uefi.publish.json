@@ -22,7 +22,7 @@
   "DeleteAfter": {{$delete_after}},
   {{- else if eq .environment "byol" -}}
   "WorkProject": {{$work_project}},
-  "PublishProject": "bct-prod-images",
+  "PublishProject": "cloud-cluster-guest-stresstest",
   "ComputeEndpoint": {{$endpoint}},
   "DeleteAfter": {{$delete_after}},
   {{- else -}}
@@ -36,12 +36,11 @@
   "Images": [
     {
       {{- if eq .environment "byol" -}}
-      "Prefix": "windows-server-2022-byol",
       "Family": "windows-2022-byol",
       {{- else -}}
-      "Prefix": "windows-server-2022-dc",
       "Family": "windows-2022",
       {{- end}}
+      "Prefix": "windows-server-2022-dc",
       "Description": "Microsoft, Windows Server, 2022 Datacenter, Server with Desktop Experience, x64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
