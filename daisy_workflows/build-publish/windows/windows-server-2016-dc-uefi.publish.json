@@ -22,7 +22,7 @@
   "DeleteAfter": {{$delete_after}},
   {{- else if eq .environment "byol" -}}
   "WorkProject": {{$work_project}},
-  "PublishProject": "bct-prod-images",
+  "PublishProject": "cloud-cluster-guest-stresstest",
   "ComputeEndpoint": {{$endpoint}},
   "DeleteAfter": {{$delete_after}},
   {{- else -}}
