@@ -41,7 +41,7 @@
           "Project": "${publish_project}",
           "NoCleanup": true,
           "ExactName": true,
-          "GuestOsFeatures": ["UEFI_COMPATIBLE", "GVNIC"]
+          "GuestOsFeatures": ["UEFI_COMPATIBLE", "GVNIC", "IDPF"]
         }
       ]
     }
