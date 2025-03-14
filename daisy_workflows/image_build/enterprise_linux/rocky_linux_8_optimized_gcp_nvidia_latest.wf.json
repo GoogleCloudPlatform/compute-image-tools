@@ -32,9 +32,9 @@
           "Name": "rocky-linux-8-optimized-gcp-nvidia-latest-v${build_date}",
           "SourceDisk": "el-install-disk",
           "Licenses": [
-            "https://www.googleapis.com/compute/v1/projects/rocky-linux-accelerator-cloud/global/licenses/nvidia-latest",
-            "https://www.googleapis.com/compute/v1/projects/rocky-linux-accelerator-cloud/global/licenses/rocky-linux-8-accelerated",
-            "https://www.googleapis.com/compute/v1/projects/rocky-linux-cloud/global/licenses/rocky-linux-8-optimized-gcp"
+            "projects/rocky-linux-accelerator-cloud/global/licenses/nvidia-latest",
+            "projects/rocky-linux-accelerator-cloud/global/licenses/rocky-linux-8-accelerated",
+            "projects/rocky-linux-cloud/global/licenses/rocky-linux-8-optimized-gcp"
           ],
           "Description": "Rocky Linux 8 optimized for gcp with latest Nvidia driver built on ${build_date}",
           "Family": "rocky-linux-8-optimized-gcp-nvidia-latest",
