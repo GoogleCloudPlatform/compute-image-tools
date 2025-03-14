@@ -31,6 +31,11 @@
         {
           "Name": "rocky-linux-9-optimized-gcp-nvidia-550-v${build_date}",
           "SourceDisk": "el-install-disk",
+          "Licenses": [
+            "https://www.googleapis.com/compute/v1/projects/rocky-linux-accelerator-cloud/global/licenses/nvidia-550",
+            "https://www.googleapis.com/compute/v1/projects/rocky-linux-accelerator-cloud/global/licenses/rocky-linux-9-accelerated",
+            "https://www.googleapis.com/compute/v1/projects/rocky-linux-cloud/global/licenses/rocky-linux-9-optimized-gcp"
+          ],
           "Description": "Rocky Linux 9 optimized for gcp with Nvidia driver 550 built on ${build_date}",
           "Family": "rocky-linux-9-optimized-gcp-nvidia-550",
           "Project": "${publish_project}",
