@@ -14,6 +14,14 @@
       "Description": "The GCS url that the image raw file exported to."
     },
     "media_disk": "media-disk",
+    "iso_path_2025": {
+      "Required": true,
+      "Description": "The ISO path of the Windows Server 2025."
+    },
+    "updates_path_2025": {
+      "Required": true,
+      "Description": "The updates path of the Windows Server 2025."
+    },
     "iso_path_2022": {
       "Required": true,
       "Description": "The ISO path of the Windows Server 2022."
@@ -50,6 +58,8 @@
   "Sources": {
     "prepare_install_media.ps1": "../../image_build/windows/windows_install_media/prepare_install_media.ps1",
     "components": "../../image_build/windows/windows_install_media/components/",
+    "updates/2025_64Bit/": "${updates_path_2025}",
+    "iso/2025_64Bit.iso": "${iso_path_2025}",
     "updates/2022_64Bit/": "${updates_path_2022}",
     "iso/2022_64Bit.iso": "${iso_path_2022}",
     "updates/2019_64Bit/": "${updates_path_2019}",
