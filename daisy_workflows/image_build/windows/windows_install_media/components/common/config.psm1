@@ -46,6 +46,7 @@ function Update-GooglePackages {
     $packages = @(
         'google-compute-engine-windows',
         'google-compute-engine-metadata-scripts',
+        'google-compute-engine-driver-gvnic',
         'google-compute-engine-driver-netkvm',
         'google-compute-engine-driver-pvpanic',
         'google-compute-engine-driver-vioscsi',
