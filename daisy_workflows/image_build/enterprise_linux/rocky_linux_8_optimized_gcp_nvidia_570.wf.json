@@ -1,0 +1,53 @@
+{
+  "Name": "build-rocky-8-optimized-gcp-nvidia-570",
+  "Vars": {
+    "installer_iso": {
+      "Required": true,
+      "Description": "The Rocky Linux 8 installer ISO to build from."
+    },
+    "build_date": {
+      "Value": "${TIMESTAMP}",
+      "Description": "Build datestamp used to version the image."
+    },
+    "publish_project": {
+      "Value": "${PROJECT}",
+      "Description": "A project to publish the resulting image to."
+    }
+  },
+  "Steps": {
+    "build-rocky": {
+      "Timeout": "60m",
+      "IncludeWorkflow": {
+        "Path": "./enterprise_linux.wf.json",
+        "Vars": {
+          "el_release": "rocky-linux-8-optimized-gcp",
+          "kickstart_config": "./kickstart/rocky_linux_8_optimized_gcp_accelerator_570.cfg",
+          "installer_iso": "${installer_iso}"
+        }
+      }
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "rocky-linux-8-optimized-gcp-nvidia-570-v${build_date}",
+          "SourceDisk": "el-install-disk",
+          "Licenses": [
+            "projects/rocky-linux-accelerator-cloud/global/licenses/nvidia-570",
+            "projects/rocky-linux-accelerator-cloud/global/licenses/rocky-linux-8-accelerated",
+            "projects/rocky-linux-cloud/global/licenses/rocky-linux-8-optimized-gcp"
+          ],
+
+          "Description": "Rocky Linux 8 optimized for gcp with Nvidia driver 570 built on ${build_date}",
+          "Family": "rocky-linux-8-optimized-gcp-nvidia-570",
+          "Project": "${publish_project}",
+          "NoCleanup": true,
+          "ExactName": true,
+          "GuestOsFeatures": []
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-image": ["build-rocky"]
+  }
+}

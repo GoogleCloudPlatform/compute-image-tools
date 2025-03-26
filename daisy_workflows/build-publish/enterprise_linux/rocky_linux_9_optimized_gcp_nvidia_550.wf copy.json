@@ -1,5 +1,5 @@
 {
-  "Name": "rocky-linux-9-optimized-gcp-nvidia-570",
+  "Name": "rocky-linux-9-optimized-gcp-nvidia-550",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -41,7 +41,7 @@
     "build": {
       "TimeOut": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/enterprise_linux/rocky_linux_9_optimized_gcp_nvidia_570.wf.json",
+        "Path": "${workflow_root}/image_build/enterprise_linux/rocky_linux_9_optimized_gcp_nvidia_550.wf.json",
         "Vars": {
           "build_date": "${build_date}",
           "installer_iso": "${installer_iso}"
@@ -63,7 +63,7 @@
     },
     "cleanup-image": {
       "DeleteResources": {
-        "Images": ["rocky-linux-9-optimized-gcp-nvidia-570-v${build_date}"]
+        "Images": ["rocky-linux-9-optimized-gcp-nvidia-550-v${build_date}"]
       }
     }
   },

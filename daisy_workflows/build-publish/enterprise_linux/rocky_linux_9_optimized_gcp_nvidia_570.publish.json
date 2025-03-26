@@ -6,7 +6,7 @@
   time period is set.
 */}}
 {
-  "Name": "rocky-linux-9-optimized-gcp-nvidia-latest",
+  "Name": "rocky-linux-9-optimized-gcp-nvidia-570",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*2"` -}}
@@ -33,12 +33,12 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Prefix": "rocky-linux-9-optimized-gcp-nvidia-latest",
-      "Family": "rocky-linux-9-optimized-gcp-nvidia-latest",
+      "Prefix": "rocky-linux-9-optimized-gcp-nvidia-570",
+      "Family": "rocky-linux-9-optimized-gcp-nvidia-570",
       "Description": "Rocky Linux, Rocky Linux, 9 optimized for GCP, x86_64 optimized for GCP with Nvidia driver 570 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
-        "https://www.googleapis.com/compute/v1/projects/rocky-linux-accelerator-cloud/global/licenses/nvidia-latest",
+        "https://www.googleapis.com/compute/v1/projects/rocky-linux-accelerator-cloud/global/licenses/nvidia-570",
         "https://www.googleapis.com/compute/v1/projects/rocky-linux-accelerator-cloud/global/licenses/rocky-linux-9-accelerated",
         "https://www.googleapis.com/compute/v1/projects/rocky-linux-cloud/global/licenses/rocky-linux-9-optimized-gcp"
       ],
