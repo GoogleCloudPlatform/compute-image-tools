@@ -53,7 +53,7 @@ def main():
   # Get Parameters.
   build_date = utils.GetMetadataAttribute(
       'build_date', raise_on_not_found=True)
-  debian_cloud_images_version = '732707480b4c6a5174066a9d4d5a7b0c05ab0fb1'
+  debian_cloud_images_version = 'b5afd3d476e8614a8cbb88082b570003b44783bf'
   debian_version = utils.GetMetadataAttribute(
       'debian_version', raise_on_not_found=True)
   outs_path = utils.GetMetadataAttribute('daisy-outs-path',
@@ -87,7 +87,7 @@ def main():
                   + debian_version + '/')
 
   # Remove upstream test cases that won't work here.
-  os.remove(config_space + 'hooks/tests.BASE')
+  # os.remove(config_space + 'hooks/tests.BASE')
 
   # Copy our classes to the FAI config space
   mycopytree('/files/fai_config', config_space)
@@ -131,6 +131,8 @@ def main():
                       'LINUX_VERSION_BACKPORTS+LINUX_VARIANT_CLOUD']
   elif debian_version == 'bookworm':  # Debian 12
     fai_classes += ['BOOKWORM', 'LINUX_VERSION_BASE+LINUX_VARIANT_CLOUD']
+  elif debian_version == 'trixie':    # Debian 13
+    fai_classes += ['TRIXIE', 'LINUX_VERSION_BASE+LINUX_VARIANT_CLOUD']
   elif debian_version == 'sid':  # Debian unstable
     fai_classes += ['SID', 'LINUX_VERSION_BASE+LINUX_VARIANT_CLOUD']
 
