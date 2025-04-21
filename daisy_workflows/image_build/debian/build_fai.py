@@ -87,7 +87,7 @@ def main():
                   + debian_version + '/')
 
   # Remove upstream test cases that won't work here.
-  # os.remove(config_space + 'hooks/tests.BASE')
+  os.remove(config_space + 'hooks/tests.BASE')
 
   # Copy our classes to the FAI config space
   mycopytree('/files/fai_config', config_space)
