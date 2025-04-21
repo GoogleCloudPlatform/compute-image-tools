@@ -36,7 +36,7 @@ replace_files(){
     echo $file_name
 
     # Try to find the file and determine the installation path (will be empty if file not found) eg "/usr/bin/".
-    INSTALLATION_PATH=$(sudo find / -type f -name ${file_name} -not -path "/temp_debian_upload/*" | awk -F${file_name} '{print $1}')
+    INSTALLATION_PATH=$(sudo find /usr /etc /opt /var -type f -name ${file_name} | awk -F${file_name} '{print $1}')
 
     # If the file is found (results are not empty), then begin the replacement.
     if ! [[ -z "$INSTALLATION_PATH" ]]; then
