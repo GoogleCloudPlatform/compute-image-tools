@@ -57,7 +57,7 @@ set_machine_and_arch_type(){
 #   _MACHINE_TYPE: The machine type for the source image: default (n1-standard-1) or t2a-standard-1 for ARM.
 create_preloaded_image(){
   logger -p daemon.info "Attempting to submit gcloud build..."
-  gcloud builds submit . --config=dev_cloudbuild.yaml --disk-size=200 --gcs-log-dir="${DAISY_LOGS_PATH}" --substitutions=_NEW_IMAGE_FAMILY="cos-preloaded-images",_BASE_IMAGE_PROJECT="cos-cloud",_BASE_IMAGE="${SOURCE_IMAGE}",_NEW_IMAGE="${DEST_IMAGE}",_DEST_PROJECT="cloud-kernel-build",_MACHINE_TYPE="${MACHINE_TYPE}" 2>&1 | logger -t gcloud-build -p daemon.info
+  gcloud builds submit . --config=dev_cloudbuild.yaml --disk-size=200 --gcs-log-dir="${DAISY_LOGS_PATH}" --substitutions=_NEW_IMAGE_FAMILY="cos-preloaded-images",_BASE_IMAGE_PROJECT="cos-cloud",_BASE_IMAGE="${SOURCE_IMAGE}",_NEW_IMAGE="${DEST_IMAGE}",_DEST_PROJECT="gcp-guest",_MACHINE_TYPE="${MACHINE_TYPE}" 2>&1 | logger -t gcloud-build -p daemon.info
   logger -p daemon.info "Finished attempting to submit gcloud build."
 }
 
