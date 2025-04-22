@@ -39,7 +39,7 @@ apply_patches() {
   # Download the repositories and apply COS specific patches. NOTE: The patches will be
   # pulled from the master branch in COS. This is based on the assumption that master
   # will have the most recent guest agent version, and therefore the most recent patches.
-  echo -e "\nATTENTION: Downloading the board-overlays and guest-agent repos...\n"
+  logger -p daemon.info "\nATTENTION: Downloading the board-overlays and guest-agent repos...\n"
   git clone https://cos.googlesource.com/cos/overlays/board-overlays --branch master
   git clone https://github.com/GoogleCloudPlatform/guest-agent.git
   cd guest-agent
@@ -48,7 +48,7 @@ apply_patches() {
   mv ./board-overlays/project-lakitu/app-admin/google-guest-agent/files ./guest-agent
   cd guest-agent
 
-  echo -e "\nATTENTION: Applying patches...\n"
+  logger -p daemon.info "\nATTENTION: Applying patches...\n"
   search_dir=./files
   for file in "$search_dir"/*
   do
@@ -60,7 +60,7 @@ apply_patches() {
 
 install_build_deps() {
   # Install the build dependencies.
-  echo -e "\nATTENTION: Installing build deps...\n"
+  logger -p daemon.info "\nATTENTION: Installing build deps...\n"
   apt-get -y update
   apt-get install -y --no-install-{suggests,recommends} git-core \
     debhelper devscripts build-essential equivs libdistro-info-perl
@@ -72,7 +72,7 @@ install_build_deps() {
 
 find_debian_version() {
   # Identify and store the debian version.
-  echo -e "\nATTENTION: Finding the debian version...\n"
+  logger -p daemon.info "\nATTENTION: Finding the debian version...\n"
   cat /etc/debian_version
   DEB_VERSION=$(</etc/debian_version)
   # deb_version=${DEB}
@@ -85,7 +85,7 @@ find_debian_version() {
 
 install_go(){
   # Install the correct version of Go.
-  echo -e "\nATTENTION: Installing go...\n"
+  logger -p daemon.info "\nATTENTION: Installing go...\n"
   cd ..
   source ./install_go.sh; install_go /tmp/go
 }
@@ -99,14 +99,14 @@ upstream_tarball() {
   export BUILD_DIR="/tmp/debpackage"
   export VERSION="041224"
   export TAR="${PKGNAME}_${VERSION}.orig.tar.gz"
-  echo -e "\nATTENTION: Creating build dir and upstream tarball...\n"
+  logger -p daemon.info "\nATTENTION: Creating build dir and upstream tarball...\n"
   tar czvf "${BUILD_DIR}/${TAR}" --exclude .git --exclude packaging \
     --transform "s/^\./${PKGNAME}-${VERSION}/" .
 }
 
 build_tarball(){
   # Extract and build the tarball.
-  echo -e "\nATTENTION: Extracting tarball and building...\n"
+  logger -p daemon.info "\nATTENTION: Extracting tarball and building...\n"
   tar -C "$BUILD_DIR" -xzvf "${BUILD_DIR}/${TAR}"
   cp -r packaging/debian "${BUILD_DIR}/${PKGNAME}-${VERSION}/"
   cd "${BUILD_DIR}/${PKGNAME}-${VERSION}"
@@ -124,17 +124,17 @@ unpack_binaries(){
   # (which provide installation paths) and 2) binaries in a localized dir format.
   # .deb file naming convention follows that in "upstream_tarball" function.
   # g111 is an arbitrary value given to the .deb file.
-  echo -e "\nATTENTION: Unpacking binaries in a directory...\n"
+  logger -p daemon.info "\nATTENTION: Unpacking binaries in a directory...\n"
   dpkg-deb -x google-guest-agent_${VERSION}-g111_${arch}64.deb debian_binaries
   dpkg-deb -c google-guest-agent_${VERSION}-g111_${arch}64.deb >> google-guest-agent-readable-deb.txt
-  echo -e "\nATTENTION: google-guest-agent.deb file contents below...\n"
+  logger -p daemon.info "\nATTENTION: google-guest-agent.deb file contents below...\n"
   cat google-guest-agent-readable-deb.txt
   mv debian_binaries /files/package_replacement
   mv google-guest-agent-readable-deb.txt /files/package_replacement
 }
 
 identify_replacement_files(){
-  echo -e "\nATTENTION: Creating a list of files to replace...\n"
+  logger -p daemon.info "\nATTENTION: Creating a list of files to replace...\n"
   file="/files/package_replacement/google-guest-agent-readable-deb.txt"
   repl_file="repl_files.txt"
 
@@ -169,7 +169,7 @@ main() {
   commit_sha=$1
   arch=$2
 
-  echo -e "\nATTENTION: Starting compile_debian_package.sh...\n"
+  logger -p daemon.info "\nATTENTION: Starting compile_debian_package.sh...\n"
   apply_patches
   install_build_deps
   find_debian_version
