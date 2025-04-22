@@ -1,2 +1,2 @@
-deb https://packages.cloud.google.com/apt google-compute-engine-bookworm-stable main
-deb https://packages.cloud.google.com/apt cloud-sdk-bookworm main
+deb https://packages.cloud.google.com/apt google-compute-engine-{%SUITE%}-stable main
+deb https://packages.cloud.google.com/apt cloud-sdk-{%SUITE%} main
