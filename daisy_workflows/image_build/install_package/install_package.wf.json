@@ -26,6 +26,10 @@
     "machine_type": {
       "Required": true,
       "Description": "machine type"
+    },
+    "disk_type": {
+      "Required": true,
+      "Description": "disk type"
     }
   },
   "Sources": {
@@ -39,12 +43,12 @@
         {
           "Name": "disk-worker",
           "SourceImage": "${worker_image}",
-          "Type": "pd-ssd"
+          "Type": "${disk_type}"
         },
         {
           "Name": "source-disk",
           "SourceImage": "${source_image}",
-          "Type": "pd-ssd"
+          "Type": "${disk_type}"
         }
       ]
     },
