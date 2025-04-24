@@ -131,6 +131,8 @@ def main():
                       'LINUX_VERSION_BACKPORTS+LINUX_VARIANT_CLOUD']
   elif debian_version == 'bookworm':  # Debian 12
     fai_classes += ['BOOKWORM', 'LINUX_VERSION_BASE+LINUX_VARIANT_CLOUD']
+  elif debian_version == 'trixie':    # Debian 13
+    fai_classes += ['TRIXIE', 'LINUX_VERSION_BASE+LINUX_VARIANT_CLOUD']
   elif debian_version == 'sid':  # Debian unstable
     fai_classes += ['SID', 'LINUX_VERSION_BASE+LINUX_VARIANT_CLOUD']
 
