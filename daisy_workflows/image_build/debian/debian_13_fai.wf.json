@@ -14,7 +14,7 @@
         "Path": "./debian_fai.wf.json",
         "Vars": {
           "build_date": "${build_date}",
-          "debian_version": "sid"
+          "debian_version": "trixie"
         }
       }
     },
@@ -33,7 +33,7 @@
           "RawDisk": {
             "Source": "${OUTSPATH}/root.tar.gz"
           },
-          "Description": "Debian, Debian GNU/Linux, 13 (sid), amd64 built on ${build_date}",
+          "Description": "Debian, Debian GNU/Linux, 13 (Trixie), amd64 built on ${build_date}",
           "Family": "debian-13",
           "Project": "${publish_project}",
           "NoCleanup": true,
