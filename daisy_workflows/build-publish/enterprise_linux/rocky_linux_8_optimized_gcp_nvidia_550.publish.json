@@ -35,7 +35,7 @@
     {
       "Prefix": "rocky-linux-8-optimized-gcp-nvidia-550",
       "Family": "rocky-linux-8-optimized-gcp-nvidia-550",
-      "Description": "Rocky Linux, Rocky Linux, 8 optimized for GCP with the Nvidia 550 driver, x86_64 optimized for GCP with the Nvidia 550 driver built on {{$time}}",
+      "Description": "Rocky Linux, Rocky Linux, 8 with the Nvidia 550 driver, x86_64 optimized for GCP built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         "https://www.googleapis.com/compute/v1/projects/rocky-linux-accelerator-cloud/global/licenses/nvidia-550",
