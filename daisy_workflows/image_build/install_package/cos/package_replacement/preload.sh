@@ -22,25 +22,26 @@ replace_files(){
 
   # Start guest agent replacement...
   file="repl_files.txt"
+  logger -p daemon.info "repl_files.txt: $(cat $file)"
 
   # Go through every line in the deb file...
   while read -r line; do
 
     # For every line...
     read -ra arr <<< "$line"
-    echo "${arr}"
+    logger -p daemon.info "line: ${arr}"
 
     # Then this is a file we want to replace. Store the file name eg "google-guest-agent.service".
     file_name=${arr##*/}
 
-    echo $file_name
+    logger -p daemon.info $file_name
 
     # Try to find the file and determine the installation path (will be empty if file not found) eg "/usr/bin/".
-    INSTALLATION_PATH=$(sudo find /usr /etc /opt /var -type f -name ${file_name} | awk -F${file_name} '{print $1}')
+    INSTALLATION_PATH=$(sudo find /usr /etc /opt /var /lib -type f -name ${file_name} | awk -F${file_name} '{print $1}')
 
     # If the file is found (results are not empty), then begin the replacement.
     if ! [[ -z "$INSTALLATION_PATH" ]]; then
-
+      logger -p daemon.info "INSTALLATION_PATH found: $INSTALLATION_PATH${file_name}"
       # Determine the deb location path.
       path="${arr:1}"
       dest="${path%/*}"
@@ -51,6 +52,7 @@ replace_files(){
       # If this is the startup script service file, enable logging so CIT tests
       # can exit successfully after 'finished-test' is written.
       if [[ "$file_name" == "google-startup-scripts.service" ]]; then
+        logger -p daemon.info "Found google-startup-scripts.service, enabling logging"
         sudo sed -i '/KillMode=process/a StandardOutput=journal+console\nStandardError=journal+console' /temp_debian_upload/debian_binaries$dest/$file_name
       fi
       
@@ -64,7 +66,6 @@ replace_files(){
 }
 
 main() {
-  echo "replace_files"
   replace_files
 }
 
