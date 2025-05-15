@@ -40,6 +40,12 @@ apply_patches() {
   # pulled from the master branch in COS. This is based on the assumption that master
   # will have the most recent guest agent version, and therefore the most recent patches.
   logger -p daemon.info "\nATTENTION: Downloading the board-overlays and guest-agent repos...\n"
+
+  # Define a list of patches to ignore
+  local ignore_patches=(
+    "makefile-skip-proto-fetch-if-already-exists.patch"
+  )
+
   git clone https://cos.googlesource.com/cos/overlays/board-overlays --branch master
   git clone https://github.com/GoogleCloudPlatform/guest-agent.git
   cd guest-agent
@@ -53,6 +59,20 @@ apply_patches() {
   for file in "$search_dir"/*
   do
     if ! [[ "$file" == *"homedir"* ]] && [[ "$file" == *"patch"* ]]; then
+      # Check if the current file is in the ignore_patches list
+      local skip_patch=false
+      for ignored_patch in "${ignore_patches[@]}"; do
+        if [[ "$file" == *"$ignored_patch"* ]]; then
+          logger -p daemon.info "Skipping patch (in ignore list): $file"
+          skip_patch=true
+          break
+        fi
+      done
+
+      if [ "$skip_patch" = true ]; then
+        continue
+      fi
+
       git apply "$file"
     fi
   done
