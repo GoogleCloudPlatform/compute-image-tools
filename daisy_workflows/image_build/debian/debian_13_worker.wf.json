@@ -1,5 +1,5 @@
 {
-  "Name": "build-debian-12-worker",
+  "Name": "build-debian-13-worker",
   "Vars": {
     "build_date": {
       "Value": "${DATE}",
@@ -10,10 +10,10 @@
       "debian_worker.sh": "./debian_worker.sh"
   },
   "Steps": {
-    "build-debian-12": {
+    "build-debian-13": {
       "Timeout": "60m",
       "IncludeWorkflow": {
-        "Path": "./debian_12_fai.wf.json",
+        "Path": "./debian_13_fai.wf.json",
         "Vars": {
           "build_date": "${build_date}"
         }
@@ -23,7 +23,7 @@
       "CreateDisks": [
         {
           "Name": "disk-worker",
-          "SourceImage": "debian-12-v${build_date}",
+          "SourceImage": "debian-13-v${build_date}",
           "Type": "pd-ssd"
         }
       ]
@@ -58,7 +58,7 @@
     "cleanup-resources": {
       "DeleteResources": {
         "Instances": ["inst-worker"],
-        "Images": ["debian-12-v${build_date}"]
+        "Images": ["debian-13-v${build_date}"]
       }
     },
     "export-image": {
@@ -66,13 +66,13 @@
         "Path": "../../export/disk_export.wf.json",
         "Vars": {
           "source_disk": "disk-worker",
-          "destination": "${OUTSPATH}/debian-12-worker-v${build_date}/root.tar.gz"
+          "destination": "${OUTSPATH}/debian-13-worker-v${build_date}/root.tar.gz"
         }
       }
     }
   },
   "Dependencies": {
-    "create-worker-disk": ["build-debian-12"],
+    "create-worker-disk": ["build-debian-13"],
     "create-worker-instance": ["create-worker-disk"],
     "wait-for-stop": ["create-worker-instance"],
     "cleanup-resources": ["wait-for-stop"],
