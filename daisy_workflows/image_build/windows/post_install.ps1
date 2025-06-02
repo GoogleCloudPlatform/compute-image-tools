@@ -539,8 +539,7 @@ function Configure-RDP {
 function Install-DriverPackages {
   Write-Host 'Installing GCE Driver Packages...'
   # Install each individually in order to catch individual errors
-  # Install GVNIC GQ in all Windows versions
-  Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-compute-engine-driver-gvnic-gq-stable google-compute-engine-driver-gvnic
+  Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-driver-gvnic
   Start-Sleep -s 60
   Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-driver-vioscsi
   Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-driver-netkvm
