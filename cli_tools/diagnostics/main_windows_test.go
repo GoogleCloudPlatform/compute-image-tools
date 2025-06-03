@@ -16,7 +16,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -72,11 +71,11 @@ func TestGatherRDPSettings(t *testing.T) {
 
 	// Copy the rdp_status.ps1 over to temp test build folder for execution
 	rdpScriptFilePath := filepath.Join(tmpFolder, rdpScriptFileName)
-	input, err := ioutil.ReadFile(rdpScriptFileName)
+	input, err := os.ReadFile(rdpScriptFileName)
 	if err != nil {
 		t.Errorf("Error loading the rdp_status.ps1 file:\n%v", err.Error())
 	}
-	ioutil.WriteFile(rdpScriptFilePath, input, 0644)
+	os.WriteFile(rdpScriptFilePath, input, 0644)
 
 	t.Run("Gathers Expected RDP Status File", func(t *testing.T) {
 		go gatherRDPSettings(logFolderCh, errCh)
