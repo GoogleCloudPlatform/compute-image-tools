@@ -38,7 +38,7 @@ func TestGetDockerImagesList(t *testing.T) {
 	errCh := make(chan error)
 	// Test setup: create temp folder for test, clean it up afterwards
 	var err error
-	tmpFolder, err = ioutil.TempDir("", "getDockerImagesListTest")
+	tmpFolder, err = os.MkdirTemp("", "getDockerImagesListTest")
 	if err != nil {
 		t.Errorf("Error creating a temporary test folder:\n%v", err.Error())
 	}
@@ -108,7 +108,7 @@ func fileNonExist(e error) bool {
 func TestGetPlainEventLogs(t *testing.T) {
 	// Test setup: create temp test folder for test, clean it up afterwards
 	var err error
-	tmpFolder, err = ioutil.TempDir("", "getPlainEventLogsTest")
+	tmpFolder, err = os.MkdirTemp("", "getPlainEventLogsTest")
 	if err != nil {
 		t.Errorf("Error creating a temporary test folder:\n%v", err.Error())
 	}
@@ -176,7 +176,7 @@ func TestGetPlainEventLogs(t *testing.T) {
 func TestCollectFilePaths(t *testing.T) {
 	// Test setup: create dummy test folder and file for test, clean it up afterwards
 	dir := os.TempDir()
-	testRoot, err := ioutil.TempDir("", "collectFilePathsTest")
+	testRoot, err := os.MkdirTemp("", "collectFilePathsTest")
 	if err != nil {
 		t.Errorf("Error creating a temporary test folder:\n%v", err.Error())
 	}
