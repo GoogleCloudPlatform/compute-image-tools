@@ -114,7 +114,7 @@ func TestGetInfo_FormatDetection(t *testing.T) {
 
 		t.Run(tt.filename, func(t *testing.T) {
 			// 1. Create temp dir
-			dir, err := ioutil.TempDir("", "")
+			dir, err := os.MkdirTemp("", "")
 			assert.NoError(t, err)
 			absPath := path.Join(dir, tt.filename)
 
