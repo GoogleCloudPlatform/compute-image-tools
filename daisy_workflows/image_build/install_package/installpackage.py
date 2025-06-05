@@ -60,8 +60,8 @@ def main():
   logging.info('Mount dev filesystem in chroot')
   run('mount -o bind /dev /mnt/dev')
 
-  # Enable DNS resolution in the chroot, for fetching dependencies. In some cases
-  # the symlink to resolv.conf will break, and needs to be unlinked.
+  # Enable DNS resolution in the chroot, for fetching dependencies. In some
+  # cases the symlink to resolv.conf will break, and needs to be unlinked.
   if os.path.islink('/mnt/etc/resolv.conf'):
     if os.path.isfile('mnt/etc/resolv.conf'):
       os.rename('/mnt/etc/resolv.conf', '/mnt/etc/resolv.conf.bak')
