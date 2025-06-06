@@ -63,11 +63,11 @@ def main():
   # Enable DNS resolution in the chroot, for fetching dependencies. In some
   # cases the symlink to resolv.conf will break, and needs to be unlinked.
   if os.path.islink('/mnt/etc/resolv.conf'):
-    if os.path.isfile('mnt/etc/resolv.conf'):
+    if os.path.isfile('/mnt/etc/resolv.conf'):
       os.rename('/mnt/etc/resolv.conf', '/mnt/etc/resolv.conf.bak')
     else:
       os.unlink('/mnt/etc/resolv.conf')
-  elif os.path.isfile('mnt/etc/resolv.conf'):
+  elif os.path.isfile('/mnt/etc/resolv.conf'):
       os.rename('/mnt/etc/resolv.conf', '/mnt/etc/resolv.conf.bak')
   utils.WriteFile('/mnt/etc/resolv.conf', utils.ReadFile('/etc/resolv.conf'))
 
