@@ -55,6 +55,10 @@ any required variable will need to be provided when calling daisy using the -var
 | product_key | (Optional) Windows product key to use. Volume license media by default include the Generic Volume License Key. |
 | sbom_destination | (Optional) The path to which the SBOM file will be exported, if generating the SBOM. |
 | sbom_util_gcs_root | (Optional) The path to where the sbomutil executable is located, if generating the SBOM. |
+| host_project_id | The host GCP project where the shared VPC and subnetwork reside. |
+| network | Name of the VPC network in the host project |
+| subnetwork | Name of the subnetwork in the host project |
+| region | Region where the subnetwork exists |
 
 ### Selecting a workflow
 
@@ -108,6 +112,10 @@ $ daisy -project my_project -zone us-west1-c \
 -var:pwsh="c:\example-build-resources\PowerShell-7.0.3-win-x64.msi" \
 -var:dotnet48="c:\example-build-resources\ndp48-x86-x64-allos-enu.exe" \
 -var:cloudsdk="c:\example-build-resources\GoogleCloudSDKInstaller.exe" \
+-var:host_project_id="vpc-host-project-id" \
+-var:network="custom-vpc" \
+-var:subnetwork="custom-subnet" \
+-var:region="asia-south1" \
 windows-server-2016-dc-uefi.wf.json
 ```
 
@@ -127,6 +135,10 @@ $ daisy -project my_project -zone us-west1-c \
 -var:pwsh="gs://example-build-resources/PowerShell-7.0.3-win-x64.msi" \
 -var:dotnet48="gs://example-build-resources/ndp48-x86-x64-allos-enu.exe" \
 -var:cloudsdk="gs://example-build-resources/GoogleCloudSDKInstaller.exe" \
+-var:host_project_id="vpc-host-project-id" \
+-var:network="custom-vpc" \
+-var:subnetwork="custom-subnet" \
+-var:region="asia-south1" \
 windows-server-2019-dc-uefi.wf.json
 ```
 

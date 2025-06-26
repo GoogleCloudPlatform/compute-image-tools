@@ -70,6 +70,22 @@
     "machine_family": {
       "Value": "n2-standard-4",
       "Description": "The machine family used to boot the new image."
+    },
+    "host_project_id": {
+      "Required": true,
+      "Description": "The host GCP project where the Shared VPC and subnet are defined"
+    },
+    "network": {
+      "Required": true,
+      "Description": "The name of the VPC network in the host project"
+    },
+    "subnetwork": {
+      "Required": true,
+      "Description": "The name of the subnetwork in the host project"
+    },
+    "region": {
+      "Required": true,
+      "Description": "The region where resources like subnetworks are located"
     }
   },
   "Sources": {
@@ -125,6 +141,15 @@
             }
           ],
           "MachineType": "e2-standard-4",
+          "NetworkInterfaces": [
+            {
+              "Network": "projects/${host_project_id}/global/networks/${network}",
+              "Subnetwork": "projects/${host_project_id}/regions/${region}/subnetworks/${subnetwork}",
+              "AccessConfigs": [
+                {"Name": "External NAT", "Type": "ONE_TO_ONE_NAT"}
+              ]
+            }
+          ],
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_write"
           ],
@@ -179,6 +204,15 @@
             "enableDisplay": true
           },
           "MachineType": "${machine_family}",
+          "NetworkInterfaces": [
+            {
+              "Network": "projects/${host_project_id}/global/networks/${network}",
+              "Subnetwork": "projects/${host_project_id}/regions/${region}/subnetworks/${subnetwork}",
+              "AccessConfigs": [
+                {"Name": "External NAT", "Type": "ONE_TO_ONE_NAT"}
+              ]
+            }
+          ],
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_write"
           ],
