@@ -26,15 +26,15 @@
     },
     "installer_iso": {
       "Required": true,
-      "Description": "The RHEL 9 installer ISO to build from."
+      "Description": "The RHEL 10 aarch64 installer ISO to build from."
     },
     "sbom_util_gcs_root": {
       "Value": "",
       "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
     },
     "sha256_txt": {
-       "Value": "${OUTSPATH}/export-image-shasum.txt",
-       "Description": "The file where the sha256 sum is stored."
+      "Value": "${OUTSPATH}/export-image-shasum.txt",
+      "Description": "The file where the sha256 sum is stored."
     }
   },
   "Steps": {
