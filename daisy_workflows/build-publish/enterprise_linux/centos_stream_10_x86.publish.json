@@ -39,7 +39,7 @@
       "Description": "CentOS, CentOS, Stream 10, x86_64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
-        "projects/centos-cloud/global/licenses/centos-stream-10-x86"
+        "projects/centos-cloud/global/licenses/centos-stream-10"
       ],
       "Labels": {
         "public-image": "true"
