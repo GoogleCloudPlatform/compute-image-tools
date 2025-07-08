@@ -37,7 +37,7 @@ def get_part_type(device):
 
 
 def get_distro_from_image(image):
-  el_distros = ('centos', 'rhel', 'almalinux', 'rocky-linux')
+  el_distros = ('centos', 'rhel', 'almalinux', 'rocky-linux', 'oracle-linux')
   if any([x in image for x in el_distros]):
     return 'enterprise_linux'
   elif 'debian' in image:
