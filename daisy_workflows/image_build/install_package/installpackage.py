@@ -25,7 +25,7 @@ def get_mount_disk(image):
   # 2. partition 2 is the root mount for the installed system.
   #
   # Except on debian, which has out-of-order partitions.
-  if gpt and 'debian' not in image:
+  if gpt and 'debian' not in image and 'ubuntu' not in image:
     return f'{devicepath}-part2'
   else:
     return f'{devicepath}-part1'
@@ -42,6 +42,8 @@ def get_distro_from_image(image):
     return 'enterprise_linux'
   elif 'debian' in image:
     return 'debian'
+  elif 'ubuntu' in image:
+    return 'ubuntu'
   else:
     return None
 
@@ -78,6 +80,11 @@ def main():
     install_cmd = 'apt install -y '
   elif distribution == 'enterprise_linux':
     install_cmd = 'dnf install -y'
+  # TODO(b/431239519): We're temporarily force installing debian packages
+  # for testing on ubuntu images with different versioning scheme.
+  # Update this once we have right packages.
+  elif distribution == 'ubuntu':
+    install_cmd = 'dpkg -i --force-depends'
   else:
     raise Exception('Unknown Linux distribution.')
 
