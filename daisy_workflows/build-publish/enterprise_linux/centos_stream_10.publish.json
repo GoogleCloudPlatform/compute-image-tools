@@ -6,7 +6,7 @@
   time period is set.
 */}}
 {
-  "Name": "centos-stream-10-x86",
+  "Name": "centos-stream-10",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*2"` -}}
@@ -34,8 +34,8 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Family": "centos-stream-10-x86",
-      "Prefix": "centos-stream-10-x86",
+      "Family": "centos-stream-10",
+      "Prefix": "centos-stream-10",
       "Description": "CentOS, CentOS, Stream 10, x86_64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [

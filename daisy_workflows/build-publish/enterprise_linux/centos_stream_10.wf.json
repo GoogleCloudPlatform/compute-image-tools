@@ -1,5 +1,5 @@
 {
-  "Name": "centos-stream-10-x86",
+  "Name": "centos-stream-10",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -41,7 +41,7 @@
     "build": {
       "TimeOut": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/enterprise_linux/centos_stream_10_x86.wf.json",
+        "Path": "${workflow_root}/image_build/enterprise_linux/centos_stream_10.wf.json",
         "Vars": {
           "build_date": "${build_date}",
           "google_cloud_repo": "${google_cloud_repo}",
@@ -64,7 +64,7 @@
     },
     "cleanup-image": {
       "DeleteResources": {
-        "Images": ["centos-stream-10-x86-v${build_date}"]
+        "Images": ["centos-stream-10-v${build_date}"]
       }
     }
   },

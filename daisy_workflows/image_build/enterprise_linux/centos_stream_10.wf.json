@@ -25,7 +25,7 @@
         "Path": "./enterprise_linux.wf.json",
         "Vars": {
           "el_release": "centos-stream-10",
-          "kickstart_config": "./kickstart/centos_stream_10_x86.cfg",
+          "kickstart_config": "./kickstart/centos_stream_10.cfg",
           "google_cloud_repo": "${google_cloud_repo}",
           "installer_iso": "${installer_iso}"
         }
@@ -40,7 +40,7 @@
             "projects/centos-cloud/global/licenses/centos-stream-10"
           ],
           "Description": "CentOS, CentOS, Stream 10, x86_64 built on ${build_date}",
-          "Family": "centos-stream-10-x86",
+          "Family": "centos-stream-10",
           "Project": "${publish_project}",
           "NoCleanup": true,
           "ExactName": true,
