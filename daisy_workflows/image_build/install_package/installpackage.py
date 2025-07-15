@@ -25,7 +25,9 @@ def get_mount_disk(image):
   # 2. partition 2 is the root mount for the installed system.
   #
   # Except on debian, which has out-of-order partitions.
-  if gpt and 'debian' not in image and 'ubuntu' not in image:
+  if gpt and 'sles' in image:
+    return f'{devicepath}-part3'
+  elif gpt and 'debian' not in image and 'ubuntu' not in image:
     return f'{devicepath}-part2'
   else:
     return f'{devicepath}-part1'
@@ -44,6 +46,8 @@ def get_distro_from_image(image):
     return 'debian'
   elif 'ubuntu' in image:
     return 'ubuntu'
+  elif 'sles' in image:
+    return 'sles'
   else:
     return None
 
@@ -85,6 +89,8 @@ def main():
   # Update this once we have right packages.
   elif distribution == 'ubuntu':
     install_cmd = 'dpkg -i --force-depends'
+  elif distribution == 'sles':
+    install_cmd = 'rpm --force -ivh --nodeps'
   else:
     raise Exception('Unknown Linux distribution.')
 
