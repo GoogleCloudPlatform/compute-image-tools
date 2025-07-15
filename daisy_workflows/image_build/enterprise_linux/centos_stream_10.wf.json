@@ -34,7 +34,7 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "centos-stream-10-x86-v${build_date}",
+          "Name": "centos-stream-10-v${build_date}",
           "SourceDisk": "el-install-disk",
           "Licenses": [
             "projects/centos-cloud/global/licenses/centos-stream-10"
