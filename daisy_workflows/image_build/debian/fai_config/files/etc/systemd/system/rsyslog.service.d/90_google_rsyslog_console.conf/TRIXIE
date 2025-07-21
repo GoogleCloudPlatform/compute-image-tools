@@ -1,0 +1,6 @@
+# Override systemd settings to allow google agents to log to serial console
+
+[Service]
+PrivateDevices=no
+DeviceAllow=/dev/console rw
+DevicePolicy=closed
