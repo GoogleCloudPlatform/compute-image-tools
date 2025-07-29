@@ -53,7 +53,7 @@ def main():
   # Get Parameters.
   build_date = utils.GetMetadataAttribute(
       'build_date', raise_on_not_found=True)
-  debian_cloud_images_version = '732707480b4c6a5174066a9d4d5a7b0c05ab0fb1'
+  debian_cloud_images_version = '7db1822c6a88b9177c583dd31d5765a8367d9639'
   debian_version = utils.GetMetadataAttribute(
       'debian_version', raise_on_not_found=True)
   outs_path = utils.GetMetadataAttribute('daisy-outs-path',
