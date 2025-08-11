@@ -6,7 +6,7 @@
   time period is set.
 */}}
 {
-  "Name": "rhel-10-x86",
+  "Name": "rhel-10",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*2"` -}}
@@ -34,8 +34,8 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Family": "rhel-10-x86",
-      "Prefix": "rhel-10-x86",
+      "Family": "rhel-10",
+      "Prefix": "rhel-10",
       "Description": "Red Hat, Red Hat Enterprise Linux, 10, x86_64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [

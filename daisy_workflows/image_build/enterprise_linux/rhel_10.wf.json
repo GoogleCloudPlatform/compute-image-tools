@@ -1,5 +1,5 @@
 {
-  "Name": "build-rhel-10-x86",
+  "Name": "build-rhel-10",
   "Vars": {
     "google_cloud_repo": {
       "Value": "stable",
@@ -25,7 +25,7 @@
         "Path": "./enterprise_linux.wf.json",
         "Vars": {
           "el_release": "rhel-10",
-          "kickstart_config": "./kickstart/rhel_10_x86.cfg",
+          "kickstart_config": "./kickstart/rhel_10.cfg",
           "google_cloud_repo": "${google_cloud_repo}",
           "installer_iso": "${installer_iso}"
         }
@@ -34,13 +34,11 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "rhel-10-x86-v${build_date}",
+          "Name": "rhel-10-v${build_date}",
           "SourceDisk": "el-install-disk",
-          "Licenses": [
-            "projects/rhel-cloud/global/licenses/rhel-10-server"
-          ],
+          "Licenses": ["projects/rhel-cloud/global/licenses/rhel-10-server"],
           "Description": "Red Hat, Red Hat Enterprise Linux, 10, x86_64 built on ${build_date}",
-          "Family": "rhel-10-x86",
+          "Family": "rhel-10",
           "GuestOsFeatures": [
             "UEFI_COMPATIBLE",
             "VIRTIO_SCSI_MULTIQUEUE",
@@ -57,8 +55,6 @@
     }
   },
   "Dependencies": {
-    "create-image": [
-      "build-rhel"
-    ]
+    "create-image": ["build-rhel"]
   }
 }

@@ -1,5 +1,5 @@
 {
-  "Name": "build-centos-stream-10-x86",
+  "Name": "build-centos-stream-10",
   "Vars": {
     "google_cloud_repo": {
       "Value": "stable",

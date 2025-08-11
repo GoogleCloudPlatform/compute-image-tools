@@ -1,5 +1,5 @@
 {
-  "Name": "rhel-10-x86",
+  "Name": "rhel-10",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -41,7 +41,7 @@
     "build": {
       "TimeOut": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/enterprise_linux/rhel_10_x86.wf.json",
+        "Path": "${workflow_root}/image_build/enterprise_linux/rhel_10.wf.json",
         "Vars": {
           "build_date": "${build_date}",
           "google_cloud_repo": "${google_cloud_repo}",
@@ -64,7 +64,7 @@
     },
     "cleanup-image": {
       "DeleteResources": {
-        "Images": ["rhel-10-x86-v${build_date}"]
+        "Images": ["rhel-10-v${build_date}"]
       }
     }
   },
