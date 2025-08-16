@@ -53,7 +53,7 @@ def main():
   # Get Parameters.
   build_date = utils.GetMetadataAttribute(
       'build_date', raise_on_not_found=True)
-  debian_cloud_images_version = '7db1822c6a88b9177c583dd31d5765a8367d9639'
+  debian_cloud_images_version = 'c54c90cf0b6d55542638f746b24860aeba6fb27f'
   debian_version = utils.GetMetadataAttribute(
       'debian_version', raise_on_not_found=True)
   outs_path = utils.GetMetadataAttribute('daisy-outs-path',
@@ -87,7 +87,9 @@ def main():
                   + debian_version + '/')
 
   # Remove upstream test cases that won't work here.
-  os.remove(config_space + 'hooks/tests.BASE')
+  os.remove(config_space + 'hooks/tests.BUILD_IMAGE')
+  # Remove cloud-release.BASE as we don't make use of that information.
+  os.remove(config_space + 'files/etc/cloud-release/BASE')
 
   # Copy our classes to the FAI config space
   mycopytree('/files/fai_config', config_space)
@@ -102,7 +104,8 @@ def main():
   # Config fai-tool
   # Base classes used for everything
   fai_classes = ['BASE', 'DEBIAN', 'CLOUD', 'GCE', 'EXTRAS', 'IPV6_DHCP',
-                 'GCE_SPECIFIC', 'GCE_CLEAN', 'LINUX_VARIANT_CLOUD']
+                 'GCE_SPECIFIC', 'GCE_CLEAN', 'LINUX_VARIANT_CLOUD', "BUILD_IMAGE",
+                 'SYSTEM_BOOT']
 
   # Debian switched to systemd-timesyncd for ntp starting with bookworm
   if debian_version == 'buster' or debian_version == 'bullseye':
