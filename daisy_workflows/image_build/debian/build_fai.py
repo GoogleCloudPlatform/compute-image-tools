@@ -104,7 +104,7 @@ def main():
   # Config fai-tool
   # Base classes used for everything
   fai_classes = ['BASE', 'DEBIAN', 'CLOUD', 'GCE', 'EXTRAS', 'IPV6_DHCP',
-                 'GCE_SPECIFIC', 'GCE_CLEAN', 'LINUX_VARIANT_CLOUD', "BUILD_IMAGE",
+                 'GCE_SPECIFIC', 'GCE_CLEAN', 'LINUX_VARIANT_CLOUD', 'BUILD_IMAGE',
                  'SYSTEM_BOOT']
 
   # Debian switched to systemd-timesyncd for ntp starting with bookworm
