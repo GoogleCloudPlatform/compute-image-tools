@@ -20,10 +20,12 @@
 function Find-ImageIndex {
     param (
         [parameter(Mandatory=$true)]
-        [string[]]$image_names
+        [string[]]$image_names,
+
+        [parameter(Mandatory=$true)]
+        [PSObject[]]$image_list
     )
 
-    $images = Get-WindowsImage -ImagePath ./sources/install.wim
     foreach ($image in $images) {
         foreach ($image_name in $image_names) {
             if ($image.ImageName -eq $image_name) {
@@ -51,11 +53,12 @@ $errorCode = 0
 try {
     $script:winVersion = [System.Environment]::OSVersion.Version
     $script:installationType = Get-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion' -Name 'InstallationType'
+    $images = Get-WindowsImage -ImagePath ./sources/install.wim
     if ($script:installationType.InstallationType -eq 'Server Core') {
-        $script:imageIndex = Find-ImageIndex -image_name $('Windows Server 2025 SERVERDATACENTERCORE', 'Windows Server 2025 Datacenter')
+        $script:imageIndex = Find-ImageIndex -image_name $('Windows Server 2025 SERVERDATACENTERCORE', 'Windows Server 2025 Datacenter') -image_list $images
     }
     elseif ($script:installationType.InstallationType -eq 'Server') {
-        $script:imageIndex = Find-ImageIndex -image_name $('Windows Server 2025 SERVERDATACENTER', 'Windows Server 2025 Datacenter (Desktop Experience)')
+        $script:imageIndex = Find-ImageIndex -image_name $('Windows Server 2025 SERVERDATACENTER', 'Windows Server 2025 Datacenter (Desktop Experience)') -image_list $images
     }
     else {
         $msg = 'Unexpected installation type is detected: '+$script:installationType.InstallationType
@@ -74,18 +77,43 @@ try {
         throw "$SetupExePath doesn't exist"
     }
 
+    $setupArgs = @(
+      '/imageindex', $script:imageIndex,
+      '/auto', 'upgrade',
+      '/eula', 'accept',
+      '/telemetry', 'disable',
+      '/pkey', $ProductKey,
+      '/Compat', 'IgnoreWarning',
+      '/noreboot'
+    )
+
     if (([System.Environment]::OSVersion.Version -ge $script:UPGRADABLE_WIN_VERSION_MIN) -and
         ([System.Environment]::OSVersion.Version -le $script:UPGRADABLE_WIN_VERSION_MAX)) {
         # Running upgradable OS version.
 
-        Write-LogInfo 'Starting pre-upgrade script'
-        Restore-PreUpgradeConfiguration
+        # Start setup.exe but don't wait for it to complete. We will poll for the BCD entry.
+        $process = Start-Process -FilePath $SetupExePath -ArgumentList $setupArgs -PassThru
+        Write-LogInfo "Waiting for 'Windows Setup' BCD entry to be created by setup.exe (PID: $($process.Id))"
 
-        Write-LogInfo 'Starting Windows upgrade process (Setup.exe)'
-        & $SetupExePath /imageindex $script:imageIndex /auto upgrade /eula accept /telemetry disable /pkey $ProductKey  /Compat IgnoreWarning
+        $timeout = New-TimeSpan -Minutes 60
+        $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
-        Write-LogInfo 'Starting Logging of Windows upgrade process (Setup.exe)'
-        & ${script:currLocation}\..\common\setup-logger.ps1
+        while ($stopwatch.Elapsed -lt $timeout) {
+          $bcdOutput = (bcdedit /enum all | Out-String) -split '(?ms)^Windows Boot Loader\s*--+\s*'
+          $setupEntry = $bcdOutput | Where-Object { $_ -match 'description\s+Windows Setup' }
+
+          if ($setupEntry) {
+            break
+          }
+          if (-not (Get-Process -Id $process.Id -ErrorAction SilentlyContinue)) {
+            throw "setup.exe process (PID: $($process.Id)) exited unexpectedly before creating the BCD entry."
+          }
+          Start-Sleep -Seconds 60
+        }
+        $stopwatch.Stop()
+        if (Get-Process -Id $process.Id -ErrorAction SilentlyContinue) {
+          Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        }
     }
     elseif (([System.Environment]::OSVersion.Version -ge $script:ACCEPTABLE_WIN_VERSIONS_MIN) -and
           ([System.Environment]::OSVersion.Version -le $script:ACCEPTABLE_WIN_VERSIONS_MAX)) {
@@ -105,6 +133,44 @@ catch {
     Write-LogError $_
     $errorCode = 1
     Close-LogPort
+}
+
+Write-LogInfo 'Done with the Windows upgrade process (Setup.exe)'
+
+try {
+    # Step 2. Identify the Boot Sequence.
+    Write-LogInfo 'Reading the Windows Boot Manager (bootmgr) configuration...'
+    $bootmgrConfig = bcdedit.exe /enum '{bootmgr}'
+
+    # Find the 'bootsequence' identifier using a regular expression.
+    $regex = 'bootsequence\s+({[a-fA-F0-9\-]+})'
+    $match = $bootmgrConfig | Select-String -Pattern $regex
+
+    # Check if the 'bootsequence' identifier was found.
+    if ($match) {
+        # Extract the captured GUID from the match.
+        $identifier = $match.Matches[0].Groups[1].Value
+        Write-LogInfo "Successfully found the Windows Setup identifier: $identifier"
+
+        # Step 3. Modify the BCD Entry.
+        # 0x15000075 is an enum that tells winload.efi to use a previously calculated TSC frequency
+        # value to bypass the current bug in the winload.efi file.
+        Write-LogInfo "Executing: bcdedit.exe /set $identifier allowedinmemorysettings 0x15000075"
+        bcdedit.exe /set $identifier allowedinmemorysettings 0x15000075
+
+        Write-LogInfo 'BCD entry updated successfully.'
+
+        Write-LogInfo 'Rebooting the VM to complete the upgrade'
+        shutdown /r
+    }
+    else {
+        # If no 'bootsequence' is found, the one-time boot task is likely not set.
+        Write-Warning "Could not find a 'bootsequence' entry in the Windows Boot Manager."
+    }
+}
+catch {
+  # Catch and display any errors that occur during execution.
+  Write-Error "An unexpected error occurred: $_"
 }
 
 exit $errorCode
