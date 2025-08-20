@@ -71,10 +71,15 @@ def main():
   if os.path.islink('/mnt/etc/resolv.conf'):
     if os.path.isfile('/mnt/etc/resolv.conf'):
       os.rename('/mnt/etc/resolv.conf', '/mnt/etc/resolv.conf.bak')
+      logging.info("Created backup of /mnt/etc/resolv.conf")
     else:
+      target_path = os.readlink('/mnt/etc/resolv.conf')
       os.unlink('/mnt/etc/resolv.conf')
+      logging.info("Removing /mnt/etc/resolv.conf link, "
+      "stored target path %s", target_path)
   elif os.path.isfile('/mnt/etc/resolv.conf'):
       os.rename('/mnt/etc/resolv.conf', '/mnt/etc/resolv.conf.bak')
+      logging.info("Not a link, creating backup of /mnt/etc/resolv.conf")
   utils.WriteFile('/mnt/etc/resolv.conf', utils.ReadFile('/etc/resolv.conf'))
 
   utils.DownloadFile(package, f'/mnt/tmp/{package_name}')
@@ -104,6 +109,10 @@ def main():
   # Restore resolv.conf if necessary
   if os.path.isfile('/mnt/etc/resolv.conf.bak'):
     os.rename('/mnt/etc/resolv.conf.bak', '/mnt/etc/resolv.conf')
+    logging.info("Reverting to /mnt/etc/resolv.conf from backup")
+  elif target_path:
+    os.symlink(target_path, '/mnt/etc/resolv.conf')
+    logging.info("Recreating /mnt/etc/resolv.conf link to %s", target_path)
 
   # Best effort to unmount prior to shutdown.
   run('sync', check=False)
