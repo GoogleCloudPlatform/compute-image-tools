@@ -62,6 +62,8 @@ def main():
   logging.info('Mount device %s at /mnt', mount_disk)
   run(f'mount {mount_disk} /mnt')
 
+  target_path = None
+
   # The rpm utility requires /dev/random to initialize GnuTLS
   logging.info('Mount dev filesystem in chroot')
   run('mount -o bind /dev /mnt/dev')
