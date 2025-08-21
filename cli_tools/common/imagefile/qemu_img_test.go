@@ -16,7 +16,6 @@ package imagefile
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -114,7 +113,7 @@ func TestGetInfo_FormatDetection(t *testing.T) {
 
 		t.Run(tt.filename, func(t *testing.T) {
 			// 1. Create temp dir
-			dir, err := ioutil.TempDir("", "")
+			dir, err := os.MkdirTemp("", "")
 			assert.NoError(t, err)
 			absPath := path.Join(dir, tt.filename)
 
@@ -165,7 +164,7 @@ func TestGetInfo_PropagateContextCancellation(t *testing.T) {
 
 func TestGetInfo_InspectionClassifiesCompressedAsRaw(t *testing.T) {
 	skipIfQemuImgNotInstalled(t)
-	tempFile, err := ioutil.TempFile("", "")
+	tempFile, err := os.CreateTemp("", "")
 	assert.NoError(t, err)
 
 	_, err = tempFile.WriteString(test.CreateCompressedFile())
