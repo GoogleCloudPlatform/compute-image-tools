@@ -52,6 +52,17 @@ def get_distro_from_image(image):
     return None
 
 
+# Rebuilds RPM DB if required.
+def rebuild_rpm_db(image):
+  el_distros = ('rhel-8-8-sap-ha', 'rhel-8-6-sap-ha')
+  if any([x in image for x in el_distros]):
+    logging.info('Rebuilding rpm db for %s', image)
+    run('chroot /mnt rm -f  /var/lib/rpm/__db*')
+    run('chroot /mnt rpm --rebuilddb')
+  else:
+    logging.info('Image %s is not known to require rpm db rebuild', image)
+
+
 def main():
   image = utils.GetMetadataAttribute('image', raise_on_not_found=True)
   package = utils.GetMetadataAttribute('gcs_package_path',
@@ -102,6 +113,8 @@ def main():
     raise Exception('Unknown Linux distribution.')
 
   logging.info('Installing package %s', package_name)
+
+  rebuild_rpm_db(image)
   run(f'chroot /mnt {install_cmd} /tmp/{package_name}')
   if distribution == 'enterprise_linux':
     run('chroot /mnt /sbin/setfiles -v -F '
