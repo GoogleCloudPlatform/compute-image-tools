@@ -67,8 +67,19 @@ function Install-Package {
     Remove-Item -Path "C:\Program Files\Google\Compute Engine\package.goo" -ErrorAction SilentlyContinue
 }
 
+$config = @'
+
+[Core]
+log_level = 4
+log_verbosity = 4
+'@
+
 try {
     Install-Package
+
+    Write-Host 'Enabling debug logging for guest-agent'
+    Add-Content -Path "C:\Program Files\Google\Compute Engine\instance_configs.cfg" -Value $config
+
     Write-Host 'Launching sysprep.'
     & 'C:\Program Files\Google\Compute Engine\sysprep\gcesysprep.bat'
 }

@@ -63,6 +63,21 @@ def rebuild_rpm_db(image):
     logging.info('Image %s is not known to require rpm db rebuild', image)
 
 
+# Enable debug logging on guest-agent related test images.
+def enable_debug_logging():
+  config = """
+
+[Core]
+log_level = 4
+log_verbosity = 4
+"""
+
+  with open('/mnt/etc/default/instance_configs.cfg', 'a') as file:
+    file.write(config)
+
+  logging.info('Updated instance_configs.cfg to enable debug logging')
+
+
 def main():
   image = utils.GetMetadataAttribute('image', raise_on_not_found=True)
   package = utils.GetMetadataAttribute('gcs_package_path',
@@ -128,6 +143,8 @@ def main():
   elif target_path:
     os.symlink(target_path, '/mnt/etc/resolv.conf')
     logging.info("Recreating /mnt/etc/resolv.conf link to %s", target_path)
+
+  enable_debug_logging()
 
   # Best effort to unmount prior to shutdown.
   run('sync', check=False)
