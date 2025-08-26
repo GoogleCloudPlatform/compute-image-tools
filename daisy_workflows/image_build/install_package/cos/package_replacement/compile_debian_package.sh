@@ -44,6 +44,7 @@ apply_patches() {
   # Define a list of patches to ignore
   local ignore_patches=(
     "makefile-skip-proto-fetch-if-already-exists.patch"
+    "disable-cloud-logging-in-tpc.patch"
   )
 
   git clone https://cos.googlesource.com/cos/overlays/board-overlays --branch master
