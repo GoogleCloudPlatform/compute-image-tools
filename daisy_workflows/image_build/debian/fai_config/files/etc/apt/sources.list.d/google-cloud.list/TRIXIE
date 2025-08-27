@@ -1,2 +1,3 @@
 deb https://us-central1-apt.pkg.dev/projects/gce-package-public/ google-compute-engine-trixie-stable main
 deb https://packages.cloud.google.com/apt cloud-sdk-trixie main
+deb https://us-central1-apt.pkg.dev/projects/gce-pkg-ar-plugins-public/ google-cloud-packages-archive-keyring-bookworm-stable main

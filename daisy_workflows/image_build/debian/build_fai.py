@@ -90,10 +90,6 @@ def main():
   os.remove(config_space + 'hooks/tests.BUILD_IMAGE')
   # Remove cloud-release.BASE as we don't make use of that information.
   os.remove(config_space + 'files/etc/cloud-release/BASE')
-  os.remove(config_space + 'files/etc/apt/sources.list.d/gce_sdk.list/GCE_SDK')
-  os.remove(
-    config_space + 'files/etc/apt/sources.list.d/localdebs.list/LOCALDEBS'
-  )
 
   # Copy our classes to the FAI config space
   mycopytree('/files/fai_config', config_space)
