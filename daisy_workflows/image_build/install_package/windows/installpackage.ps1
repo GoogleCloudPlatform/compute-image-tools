@@ -61,10 +61,13 @@ function Install-Package {
         throw "Package path is empty: $gcs_path"
     }
 
-    & 'gsutil' -m cp $gcs_path "C:\Program Files\Google\Compute Engine\package.goo"
-    & 'googet' -noconfirm=true install "C:\Program Files\Google\Compute Engine\package.goo"
-    Write-Host "Successfully installed package"
-    Remove-Item -Path "C:\Program Files\Google\Compute Engine\package.goo" -ErrorAction SilentlyContinue
+    $paths = $gcs_path -split ','
+    foreach ($path in $paths) {
+      & 'gsutil' -m cp $path "C:\Program Files\Google\Compute Engine\package.goo"
+      & 'googet' -noconfirm=true install "C:\Program Files\Google\Compute Engine\package.goo"
+      Remove-Item -Path "C:\Program Files\Google\Compute Engine\package.goo" -ErrorAction SilentlyContinue
+    }
+    Write-Host "Successfully installed packages"
 }
 
 $config = @'
