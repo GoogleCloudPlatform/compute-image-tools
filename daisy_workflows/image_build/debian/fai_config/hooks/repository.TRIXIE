@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# This copies the keyring into the build environment for bootstrapping.
+
+set -eu
+cp -v $FAI/files/etc/apt/keyrings/google-keyring.gpg/TRIXIE $FAI_ROOT/etc/apt/keyrings/google-keyring.gpg
