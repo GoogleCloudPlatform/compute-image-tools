@@ -8,7 +8,7 @@
     },
     "gcs_package_path": {
       "Required": true,
-      "Description": "gcs path to package to install"
+      "Description": "comma separated gcs paths to packages to install"
     },
     "dest_image": {
       "Required": true,
