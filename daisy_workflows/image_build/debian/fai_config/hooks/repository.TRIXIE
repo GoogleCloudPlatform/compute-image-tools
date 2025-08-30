@@ -1,7 +1,6 @@
 #!/bin/sh
 
 # This copies the keyring into the build environment for bootstrapping.
-# The installation of the google-cloud-packages-archive-keyring package
-# provides the resulting keyring in the image.
+
 set -eu
 cp -v $FAI/files/etc/apt/keyrings/google-keyring.gpg/TRIXIE $FAI_ROOT/etc/apt/keyrings/google-keyring.gpg
