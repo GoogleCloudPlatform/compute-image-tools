@@ -45,7 +45,8 @@
           "Family": "rhel-10-arm64",
           "GuestOsFeatures": [
             "UEFI_COMPATIBLE",
-            "GVNIC"
+            "GVNIC",
+            "IDPF"
           ],
           "Project": "${publish_project}",
           "NoCleanup": true,
