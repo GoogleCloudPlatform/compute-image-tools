@@ -1,3 +1,0 @@
-# Add required key exchange algorithms to support Google Compute Engine ssh-in-browser
-
-KexAlgorithms +diffie-hellman-group-exchange-sha256,diffie-hellman-group14-sha1
