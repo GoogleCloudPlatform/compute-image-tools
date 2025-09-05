@@ -42,7 +42,7 @@
           "Licenses": ["projects/rhel-cloud/global/licenses/rhel-10-byos"],
           "Description": "Red Hat, Red Hat Enterprise Linux BYOS, 10, aarch64 built on ${build_date}",
           "Family": "rhel-10-byos-arm64",
-          "GuestOsFeatures": ["UEFI_COMPATIBLE", "GVNIC"],
+          "GuestOsFeatures": ["UEFI_COMPATIBLE", "GVNIC", "IDPF"],
           "Project": "${publish_project}",
           "NoCleanup": true,
           "ExactName": true
