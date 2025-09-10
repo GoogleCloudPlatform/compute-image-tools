@@ -36,7 +36,8 @@
         {
           "Name": "disk-worker",
           "SourceImage": "${worker_image}",
-          "Type": "pd-ssd"
+          "Type": "pd-ssd",
+          "SizeGb": "100"
 	}
       ]
     },
