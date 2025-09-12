@@ -28,7 +28,7 @@
           "kickstart_config": "./kickstart/rhel_10_arm64.cfg",
           "google_cloud_repo": "${google_cloud_repo}",
           "installer_iso": "${installer_iso}",
-          "machine_type": "t2a-standard-4",
+          "machine_type": "c4a-standard-4",
           "worker_image": "projects/compute-image-tools/global/images/family/debian-12-worker-arm64"
         }
       }
@@ -38,16 +38,10 @@
         {
           "Name": "rhel-10-arm64-v${build_date}",
           "SourceDisk": "el-install-disk",
-          "Licenses": [
-            "projects/rhel-cloud/global/licenses/rhel-10-server"
-          ],
+          "Licenses": ["projects/rhel-cloud/global/licenses/rhel-10-server"],
           "Description": "Red Hat, Red Hat Enterprise Linux, 10, aarch64 built on ${build_date}",
           "Family": "rhel-10-arm64",
-          "GuestOsFeatures": [
-            "UEFI_COMPATIBLE",
-            "GVNIC",
-            "IDPF"
-          ],
+          "GuestOsFeatures": ["UEFI_COMPATIBLE", "GVNIC", "IDPF"],
           "Project": "${publish_project}",
           "NoCleanup": true,
           "ExactName": true
@@ -56,8 +50,6 @@
     }
   },
   "Dependencies": {
-    "create-image": [
-      "build-rhel"
-    ]
+    "create-image": ["build-rhel"]
   }
 }
