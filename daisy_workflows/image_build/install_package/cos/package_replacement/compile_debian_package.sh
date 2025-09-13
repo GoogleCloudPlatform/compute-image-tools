@@ -43,16 +43,20 @@ apply_patches() {
 
   # Define a list of patches to ignore
   local ignore_patches=(
-    "makefile-skip-proto-fetch-if-already-exists.patch"
     "disable-cloud-logging-in-tpc.patch"
   )
 
   git clone https://cos.googlesource.com/cos/overlays/board-overlays --branch master
   git clone https://github.com/GoogleCloudPlatform/guest-agent.git
+  git clone https://github.com/GoogleCloudPlatform/google-guest-agent.git
+  git clone https://github.com/google/go-tpm-tools
   cd guest-agent
   git checkout ${commit_sha}
   cd ..
   mv ./board-overlays/project-lakitu/app-admin/google-guest-agent/files ./guest-agent
+  mkdir -p google-guest-agent/proto_deps/go-tpm-tools/
+  mv go-tpm-tools/* google-guest-agent/proto_deps/go-tpm-tools/
+  mv google-guest-agent ./guest-agent/
   cd guest-agent
 
   logger -p daemon.info "\nATTENTION: Applying patches...\n"
@@ -74,7 +78,11 @@ apply_patches() {
         continue
       fi
 
-      git apply "$file"
+      if [[ "$file" == *20250327.00-makefile-* ]]; then
+          git apply --directory=google-guest-agent "$file"
+      else
+          git apply "$file"
+      fi
     fi
   done
 }
@@ -84,7 +92,8 @@ install_build_deps() {
   logger -p daemon.info "\nATTENTION: Installing build deps...\n"
   apt-get -y update
   apt-get install -y --no-install-{suggests,recommends} git-core \
-    debhelper devscripts build-essential equivs libdistro-info-perl
+    debhelper devscripts build-essential equivs libdistro-info-perl \
+    protobuf-compiler libprotobuf-dev
   export PKGNAME="google-guest-agent"
   mk-build-deps -t "apt-get -o Debug::pkgProblemResolver=yes \
     --no-install-recommends --yes" --install packaging/debian/control
@@ -107,15 +116,16 @@ find_debian_version() {
 install_go(){
   # Install the correct version of Go.
   logger -p daemon.info "\nATTENTION: Installing go...\n"
-  cd ..
   source ./install_go.sh; install_go /tmp/go
+  go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.33.0
+  go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.3.0
 }
 
 upstream_tarball() {
   # Create the build directory and the upstream tarball.
   # $VERSION is an arbitrary value used for tarball naming.
   # It can be formatted as any date (2 digit): [month][day][year] eg. 010124
-  cd guest-agent
+  go mod tidy
   mkdir /tmp/debpackage
   export BUILD_DIR="/tmp/debpackage"
   export VERSION="041224"
@@ -136,6 +146,7 @@ build_tarball(){
   dch --create -M -v 1:${VERSION}-${RELEASE} --package $PKGNAME -D stable \
     "Debian packaging for ${PKGNAME}"
   sudo rm -rf /etc/default/instance_configs.cfg
+  export PATH="$(go env GOPATH)/bin:$PATH"
   debuild -us -uc
   cd ..
 }
@@ -191,10 +202,10 @@ main() {
   arch=$2
 
   logger -p daemon.info "\nATTENTION: Starting compile_debian_package.sh...\n"
+  install_go
   apply_patches
   install_build_deps
   find_debian_version
-  install_go
   upstream_tarball
   build_tarball
   unpack_binaries
