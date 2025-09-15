@@ -20,6 +20,8 @@ def get_mount_disk(image):
   devicepath = f'/dev/disk/by-id/google-{devname}'
   gpt = get_part_type(devicepath) == 'gpt'
 
+  logging.info('Partition type for %s is gpt = %s', devicepath, gpt)
+
   # This assumes that, for UEFI systems:
   # 1. partition 1 is the EFI system partition.
   # 2. partition 2 is the root mount for the installed system.
@@ -63,6 +65,18 @@ def rebuild_rpm_db(image):
     logging.info('Image %s is not known to require rpm db rebuild', image)
 
 
+# RHEL 10 uses the XFS filesystem by default for its root partition.
+# xfsprogs is not present in the host environment, debian worker image in
+# this case causing mount command to fail.
+def install_xfs(image):
+  if 'rhel-10' not in image:
+    logging.info('Not a rhel-10 image (%s), skipping xfsprogs install', image)
+    return
+
+  logging.info('Installing xfsprogs...')
+  run('apt-get install xfsprogs')
+
+
 # Enable debug logging on guest-agent related test images.
 def enable_debug_logging():
   config = """
@@ -84,6 +98,7 @@ def main():
                                        raise_on_not_found=True)
   package_name = package.split('/')[-1]
 
+  install_xfs(image)
   mount_disk = get_mount_disk(image)
   logging.info('Mount device %s at /mnt', mount_disk)
   run(f'mount {mount_disk} /mnt')
