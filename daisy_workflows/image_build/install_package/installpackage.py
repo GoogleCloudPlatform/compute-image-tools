@@ -69,12 +69,13 @@ def rebuild_rpm_db(image):
 # xfsprogs is not present in the host environment, debian worker image in
 # this case causing mount command to fail.
 def install_xfs(image):
-  if 'rhel-10' not in image:
-    logging.info('Not a rhel-10 image (%s), skipping xfsprogs install', image)
+  el10_distros = ('rhel-10', 'rocky-linux-10', 'centos-stream-10')
+  if any([x in image for x in el10_distros]):
+    logging.info('Installing xfsprogs...')
+    run('apt-get install xfsprogs')
+  else:
+    logging.info('Not a EL-10 image (%s), skipping xfsprogs install', image)
     return
-
-  logging.info('Installing xfsprogs...')
-  run('apt-get install xfsprogs')
 
 
 # Enable debug logging on guest-agent related test images.
