@@ -5,9 +5,6 @@ haveged
 # Useful tools not already in the EXTRAS package config
 net-tools
 
-# Google Cloud package keyring
-google-cloud-packages-archive-keyring
-
 # ISC DHCP client until the agent can create systemd-networkd configs
 isc-dhcp-client
 
