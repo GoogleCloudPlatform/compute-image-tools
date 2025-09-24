@@ -28,7 +28,8 @@
           "kickstart_config": "./kickstart/rhel_9_arm64.cfg",
           "google_cloud_repo": "${google_cloud_repo}",
           "installer_iso": "${installer_iso}",
-          "machine_type": "t2a-standard-4",
+          "disk_type": "hyperdisk-balanced",
+          "machine_type": "c4a-standard-4",
           "worker_image": "projects/compute-image-tools/global/images/family/debian-12-worker-arm64"
         }
       }
@@ -38,9 +39,7 @@
         {
           "Name": "rhel-9-arm64-v${build_date}",
           "SourceDisk": "el-install-disk",
-          "Licenses": [
-            "projects/rhel-cloud/global/licenses/rhel-9-server"
-          ],
+          "Licenses": ["projects/rhel-cloud/global/licenses/rhel-9-server"],
           "Description": "Red Hat, Red Hat Enterprise Linux, 9, aarch64 built on ${build_date}",
           "Family": "rhel-9-arm64",
           "GuestOsFeatures": ["UEFI_COMPATIBLE", "GVNIC", "IDPF"],
