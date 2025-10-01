@@ -32,7 +32,6 @@ steps:
   args:
   - --destination=gcr.io/$PROJECT_ID/gce_image_publish:$_RELEASE
   - --destination=gcr.io/$PROJECT_ID/gce_image_publish:$COMMIT_SHA
-  - --destination=gcr.io/$PROJECT_ID/gce_image_publish:public-image-$COMMIT_SHA
   - --context=/workspace
   - --dockerfile=gce_image_publish.Dockerfile
 
@@ -49,7 +48,6 @@ steps:
   args:
   - --destination=gcr.io/$PROJECT_ID/gce_export:$_RELEASE
   - --destination=gcr.io/$PROJECT_ID/gce_export:$COMMIT_SHA
-  - --destination=gcr.io/$PROJECT_ID/gce_export:public-image-$COMMIT_SHA
   - --context=/workspace
   - --dockerfile=gce_export.Dockerfile
 
