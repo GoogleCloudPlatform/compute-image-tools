@@ -78,7 +78,7 @@ apply_patches() {
         continue
       fi
 
-      if [[ "$file" == *20250327.00-makefile-* ]]; then
+      if [[ "$file" == *plugin-manager-* ]]; then
           git apply --directory=google-guest-agent "$file"
       else
           git apply "$file"
