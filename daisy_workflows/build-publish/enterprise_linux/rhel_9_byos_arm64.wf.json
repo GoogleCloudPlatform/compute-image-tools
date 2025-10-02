@@ -33,8 +33,8 @@
       "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
     },
     "sha256_txt": {
-       "Value": "${OUTSPATH}/export-image-shasum.txt",
-       "Description": "The file where the sha256 sum is stored."
+      "Value": "${OUTSPATH}/export-image-shasum.txt",
+      "Description": "The file where the sha256 sum is stored."
     }
   },
   "Steps": {
@@ -51,7 +51,7 @@
     "export-image": {
       "Timeout": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/export/disk_export.wf.json",
+        "Path": "${workflow_root}/export/disk_export_hyperdisk.wf.json",
         "Vars": {
           "destination": "${gcs_url}",
           "sbom_destination": "${sbom_destination}",

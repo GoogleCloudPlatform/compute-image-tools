@@ -51,7 +51,7 @@
     "export-image": {
       "Timeout": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/export/disk_export.wf.json",
+        "Path": "${workflow_root}/export/disk_export_hyperdisk.wf.json",
         "Vars": {
           "destination": "${gcs_url}",
           "sbom_destination": "${sbom_destination}",
