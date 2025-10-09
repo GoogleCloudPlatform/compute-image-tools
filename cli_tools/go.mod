@@ -1,6 +1,7 @@
 module github.com/GoogleCloudPlatform/compute-image-tools/cli_tools
 
-go 1.21
+go 1.23.0
+
 toolchain go1.24.1
 
 require (
