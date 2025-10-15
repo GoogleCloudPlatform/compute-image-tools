@@ -9,7 +9,6 @@ These are [Daisy] workflows used by Google to build [Public Images] for GCE.
 
 The following directories exist (see relevant READMEs for more details):
 
-* bare\_metal - derivative workflow to convert RHEL images for bare metal VMs
 * [debian](debian/README.md) - workflows to build Debian images
 * [enterprise\_linux](enterprise_linux/README.md) - workflows to build
   Enterprise Linux images
@@ -19,6 +18,11 @@ The following directories exist (see relevant READMEs for more details):
 * [windows](windows/README.md) - workflows to build Windows images
 * windows\_for\_containers - derivative workflows to install Docker EE onto
   Windows images
+
+Note: At one point, [Rocky Linux](https://rockylinux.org/)
+builds were nested under `enterprise_linux` but have since been taken over by
+[CIQ](https://ciq.com/), which can be found
+[here](https://github.com/ctrliq/gcp-public-images/tree/main/daisy).
 
 ## Standards
 
