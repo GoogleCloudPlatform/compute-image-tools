@@ -21,8 +21,8 @@ The following directories exist (see relevant READMEs for more details):
 
 Note: At one point, [Rocky Linux](https://rockylinux.org/)
 builds were nested under `enterprise_linux` but have since been taken over by
-[CIQ](https://ciq.com/), which can be found
-[here](https://github.com/ctrliq/gcp-public-images/tree/main/daisy).
+[CIQ](https://ciq.com/), which can be found at
+https://github.com/ctrliq/gcp-public-images/tree/main/daisy .
 
 ## Standards
 
