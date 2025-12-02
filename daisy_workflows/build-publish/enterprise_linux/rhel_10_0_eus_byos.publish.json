@@ -39,7 +39,7 @@
       "Description": "Red Hat, Red Hat Enterprise Linux, 10 EUS, BYOS x86_64 built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
-        "projects/rhel-cloud/global/licenses/rhel-10-byos"
+        "projects/rhel-cloud/global/licenses/rhel-10-byos",
         "projects/rhel-cloud/global/licenses/rhel-10-server-eus"
       ],
       "Labels": {
