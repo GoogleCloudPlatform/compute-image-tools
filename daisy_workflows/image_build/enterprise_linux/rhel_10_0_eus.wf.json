@@ -34,7 +34,7 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "rhel-10-0_eus_v${build_date}",
+          "Name": "rhel-10-0-eus-v${build_date}",
           "SourceDisk": "el-install-disk",
           "Licenses": [
             "projects/rhel-cloud/global/licenses/rhel-10-server",
