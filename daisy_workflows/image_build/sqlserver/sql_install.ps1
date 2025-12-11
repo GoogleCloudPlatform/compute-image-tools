@@ -299,10 +299,19 @@ function Install-SSMS {
   Write-Host 'Installing SSMS'
 
   $gs_path = Get-MetadataValue -key 'daisy-sources-path'
-  $ssms_exe = "${script:sbom_dir}\SSMS-Setup-ENU.exe"
-  & 'gsutil' -m cp "${gs_path}/SSMS-Setup-ENU.exe" $ssms_exe
+  $ssms_exe = "${script:sbom_dir}\vs_SSMS.exe"
+  & 'gcloud' storage cp "${gs_path}/vs_SSMS.exe" $ssms_exe
+  
+  # Arguments for silent installation
+  $ARGUMENTS = @(
+    "--all",
+    "--quiet",
+    "--norestart"
+  )
 
-  $process = Start-Process $ssms_exe -ArgumentList @('/install','/quiet','/norestart') -Passthru -Wait
+  Write-Host "Arguments: $ARGUMENTS"
+  $process = Start-Process $ssms_exe -ArgumentList $ARGUMENTS -Passthru -Wait -ErrorAction Stop
+
   if ($process.ExitCode -ne 0) {
     throw "SSMS installer returned non-zero exit code. Exit Code: $($process.ExitCode)"
   }
