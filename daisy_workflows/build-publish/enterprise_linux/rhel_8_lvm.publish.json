@@ -36,10 +36,11 @@
     {
       "Family": "rhel-8-lvm",
       "Prefix": "rhel-8-lvm",
-      "Description": "Red Hat, Red Hat Enterprise Linux, 8, x86_64 with LVM built on {{$time}}",
+      "Description": "Red Hat, Red Hat Enterprise Linux, 8 using LVM, x86_64 with a LVM boot volume built on ${build_date}",
       "Architecture": "X86_64",
       "Licenses": [
-        "projects/rhel-cloud/global/licenses/rhel-8-server"
+        "projects/rhel-cloud/global/licenses/rhel-8-server",
+        "projects/rhel-cloud/global/licenses/rhel-lvm"
       ],
       "Labels": {
         "public-image": "true"

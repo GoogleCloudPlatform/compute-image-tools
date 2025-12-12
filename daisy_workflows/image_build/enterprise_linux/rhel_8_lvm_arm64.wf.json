@@ -28,6 +28,7 @@
           "kickstart_config": "./kickstart/rhel_8_lvm_arm64.cfg",
           "google_cloud_repo": "${google_cloud_repo}",
           "installer_iso": "${installer_iso}",
+	  "el_install_disk_size": "50",
           "disk_type": "hyperdisk-balanced",
           "machine_type": "c4a-standard-4",
           "worker_image": "projects/compute-image-tools/global/images/family/debian-12-worker-arm64"
@@ -40,9 +41,10 @@
           "Name": "rhel-8-lvm-arm64-v${build_date}",
           "SourceDisk": "el-install-disk",
           "Licenses": [
-            "projects/rhel-cloud/global/licenses/rhel-8-server"
+            "projects/rhel-cloud/global/licenses/rhel-8-server",
+	    "projects/rhel-cloud/global/licenses/rhel-lvm"
           ],
-          "Description": "Red Hat, Red Hat Enterprise Linux, 8, aarch64 with LVM built on ${build_date}",
+          "Description": "Red Hat, Red Hat Enterprise Linux, 8 using LVM, aarch64 with a LVM boot volume built on ${build_date}",
           "Family": "rhel-8-lvm-arm64",
           "GuestOsFeatures": ["UEFI_COMPATIBLE", "GVNIC", "IDPF"],
           "Project": "${publish_project}",
