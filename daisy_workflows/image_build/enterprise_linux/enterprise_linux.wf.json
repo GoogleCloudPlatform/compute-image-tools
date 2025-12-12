@@ -67,7 +67,7 @@
         },
         {
           "Name": "el-install-disk",
-          "SizeGb": "20",
+          "SizeGb": "50",
           "Type": "${disk_type}",
           "GuestOsFeatures": [{"type": "UEFI_COMPATIBLE"}, {"type": "GVNIC"}]
         }
