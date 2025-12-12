@@ -39,7 +39,7 @@
   },
   "Sources": {
     "sql_install.ps1": "./sql_install.ps1",
-    "SSMS-Setup-ENU.exe": "${ssms_exe}",
+    "vs_SSMS.exe": "${ssms_exe}",
     "sql_installer.media": "${sql_server_media}",
     "sql_config.ini": "${sql_server_config}"
   },
