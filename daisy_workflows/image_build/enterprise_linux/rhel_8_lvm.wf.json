@@ -41,7 +41,7 @@
             "projects/rhel-cloud/global/licenses/rhel-8-server",
 	    "projects/rhel-cloud/global/licenses/rhel-lvm"
           ],
-          "Description": "Red Hat, Red Hat Enterprise Linux, 8 using LVM, x86_64 with a LVM boot volume built on ${build_date}",
+          "Description": "Red Hat, Red Hat Enterprise Linux, 8 (LVM), x86_64 with a LVM boot volume built on ${build_date}",
           "Family": "rhel-8-lvm",
           "Project": "${publish_project}",
           "NoCleanup": true,

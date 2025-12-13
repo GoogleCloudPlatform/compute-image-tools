@@ -44,7 +44,7 @@
             "projects/rhel-cloud/global/licenses/rhel-8-server",
 	    "projects/rhel-cloud/global/licenses/rhel-lvm"
           ],
-          "Description": "Red Hat, Red Hat Enterprise Linux, 8 using LVM, aarch64 with a LVM boot volume built on ${build_date}",
+          "Description": "Red Hat, Red Hat Enterprise Linux, 8 (LVM), aarch64 with a LVM boot volume built on ${build_date}",
           "Family": "rhel-8-lvm-arm64",
           "GuestOsFeatures": ["UEFI_COMPATIBLE", "GVNIC", "IDPF"],
           "Project": "${publish_project}",

@@ -36,7 +36,7 @@
     {
       "Family": "rhel-8-lvm-arm64",
       "Prefix": "rhel-8-lvm-arm64",
-      "Description": "Red Hat, Red Hat Enterprise Linux, 8 using LVM, aarch64 with a LVM boot volume built on {{$time}}",
+      "Description": "Red Hat, Red Hat Enterprise Linux, 8 (LVM), aarch64 with a LVM boot volume built on {{$time}}",
       "Architecture": "ARM64",
       "Licenses": [
         "projects/rhel-cloud/global/licenses/rhel-8-server",
