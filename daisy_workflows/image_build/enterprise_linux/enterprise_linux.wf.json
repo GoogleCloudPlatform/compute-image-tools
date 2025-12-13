@@ -41,6 +41,11 @@
     "disk_type": {
       "Value": "pd-ssd",
       "Description": "Type of disk to use for builds."
+    },
+    "el_install_disk_size": {
+      "Value": "20",
+      "Required": false,
+      "Description": "Default size of el-install-disk in GB. LVM will override this."
     }
   },
   "Sources": {
@@ -67,7 +72,7 @@
         },
         {
           "Name": "el-install-disk",
-          "SizeGb": "20",
+          "SizeGb": "${el_install_disk_size}",
           "Type": "${disk_type}",
           "GuestOsFeatures": [{"type": "UEFI_COMPATIBLE"}, {"type": "GVNIC"}]
         }
