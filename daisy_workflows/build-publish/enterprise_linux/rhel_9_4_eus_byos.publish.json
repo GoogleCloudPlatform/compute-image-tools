@@ -36,7 +36,7 @@
     {
       "Family": "rhel-9-4-eus-byos",
       "Prefix": "rhel-9-4-eus-byos",
-      "Description": "Red Hat, Red Hat Enterprise Linux, 9.4 EUS, BYOS x86_64 built on {{$time}}",
+      "Description": "Red Hat, Red Hat Enterprise Linux, 9.4 (EUS), BYOS x86_64 with Extended Update Support (EUS) built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         "projects/rhel-cloud/global/licenses/rhel-9-byos",

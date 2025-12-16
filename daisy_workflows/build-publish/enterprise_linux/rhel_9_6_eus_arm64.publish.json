@@ -36,7 +36,7 @@
     {
       "Family": "rhel-9-6-eus-arm64",
       "Prefix": "rhel-9-6-eus-arm64",
-      "Description": "Red Hat, Red Hat Enterprise Linux, 9.6 EUS, aarch64 built on {{$time}}",
+      "Description": "Red Hat, Red Hat Enterprise Linux, 9.6 (EUS), aarch64 with Extended Update Support (EUS) built on {{$time}}",
       "Architecture": "ARM64",
       "Licenses": [
         "projects/rhel-cloud/global/licenses/rhel-9-server",
