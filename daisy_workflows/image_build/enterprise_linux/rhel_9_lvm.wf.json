@@ -34,7 +34,7 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "rhel-9-v${build_date}",
+          "Name": "rhel-9-lvm-v${build_date}",
           "SourceDisk": "el-install-disk",
           "Licenses": [
             "projects/rhel-cloud/global/licenses/rhel-9-server",
