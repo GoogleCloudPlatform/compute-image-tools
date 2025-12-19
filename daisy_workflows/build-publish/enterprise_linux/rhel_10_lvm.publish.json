@@ -39,7 +39,7 @@
       "Description": "Red Hat, Red Hat Enterprise Linux, 10 (LVM), x86_64 with a LVM boot volume built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
-        "projects/rhel-cloud/global/licenses/rhel-9-server",
+        "projects/rhel-cloud/global/licenses/rhel-10-server",
         "projects/rhel-cloud/global/licenses/rhel-lvm"
       ],
       "Labels": {
