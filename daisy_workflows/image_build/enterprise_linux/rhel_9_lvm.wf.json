@@ -27,7 +27,8 @@
           "el_release": "rhel-9",
           "kickstart_config": "./kickstart/rhel_9_lvm.cfg",
           "google_cloud_repo": "${google_cloud_repo}",
-          "installer_iso": "${installer_iso}"
+          "installer_iso": "${installer_iso}",
+	  "el_install_disk_size": "50"
         }
       }
     },
