@@ -146,17 +146,21 @@ steps:
   - --dockerfile=gce_windows_upgrade.Dockerfile
 
 # Copy Linux binaries to GCS
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/linux/*', 'gs://$PROJECT_ID/$_RELEASE/linux/']
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'gcloud'
+  args: ['storage', 'cp', '/workspace/linux/*', 'gs://$PROJECT_ID/$_RELEASE/linux/']
 
 # Copy Windows binaries to GCS
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/windows/*', 'gs://$PROJECT_ID/$_RELEASE/windows/']
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'gcloud'
+  args: ['storage', 'cp', '/workspace/windows/*', 'gs://$PROJECT_ID/$_RELEASE/windows/']
 
 # Copy OSX binaries to GCS
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/darwin/*', 'gs://$PROJECT_ID/$_RELEASE/darwin/']
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'gcloud'
+  args: ['storage', 'cp', '/workspace/darwin/*', 'gs://$PROJECT_ID/$_RELEASE/darwin/']
 
 # Make binaries world-readable.
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['-m', 'acl', '-r', 'ch', '-u', 'AllUsers:R', 'gs://$PROJECT_ID/$_RELEASE/*']
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'gcloud'
+  args: ['storage', 'objects', 'update', '--recursive', '--add-acl-grant=AllUsers:R', 'gs://$PROJECT_ID/$_RELEASE/*']

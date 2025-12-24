@@ -56,7 +56,7 @@ if [[ ${GCE_EXPORT_RESULT} -ne 0 ]]; then
 fi
 
 # Exported image size info.
-TARGET_SIZE_BYTES=$(gsutil ls -l "${GCS_PATH}" | head -n 1 | awk '{print $1}')
+TARGET_SIZE_BYTES=$(gcloud storage ls --long "${GCS_PATH}" | head -n 1 | awk '{print $1}')
 TARGET_SIZE_GB=$(awk "BEGIN {print int(((${TARGET_SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
 serialOutputPrefixedKeyValue "GCEExport" "target-size-gb" "${TARGET_SIZE_GB}"
 # Final destination for the disk and sbom exported files
@@ -94,15 +94,15 @@ function fetch_sbomutil() {
   echo "GCEExport: listing sbom-util versions at [${SBOM_UTIL_GCS_ROOT}]"
   # Determine the latest sbomutil gcs path if available
   if [ -n "${SBOM_UTIL_GCS_ROOT}" ]; then
-    SBOM_UTIL_GCS_PATH=$(gsutil ls $SBOM_UTIL_GCS_ROOT | tail -1)
-    echo "GCEExport: gsutil list completed with status [$?]"
+    SBOM_UTIL_GCS_PATH=$(gcloud storage ls $SBOM_UTIL_GCS_ROOT | tail -1)
+    echo "GCEExport: gcloud storage ls completed with status [$?]"
   fi
 
   echo "GCEExport: searching for sbom-util at [${SBOM_UTIL_GCS_PATH}]"
   # Fetch sbomutil from gcs if available
   if [ -n "${SBOM_UTIL_GCS_PATH}" ]; then
     echo "GCEExport: Fetching sbomutil: ${SBOM_UTIL_GCS_PATH}"
-    gsutil cp "${SBOM_UTIL_GCS_PATH%/}/sbomutil" sbomutil
+    gcloud storage cp "${SBOM_UTIL_GCS_PATH%/}/sbomutil" sbomutil
     chmod +x sbomutil
   fi
 }
@@ -121,7 +121,7 @@ function runSBOMGeneration() {
     echo "ExportFailed: sbom generation failed with code $sbom_error_code"
     exit 1
   fi
-  gsutil cp image.sbom.json $SBOM_PATH
+  gcloud storage cp image.sbom.json $SBOM_PATH
   umount /mnt/dev
   umount /mnt
   echo "GCEExport: SBOM export success"
@@ -132,12 +132,12 @@ function generateHash() {
   echo "GCEExport: sha256 text file destination passed in as ${SHA256_PATH}"
   # According to https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/cli_tools/gce_export#compute-engine-image-export,
   # no local image file is stored when gce_export is called. We must copy the image file to calculate the sha256 sum.
-  gsutil cp $GCS_PATH img.tar.gz
+  gcloud storage cp $GCS_PATH img.tar.gz
   imghash=$(sha256sum img.tar.gz | awk '{print $1;}')
   echo $imghash | tee sha256.txt
   echo "GCEExport: got imghash ${imghash}"
   echo $imghash > sha256.txt
-  gsutil cp sha256.txt $SHA256_PATH
+  gcloud storage cp sha256.txt $SHA256_PATH
   rm img.tar.gz
   echo "GCEExport: successfully stored sha256 sum in ${SHA256_PATH}"
 }
@@ -145,7 +145,7 @@ function generateHash() {
 # Always create empty sbom file so workflow copying does not fail.
 if [ $SBOM_ALREADY_GENERATED != "true" ]; then
   touch image.sbom.json
-  gsutil cp image.sbom.json $SBOM_PATH
+  gcloud storage cp image.sbom.json $SBOM_PATH
 fi
 # If the sbom-util program location is passed in, generate the sbom.
 if [ $SBOM_UTIL_GCS_ROOT != "" ]; then
@@ -154,7 +154,7 @@ fi
 
 # Always create the empty sha256 sum text file so workflow copying does not fail.
 touch sha256_sum.txt
-gsutil cp sha256_sum.txt $SHA256_PATH
+gcloud storage cp sha256_sum.txt $SHA256_PATH
 generateHash
 
 echo "ExportSuccess"

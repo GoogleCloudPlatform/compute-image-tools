@@ -162,7 +162,7 @@ function Run-FirstBootSteps {
   $gs_path = Get-MetadataValue -key 'daisy-sources-path'
   $dockerLicensePath = "${gs_path}/docker_license_file.lic"
   $dockerLicense = "$dockerPath\license.lic"
-  gsutil -m cp $dockerLicensepath $dockerLicense
+  gcloud storage cp $dockerLicensepath $dockerLicense
 
   if (-Not (Test-Path -Path $dockerLicense)) {
     throw 'Docker license file could not be verified or is missing.'
