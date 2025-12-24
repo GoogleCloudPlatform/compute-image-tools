@@ -71,7 +71,7 @@ function Export-ImageMetadata {
 
     # Save the JSON image_metadata.
     $image_metadata_json = $image_metadata | ConvertTo-Json -Compress
-    $image_metadata_json | & 'gsutil' cp - "${metadata_dest}"
+    $image_metadata_json | & 'gcloud' storage cp - "${metadata_dest}"
 }
 
 try {
