@@ -319,5 +319,5 @@ class GenericDistroTests(object):
 
     # Avoid log output overload on centos-6
     time.sleep(1)
-    utils.Execute(['gsutil', 'ls'])
+    utils.Execute(['gcloud', 'storage', 'ls'])
     time.sleep(1)
