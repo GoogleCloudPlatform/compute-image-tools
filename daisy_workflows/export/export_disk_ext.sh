@@ -91,8 +91,7 @@ serialOutputPrefixedKeyValue "GCEExport" "target-size-gb" "${TARGET_SIZE_GB}"
 set -x
 
 echo "GCEExport: Copying output image to target GCS path..."
-# gsutil command could not be translated because the gcloud storage equivalent for the top-level flag '-o' is not supported.
-gsutil -o GSUtil:parallel_composite_upload_threshold=150M cp "/gs/${IMAGE_OUTPUT_PATH}" "${GS_PATH}" 2>gsutil_err.txt
+gcloud storage cp "/gs/${IMAGE_OUTPUT_PATH}" "${GS_PATH}" 2>gsutil_err.txt
 if [[ $? -ne 0 ]] ; then
   echo "ExportFailed: Failed to copy output image to GCS [Privacy-> ${GS_PATH}, error: $(<gsutil_err.txt) <-Privacy]"
   exit
