@@ -37,7 +37,7 @@ function Copy-FromGCS {
   $gs_path = Get-MetadataValue -key $key
   if ($gs_path) {
     Write-Host "BuildStatus: Downloading from ${gs_path} to ${dst}."
-    & 'gsutil' -m cp -r "${gs_path}/*" $dst
+    & 'gcloud' storage cp --recursive "${gs_path}/*" $dst
     Write-Host 'BuildStatus: Download complete.'
   }
   else {
