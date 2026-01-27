@@ -1,0 +1,154 @@
+{
+  "Name": "rhel-10-consolidated",
+  "Project": "gce-image-builder",
+  "Zone": "us-central1-b",
+  "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
+  "Vars": {
+    "build_date": {
+      "Value": "${TIMESTAMP}",
+      "Description": "Build datestamp used to version the image."
+    },
+    "google_cloud_repo": {
+      "Value": "stable",
+      "Description": "The Google Cloud Repo branch to use."
+    },
+    "workflow_root": {
+      "Value": "/workflows",
+      "Description": "Root of github workflows, defaults to /workflows in the container."
+    },
+    "gcs_url": {
+      "Required": true,
+      "Description": "The GCS path that image raw file exported to."
+    },
+    "sbom_destination": {
+      "Value": "${OUTSPATH}/export-image.sbom.json",
+      "Description": "SBOM final export destination, copies in place by default"
+    },
+    "installer_iso": {
+      "Required": true,
+      "Description": "The RHEL 10 installer ISO to build from."
+    },
+    "sbom_util_gcs_root": {
+      "Value": "",
+      "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
+    },
+    "sha256_txt": {
+      "Value": "${OUTSPATH}/export-image-shasum.txt",
+      "Description": "The file where the sha256 sum is stored."
+    },
+    "description": {
+        "Required": "true",
+        "Description": "Description of the image including information such as version, system architecture, build date, etc."
+    },
+    "el_release": {
+        "Value": "rhel-10",
+        "Description": "The Enterprise Linux (EL) release for the iamge"
+    },
+    "export_disk": {
+        "Required": "true",
+        "Description": "The name of the export disk"
+    },
+    "guest_os_feature": {
+        "Required": "true",
+        "Description": "A list of the guest os features avaliable on this image"
+    },
+    "image_family": {
+        "Value": "rhel-10",
+        "Description": "The name of the image family"
+    },
+    "is_arm": {
+        "Value": "false",
+        "Description": "The system architecture of X86 or ARM"
+    },
+    "is_byos": {
+        "Value": "false",
+        "Description": "If the image is Pay as you Go (PAYG) or Bring your own Service (BYOS)"
+    },
+    "is_eus": {
+        "Value": "false",
+        "Description": "If the image has Extended Update Support(EUS)"
+    },
+    "is_lvm": {
+        "Value": "false",
+        "Description": "If the image supports the Logical Volume Manager (LVM)"
+    },
+    "is_sap": {
+        "Value": "false",
+        "Description": "If the image is RHEL for SAP"
+    },
+    "license": {
+        "Required": true,
+        "Description": "The base license associated with the image"
+    },
+    "eus_license": {
+        "Required": true,
+        "Description": "The EUS license if it's an EUS image, base license if not"
+    },
+    "lvm_license": {
+        "Required": true,
+        "Description": "The LVM license if it's an LVM image, base license if not"
+    },
+    "rhui_package_name": {
+        "Value": "google-rhui-client-rhel10",
+        "Description": "Name of the RHUI client package"
+    },
+    "use_dynamic_template": {
+        "Value": "false",
+        "Description": "Use the dynamically created templates to create images as part of the RHEL Build Workflow Consolidation path. To remove once the consolidation/refactoring is complete"
+    },
+    "version_lock": {
+        "Value": "",
+        "Description": "The minor release version for RHEL EUS images"
+    }
+  },
+  "Steps": {
+    "build": {
+      "TimeOut": "60m",
+      "IncludeWorkflow": {
+        "Path": "${workflow_root}/image_build/enterprise_linux/rhel_10_consolidated.wf.json",
+        "Vars": {
+          "build_date": "${build_date}",
+          "google_cloud_repo": "${google_cloud_repo}",
+          "installer_iso": "${installer_iso}",
+          "description": "${description}",
+          "el_release": "${el_release}",
+          "guest_os_feature": "${guest_os_feature}",
+          "is_arm": "${is_arm}",
+          "is_byos": "${is_byos}",
+          "is_eus": "${is_eus}",
+          "is_lvm": "${is_lvm}",
+          "is_sap": "${is_sap}",
+          "image_family": "${image_family}",
+          "licenses": "${licenses}",
+          "eus_license": "${eus_license}",
+          "lvm_license": "${lvm_license}",
+          "rhui_package_name": "${rhui_package_name}",
+          "use_dynamic_template": "${use_dynamic_template}",
+          "version_lock": "${version_lock}"
+        }
+      }
+    },
+    "export-image": {
+      "Timeout": "60m",
+      "IncludeWorkflow": {
+        "Path": "${workflow_root}/export/${export_disk}.wf.json",
+        "Vars": {
+          "destination": "${gcs_url}",
+          "sbom_destination": "${sbom_destination}",
+          "source_disk": "el-install-disk",
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}",
+          "sha256_txt": "${sha256_txt}"
+        }
+      }
+    },
+    "cleanup-image": {
+      "DeleteResources": {
+        "Images": ["${image_family}-v${build_date}"] 
+      }
+    }
+  },
+  "Dependencies": {
+    "export-image": ["build"],
+    "cleanup-image": ["build"]
+  }
+}

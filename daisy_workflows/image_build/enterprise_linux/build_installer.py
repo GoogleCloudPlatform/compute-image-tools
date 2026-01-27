@@ -16,8 +16,19 @@
 """Convert EL ISO to GCE Image and prep for installation.
 
 Parameters (retrieved from instance metadata):
+is_arm: If the image is X86 or ARM
+is_byos: If the image is Bring your own Service (BYOS) or Pay as you Go (PAYG)
+is_eus: If the image has Extended Update Support (EUS)
+is_lvm: If the image has Logical Volume Manager (LVM) support
+is_sap: If the image is RHEL for SAP
+package_name: The name of the RHUI package
 el_release: The EL release to build.
+use_dynamic_template: Use the dynamically created templates to create images
+               as part of the RHEL Build Workflow Consolidation work.
+               To remove once the consolidation/refactoring is complete
 el_savelogs: true to ask Anaconda to save logs (for debugging).
+version_lock: The minor release version that the Image is locked
+              to if EUS or SAP (ex. "9.4")
 """
 
 import difflib
@@ -30,14 +41,53 @@ import utils
 
 def main():
   # Get Parameters
+
   release = utils.GetMetadataAttribute('el_release', raise_on_not_found=True)
   savelogs = utils.GetMetadataAttribute('el_savelogs') == 'true'
+  use_dynamic_template = utils.GetMetadataAttribute(
+    'use_dynamic_template', raise_on_not_found=False)
+
+  if use_dynamic_template == 'true':
+    is_arm = utils.GetMetadataAttribute('is_arm', raise_on_not_found=False)
+    is_byos = utils.GetMetadataAttribute('rhel_byos', raise_on_not_found=False)
+    is_eus = utils.GetMetadataAttribute('is_eus', raise_on_not_found=False)
+    is_lvm = utils.GetMetadataAttribute('is_lvm', raise_on_not_found=False)
+    is_sap = utils.GetMetadataAttribute('rhel_sap', raise_on_not_found=False)
+    rhui_package_name = utils.GetMetadataAttribute(
+      'rhui_package_name', raise_on_not_found=True)
+    version_lock = utils.GetMetadataAttribute(
+      'version_lock', raise_on_not_found=False)
+
+    if (is_eus == 'true' or is_sap == 'true') and not version_lock:
+      raise Exception(
+        "invalid image build config: RHEL EUS & RHEL for "
+        "SAP images must be version locked")
+    if is_sap == 'true' and is_arm == 'true':
+      raise Exception(
+        "invalid image build config: RHEL for SAP is not supported for ARM")
+    if version_lock and int(float(version_lock)) % 2 != 0:
+      raise Exception(
+        "invalid image build config: RHEL EUS & RHEL for SAP are only "
+        "created for even number minor releases")
+    if (is_arm == 'true' and "arm64" not in rhui_package_name) or (
+      is_arm == 'false' and "arm64" in rhui_package_name):
+      raise Exception(
+        "invalid image build config: System Architecture mismatch")
+    if (is_byos == 'true' and "byos" not in rhui_package_name) or (
+      is_byos == 'false' and "byos" in rhui_package_name):
+      raise Exception(
+        "invalid image build config: BYOS and PAYG mismatch")
+    if (is_lvm == 'true' and "lvm" not in rhui_package_name) or (
+      is_lvm == 'false' and "lvm" in rhui_package_name):
+      raise Exception(
+        "invalid image build config: BYOS and PAYG mismatch")
 
   logging.info('EL Release: %s' % release)
   logging.info('Build working directory: %s' % os.getcwd())
 
   iso_file = '/files/installer.iso'
   ks_cfg = '/files/ks.cfg'
+  kickstart_vars_file = '/files/kickstart_vars.cfg'
 
   utils.AptGetInstall(['rsync'])
 
@@ -77,10 +127,26 @@ def main():
   utils.Execute(['mount', '-o', 'ro,loop', '-t', 'iso9660', iso_file, 'iso'])
   utils.Execute(['mount', '-t', 'vfat', installer_disk1, 'boot'])
   utils.Execute(['mount', '-t', 'ext4', installer_disk2, 'installer'])
+
+  if use_dynamic_template == 'true':
+    logging.info('Writing Kickstart variables file to installer disk.')
+    with open(kickstart_vars_file, 'w') as f:
+      f.write(f'IS_ARM={is_arm}\n')
+      f.write(f'IS_BYOS={is_byos}\n')
+      f.write(f'IS_EUS={is_eus}\n')
+      f.write(f'IS_LVM={is_lvm}\n')
+      f.write(f'IS_SAP={is_sap}\n')
+      f.write(f'RHUI_PACKAGE_NAME={str(rhui_package_name).lower()}\n')
+      if version_lock:
+        f.write(f'VERSION_LOCK="{version_lock}"\n')
+    logging.info(f'Successfully wrote {kickstart_vars_file}')
+
   utils.Execute(['cp', '-r', 'iso/EFI', 'boot/'])
   utils.Execute(['cp', '-r', 'iso/images', 'boot/'])
   utils.Execute(['cp', iso_file, 'installer/'])
   utils.Execute(['cp', ks_cfg, 'installer/'])
+  if use_dynamic_template == 'true':
+    utils.Execute(['cp', kickstart_vars_file, 'installer/'])
 
   # The kickstart config contains a preinstall script copying, reloading, and
   # triggering this rule in the install environment. This allows us to use
