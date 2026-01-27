@@ -51,7 +51,7 @@ function Download-Drivers {
   $gs_path = Get-MetadataValue -key 'drivers-path'
   if ($gs_path) {
     Write-Output "Downloading drivers from $gs_path."
-    & 'gsutil' -m cp -r "${gs_path}/*" $script:driver_dir
+    & 'gcloud storage' cp -r "${gs_path}/*" $script:driver_dir
     Write-Output 'Driver download complete.'
   }
   else {
@@ -67,7 +67,7 @@ function Download-Components {
   $gs_path = Get-MetadataValue -key 'components-path'
   if ($gs_path) {
     Write-Output "Downloading components from $gs_path."
-    & 'gsutil' -m cp -r "${gs_path}/*" $script:components_dir
+    & 'gcloud storage cp -r "${gs_path}/*" $script:components_dir
     Write-Output 'Components download complete.'
   }
   else {
@@ -87,15 +87,15 @@ function Download-Sbomutil {
   }
 
   $gs_path = "${gs_path}/windows"
-  $latest = gsutil ls "${gs_path}" | Select -Last 1
+  $latest = gcloud storage ls "${gs_path}" | Select -Last 1
   if (!$latest) {
     Write-Output "Could not determine sbomutil's latest release, skipping sbomutil download."
     return
   }
 
-  # The variable $latest already has a backslash at the end, as a result of gsutil ls.
+  # The variable $latest already has a backslash at the end, as a result of gcloud storage ls.
   Write-Output "Downloading sbomutil from $gs_path."
-  & 'gsutil' -m cp "${latest}sbomutil.exe" "C:\sbomutil.exe"
+  & 'gcloud storage cp' "${latest}sbomutil.exe" "C:\sbomutil.exe"
   Write-Output 'Components download complete.'
 }
 
@@ -127,7 +127,7 @@ function Generate-Sbom {
     return
   }
 
-  & 'gsutil' cp $local_sbom_file $gs_path
+  & 'gcloud storage cp' $local_sbom_file $gs_path
 
   Write-Output "Sbom file uploaded to $gs_path."
 }
