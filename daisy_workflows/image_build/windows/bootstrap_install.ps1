@@ -51,7 +51,7 @@ function Download-Drivers {
   $gs_path = Get-MetadataValue -key 'drivers-path'
   if ($gs_path) {
     Write-Output "Downloading drivers from $gs_path."
-    & 'gcloud storage cp -r "${gs_path}/*" $script:driver_dir
+    & 'gcloud storage' cp -r "${gs_path}/*" $script:driver_dir
     Write-Output 'Driver download complete.'
   }
   else {
