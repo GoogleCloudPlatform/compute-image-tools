@@ -1,5 +1,5 @@
 {
-  "Name": "build-rhel-9",
+  "Name": "build-rhel-9-consolidated",
   "Vars": {
     "google_cloud_repo": {
       "Value": "stable",
@@ -16,6 +16,54 @@
     "publish_project": {
       "Value": "${PROJECT}",
       "Description": "A project to publish the resulting image to."
+    },
+    "create_image_wf_file": {
+        "Required": "true",
+        "Description": "The name of the create-image wf.json file to create the image"
+    },
+    "description": {
+        "Value": "Red Hat, Red Hat Enterprise Linux, 9, x86_64 built on ${TIMESTAMP}",
+        "Description": "Description of the image including information such as version, system architecture, build date, etc."
+    },
+    "el_release": {
+        "Value": "rhel-9",
+        "Description": "The Enterprise Linux (EL) release for the iamge"
+    },
+    "image_family": {
+        "Value": "rhel-9",
+        "Description": "The name of the image family"
+    },
+    "is_arm": {
+        "Value": "false",
+        "Description": "The system architecture of X86 or ARM"
+    },
+    "is_byos": {
+        "Value": "false",
+        "Description": "If the image is Pay as you Go (PAYG) or Bring your own Service (BYOS)"
+    },
+    "is_eus": {
+        "Value": "false",
+        "Description": "If the image has Extended Update Support(EUS)"
+    },
+    "is_lvm": {
+        "Value": "false",
+        "Description": "If the image supports the Logical Volume Manager (LVM)"
+    },
+    "is_sap": {
+        "Value": "false",
+        "Description": "If the image is RHEL for SAP"
+    },
+    "rhui_package_name": {
+        "Value": "google-rhui-client-rhel9",
+        "Description": "Name of the RHUI client package"
+    },
+    "use_dynamic_template": {
+        "Value": "false",
+        "Description": "Use the dynamically created templates to create images as part of the RHEL Build Workflow Consolidation path. To remove once the consolidation/refactoring is complete"
+    },
+    "version_lock": {
+        "Value": "",
+        "Description": "The minor release version for RHEL EUS images"
     }
   },
   "Steps": {
@@ -24,32 +72,36 @@
       "IncludeWorkflow": {
         "Path": "./enterprise_linux.wf.json",
         "Vars": {
-          "el_release": "rhel-9",
-          "kickstart_config": "./kickstart/rhel_9.cfg",
+          "el_release": "${el_release}",
+          "kickstart_config": "./kickstart/rhel_9_consolidated.cfg",
           "google_cloud_repo": "${google_cloud_repo}",
-          "installer_iso": "${installer_iso}"
+          "installer_iso": "${installer_iso}",
+          "rhel_byos": "${is_byos}",
+          "rhel_sap": "${is_sap}",
+          "is_arm": "${is_arm}",
+          "is_eus": "${is_eus}",
+          "is_lvm": "${is_lvm}",
+          "image_family": "${image_family}",
+          "rhui_package_name": "${rhui_package_name}",
+          "use_dynamic_template": "${use_dynamic_template}",
+          "version_lock": "${version_lock}"
         }
       }
     },
-    "create-image": {
-      "CreateImages": [
-        {
-          "Name": "rhel-9-v${build_date}",
-          "SourceDisk": "el-install-disk",
-          "Licenses": [
-            "projects/rhel-cloud/global/licenses/rhel-9-server"
-          ],
-          "Description": "Red Hat, Red Hat Enterprise Linux, 9, x86_64 built on ${build_date}",
-          "Family": "rhel-9",
-          "GuestOsFeatures": ["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "SEV_CAPABLE", "SEV_LIVE_MIGRATABLE", "SEV_LIVE_MIGRATABLE_V2", "IDPF"],
-          "Project": "${publish_project}",
-          "NoCleanup": true,
-          "ExactName": true
+    "start-create-image": {
+        "Timeout": "60m",
+        "IncludeWorkflow": {
+            "Path": "./create_image/${create_image_wf_file}.wf.json",
+            "Vars": {
+                "description": "${description}",
+                "image_family": "${image_family}",
+                "major_version": "9",
+                "publish_project": "${publish_project}"
+            }
         }
-      ]
     }
   },
   "Dependencies": {
-    "create-image": ["build-rhel"]
+    "start-create-image": ["build-rhel"]
   }
 }
