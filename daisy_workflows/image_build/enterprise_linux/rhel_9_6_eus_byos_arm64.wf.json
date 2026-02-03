@@ -1,6 +1,10 @@
 {
-  "Name": "build-rhel-9-6-eus-arm64",
+  "Name": "build-rhel-9-6-eus-byos-arm64",
   "Vars": {
+    "auto-generated-file": {
+      "Value": "",
+      "Description": "This file is Generated. Do not edit manually. Modify and run the generator script(write_image_build_workflow.py) instead. This variable is unused as a workaround to Daisy Workflow's lack of support for file-level comments."
+    },
     "google_cloud_repo": {
       "Value": "stable",
       "Description": "The Google Cloud Repo branch to use."
@@ -16,22 +20,36 @@
     "publish_project": {
       "Value": "${PROJECT}",
       "Description": "A project to publish the resulting image to."
+    },
+    "el_release": {
+      "Value": "rhel-9",
+      "Description": "The Enterprise Linux (EL) release for the image"
+    },
+    "rhui_package_name": {
+      "Required": true,
+      "Description": "Name of the RHUI client package"
     }
   },
   "Steps": {
     "build-rhel": {
       "Timeout": "60m",
       "IncludeWorkflow": {
-        "Path": "./enterprise_linux.wf.json",
+        "Path": "./rhel_9_consolidated.wf.json",
         "Vars": {
-          "el_release": "rhel-9-6",
-          "kickstart_config": "./kickstart/rhel_9_6_eus_byos_arm64.cfg",
+          "el_release": "${el_release}",
           "google_cloud_repo": "${google_cloud_repo}",
           "installer_iso": "${installer_iso}",
-          "rhel_byos": "true",
           "disk_type": "hyperdisk-balanced",
           "machine_type": "c4a-standard-4",
-          "worker_image": "projects/compute-image-tools/global/images/family/debian-12-worker-arm64"
+          "worker_image": "projects/compute-image-tools/global/images/family/debian-12-worker-arm64",
+          "el_install_disk_size": "20",
+          "is_arm": "True",
+          "is_byos": "True",
+          "is_eus": "True",
+          "is_sap": "False",
+          "is_lvm": "False",
+          "rhui_package_name": "${rhui_package_name}",
+          "version_lock": "9.6"
         }
       }
     },
@@ -42,10 +60,15 @@
           "SourceDisk": "el-install-disk",
           "Licenses": [
             "projects/rhel-cloud/global/licenses/rhel-9-byos",
-            "projects/rhel-cloud/global/licenses/rhel-9-server-eus"],
-          "Description": "Red Hat, Red Hat Enterprise Linux BYOS, 9.6 EUS, aarch64 built on ${build_date}",
+            "projects/rhel-cloud/global/licenses/rhel-9-server-eus"
+          ],
+          "Description": "Red Hat, Red Hat Enterprise Linux, 9.6 EUS, BYOS arm64 built on ${build_date}",
           "Family": "rhel-9-6-eus-byos-arm64",
-          "GuestOsFeatures": ["UEFI_COMPATIBLE", "GVNIC", "IDPF"],
+          "GuestOsFeatures": [
+            "UEFI_COMPATIBLE",
+            "GVNIC",
+            "IDPF"
+          ],
           "Project": "${publish_project}",
           "NoCleanup": true,
           "ExactName": true
@@ -54,6 +77,8 @@
     }
   },
   "Dependencies": {
-    "create-image": ["build-rhel"]
+    "create-image": [
+      "build-rhel"
+    ]
   }
 }
