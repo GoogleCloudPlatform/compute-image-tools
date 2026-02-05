@@ -46,6 +46,30 @@
       "Value": "20",
       "Required": false,
       "Description": "Default size of el-install-disk in GB. LVM will override this."
+    },
+    "is_arm": {
+        "Value": "false",
+        "Description": "The system architecture of X86 or ARM"
+    },
+    "is_eus": {
+        "Value": "false",
+        "Description": "If the image has Extended Update Support(EUS)"
+    },
+    "is_lvm": {
+        "Value": "false",
+        "Description": "If the image supports the Logical Volume Manager (LVM)"
+    },
+    "rhui_package_name": {
+        "Value": "",
+        "Description": "Name of the RHUI client package"
+    },
+    "use_dynamic_template": {
+        "Value": "false",
+        "Description": "Use the dynamically created templates to create images as part of the RHEL Build Workflow Consolidation path. To remove once the consolidation/refactoring is complete"
+    },
+    "version_lock": {
+        "Value": "",
+        "Description": "The minor release version for RHEL EUS images"
     }
   },
   "Sources": {
@@ -94,7 +118,13 @@
             "el_savelogs": "${el_savelogs}",
             "google_cloud_repo": "${google_cloud_repo}",
             "rhel_byos": "${rhel_byos}",
-            "rhel_sap": "${rhel_sap}"
+            "rhel_sap": "${rhel_sap}",
+            "is_arm": "${is_arm}",
+            "is_eus": "${is_eus}",
+            "is_lvm": "${is_lvm}",
+            "rhui_package_name": "${rhui_package_name}",
+            "use_dynamic_template": "${use_dynamic_template}",
+            "version_lock": "${version_lock}"
           },
           "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
           "StartupScript": "installerprep_startup_script"
