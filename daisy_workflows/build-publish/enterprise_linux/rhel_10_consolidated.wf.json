@@ -1,5 +1,5 @@
 {
-  "Name": "rhel-10",
+  "Name": "rhel-10-consolidated",
   "Project": "gce-image-builder",
   "Zone": "us-central1-b",
   "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
@@ -26,7 +26,7 @@
     },
     "installer_iso": {
       "Required": true,
-      "Description": "The RHEL 10 x86 installer ISO to build from."
+      "Description": "The RHEL 10 installer ISO to build from."
     },
     "sbom_util_gcs_root": {
       "Value": "",
@@ -35,13 +35,17 @@
     "sha256_txt": {
       "Value": "${OUTSPATH}/export-image-shasum.txt",
       "Description": "The file where the sha256 sum is stored."
+    },
+    "disk_name": {
+      "Required": "true",
+      "Description": "The name of the export disk"
     }
   },
   "Steps": {
     "build": {
       "TimeOut": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/image_build/enterprise_linux/rhel_10.wf.json",
+        "Path": "${workflow_root}/image_build/enterprise_linux/rhel_10_consolidated.wf.json",
         "Vars": {
           "build_date": "${build_date}",
           "google_cloud_repo": "${google_cloud_repo}",
@@ -49,10 +53,10 @@
         }
       }
     },
-    "export-image": {
+    "export-disk": {
       "Timeout": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/export/disk_export.wf.json",
+        "Path": "${workflow_root}/export/${disk_name}.wf.json",
         "Vars": {
           "destination": "${gcs_url}",
           "sbom_destination": "${sbom_destination}",
@@ -61,15 +65,9 @@
           "sha256_txt": "${sha256_txt}"
         }
       }
-    },
-    "cleanup-image": {
-      "DeleteResources": {
-        "Images": ["rhel-10-v${build_date}"]
-      }
     }
   },
   "Dependencies": {
-    "export-image": ["build"],
-    "cleanup-image": ["build"]
+    "export-disk": ["build"]
   }
 }
