@@ -55,7 +55,6 @@
           "rhel_byos": "${is_byos}",
           "rhel_sap": "${is_sap}",
           "is_arm": "${is_arm}",
-          "is_eus": "${is_eus}",
           "is_lvm": "${is_lvm}",
           "rhui_package_name": "${rhui_package_name}",
           "use_dynamic_template": "true",
