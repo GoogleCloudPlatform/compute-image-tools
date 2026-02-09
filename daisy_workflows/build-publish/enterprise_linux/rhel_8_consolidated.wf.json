@@ -44,10 +44,6 @@
         "Value": "rhel-8",
         "Description": "The Enterprise Linux (EL) release for the iamge"
     },
-    "image_family": {
-        "Value": "rhel-8",
-        "Description": "The name of the image family"
-    },
     "is_arm": {
         "Value": "false",
         "Description": "The system architecture of X86 or ARM"
@@ -83,7 +79,6 @@
           "google_cloud_repo": "${google_cloud_repo}",
           "installer_iso": "${installer_iso}",
           "el_release": "${el_release}",
-          "image_family": "${image_family}",
           "is_arm": "${is_arm}",
           "is_byos": "${is_byos}",
           "is_lvm": "${is_lvm}",
