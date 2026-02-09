@@ -37,8 +37,40 @@
       "Description": "The file where the sha256 sum is stored."
     },
     "disk_name": {
-      "Required": "true",
+      "Required": true,
       "Description": "The name of the export disk"
+    },
+    "el_release": {
+        "Value": "rhel-8",
+        "Description": "The Enterprise Linux (EL) release for the iamge"
+    },
+    "image_family": {
+        "Value": "rhel-8",
+        "Description": "The name of the image family"
+    },
+    "is_arm": {
+        "Value": "false",
+        "Description": "The system architecture of X86 or ARM"
+    },
+    "is_byos": {
+        "Value": "false",
+        "Description": "If the image is Pay as you Go (PAYG) or Bring your own Service (BYOS)"
+    },
+    "is_lvm": {
+        "Value": "false",
+        "Description": "If the image supports the Logical Volume Manager (LVM)"
+    },
+    "is_sap": {
+        "Value": "false",
+        "Description": "If the image is RHEL for SAP"
+    },
+    "rhui_package_name": {
+        "Value": "google-rhui-client-rhel8",
+        "Description": "Name of the RHUI client package"
+    },
+    "version_lock": {
+        "Value": "",
+        "Description": "The minor release version for RHEL EUS images"
     }
   },
   "Steps": {
@@ -49,7 +81,15 @@
         "Vars": {
           "build_date": "${build_date}",
           "google_cloud_repo": "${google_cloud_repo}",
-          "installer_iso": "${installer_iso}"
+          "installer_iso": "${installer_iso}",
+          "el_release": "${el_release}",
+          "image_family": "${image_family}",
+          "is_arm": "${is_arm}",
+          "is_byos": "${is_byos}",
+          "is_lvm": "${is_lvm}",
+          "is_sap": "${is_sap}",
+          "rhui_package_name": "${rhui_package_name}",
+          "version_lock": "${version_lock}"
         }
       }
     },
