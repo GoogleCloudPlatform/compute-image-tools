@@ -55,7 +55,7 @@ def main():
     rhui_package_name = utils.GetMetadataAttribute(
       'rhui_package_name', raise_on_not_found=True)
     version_lock = utils.GetMetadataAttribute(
-      'version_lock', raise_on_not_found=False)
+      'version_lock', raise_on_not_found=False).replace("-", ".")
 
     if (is_eus == 'true' or is_sap == 'true') and not version_lock:
       raise Exception(
@@ -64,22 +64,10 @@ def main():
     if is_sap == 'true' and is_arm == 'true':
       raise Exception(
         "invalid image build config: RHEL for SAP is not supported for ARM")
-    if version_lock and int(float(version_lock)) % 2 != 0:
+    if version_lock and int(version_lock.split(".")[1]) % 2 != 0:
       raise Exception(
         "invalid image build config: RHEL EUS & RHEL for SAP are only "
         "created for even number minor releases")
-    if (is_arm == 'true' and "arm64" not in rhui_package_name) or (
-      is_arm == 'false' and "arm64" in rhui_package_name):
-      raise Exception(
-        "invalid image build config: System Architecture mismatch")
-    if (is_byos == 'true' and "byos" not in rhui_package_name) or (
-      is_byos == 'false' and "byos" in rhui_package_name):
-      raise Exception(
-        "invalid image build config: BYOS and PAYG mismatch")
-    if (is_lvm == 'true' and "lvm" not in rhui_package_name) or (
-      is_lvm == 'false' and "lvm" in rhui_package_name):
-      raise Exception(
-        "invalid image build config: BYOS and PAYG mismatch")
 
   logging.info('EL Release: %s' % release)
   logging.info('Build working directory: %s' % os.getcwd())
