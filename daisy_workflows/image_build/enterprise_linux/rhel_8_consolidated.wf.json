@@ -14,16 +14,20 @@
       "Description": "Build datestamp used to version the image."
     },
     "disk_type": {
-      "Value": "pd-ssd",
+      "Required": true,
       "Description": "Type of disk to use for builds."
     },
     "machine_type": {
-      "Value": "e2-standard-4",
+      "Required": true,
       "Description": "The machine type to use during build."
     },
     "worker_image": {
-      "Value": "projects/compute-image-tools/global/images/family/debian-12-worker",
+      "Required": true,
       "Description": "The worker image to use for the build."
+    },
+    "el_install_disk_size": {
+      "Required": true,
+      "Description": "Default size of el-install-disk in GB. LVM will override this."
     },
     "el_release": {
         "Value": "rhel-8",
@@ -71,6 +75,7 @@
           "disk_type": "${disk_type}",
           "machine_type": "${machine_type}",
           "worker_image": "${worker_image}",
+          "el_install_disk_size": "${el_install_disk_size}",
           "rhel_byos": "${is_byos}",
           "rhel_sap": "${is_sap}",
           "is_arm": "${is_arm}",
