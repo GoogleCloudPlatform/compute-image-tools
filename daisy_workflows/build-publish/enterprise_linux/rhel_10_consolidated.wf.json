@@ -36,9 +36,25 @@
       "Value": "${OUTSPATH}/export-image-shasum.txt",
       "Description": "The file where the sha256 sum is stored."
     },
+    "disk_type": {
+      "Required": true,
+      "Description": "Type of disk to use for builds."
+    },
+    "machine_type": {
+      "Required": true,
+      "Description": "The machine type to use during build."
+    },
+    "worker_image": {
+      "Required": true,
+      "Description": "The worker image to use for the build."
+    },
     "disk_name": {
       "Required": true,
       "Description": "The name of the export disk"
+    },
+    "el_install_disk_size": {
+      "Required": true,
+      "Description": "Default size of el-install-disk in GB. LVM will override this."
     },
     "el_release": {
         "Value": "rhel-10",
@@ -82,6 +98,10 @@
           "build_date": "${build_date}",
           "google_cloud_repo": "${google_cloud_repo}",
           "installer_iso": "${installer_iso}",
+          "disk_type": "${disk_type}",
+          "machine_type": "${machine_type}",
+          "worker_image": "${worker_image}",
+          "el_install_disk_size": "${el_install_disk_size}",
           "el_release": "${el_release}",
           "is_arm": "${is_arm}",
           "is_byos": "${is_byos}",
