@@ -13,6 +13,18 @@
       "Value": "${TIMESTAMP}",
       "Description": "Build datestamp used to version the image."
     },
+    "disk_type": {
+      "Value": "pd-ssd",
+      "Description": "Type of disk to use for builds."
+    },
+    "machine_type": {
+      "Value": "e2-standard-4",
+      "Description": "The machine type to use during build."
+    },
+    "worker_image": {
+      "Value": "projects/compute-image-tools/global/images/family/debian-12-worker",
+      "Description": "The worker image to use for the build."
+    },
     "el_release": {
         "Value": "rhel-10",
         "Description": "The Enterprise Linux (EL) release for the iamge"
@@ -56,6 +68,9 @@
           "kickstart_config": "./kickstart/rhel_10_consolidated.cfg",
           "google_cloud_repo": "${google_cloud_repo}",
           "installer_iso": "${installer_iso}",
+          "disk_type": "${disk_type}",
+          "machine_type": "${machine_type}",
+          "worker_image": "${worker_image}",
           "rhel_byos": "${is_byos}",
           "rhel_sap": "${is_sap}",
           "is_arm": "${is_arm}",
