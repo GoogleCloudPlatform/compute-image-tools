@@ -17,7 +17,7 @@ package imagefile
 import (
 	"context"
 	"errors"
-	"io/ioutil"
+	"os"
 	"path"
 	"testing"
 
@@ -132,7 +132,7 @@ func TestGCSInspector_PerformRetry_WhenInspectionFails(t *testing.T) {
 
 func setupClient(t *testing.T, mountFailures, inspectFailures int, qemuResult ImageInfo) (
 	string, Inspector) {
-	pathToFakeMount, err := ioutil.TempFile("", "")
+	pathToFakeMount, err := os.CreateTemp("", "")
 	assert.NoError(t, err)
 	defer pathToFakeMount.Close()
 	assert.NoError(t, err)

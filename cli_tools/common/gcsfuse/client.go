@@ -17,7 +17,7 @@ package gcsfuse
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"os/exec"
 )
 
@@ -39,7 +39,7 @@ func NewClient() Client {
 type defaultClient struct{}
 
 func (client defaultClient) MountToTemp(ctx context.Context, bucket string) (string, error) {
-	dir, err := ioutil.TempDir("", bucket)
+	dir, err := os.MkdirTemp("", bucket)
 	if err != nil {
 		return "", fmt.Errorf("failed to create a destination directory: %w", err)
 	}

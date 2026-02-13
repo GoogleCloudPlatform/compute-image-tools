@@ -17,7 +17,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -389,7 +389,7 @@ func (c *MockHTTPClient) Do(req *http.Request) (*http.Response, error) {
 		c.t.Fatal("Exceeds time of prepared mock calls")
 	}
 
-	bodyReader := ioutil.NopCloser(strings.NewReader(c.lrs[c.index]))
+	bodyReader := io.NopCloser(strings.NewReader(c.lrs[c.index]))
 	resp := http.Response{
 		Body: bodyReader,
 	}
