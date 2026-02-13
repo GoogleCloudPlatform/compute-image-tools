@@ -44,16 +44,21 @@ def main():
   release = utils.GetMetadataAttribute('el_release', raise_on_not_found=True)
   savelogs = utils.GetMetadataAttribute('el_savelogs') == 'true'
   use_dynamic_template = utils.GetMetadataAttribute(
-    'use_dynamic_template', raise_on_not_found=False)
+    'use_dynamic_template', raise_on_not_found=False).lower()
 
   if use_dynamic_template == 'true':
-    is_arm = utils.GetMetadataAttribute('is_arm', raise_on_not_found=False)
-    is_byos = utils.GetMetadataAttribute('rhel_byos', raise_on_not_found=False)
-    is_eus = utils.GetMetadataAttribute('is_eus', raise_on_not_found=False)
-    is_lvm = utils.GetMetadataAttribute('is_lvm', raise_on_not_found=False)
-    is_sap = utils.GetMetadataAttribute('rhel_sap', raise_on_not_found=False)
+    is_arm = utils.GetMetadataAttribute(
+      'is_arm', raise_on_not_found=False).lower()
+    is_byos = utils.GetMetadataAttribute(
+      'rhel_byos', raise_on_not_found=False).lower()
+    is_eus = utils.GetMetadataAttribute(
+      'is_eus', raise_on_not_found=False).lower()
+    is_lvm = utils.GetMetadataAttribute(
+      'is_lvm', raise_on_not_found=False).lower()
+    is_sap = utils.GetMetadataAttribute(
+      'rhel_sap', raise_on_not_found=False).lower()
     rhui_package_name = utils.GetMetadataAttribute(
-      'rhui_package_name', raise_on_not_found=True)
+      'rhui_package_name', raise_on_not_found=True).lower()
     version_lock = utils.GetMetadataAttribute(
       'version_lock', raise_on_not_found=False).replace("-", ".")
 
