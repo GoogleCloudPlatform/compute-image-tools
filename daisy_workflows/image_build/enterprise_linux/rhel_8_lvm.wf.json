@@ -1,6 +1,10 @@
 {
   "Name": "build-rhel-8-lvm",
   "Vars": {
+    "auto-generated-file": {
+      "Value": "",
+      "Description": "This file is Generated. Do not edit manually. Modify and run the generator script(write_image_build_workflow.py) instead. This variable is unused as a workaround to Daisy Workflow's lack of support for file-level comments."
+    },
     "google_cloud_repo": {
       "Value": "stable",
       "Description": "The Google Cloud Repo branch to use."
@@ -16,19 +20,36 @@
     "publish_project": {
       "Value": "${PROJECT}",
       "Description": "A project to publish the resulting image to."
+    },
+    "el_release": {
+      "Value": "rhel-8",
+      "Description": "The Enterprise Linux (EL) release for the image"
+    },
+    "rhui_package_name": {
+      "Required": true,
+      "Description": "Name of the RHUI client package"
     }
   },
   "Steps": {
     "build-rhel": {
       "Timeout": "60m",
       "IncludeWorkflow": {
-        "Path": "./enterprise_linux.wf.json",
+        "Path": "./rhel_8_consolidated.wf.json",
         "Vars": {
-          "el_release": "rhel-8",
-          "kickstart_config": "./kickstart/rhel_8_lvm.cfg",
+          "el_release": "${el_release}",
           "google_cloud_repo": "${google_cloud_repo}",
           "installer_iso": "${installer_iso}",
-	  "el_install_disk_size": "50"
+          "disk_type": "pd-ssd",
+          "machine_type": "e2-standard-4",
+          "worker_image": "projects/compute-image-tools/global/images/family/debian-12-worker",
+          "el_install_disk_size": "50",
+          "is_arm": "False",
+          "is_byos": "False",
+          "is_eus": "False",
+          "is_sap": "False",
+          "is_lvm": "True",
+          "rhui_package_name": "${rhui_package_name}",
+          "version_lock": ""
         }
       }
     },
@@ -39,20 +60,30 @@
           "SourceDisk": "el-install-disk",
           "Licenses": [
             "projects/rhel-cloud/global/licenses/rhel-8-server",
-	    "projects/rhel-cloud/global/licenses/rhel-lvm"
+            "projects/rhel-cloud/global/licenses/rhel-lvm"
           ],
           "Description": "Red Hat, Red Hat Enterprise Linux, 8 (LVM), x86_64 with a LVM boot volume built on ${build_date}",
           "Family": "rhel-8-lvm",
+          "GuestOsFeatures": [
+            "UEFI_COMPATIBLE",
+            "VIRTIO_SCSI_MULTIQUEUE",
+            "SEV_CAPABLE",
+            "SEV_SNP_CAPABLE",
+            "SEV_LIVE_MIGRATABLE",
+            "SEV_LIVE_MIGRATABLE_V2",
+            "GVNIC",
+            "IDPF"
+          ],
           "Project": "${publish_project}",
           "NoCleanup": true,
-          "ExactName": true,
-          "GuestOsFeatures": ["UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "SEV_CAPABLE", "SEV_LIVE_MIGRATABLE", "SEV_LIVE_MIGRATABLE_V2", "GVNIC", "IDPF"]
+          "ExactName": true
         }
       ]
     }
   },
   "Dependencies": {
-    "create-image": ["build-rhel"]
+    "create-image": [
+      "build-rhel"
+    ]
   }
 }
-
