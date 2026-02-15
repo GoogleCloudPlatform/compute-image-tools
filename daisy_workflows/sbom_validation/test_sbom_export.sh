@@ -11,7 +11,7 @@ GCS_PATH_SBOM=${OUTS_PATH}/*.sbom.json
 GCS_PATH_OUTDISK=${OUTS_PATH}/${DISK_FILE_NAME}
 
 # Ensure that there are not multiple sbom files
-gsutil du $GCS_PATH_SBOM > sbom_file_info.txt
+gcloud storage du $GCS_PATH_SBOM > sbom_file_info.txt
 num_sbom_files=$(wc -l < sbom_file_info.txt)
 if [[ $num_sbom_files -eq 1 ]]; then
   echo "SBOMTesting: found exactly one SBOM file"
@@ -32,7 +32,7 @@ fi
 if [[ $CHECK_DISK_TAR == "false" ]]; then
   echo "SBOMTesting: skipping check for Disk tar file"
 else
-  gsutil -q stat $GCS_PATH_OUTDISK
+  gcloud storage objects list --stat --fetch-encrypted-object-hashes $GCS_PATH_OUTDISK
   status=$?
   if [[ $status -eq 0 ]]; then
     echo "SBOMTesting: Disk tar file successfully found"

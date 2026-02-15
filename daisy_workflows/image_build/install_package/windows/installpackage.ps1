@@ -63,7 +63,7 @@ function Install-Package {
 
     $paths = $gcs_path -split ','
     foreach ($path in $paths) {
-      & 'gsutil' -m cp $path "C:\Program Files\Google\Compute Engine\package.goo"
+      & 'gcloud' storage cp $path "C:\Program Files\Google\Compute Engine\package.goo"
       & 'googet' -noconfirm=true install "C:\Program Files\Google\Compute Engine\package.goo"
       Remove-Item -Path "C:\Program Files\Google\Compute Engine\package.goo" -ErrorAction SilentlyContinue
     }
