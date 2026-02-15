@@ -409,11 +409,13 @@ function Set-PowerProfile {
       Change power plan to High-performance.
   #>
   Write-Host 'Changing power plan to High performance'
-  $power_plan = Get-CimInstance -Namespace 'root\cimv2\power' -ClassName 'win32_PowerPlan' -OperationTimeoutSec 5 -Filter "ElementName = 'High performance'" -ErrorAction SilentlyContinue
-  powercfg /setactive $power_plan.InstanceID.ToString().Replace("Microsoft:PowerPlan\{","").Replace("}","")
-  
+  # Power Scheme GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c  (High performance)
+  # https://learn.microsoft.com/en-us/windows/win32/power/power-setting-guids
+
+  powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
+
   $active_plan = powercfg /getactivescheme
-  if ($active_plan -like '*High performance*') {
+  if ($active_plan -like '*8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c*') {
     Write-Host 'Power plan updated successfully'
   }
   else {
@@ -434,14 +436,18 @@ function Configure-PowerProfiles {
     # off its monitor, it will respond to power button pushes by turning it back
     # on instead of shutting down as GCE expects.  We fix this by switching the
     # "Turn off display after" setting to 0 for all power configurations.
-    if ($power_setting -and $power_setting.ElementName -eq 'Turn off display after') {
-      Write-Host ('Changing power setting ' + $_.InstanceID)
+    # https://learn.microsoft.com/en-us/windows-hardware/customize/power-settings/display-settings-display-idle-timeout
+    # InstanceID = Microsoft:PowerSettingDataIndex\{8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c}\*\{3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e}
+    if ($power_setting -and $power_setting.InstanceID -like '*3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e*') {
+      Write-Host ('Changing power setting ' + $_.ElementName + ': ' + $_.InstanceID)
       $_ | Set-CimInstance -Property @{SettingIndexValue = 0}
     }
     # Set the "Sleep button action" setting to 1 for all power configurations
     # so the instance responds to standby requests.
-    if ($power_setting -and $power_setting.ElementName -eq 'Sleep button action') {
-      Write-Host ('Changing power setting ' + $_.InstanceID)
+    # https://learn.microsoft.com/en-us/windows-hardware/customize/power-settings/power-button-and-lid-settings-power-button-action
+    # InstanceID = Microsoft:PowerSettingDataIndex\{8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c}\*\{7648efa3-dd9c-4e3e-b566-50f929386280}
+    if ($power_setting -and $power_setting.InstanceID -like '*7648efa3-dd9c-4e3e-b566-50f929386280*') {
+      Write-Host ('Changing power setting ' + $_.ElementName + ': ' + $_.InstanceID)
       $_ | Set-CimInstance -Property @{SettingIndexValue = 1}
     }
   }
@@ -491,8 +497,8 @@ function Change-InstanceProperties {
   Get-CimInstance Win32_ComputerSystem | Set-CimInstance -Property @{AutomaticManagedPageFile=$False}
   Get-CimInstance Win32_PageFileSetting | Set-CimInstance -Property @{InitialSize=1024; MaximumSize=1024}
 
-  # Disable Administartor user.
-  Run-Command net user Administrator /ACTIVE:NO
+  # Disable Administrator user.
+  Get-LocalUser | Where-Object { $_.SID -like 'S-1-5-21-*-500'} | Where-Object { $_.Enabled -eq $True } | Disable-LocalUser
 
   # Set minimum password length.
   Run-Command net accounts /MINPWLEN:8
@@ -528,7 +534,8 @@ function Configure-RDP {
   # Allow RPD inbound. Win10/2016 and above set using PowerShell and older versions set using netsh.
   if ([System.Environment]::OSVersion.Version.Major -ge 10 -and [System.Environment]::OSVersion.Version.Build -ge 10240) {
     Write-Host "Enabling RDP firewall rules using PowerShell."
-    Set-NetFirewallRule -DisplayGroup 'Remote Desktop' -Enabled True
+    # https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/networking-mpssvc-svc-firewallgroups-firewallgroup#xml-example'
+    Set-NetFirewallRule -Group '@FirewallAPI.dll,-28752' -Enabled True
   } 
   else {
     Write-Host "Enabling RDP firewall rules using netsh."
@@ -577,14 +584,14 @@ function Update-Edge {
     Write-Host 'Microsoft Edge updater task MicrosoftEdgeUpdateTaskMachineUA not present.'
   }
 
-  # Check if the Edge update is finished before continuing
-  if (Test-Path "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe") {
-    while ((Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe").LastWriteTime -lt (Get-Date).AddMonths(-1)) {
-      Write-Host "Microsoft Edge updater not completed; version found: $((Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe").VersionInfo.ProductVersion)"
-      Start-Sleep -s 30
-    }
-    Write-Host "Microsoft Edge updater completed; version found: $((Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe").VersionInfo.ProductVersion)"
-  }
+  # (Don't) Check if the Edge update is finished before continuing, never seems to complete in Win2022
+  # if (Test-Path "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe") {
+  #  while ((Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe").LastWriteTime -lt (Get-Date).AddMonths(-1)) {
+  #    Write-Host "Microsoft Edge updater not completed; version found: $((Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe").VersionInfo.ProductVersion)"
+  #    Start-Sleep -s 30
+  #  }
+  #  Write-Host "Microsoft Edge updater completed; version found: $((Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe").VersionInfo.ProductVersion)"
+  #}
 }
 
 function Install-GCEAppPackages {
