@@ -82,15 +82,15 @@ function Download-Sbomutil {
   }
 
   $gs_path = "${gs_path}/windows"
-  $latest = gsutil ls "${gs_path}" | Select -Last 1
+  $latest = gcloud storage ls "${gs_path}" | Select -Last 1
   if (!$latest) {
     Write-Output "Could not determine sbomutil's latest release, skipping sbomutil download."
     return
   }
 
-  # The variable $latest already has a backslash at the end, as a result of gsutil ls.
+  # The variable $latest already has a backslash at the end, as a result of gcloud storage ls.
   Write-Output "Downloading sbomutil from $latest."
-  & 'gsutil' -m cp "${latest}sbomutil.exe" C:\sbomutil.exe
+  & 'gcloud storage cp' "${latest}sbomutil.exe" C:\sbomutil.exe
   Write-Output 'Components download complete.'
 }
 
@@ -115,7 +115,7 @@ function Generate-Sbom {
 
   Write-Output "Generating sbom."
   & "C:\sbomutil.exe" -archetype=windows-image -googet_path 'C:\ProgramData\GooGet' -extra_content="${script:sbom_dir}\" -comp_name="${comp_name}" -output image.sbom.json
-  & 'gsutil' -m cp image.sbom.json $gs_path
+  & 'gcloud storage' cp image.sbom.json $gs_path
   Write-Output "Sbom file uploaded to $gs_path."
 }
 
@@ -246,7 +246,7 @@ function Install-SqlServer {
 
   $sql_config_path = "${gs_path}/sql_config.ini"
   $sql_config = 'D:\sql_config.ini'
-  & 'gsutil' -m cp $sql_config_path $sql_config
+  & 'gcloud storage cp' $sql_config_path $sql_config
 
   if ($sql_server_config -like '*2012*' -or $sql_server_config -like '*2014*') {
     Write-Host 'Installing .Net 3.5'
@@ -256,7 +256,7 @@ function Install-SqlServer {
   if ($sql_server_media -like '*.iso') {
     Write-Host 'Downloading SQL Server ISO'
     $iso = "${script:sbom_dir}\sql_server.iso"
-    & 'gsutil' -m cp "${gs_path}/sql_installer.media" $iso
+    & 'gcloud storage cp' "${gs_path}/sql_installer.media" $iso
     Write-Host 'Mount ISO'
     $mount_result = Mount-DiskImage -ImagePath $iso -PassThru
     $iso_drive = ($mount_result | Get-Volume).DriveLetter
@@ -271,7 +271,7 @@ function Install-SqlServer {
   elseif ($sql_server_media -like '*.exe') {
     Write-Host 'Downloading SQL Server exe'
     $exe = "${script:sbom_dir}\sql_server.exe"
-    & 'gsutil' -m cp "${gs_path}/sql_installer.media" $exe
+    & 'gcloud storage cp' "${gs_path}/sql_installer.media" $exe
     Start-Process $exe -ArgumentList @("/x:${sql_install}",'/u') -Wait
   }
   else {
