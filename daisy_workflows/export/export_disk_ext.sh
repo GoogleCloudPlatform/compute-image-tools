@@ -66,7 +66,7 @@ fi
 DISK_RESIZING_MON_GCS_PATH=gs://${OUTS_PATH%/*}/sources/${DISK_RESIZING_MON}
 DISK_RESIZING_MON_LOCAL_PATH=/gs/${DISK_RESIZING_MON}
 echo "GCEExport: Copying disk size monitor script..."
-if ! out=$(gsutil cp "${DISK_RESIZING_MON_GCS_PATH}" "${DISK_RESIZING_MON_LOCAL_PATH}" 2>&1); then
+if ! out=$(gcloud storage cp "${DISK_RESIZING_MON_GCS_PATH}" "${DISK_RESIZING_MON_LOCAL_PATH}" 2>&1); then
   echo "ExportFailed: Failed to copy disk size monitor script.[Privacy-> Error: ${out} <-Privacy]"
   exit
 fi
@@ -91,7 +91,7 @@ serialOutputPrefixedKeyValue "GCEExport" "target-size-gb" "${TARGET_SIZE_GB}"
 set -x
 
 echo "GCEExport: Copying output image to target GCS path..."
-gsutil -o GSUtil:parallel_composite_upload_threshold=150M cp "/gs/${IMAGE_OUTPUT_PATH}" "${GS_PATH}" 2>gsutil_err.txt
+gcloud storage cp "/gs/${IMAGE_OUTPUT_PATH}" "${GS_PATH}" 2>gsutil_err.txt
 if [[ $? -ne 0 ]] ; then
   echo "ExportFailed: Failed to copy output image to GCS [Privacy-> ${GS_PATH}, error: $(<gsutil_err.txt) <-Privacy]"
   exit
