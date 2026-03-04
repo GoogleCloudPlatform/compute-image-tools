@@ -1,5 +1,5 @@
 {
-  "Name": "build-rhel-9-lvm",
+  "Name": "build-rhel-10-0-sap-byos",
   "Vars": {
     "auto-generated-file": {
       "Value": "",
@@ -11,7 +11,7 @@
     },
     "installer_iso": {
       "Required": true,
-      "Description": "The RHEL 9 installer ISO to build from."
+      "Description": "The RHEL 10 installer ISO to build from."
     },
     "build_date": {
       "Value": "${TIMESTAMP}",
@@ -26,36 +26,35 @@
     "build-rhel": {
       "Timeout": "60m",
       "IncludeWorkflow": {
-        "Path": "./rhel_9_consolidated.wf.json",
+        "Path": "./rhel_10_consolidated.wf.json",
         "Vars": {
-          "el_release": "rhel-9",
+          "el_release": "rhel-10-0-sap",
           "google_cloud_repo": "${google_cloud_repo}",
           "installer_iso": "${installer_iso}",
           "disk_type": "pd-ssd",
           "machine_type": "e2-standard-4",
           "worker_image": "projects/compute-image-tools/global/images/family/debian-12-worker",
-          "el_install_disk_size": "50",
+          "el_install_disk_size": "20",
           "is_arm": "False",
-          "is_byos": "False",
+          "is_byos": "True",
           "is_eus": "False",
-          "is_sap": "False",
-          "is_lvm": "True",
-          "rhui_package_name": "google-rhui-client-rhel9",
-          "version_lock": ""
+          "is_sap": "True",
+          "is_lvm": "False",
+          "rhui_package_name": "google-rhui-client-rhel10-sap",
+          "version_lock": "10.0"
         }
       }
     },
     "create-image": {
       "CreateImages": [
         {
-          "Name": "rhel-9-lvm-v${build_date}",
+          "Name": "rhel-10-0-sap-byos-v${build_date}",
           "SourceDisk": "el-install-disk",
           "Licenses": [
-            "projects/rhel-cloud/global/licenses/rhel-9-server",
-            "projects/rhel-cloud/global/licenses/rhel-lvm"
+            "projects/rhel-sap-cloud/global/licenses/rhel-10-sap-byos"
           ],
-          "Description": "Red Hat, Red Hat Enterprise Linux, 9 (LVM), x86_64 with a LVM boot volume built on ${build_date}",
-          "Family": "rhel-9-lvm",
+          "Description": "Red Hat, Red Hat Enterprise Linux for SAP BYOS, 10.0, x86_64 built on ${build_date}",
+          "Family": "rhel-10-0-sap-byos",
           "GuestOsFeatures": [
             "UEFI_COMPATIBLE",
             "VIRTIO_SCSI_MULTIQUEUE",

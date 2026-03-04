@@ -1,6 +1,10 @@
 {
   "Name": "build-rhel-8-lvm-arm64",
   "Vars": {
+    "auto-generated-file": {
+      "Value": "",
+      "Description": "This file is Generated. Do not edit manually. Modify and run the generator script(write_image_build_workflow.py) instead. This variable is unused as a workaround to Daisy Workflow's lack of support for file-level comments."
+    },
     "google_cloud_repo": {
       "Value": "stable",
       "Description": "The Google Cloud Repo branch to use."
@@ -22,16 +26,22 @@
     "build-rhel": {
       "Timeout": "60m",
       "IncludeWorkflow": {
-        "Path": "./enterprise_linux.wf.json",
+        "Path": "./rhel_8_consolidated.wf.json",
         "Vars": {
           "el_release": "rhel-8-arm64",
-          "kickstart_config": "./kickstart/rhel_8_lvm_arm64.cfg",
           "google_cloud_repo": "${google_cloud_repo}",
           "installer_iso": "${installer_iso}",
-	  "el_install_disk_size": "50",
           "disk_type": "hyperdisk-balanced",
           "machine_type": "c4a-standard-4",
-          "worker_image": "projects/compute-image-tools/global/images/family/debian-12-worker-arm64"
+          "worker_image": "projects/compute-image-tools/global/images/family/debian-12-worker-arm64",
+          "el_install_disk_size": "50",
+          "is_arm": "True",
+          "is_byos": "False",
+          "is_eus": "False",
+          "is_sap": "False",
+          "is_lvm": "True",
+          "rhui_package_name": "google-rhui-client-rhel8",
+          "version_lock": ""
         }
       }
     },
@@ -42,19 +52,26 @@
           "SourceDisk": "el-install-disk",
           "Licenses": [
             "projects/rhel-cloud/global/licenses/rhel-8-server",
-	    "projects/rhel-cloud/global/licenses/rhel-lvm"
+            "projects/rhel-cloud/global/licenses/rhel-lvm"
           ],
           "Description": "Red Hat, Red Hat Enterprise Linux, 8 (LVM), aarch64 with a LVM boot volume built on ${build_date}",
           "Family": "rhel-8-lvm-arm64",
-          "GuestOsFeatures": ["UEFI_COMPATIBLE", "GVNIC", "IDPF"],
+          "GuestOsFeatures": [
+            "UEFI_COMPATIBLE",
+            "GVNIC",
+            "IDPF"
+          ],
           "Project": "${publish_project}",
           "NoCleanup": true,
-          "ExactName": true
+          "ExactName": true,
+          "Architecture": "ARM64"
         }
       ]
     }
   },
   "Dependencies": {
-    "create-image": ["build-rhel"]
+    "create-image": [
+      "build-rhel"
+    ]
   }
 }
