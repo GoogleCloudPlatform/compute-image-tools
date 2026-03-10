@@ -18,8 +18,9 @@ import (
 	"fmt"
 
 	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
@@ -32,7 +33,7 @@ func (m protoMatcher) Got(got interface{}) string {
 	if !ok {
 		return fmt.Sprintf("%v", ok)
 	}
-	return proto.MarshalTextString(message)
+	return prototext.Format(message)
 }
 
 func (m protoMatcher) Matches(actual interface{}) bool {
@@ -40,7 +41,7 @@ func (m protoMatcher) Matches(actual interface{}) bool {
 }
 
 func (m protoMatcher) String() string {
-	return proto.MarshalTextString(m.expected)
+	return prototext.Format(m.expected)
 }
 
 // ProtoEquals returns a protoMatcher for the proto.Message
