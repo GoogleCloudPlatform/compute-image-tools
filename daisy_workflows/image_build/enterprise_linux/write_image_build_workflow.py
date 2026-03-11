@@ -25,7 +25,7 @@ RHEL_MINOR_VERSIONS = {
 }
 
 RHEL_EUS_VERSIONS = ["9.4", "9.6", "10.0"]
-RHEL_LVM_VERSIONS = ["8", "9", "10"]
+RHEL_LVM_VERSIONS = ["8", "9", "9.4", "9.6", "10", "10.0"]
 RHEL_SAP_VERSIONS = ["8.6", "8.8", "8.10", "9.0", "9.2", "9.4", "9.6", "10.0"]
 
 ARCHITECTURES = ["x86_64", "arm64"]
@@ -369,7 +369,6 @@ def main():
         for plan in PLANS:
             for major_version in RHEL_MAJOR_VERSIONS:
                 # LVM is only for PAYG images
-                # LVM is currently only avaliable for major versions
                 if (plan == "payg"
                     and major_version in RHEL_LVM_VERSIONS):
                     is_lvm = True
@@ -401,7 +400,19 @@ def main():
                                             is_sap,
                                             arch,
                                             minor_version)  # EUS
+                        # LVM is only for PAYG images
+                        if (plan == "payg"
+                            and minor_version in RHEL_LVM_VERSIONS):
+                            is_lvm = True
+                            write_workflow_file(major_version,
+                                                plan,
+                                                is_eus,
+                                                is_lvm,
+                                                is_sap,
+                                                arch,
+                                                minor_version)  # EUS + LVM
                     is_eus = False
+                    is_lvm = False
                     # SAP only supports x86_64
                     if (arch == "x86_64"
                         and minor_version in RHEL_SAP_VERSIONS):
