@@ -207,7 +207,7 @@ func (u *upgrader) handleResult(err error) {
 			"the instructions in the guide." +
 			"\nFull document: https://cloud.google.com/compute/docs/tutorials/performing-an-automated-in-place-upgrade-windows-server\n\n")
 		if cleanupIntro, err := getCleanupIntroduction(u); err == nil {
-			fmt.Printf(cleanupIntro)
+			fmt.Print(cleanupIntro)
 		}
 		return
 	}

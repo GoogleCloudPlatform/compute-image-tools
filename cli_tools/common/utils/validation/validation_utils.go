@@ -50,7 +50,7 @@ var (
 // value is empty string. Returns nil otherwise.
 func ValidateStringFlagNotEmpty(flagValue string, flagKey string) error {
 	if flagValue == "" {
-		return daisy.Errf(fmt.Sprintf("The flag -%v must be provided", flagKey))
+		return daisy.Errf("The flag -%v must be provided", flagKey)
 	}
 	return nil
 }
@@ -65,7 +65,7 @@ func ValidateExactlyOneOfStringFlagNotEmpty(flagKeyValues map[string]string) err
 		}
 	}
 	if len(notEmpty) != 1 {
-		return daisy.Errf(fmt.Sprintf("Exactly one of -%v flags should be provided", strings.Join(notEmpty, ",-")))
+		return daisy.Errf("Exactly one of -%v flags should be provided", strings.Join(notEmpty, ",-"))
 	}
 	return nil
 }
@@ -74,10 +74,10 @@ func ValidateExactlyOneOfStringFlagNotEmpty(flagKeyValues map[string]string) err
 func ValidateFqdn(flagValue string, flagKey string) error {
 	flagValueLen := len(flagValue)
 	if flagValueLen < 1 || flagValueLen > 253 || !fqdnRegexp.MatchString(flagValue) {
-		return daisy.Errf(fmt.Sprintf("The flag `%v` must conform to RFC 1035 requirements for valid hostnames. "+
+		return daisy.Errf("The flag `%v` must conform to RFC 1035 requirements for valid hostnames. "+
 			"To meet this requirement, the value must contain a series of labels and each label is concatenated with a dot. "+
 			"Each label can be 1-63 characters long where each character can be a letter, a digit or a dash (`-`). The "+
-			"entire sequence must not exceed 253 characters.", flagKey))
+			"entire sequence must not exceed 253 characters.", flagKey)
 	}
 	return nil
 }
@@ -85,7 +85,7 @@ func ValidateFqdn(flagValue string, flagKey string) error {
 // ValidateRfc1035Label validates a single label per RFC 1035
 func ValidateRfc1035Label(value string) error {
 	if len(value) > 63 || !rfc1035LabelRegexp.MatchString(value) {
-		return daisy.Errf(fmt.Sprintf("Value `%v` must conform to RFC 1035 requirements for valid labels.", value))
+		return daisy.Errf("Value `%v` must conform to RFC 1035 requirements for valid labels.", value)
 	}
 	return nil
 }

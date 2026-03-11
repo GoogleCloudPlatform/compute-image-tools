@@ -53,7 +53,7 @@ func TestGetDockerImagesList(t *testing.T) {
 			}
 		case e := <-errCh:
 			if _, err := exec.LookPath("docker"); err == nil {
-				t.Errorf(e.Error())
+				t.Errorf("%v", e)
 			}
 		}
 	})
@@ -86,7 +86,7 @@ func TestGatherRDPSettings(t *testing.T) {
 				t.Errorf("Expect %s, but it's missing", rdpStatusFileName)
 			}
 		case e := <-errCh:
-			t.Errorf(e.Error())
+			t.Errorf("%v", e)
 		}
 	})
 }
@@ -235,7 +235,7 @@ func TestGatherEventLogs(t *testing.T) {
 				t.Errorf("Expect %s, but it's missing", systemLogPath)
 			}
 		case e := <-errCh:
-			t.Errorf(e.Error())
+			t.Errorf("%v", e)
 		}
 	})
 }
