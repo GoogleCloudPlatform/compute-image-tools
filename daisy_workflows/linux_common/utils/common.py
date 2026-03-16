@@ -380,6 +380,9 @@ def DownloadFile(gcs_source_file, dest_file):
   # is not a mandatory package for all utils users
   from google.cloud import storage
 
+  # TODO: Remove once gcloud issue is resolved: https://github.com/googleapis/google-cloud-python/issues/16035
+  os.environ["GCE_METADATA_MTLS_MODE"] = None
+
   bucket = r'(?P<bucket>[a-z0-9][-_.a-z0-9]*[a-z0-9])'
   obj = r'(?P<obj>[^\*\?]+)'
   prefix = r'gs://'
@@ -408,6 +411,9 @@ def UploadFile(source_file, gcs_dest_file):
   # import 'google.cloud.storage' locally as 'google-cloud-storage' pip package
   # is not a mandatory package for all utils users
   from google.cloud import storage
+
+  # TODO: Remove once gcloud issue is resolved: https://github.com/googleapis/google-cloud-python/issues/16035
+  os.environ["GCE_METADATA_MTLS_MODE"] = None
 
   bucket = r'(?P<bucket>[a-z0-9][-_.a-z0-9]*[a-z0-9])'
   obj = r'(?P<obj>[^\*\?]+)'
