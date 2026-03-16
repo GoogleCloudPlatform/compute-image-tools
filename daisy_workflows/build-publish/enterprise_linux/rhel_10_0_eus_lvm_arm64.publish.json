@@ -36,7 +36,7 @@
     {
       "Family": "rhel-10-0-eus-lvm-arm64",
       "Prefix": "rhel-10-0-eus-lvm-arm64",
-      "Description": "Red Hat, Red Hat Enterprise Linux, 10.0 EUS (LVM), aarch64 with a LVM boot volume built on {{$time}}",
+      "Description": "Red Hat, Red Hat Enterprise Linux, 10.0 (EUS + LVM), aarch64 with Extended Update Support (EUS) and an LVM boot volume built on {{$time}}",
       "Architecture": "ARM64",
       "Licenses": [
         "projects/rhel-cloud/global/licenses/rhel-10-server",
