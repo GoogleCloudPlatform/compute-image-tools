@@ -381,7 +381,7 @@ def DownloadFile(gcs_source_file, dest_file):
   from google.cloud import storage
 
   # TODO: Remove once gcloud issue (#16035) is resolved
-  os.environ["GCE_METADATA_MTLS_MODE"] = None
+  os.environ["GCE_METADATA_MTLS_MODE"] = "none"
 
   bucket = r'(?P<bucket>[a-z0-9][-_.a-z0-9]*[a-z0-9])'
   obj = r'(?P<obj>[^\*\?]+)'
@@ -413,7 +413,7 @@ def UploadFile(source_file, gcs_dest_file):
   from google.cloud import storage
 
   # TODO: Remove once gcloud issue (#16035) is resolved
-  os.environ["GCE_METADATA_MTLS_MODE"] = None
+  os.environ["GCE_METADATA_MTLS_MODE"] = "none"
 
   bucket = r'(?P<bucket>[a-z0-9][-_.a-z0-9]*[a-z0-9])'
   obj = r'(?P<obj>[^\*\?]+)'
