@@ -56,7 +56,7 @@ def get_distro_from_image(image):
 
 # Rebuilds RPM DB if required.
 def rebuild_rpm_db(image):
-  el_distros = ('rhel-8-6-sap-ha', 'rhel-8-8-sap-ha', 'rhel-8-10-sap-ha')
+  el_distros = ('rhel-8-6-sap', 'rhel-8-8-sap', 'rhel-8-10-sap')
   if any([x in image for x in el_distros]):
     logging.info('Rebuilding rpm db for %s', image)
     run('chroot /mnt rm -f  /var/lib/rpm/__db*')
