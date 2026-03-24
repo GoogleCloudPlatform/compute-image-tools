@@ -8,7 +8,7 @@ require (
 	github.com/GoogleCloudPlatform/compute-daisy v0.0.0-20260316183733-5de4cd69c987
 	github.com/GoogleCloudPlatform/compute-image-tools/common v0.0.0-20220201175241-7409375050b9
 	github.com/GoogleCloudPlatform/compute-image-tools/mocks v0.0.0-20200416045929-22b14b6b7c19
-	github.com/GoogleCloudPlatform/compute-image-tools/proto/go v0.0.0-20260323204823-a732569a644b
+	github.com/GoogleCloudPlatform/compute-image-tools/proto/go v0.0.0-20260324183941-6f827da375d5
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-ole/go-ole v1.3.0
