@@ -55,3 +55,50 @@ daisy -project my-project \
       -var:installer_iso=gs://my-bucket/RHEL9.iso \
       rhel_9.wf.json
 ```
+
+## Updating RHEL build workflows
+
+All of the RHEL image_build workflow files should not be edited manually. They
+should only be managed by editing & running the [write_image_build_workflow.py](https://github.com/GoogleCloudPlatform/compute-image-tools/blob/master/daisy_workflows/image_build/enterprise_linux/write_image_build_workflow.py)
+file.
+
+### Adding new major release (ex. "RHEL 10")
+
+1. Write a new consolidated kickstart file based on major release versions (ex. "rhel_10_consolidated.cfg")
+
+1. Add the new major release number to the `RHEL_MAJOR_VERSIONS` list at the top of write_image_build_workflow.py
+
+1. Update the get_guest_os_features function in the write_image_build_workflow.py script & any other applicable
+   new changes to the image build files
+
+1. Run the following command to generate the new workflow files
+   ```bash
+   python3 /daisy_workflows/image_build/enterprise_linux/write_image_build_workflow.py
+   ```
+
+1. Send out the script changes & the new workflow files for review as a PR.
+
+### Adding new RHEL Variant to major release (ex. "RHEL 10.0 for SAP")
+
+1. Add new minor release number to the respective variant list (EUS/LVM/SAP)
+
+1. Update the major release's consolidated kickstart file with the necessary variant specific changes
+
+1. Run the following command to generate the new workflow files
+   ```bash
+   python3 /daisy_workflows/image_build/enterprise_linux/write_image_build_workflow.py
+   ```
+
+1. Send out the script changes & the new workflow files for review as a PR.
+
+### Adding new minor point release (ex. "RHEL 9.6 for SAP")
+
+1. Add the new minor release version (ex. "9.6") to the appropriate list at the
+   top of the file.
+
+1. Run the following command to generate the new workflow files
+   ```bash
+   python3 /daisy_workflows/image_build/enterprise_linux/write_image_build_workflow.py
+   ```
+
+1. Send out the script changes & the new workflow files for review as a PR.
