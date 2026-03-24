@@ -11,7 +11,7 @@ options:
     path: /go/src
 
 substitutions:
-  _RELEASE: 'latest'
+  _RELEASE: 'release'
 
 steps:
 
