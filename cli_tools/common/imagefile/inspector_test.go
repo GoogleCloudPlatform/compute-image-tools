@@ -90,7 +90,7 @@ func TestGCSInspector_DontRetryMount_IfContextCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	_, err := client.Inspect(ctx, gcsURI)
-	assert.EqualError(t, err, mountError)
+	assert.EqualError(t, err, context.Canceled.Error())
 }
 
 func TestGCSInspector_DontRetryInspect_IfContextCancelled(t *testing.T) {
@@ -103,7 +103,7 @@ func TestGCSInspector_DontRetryInspect_IfContextCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	_, err := client.Inspect(ctx, gcsURI)
-	assert.EqualError(t, err, inspectionError)
+	assert.EqualError(t, err, context.Canceled.Error())
 }
 
 func TestGCSInspector_PerformRetry_WhenMountingFails(t *testing.T) {

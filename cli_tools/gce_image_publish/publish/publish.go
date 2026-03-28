@@ -376,7 +376,7 @@ func publishImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image, skipDup
 				Project: p.PublishProject,
 				DeprecationStatusAlpha: computeAlpha.DeprecationStatus{
 					State:         "DEPRECATED",
-					Replacement:   fmt.Sprintf(fmt.Sprintf("https://www.googleapis.com/compute/v1/projects/%s/global/images/%s", p.PublishProject, publishName)),
+					Replacement:   fmt.Sprintf("https://www.googleapis.com/compute/v1/projects/%s/global/images/%s", p.PublishProject, publishName),
 					StateOverride: img.RolloutPolicy,
 				},
 			})
