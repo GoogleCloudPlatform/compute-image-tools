@@ -265,10 +265,10 @@ def write_workflow_file(major_version,
        image_name += "-eus"
     if is_sap:
        image_name += "-sap"
-    if plan == "byos":
-       image_name += "-byos"
     if is_lvm:
        image_name += "-lvm"
+    if plan == "byos":
+       image_name += "-byos"
     if arch == "arm64":
        image_name += "-arm64"
 
@@ -368,9 +368,7 @@ def main():
     for arch in ARCHITECTURES:
         for plan in PLANS:
             for major_version in RHEL_MAJOR_VERSIONS:
-                # LVM is only for PAYG images
-                if (plan == "payg"
-                    and major_version in RHEL_LVM_VERSIONS):
+                if major_version in RHEL_LVM_VERSIONS:
                     is_lvm = True
                     write_workflow_file(major_version,
                                         plan,
@@ -400,9 +398,7 @@ def main():
                                             is_sap,
                                             arch,
                                             minor_version)  # EUS
-                        # LVM is only for PAYG images
-                        if (plan == "payg"
-                            and minor_version in RHEL_LVM_VERSIONS):
+                        if minor_version in RHEL_LVM_VERSIONS:
                             is_lvm = True
                             write_workflow_file(major_version,
                                                 plan,
