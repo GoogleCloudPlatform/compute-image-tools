@@ -20,15 +20,15 @@ substitutions:
 steps:
 # Build gce_image_publish.
 - name: 'golang'
-  dir: 'cli_tools/gce_image_publish'
+  dir: 'gce_image_publish'
   args: ['go', 'build', '-o=/workspace/linux/gce_image_publish']
   env: ['CGO_ENABLED=0']
 - name: 'golang'
-  dir: 'cli_tools/gce_image_publish'
+  dir: 'gce_image_publish'
   args: ['go', 'build', '-o=/workspace/windows/gce_image_publish.exe']
   env: ['GOOS=windows']
 - name: 'golang'
-  dir: 'cli_tools/gce_image_publish'
+  dir: 'gce_image_publish'
   args: ['go', 'build', '-o=/workspace/darwin/gce_image_publish']
   env: ['GOOS=darwin']
 - name: 'gcr.io/kaniko-project/executor:v1.0.0'
