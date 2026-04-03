@@ -1,9 +1,25 @@
 # Daisy image build workflows
 
-These are [Daisy] workflows used by Google to build [Public Images] for GCE.
+These are [Daisy] workflows used by Google to build a subset of [Public Images] for GCE.
 
+Public images that are not built by Google include:
+- [AlmaLinux] images built by [AlmaLinux OS Foundation]:  
+  https://github.com/AlmaLinux/cloud-images
+- [RockyLinux] images built by [CIQ]:  
+  https://github.com/ctrliq/gcp-public-images
+- [SUSE Linux] images built by [SUSE]
+- [Ubuntu] images built by [Canonical]
+
+[AlmaLinux]: https://almalinux.org/
+[AlmaLinux OS Foundation]: https://wiki.almalinux.org/Transparency.html
+[Canonical]: https://canonical.com/
+[CIQ]: https://ciq.com/
 [Daisy]: https://github.com/GoogleCloudPlatform/compute-daisy/tree/master/docs
 [Public Images]: https://cloud.google.com/compute/docs/images#os-compute-support
+[RockyLinux]: https://rockylinux.org/
+[SUSE]: https://www.suse.com/
+[SUSE Linux]: https://www.suse.com/solutions/linux/
+[Ubuntu]: https://ubuntu.com/
 
 ## Directory layout
 
