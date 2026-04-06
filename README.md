@@ -40,7 +40,7 @@ with [`gcloud beta compute os-config os-upgrade`](https://cloud.google.com/sdk/g
 - [Release](https://storage.googleapis.com/compute-image-tools/release/linux/gce_windows_upgrade)
 
 
-## [Image Publish](cli_tools/gce_image_publish)
+## [Image Publish](gce_image_publish)
 
 Creates Google Compute Engine images from raw disk files.
 
