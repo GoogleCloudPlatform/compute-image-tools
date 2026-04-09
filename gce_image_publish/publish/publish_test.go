@@ -21,7 +21,7 @@ import (
 	"time"
 
 	daisy "github.com/GoogleCloudPlatform/compute-daisy"
-	"github.com/kylelemons/godebug/pretty"
+	"github.com/google/go-cmp/cmp"
 	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	"google.golang.org/api/compute/v1"
 )
@@ -427,11 +427,11 @@ func TestPublishImage(t *testing.T) {
 			t.Errorf("%s: did not get expected error from publishImage()", tt.desc)
 		}
 
-		if diff := pretty.Compare(dr, tt.wantCI); diff != "" {
-			t.Errorf("%s: returned CreateImages does not match expectation: (-got +want)\n%s", tt.desc, diff)
+		if diff := cmp.Diff(tt.wantCI, dr); diff != "" {
+			t.Errorf("%s: returned CreateImages does not match expectation: (-want +got)\n%s", tt.desc, diff)
 		}
-		if diff := pretty.Compare(di, tt.wantDI); diff != "" {
-			t.Errorf("%s: returned DeprecateImages does not match expectation: (-got +want)\n%s", tt.desc, diff)
+		if diff := cmp.Diff(tt.wantDI, di); diff != "" {
+			t.Errorf("%s: returned DeprecateImages does not match expectation: (-want +got)\n%s", tt.desc, diff)
 		}
 	}
 }
@@ -486,11 +486,11 @@ func TestRollbackImage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		dr, di := rollbackImage(tt.p, tt.img, tt.pubImgs)
-		if diff := pretty.Compare(dr, tt.wantDR); diff != "" {
-			t.Errorf("%s: returned DeleteResources does not match expectation: (-got +want)\n%s", tt.desc, diff)
+		if diff := cmp.Diff(tt.wantDR, dr); diff != "" {
+			t.Errorf("%s: returned DeleteResources does not match expectation: (-want +got)\n%s", tt.desc, diff)
 		}
-		if diff := pretty.Compare(di, tt.wantDI); diff != "" {
-			t.Errorf("%s: returned DeprecateImages does not match expectation: (-got +want)\n%s", tt.desc, diff)
+		if diff := cmp.Diff(tt.wantDI, di); diff != "" {
+			t.Errorf("%s: returned DeprecateImages does not match expectation: (-want +got)\n%s", tt.desc, diff)
 		}
 	}
 
@@ -528,8 +528,8 @@ func TestPopulateSteps(t *testing.T) {
 		DefaultTimeout: "10m",
 	}
 
-	if diff := (&pretty.Config{Diffable: true, Formatter: pretty.DefaultFormatter}).Compare(got, want); diff != "" {
-		t.Errorf("-got +want\n%s", diff)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("-want +got\n%s", diff)
 	}
 
 }
@@ -602,8 +602,8 @@ func TestPopulateWorkflow(t *testing.T) {
 		DefaultTimeout: "10m",
 	}
 
-	if diff := (&pretty.Config{Diffable: true, Formatter: pretty.DefaultFormatter}).Compare(got, want); diff != "" {
-		t.Errorf("-got +want\n%s", diff)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("-want +got\n%s", diff)
 	}
 
 }

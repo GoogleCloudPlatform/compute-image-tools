@@ -5,7 +5,7 @@ go 1.26.1
 require (
 	cloud.google.com/go/compute/metadata v0.9.0
 	github.com/GoogleCloudPlatform/compute-daisy v0.0.0-20260401175431-30321ee57c9b
-	github.com/kylelemons/godebug v1.1.0
+	github.com/google/go-cmp v0.7.0
 	google.golang.org/api v0.273.0
 )
 
