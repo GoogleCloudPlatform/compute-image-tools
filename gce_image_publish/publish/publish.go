@@ -185,7 +185,7 @@ func createPublish(sourceVersion, publishVersion, workProject, publishProject, s
 	}
 	if p.WorkProject == "" {
 		if metadata.OnGCE() {
-			p.WorkProject, err = metadata.ProjectID()
+			p.WorkProject, err = metadata.ProjectIDWithContext(context.Background())
 			if err != nil {
 				return nil, err
 			}
