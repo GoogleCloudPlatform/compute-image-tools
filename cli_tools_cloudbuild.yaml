@@ -146,17 +146,17 @@ steps:
   - --dockerfile=gce_windows_upgrade.Dockerfile
 
 # Copy Linux binaries to GCS
-- name: 'gcr.io/cloud-builders/gcloud'
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: 'gcloud'
   args: ['storage', 'cp', '/workspace/linux/*', 'gs://$PROJECT_ID/$_RELEASE/linux/']
 
 # Copy Windows binaries to GCS
-- name: 'gcr.io/cloud-builders/gcloud'
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: 'gcloud'
   args: ['storage', 'cp', '/workspace/windows/*', 'gs://$PROJECT_ID/$_RELEASE/windows/']
 
 # Copy OSX binaries to GCS
-- name: 'gcr.io/cloud-builders/gcloud'
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: 'gcloud'
   args: ['storage', 'cp', '/workspace/darwin/*', 'gs://$PROJECT_ID/$_RELEASE/darwin/']
 
