@@ -41,11 +41,11 @@ steps:
 
 # Build gce_export.
 - name: 'golang'
-  dir: 'cli_tools/gce_export'
+  dir: 'gce_export'
   args: ['go', 'build', '-o=/workspace/linux/gce_export']
   env: ['CGO_ENABLED=0']
 - name: 'golang'
-  dir: 'cli_tools/gce_export'
+  dir: 'gce_export'
   args: ['go', 'build', '-o=/workspace/windows/gce_export']
   env: ['GOOS=windows']
 - name: 'gcr.io/kaniko-project/executor:v1.0.0'
