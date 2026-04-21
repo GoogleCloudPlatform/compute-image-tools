@@ -23,7 +23,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_windows_upgrade/upgrader"
+	"github.com/GoogleCloudPlatform/compute-image-tools/gce_windows_upgrade/upgrader"
 )
 
 const logPrefix = "[windows-upgrade]"

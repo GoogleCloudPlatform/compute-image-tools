@@ -23,7 +23,7 @@ Cloud Storage bucket.
 - [Latest](https://storage.googleapis.com/compute-image-tools/latest/windows/gce_export.exe)
 - [Release](https://storage.googleapis.com/compute-image-tools/release/windows/gce_export.exe)
 
-## [Windows Upgrade](cli_tools/gce_windows_upgrade)
+## [Windows Upgrade](gce_windows_upgrade)
 
 Performs in-place OS upgrades. The tool can be invoked
 with [`gcloud beta compute os-config os-upgrade`](https://cloud.google.com/sdk/gcloud/reference/beta/compute/os-config/os-upgrade).
