@@ -58,7 +58,7 @@ steps:
 
 # Build gce_windows_upgrade.
 - name: 'golang'
-  dir: 'cli_tools/gce_windows_upgrade'
+  dir: 'gce_windows_upgrade'
   args: ['go', 'build', '-o=/workspace/linux/gce_windows_upgrade']
   env: ['CGO_ENABLED=0']
 - name: 'gcr.io/kaniko-project/executor:v1.1.0'
