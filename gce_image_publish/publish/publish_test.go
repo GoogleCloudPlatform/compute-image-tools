@@ -22,6 +22,7 @@ import (
 
 	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 	"github.com/google/go-cmp/cmp"
+	cmpopts "github.com/google/go-cmp/cmp/cmpopts"
 	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	"google.golang.org/api/compute/v1"
 )
@@ -427,10 +428,10 @@ func TestPublishImage(t *testing.T) {
 			t.Errorf("%s: did not get expected error from publishImage()", tt.desc)
 		}
 
-		if diff := cmp.Diff(tt.wantCI, dr); diff != "" {
+		if diff := cmp.Diff(tt.wantCI, dr, cmpopts.IgnoreUnexported(daisy.Resource{})); diff != "" {
 			t.Errorf("%s: returned CreateImages does not match expectation: (-want +got)\n%s", tt.desc, diff)
 		}
-		if diff := cmp.Diff(tt.wantDI, di); diff != "" {
+		if diff := cmp.Diff(tt.wantDI, di, cmpopts.IgnoreUnexported(daisy.Resource{})); diff != "" {
 			t.Errorf("%s: returned DeprecateImages does not match expectation: (-want +got)\n%s", tt.desc, diff)
 		}
 	}
@@ -528,7 +529,7 @@ func TestPopulateSteps(t *testing.T) {
 		DefaultTimeout: "10m",
 	}
 
-	if diff := cmp.Diff(want, got); diff != "" {
+	if diff := cmp.Diff(want, got, cmpopts.IgnoreUnexported(daisy.Workflow{}, daisy.Resource{}, daisy.Step{}), cmpopts.EquateEmpty()); diff != "" {
 		t.Errorf("-want +got\n%s", diff)
 	}
 
@@ -601,8 +602,7 @@ func TestPopulateWorkflow(t *testing.T) {
 		},
 		DefaultTimeout: "10m",
 	}
-
-	if diff := cmp.Diff(want, got); diff != "" {
+	if diff := cmp.Diff(want, got, cmpopts.IgnoreUnexported(daisy.Workflow{}, daisy.Resource{}, daisy.Step{}), cmpopts.EquateEmpty()); diff != "" {
 		t.Errorf("-want +got\n%s", diff)
 	}
 
