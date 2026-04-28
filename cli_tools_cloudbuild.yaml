@@ -156,3 +156,11 @@ steps:
 # Copy OSX binaries to GCS
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', '/workspace/darwin/*', 'gs://$PROJECT_ID/$_RELEASE/darwin/']
+
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  id: 'deprecate-regional-builds'
+  entrypoint: 'bash'
+  env:
+    - 'DRY_RUN=false'
+  args:
+    - './scripts/find-and-deprecate.sh'
