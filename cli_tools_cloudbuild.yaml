@@ -163,7 +163,4 @@ steps:
   env:
     - 'DRY_RUN=false'
   args:
-    - '-c'
-    - |
-      chmod +x ./scripts/*.sh
-      ./scripts/find-and-deprecate.sh
+    - './scripts/find-and-deprecate.sh'
