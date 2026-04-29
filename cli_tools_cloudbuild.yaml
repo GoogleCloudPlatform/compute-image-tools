@@ -162,5 +162,6 @@ steps:
   entrypoint: 'bash'
   env:
     - 'DRY_RUN=false'
+    - 'PROJECT_ID=$PROJECT_ID'
   args:
     - './scripts/find-and-deprecate.sh'
