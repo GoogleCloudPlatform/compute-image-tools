@@ -1,0 +1,4 @@
+# Use the GCE metadata server as the endpoint for NTP.
+# https://cloud.google.com/compute/docs/images/configuring-imported-images
+[Time]
+FallbackNTP=metadata.google.internal

@@ -1,0 +1,3 @@
+#! /bin/bash
+# Disable root login for sshd.
+sed -i -e 's/^.*PermitRootLogin .*/PermitRootLogin no/' $target/etc/ssh/sshd_config
