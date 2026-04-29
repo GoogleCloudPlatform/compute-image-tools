@@ -1,0 +1,80 @@
+{
+  "Name": "build-rhel-9-2-sap",
+  "Vars": {
+    "auto-generated-file": {
+      "Value": "",
+      "Description": "This file is Generated. Do not edit manually. Modify and run the generator script(write_image_build_workflow.py) instead. This variable is unused as a workaround to Daisy Workflow's lack of support for file-level comments."
+    },
+    "google_cloud_repo": {
+      "Value": "stable",
+      "Description": "The Google Cloud Repo branch to use."
+    },
+    "installer_iso": {
+      "Required": true,
+      "Description": "The RHEL 9 installer ISO to build from."
+    },
+    "build_date": {
+      "Value": "${TIMESTAMP}",
+      "Description": "Build datestamp used to version the image."
+    },
+    "publish_project": {
+      "Value": "${PROJECT}",
+      "Description": "A project to publish the resulting image to."
+    }
+  },
+  "Steps": {
+    "build-rhel": {
+      "Timeout": "60m",
+      "IncludeWorkflow": {
+        "Path": "./rhel_9_consolidated.wf.json",
+        "Vars": {
+          "el_release": "rhel-9-2-sap",
+          "google_cloud_repo": "${google_cloud_repo}",
+          "installer_iso": "${installer_iso}",
+          "disk_type": "pd-ssd",
+          "machine_type": "e2-standard-4",
+          "worker_image": "projects/compute-image-tools/global/images/family/debian-12-worker",
+          "el_install_disk_size": "20",
+          "is_arm": "False",
+          "is_byos": "False",
+          "is_eus": "False",
+          "is_sap": "True",
+          "is_lvm": "False",
+          "rhui_package_name": "google-rhui-client-rhel9-sap",
+          "version_lock": "9.2"
+        }
+      }
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "rhel-9-2-sap-v${build_date}",
+          "SourceDisk": "el-install-disk",
+          "Licenses": [
+            "projects/rhel-sap-cloud/global/licenses/rhel-9-sap"
+          ],
+          "Description": "Red Hat, Red Hat Enterprise Linux for SAP, 9.2, x86_64 built on ${build_date}",
+          "Family": "rhel-9-2-sap",
+          "GuestOsFeatures": [
+            "UEFI_COMPATIBLE",
+            "VIRTIO_SCSI_MULTIQUEUE",
+            "SEV_CAPABLE",
+            "SEV_SNP_CAPABLE",
+            "GVNIC",
+            "SEV_LIVE_MIGRATABLE",
+            "SEV_LIVE_MIGRATABLE_V2"
+          ],
+          "Project": "${publish_project}",
+          "NoCleanup": true,
+          "ExactName": true,
+          "Architecture": "X86_64"
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-image": [
+      "build-rhel"
+    ]
+  }
+}

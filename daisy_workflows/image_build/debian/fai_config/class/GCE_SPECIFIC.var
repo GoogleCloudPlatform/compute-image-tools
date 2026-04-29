@@ -1,0 +1,6 @@
+# Include ca-certificates in debootstrap
+FAI_DEBOOTSTRAP_OPTS="${FAI_DEBOOTSTRAP_OPTS} --include ca-certificates"
+
+# Use the https CDN endpoints for apt.
+apt_cdn=https://deb.debian.org
+security_cdn=https://deb.debian.org

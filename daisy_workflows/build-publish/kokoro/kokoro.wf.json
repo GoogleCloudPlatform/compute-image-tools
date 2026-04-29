@@ -1,0 +1,82 @@
+{
+  "Name": "kokoro-build",
+  "Project": "gce-image-builder",
+  "Zone": "us-central1-b",
+  "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
+  "Vars": {
+    "google_cloud_repo": {
+      "Value": "DUMMY",
+      "Description": "Unused, included for interface compatibility."
+    },
+    "workflow_root": {
+      "Value": "/workflows",
+      "Description": "Root of github workflows, defaults to /workflows in the container."
+    },
+    "gcs_url": {
+      "Required": true,
+      "Description": "The GCE path that image raw file exported to."
+    }
+  },
+  "Sources": {
+    "startup.sh": "./build.sh"
+  },
+  "Steps": {
+    "create-disks": {
+      "CreateDisks": [
+        {
+          "Name": "disk-build",
+          "SourceImage": "projects/rocky-linux-cloud/global/images/family/rocky-linux-8",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "create-instance": {
+      "CreateInstances": [
+        {
+          "Name": "inst-builder",
+          "Disks": [{"Source": "disk-build"}],
+          "MachineType": "e2-standard-4",
+          "MetaData": {
+            "kokoro_authorized_keys": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDg7L/ZaEauETWrPklUTky3kvxqQfe2Ax/2CsSqhNIGNMnK/8d79CHlmY9+dE1FFQ/RzKNCaltgy7XcN/fCYiCZr5jm2ZtnLuGNOTzupMNhaYiPL419qmL+5rZXt4/dWTrsHbFRACxT8j51PcRMO5wgbL0Bg2XXimbx8kDFaurL2gqduQYqlu4lxWCaJqOL71WogcimeL63Nq/yeH5PJPWpqE4P9VUQSwAzBWFK/hLeds/AiP3MgVS65qHBnhq0JsHy8JQsqjZbG7Iidt/Ll0+gqzEbi62gDIcczG4KC0iOVzDDP/1BxDtt1lKeA23ll769Fcm3rJyoBMYxjvdw1TDx sabujp@trigger.mtv.corp.google.com",
+            "enable-oslogin": "False",
+            "block-project-ssh-keys": "True"
+          },
+        "StartupScript": "startup.sh"
+        }
+      ]
+    },
+    "wait-for-stop": {
+      "TimeOut": "30m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-builder",
+          "SerialOutput": {
+            "Port": 1,
+            "FailureMatch": "BuildFailed:",
+            "SuccessMatch": "BuildSuccess:"
+          }
+        }
+      ]
+    },
+    "delete-instance": {
+      "DeleteResources": {
+        "Instances": ["inst-builder"]
+      }
+    },
+    "export-image": {
+      "IncludeWorkflow": {
+        "Path": "${workflow_root}/export/disk_export.wf.json",
+        "Vars": {
+          "source_disk": "disk-build",
+          "destination": "${gcs_url}"
+        }
+      }
+    }
+  },
+  "Dependencies": {
+    "create-instance": ["create-disks"],
+    "wait-for-stop": ["create-instance"],
+    "delete-instance": ["wait-for-stop"],
+    "export-image": ["delete-instance"]
+  }
+}

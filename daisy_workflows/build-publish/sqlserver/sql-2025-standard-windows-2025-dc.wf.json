@@ -1,0 +1,87 @@
+{
+  "Name": "sql-2025-standard-windows-2025-dc",
+  "Project": "gce-image-builder",
+  "Zone": "us-central1-b",
+  "GCSPath": "gs://gce-image-build-bucket/daisy/${USERNAME}",
+  "Vars": {
+    "build_date": {
+      "Value": "${TIMESTAMP}",
+      "Description": "Build datestamp used to version the image."
+    },
+    "gcs_url": {
+      "Required": true,
+      "Description": "The GCS url that the image raw file exported to."
+    },
+    "sbom_destination": {
+      "Value": "${OUTSPATH}/export-image.sbom.json",
+      "Description": "The GCS url that the sbom file exported to."
+    },
+    "workflow_root": {
+      "Value": "/workflows",
+      "Description": "Root of github workflows, defaults to /workflows in the container."
+    },
+    "install_disk": "disk-install",
+    "publish_project": "${PROJECT}",
+    "sql_server_media": {
+      "Required": true,
+      "Description": "GCS or local path to the SQL Server installer media"
+    },
+    "source_image_project": {
+      "Value": "windows-cloud",
+      "Description": "Project to source base image from."
+    },
+    "ssms_exe": {
+      "Required": true,
+      "Description": "GCS or local path to SSMS installer"
+    },
+    "timeout": {
+      "Value": "4h",
+      "Description": "The timeout to set for the image build."
+    },
+    "sbom_util_gcs_root": {
+      "Value": "",
+      "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
+    },
+    "sha256_txt": {
+       "Value": "${OUTSPATH}/export-image-shasum.txt",
+       "Description": "The file where the sha256 sum is stored."
+    }
+  },
+  "Steps": {
+    "build": {
+      "Timeout": "${timeout}",
+      "IncludeWorkflow": {
+        "Path": "${workflow_root}/image_build/sqlserver/sql-2025-standard-windows-2025-dc.wf.json",
+        "Vars": {
+          "build_date": "${TIMESTAMP}",
+          "install_disk": "disk-install",
+          "publish_project": "${publish_project}",
+          "sql_server_media": "${sql_server_media}",
+          "source_image_project": "${source_image_project}",
+          "ssms_exe": "${ssms_exe}",
+          "timeout": "${timeout}",
+          "sbom_destination": "${sbom_destination}",
+          "sbom_util_gcs_root": "${sbom_util_gcs_root}"
+        }
+      }
+    },
+    "sqlserver-export": {
+      "Timeout": "60m",
+      "IncludeWorkflow": {
+        "Path": "${workflow_root}/export/disk_export.wf.json",
+        "Vars": {
+          "source_disk": "${install_disk}",
+          "destination": "${gcs_url}",
+          "existing_sbom_file_name": "${sbom_destination}",
+          "sbom_already_generated": "true",
+          "sha256_txt": "${sha256_txt}"
+        }
+      }
+    }
+  },
+  "Dependencies": {
+    "sqlserver-export": [
+      "build"
+    ]
+  }
+}

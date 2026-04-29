@@ -1,0 +1,82 @@
+{
+  "Name": "build-rhel-10-byos",
+  "Vars": {
+    "auto-generated-file": {
+      "Value": "",
+      "Description": "This file is Generated. Do not edit manually. Modify and run the generator script(write_image_build_workflow.py) instead. This variable is unused as a workaround to Daisy Workflow's lack of support for file-level comments."
+    },
+    "google_cloud_repo": {
+      "Value": "stable",
+      "Description": "The Google Cloud Repo branch to use."
+    },
+    "installer_iso": {
+      "Required": true,
+      "Description": "The RHEL 10 installer ISO to build from."
+    },
+    "build_date": {
+      "Value": "${TIMESTAMP}",
+      "Description": "Build datestamp used to version the image."
+    },
+    "publish_project": {
+      "Value": "${PROJECT}",
+      "Description": "A project to publish the resulting image to."
+    }
+  },
+  "Steps": {
+    "build-rhel": {
+      "Timeout": "60m",
+      "IncludeWorkflow": {
+        "Path": "./rhel_10_consolidated.wf.json",
+        "Vars": {
+          "el_release": "rhel-10",
+          "google_cloud_repo": "${google_cloud_repo}",
+          "installer_iso": "${installer_iso}",
+          "disk_type": "pd-ssd",
+          "machine_type": "e2-standard-4",
+          "worker_image": "projects/compute-image-tools/global/images/family/debian-12-worker",
+          "el_install_disk_size": "20",
+          "is_arm": "False",
+          "is_byos": "True",
+          "is_eus": "False",
+          "is_sap": "False",
+          "is_lvm": "False",
+          "rhui_package_name": "google-rhui-client-rhel10",
+          "version_lock": ""
+        }
+      }
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "rhel-10-byos-v${build_date}",
+          "SourceDisk": "el-install-disk",
+          "Licenses": [
+            "projects/rhel-cloud/global/licenses/rhel-10-byos"
+          ],
+          "Description": "Red Hat, Red Hat Enterprise Linux, 10, BYOS x86_64 built on ${build_date}",
+          "Family": "rhel-10-byos",
+          "GuestOsFeatures": [
+            "UEFI_COMPATIBLE",
+            "VIRTIO_SCSI_MULTIQUEUE",
+            "SEV_CAPABLE",
+            "SEV_SNP_CAPABLE",
+            "SEV_LIVE_MIGRATABLE",
+            "SEV_LIVE_MIGRATABLE_V2",
+            "GVNIC",
+            "IDPF",
+            "TDX_CAPABLE"
+          ],
+          "Project": "${publish_project}",
+          "NoCleanup": true,
+          "ExactName": true,
+          "Architecture": "X86_64"
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-image": [
+      "build-rhel"
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+PACKAGES install
+# Config package for trixie-specific configuration
+
+gce-configs-trixie
