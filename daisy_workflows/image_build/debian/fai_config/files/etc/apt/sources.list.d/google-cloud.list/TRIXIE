@@ -1,2 +1,0 @@
-deb [signed-by=/etc/apt/keyrings/google-keyring.gpg] https://packages.cloud.google.com/apt google-compute-engine-{%SUITE%}-stable main
-deb [signed-by=/etc/apt/keyrings/google-keyring.gpg] https://packages.cloud.google.com/apt cloud-sdk-{%SUITE%} main
