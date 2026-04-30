@@ -33,7 +33,7 @@
         {
           "Name": "inst-worker",
           "Disks": [{"Source": "disk-worker"}],
-          "MachineType": "t2a-standard-4",
+          "MachineType": "c4a-standard-2",
           "StartupScript": "debian_worker.sh",
           "MetaData": {
             "block-project-ssh-keys": "TRUE"
