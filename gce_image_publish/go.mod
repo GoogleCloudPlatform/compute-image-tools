@@ -1,12 +1,12 @@
-module github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_tests
+module github.com/GoogleCloudPlatform/compute-image-tools/gce_image_publish
 
-go 1.25.0
+go 1.26.1
 
 require (
-	github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0
-	github.com/GoogleCloudPlatform/compute-image-tools/common v0.0.0
-	github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils v0.0.0
-	google.golang.org/api v0.272.0
+	cloud.google.com/go/compute/metadata v0.9.0
+	github.com/GoogleCloudPlatform/compute-daisy v0.0.0-20260401175431-30321ee57c9b
+	github.com/google/go-cmp v0.7.0
+	google.golang.org/api v0.273.0
 )
 
 require (
@@ -14,14 +14,11 @@ require (
 	cloud.google.com/go v0.123.0 // indirect
 	cloud.google.com/go/auth v0.19.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
-	cloud.google.com/go/compute/metadata v0.9.0 // indirect
-	cloud.google.com/go/iam v1.5.3 // indirect
+	cloud.google.com/go/iam v1.6.0 // indirect
 	cloud.google.com/go/logging v1.13.2 // indirect
 	cloud.google.com/go/longrunning v0.8.0 // indirect
 	cloud.google.com/go/monitoring v1.24.3 // indirect
 	cloud.google.com/go/storage v1.61.3 // indirect
-	github.com/GoogleCloudPlatform/compute-daisy v0.0.0-20260316183733-5de4cd69c987 // indirect
-	github.com/GoogleCloudPlatform/compute-image-tools/proto/go v0.0.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.31.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.55.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.55.0 // indirect
@@ -30,18 +27,13 @@ require (
 	github.com/envoyproxy/go-control-plane/envoy v1.37.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.3.3 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-playground/locales v0.14.1 // indirect
-	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.30.1 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.14 // indirect
-	github.com/googleapis/gax-go/v2 v2.19.0 // indirect
-	github.com/leodido/go-urn v1.4.0 // indirect
+	github.com/googleapis/gax-go/v2 v2.20.0 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
@@ -66,11 +58,3 @@ require (
 	google.golang.org/grpc v1.79.3 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
-
-replace github.com/GoogleCloudPlatform/compute-image-tools/common => ../common
-
-replace github.com/GoogleCloudPlatform/compute-image-tools/cli_tools => ../cli_tools
-
-replace github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils => ../go/e2e_test_utils
-
-replace github.com/GoogleCloudPlatform/compute-image-tools/proto/go => ../proto/go

@@ -17,15 +17,15 @@ steps:
 
 # Build gce_image_publish.
 - name: 'golang'
-  dir: 'cli_tools/gce_image_publish'
+  dir: 'gce_image_publish'
   args: ['go', 'build', '-o=/workspace/linux/gce_image_publish']
   env: ['CGO_ENABLED=0']
 - name: 'golang'
-  dir: 'cli_tools/gce_image_publish'
+  dir: 'gce_image_publish'
   args: ['go', 'build', '-o=/workspace/windows/gce_image_publish.exe']
   env: ['GOOS=windows']
 - name: 'golang'
-  dir: 'cli_tools/gce_image_publish'
+  dir: 'gce_image_publish'
   args: ['go', 'build', '-o=/workspace/darwin/gce_image_publish']
   env: ['GOOS=darwin']
 - name: 'gcr.io/kaniko-project/executor:latest'
@@ -37,11 +37,11 @@ steps:
 
 # Build gce_export.
 - name: 'golang'
-  dir: 'cli_tools/gce_export'
+  dir: 'gce_export'
   args: ['go', 'build', '-o=/workspace/linux/gce_export']
   env: ['CGO_ENABLED=0']
 - name: 'golang'
-  dir: 'cli_tools/gce_export'
+  dir: 'gce_export'
   args: ['go', 'build', '-o=/workspace/windows/gce_export']
   env: ['GOOS=windows']
 - name: 'gcr.io/kaniko-project/executor:latest'
@@ -53,7 +53,7 @@ steps:
 
 # Build gce_windows_upgrade.
 - name: 'golang'
-  dir: 'cli_tools/gce_windows_upgrade'
+  dir: 'gce_windows_upgrade'
   args: ['go', 'build', '-o=/workspace/linux/gce_windows_upgrade']
   env: ['CGO_ENABLED=0']
 - name: 'gcr.io/kaniko-project/executor:latest'
@@ -162,5 +162,10 @@ steps:
 
 # Make binaries world-readable.
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-  entrypoint: 'gcloud'
-  args: ['storage', 'objects', 'update', '--recursive', '--add-acl-grant=AllUsers:R', 'gs://$PROJECT_ID/$_RELEASE/*']
+  id: 'deprecate-regional-builds'
+  entrypoint: 'bash'
+  env:
+    - 'DRY_RUN=false'
+    - 'PROJECT_ID=$PROJECT_ID'
+  args:
+    - './scripts/find-and-deprecate.sh'

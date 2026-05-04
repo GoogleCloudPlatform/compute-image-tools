@@ -21,18 +21,19 @@ RHEL_MAJOR_VERSIONS = ["8", "9", "10"]
 RHEL_MINOR_VERSIONS = {
     "8": ["8.6", "8.8", "8.10"],
     "9": ["9.0", "9.2", "9.4", "9.6"],
-    "10": ["10.0"],
+    "10": ["10.0", "10.2"],
 }
 
 RHEL_EUS_VERSIONS = ["9.4", "9.6", "10.0"]
 RHEL_LVM_VERSIONS = ["8", "9", "9.4", "9.6", "10", "10.0"]
 RHEL_SAP_VERSIONS = ["8.6", "8.8", "8.10", "9.0", "9.2", "9.4", "9.6", "10.0"]
+RHEL_BETA_VERSIONS = ["10.2"]
 
 ARCHITECTURES = ["x86_64", "arm64"]
 PLANS = ["payg", "byos"]
 
 
-def get_licenses(major_version, plan, is_eus, is_lvm, is_sap):
+def get_licenses(major_version, plan, is_eus, is_lvm, is_sap, is_beta):
     licenses = []
     if is_sap and plan == "byos":
         licenses.append(
@@ -62,6 +63,11 @@ def get_licenses(major_version, plan, is_eus, is_lvm, is_sap):
         )
     if is_lvm:
         licenses.append("projects/rhel-cloud/global/licenses/rhel-lvm")
+    if is_beta:
+        licenses.append(
+            "projects/rhel-cloud/global/licenses/rhel-"
+            f"{major_version}-beta"
+        )
     return licenses
 
 
@@ -255,20 +261,23 @@ def write_workflow_file(major_version,
                         is_lvm,
                         is_sap,
                         arch,
-                        minor_version):
+                        minor_version,
+                        is_beta):
     image_name = "rhel-"
     if minor_version:
         image_name += minor_version.replace('.', '-')
     else:
         image_name += major_version
+    if is_beta:
+        image_name += "-beta"
     if is_eus:
        image_name += "-eus"
     if is_sap:
        image_name += "-sap"
-    if plan == "byos":
-       image_name += "-byos"
     if is_lvm:
        image_name += "-lvm"
+    if plan == "byos":
+       image_name += "-byos"
     if arch == "arm64":
        image_name += "-arm64"
 
@@ -282,6 +291,8 @@ def write_workflow_file(major_version,
         description += minor_version
     else:
         description += major_version
+    if is_beta:
+        description += " Beta"
     if is_eus:
         description += " EUS"
     if is_lvm:
@@ -324,12 +335,19 @@ def write_workflow_file(major_version,
     rhui_package_name = "google-rhui-client-rhel" + major_version
     if minor_version == major_version + ".10":
         rhui_package_name += "10"
+    if is_beta:
+        rhui_package_name += "-beta"
     if is_eus:
         rhui_package_name += "-eus"
     if is_sap:
         rhui_package_name += "-sap"
 
-    licenses = get_licenses(major_version, plan, is_eus, is_lvm, is_sap)
+    licenses = get_licenses(major_version,
+                            plan,
+                            is_eus,
+                            is_lvm,
+                            is_sap,
+                            is_beta)
     guest_os_features = get_guest_os_features(major_version,
                                               arch,
                                               is_sap,
@@ -361,6 +379,7 @@ def write_workflow_file(major_version,
 
 
 def main():
+    is_beta = False
     is_eus = False
     is_lvm = False
     is_sap = False
@@ -368,9 +387,7 @@ def main():
     for arch in ARCHITECTURES:
         for plan in PLANS:
             for major_version in RHEL_MAJOR_VERSIONS:
-                # LVM is only for PAYG images
-                if (plan == "payg"
-                    and major_version in RHEL_LVM_VERSIONS):
+                if major_version in RHEL_LVM_VERSIONS:
                     is_lvm = True
                     write_workflow_file(major_version,
                                         plan,
@@ -378,7 +395,8 @@ def main():
                                         is_lvm,
                                         is_sap,
                                         arch,
-                                        '')  # LVM
+                                        '',
+                                        is_beta)  # LVM
                 is_lvm = False
                 write_workflow_file(major_version,
                                     plan,
@@ -386,10 +404,12 @@ def main():
                                     is_lvm,
                                     is_sap,
                                     arch,
-                                    '')  # Base image
+                                    '',
+                                    is_beta)  # Base image
                 for minor_version in RHEL_MINOR_VERSIONS[major_version]:
                     if minor_version not in RHEL_EUS_VERSIONS \
-                            and minor_version not in RHEL_SAP_VERSIONS:
+                            and minor_version not in RHEL_SAP_VERSIONS \
+                            and minor_version not in RHEL_BETA_VERSIONS:
                         continue
                     if minor_version in RHEL_EUS_VERSIONS:
                         is_eus = True
@@ -399,10 +419,9 @@ def main():
                                             is_lvm,
                                             is_sap,
                                             arch,
-                                            minor_version)  # EUS
-                        # LVM is only for PAYG images
-                        if (plan == "payg"
-                            and minor_version in RHEL_LVM_VERSIONS):
+                                            minor_version,
+                                            is_beta)  # EUS
+                        if minor_version in RHEL_LVM_VERSIONS:
                             is_lvm = True
                             write_workflow_file(major_version,
                                                 plan,
@@ -410,7 +429,8 @@ def main():
                                                 is_lvm,
                                                 is_sap,
                                                 arch,
-                                                minor_version)  # EUS + LVM
+                                                minor_version,
+                                                is_beta)  # EUS + LVM
                     is_eus = False
                     is_lvm = False
                     # SAP only supports x86_64
@@ -423,8 +443,24 @@ def main():
                                             is_lvm,
                                             is_sap,
                                             arch,
-                                            minor_version)  # SAP
+                                            minor_version,
+                                            is_beta)  # SAP
                     is_sap = False
+                    # Beta is not ready for arm64 yet, so only generate beta
+                    # workflow for x86_64. Only payg is currently requested
+                    # for the beta images
+                    if (arch == "x86_64" and plan == "payg"
+                        and minor_version in RHEL_BETA_VERSIONS):
+                        is_beta = True
+                        write_workflow_file(major_version,
+                                            plan,
+                                            is_eus,
+                                            is_lvm,
+                                            is_sap,
+                                            arch,
+                                            minor_version,
+                                            is_beta)  # Beta
+                    is_beta = False
 
 
 if __name__ == '__main__':

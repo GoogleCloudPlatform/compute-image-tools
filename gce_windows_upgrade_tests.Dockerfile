@@ -20,12 +20,12 @@ RUN CGO_ENABLED=0 go build -C /kaniko/build/cli_tools_tests/e2e/gce_windows_upgr
 RUN chmod +x /gce_windows_upgrade_test_runner
 
 # Build binaries to test
-RUN CGO_ENABLED=0 go build -C /kaniko/build/cli_tools/gce_windows_upgrade -o /gce_windows_upgrade
+RUN CGO_ENABLED=0 go build -C /kaniko/build/gce_windows_upgrade -o /gce_windows_upgrade
 RUN chmod +x /gce_windows_upgrade
 
 # Build test container
 FROM google/cloud-sdk:debian_component_based
 COPY --from=0 /gce_windows_upgrade_test_runner gce_windows_upgrade_test_runner
 COPY --from=0 /gce_windows_upgrade gce_windows_upgrade
-COPY /cli_tools/gce_windows_upgrade/upgrade_script.ps1 upgrade_script.ps1
+COPY /gce_windows_upgrade/upgrade_script.ps1 upgrade_script.ps1
 ENTRYPOINT ["./gce_windows_upgrade_test_runner"]

@@ -11,17 +11,12 @@ These are [Daisy] and [`gce_image_publish`] workflows used by Google to build
 
 The following directories exist
 
-* bare\_metal - wrapper workflows for [bare\_metal](../image_build/bare-metal)
 * debian - wrapper workflows for [debian](../image_build/debian)
 * enterprise\_linux - wrapper workflows for
   [enterprise\_linux](../image_build/enterprise_linux)
 * kokoro - workflow for an internal use image
-* linux\_dev - unknown/unused (?)
-* [rhui](rhui/README.md) - workflows for internal use images
 * sqlserver - wrapper workflows for [sqlserver](../image_build/sqlserver)
 * windows - wrapper workflows for [windows](../image_build/windows)
-* windows\_container - wrapper workflows for
-  [windows\_container](../image_build/sqlserver)
 
 ## Standards
 
