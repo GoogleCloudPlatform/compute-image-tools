@@ -309,8 +309,10 @@ def write_workflow_file(major_version,
     description += " built on ${build_date}"
 
     el_release = "rhel-" + major_version
-    if is_eus or is_sap:
+    if is_eus or is_sap or is_beta:
         el_release += "-" + minor_version.split(".")[1]
+    if is_beta:
+        el_release += "-beta"
     if is_sap:
         el_release += "-sap"
     if arch == "arm64":
@@ -335,8 +337,6 @@ def write_workflow_file(major_version,
     rhui_package_name = "google-rhui-client-rhel" + major_version
     if minor_version == major_version + ".10":
         rhui_package_name += "10"
-    if is_beta:
-        rhui_package_name += "-beta"
     if is_eus:
         rhui_package_name += "-eus"
     if is_sap:
