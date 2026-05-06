@@ -28,7 +28,7 @@
       "IncludeWorkflow": {
         "Path": "./rhel_10_consolidated.wf.json",
         "Vars": {
-          "el_release": "rhel-10",
+          "el_release": "rhel-10-2-beta",
           "google_cloud_repo": "${google_cloud_repo}",
           "installer_iso": "${installer_iso}",
           "disk_type": "pd-ssd",
@@ -40,7 +40,7 @@
           "is_eus": "False",
           "is_sap": "False",
           "is_lvm": "False",
-          "rhui_package_name": "google-rhui-client-rhel10-beta",
+          "rhui_package_name": "google-rhui-client-rhel10",
           "version_lock": "10.2"
         }
       }
