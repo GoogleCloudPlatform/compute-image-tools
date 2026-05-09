@@ -84,7 +84,7 @@ def enable_debug_logging():
 
 [Core]
 log_level = 4
-log_verbosity = 4
+log_verbosity = 2
 """
 
   with open('/mnt/etc/default/instance_configs.cfg', 'a') as file:

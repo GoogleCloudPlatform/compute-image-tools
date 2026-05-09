@@ -74,7 +74,7 @@ $config = @'
 
 [Core]
 log_level = 4
-log_verbosity = 4
+log_verbosity = 2
 '@
 
 try {
