@@ -24,7 +24,7 @@
         {
           "Name": "disk-worker",
           "SourceImage": "debian-12-arm64-v${build_date}",
-          "Type": "pd-ssd"
+          "Type": "hyperdisk-balanced"
         }
       ]
     },
