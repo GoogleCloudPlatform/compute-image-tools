@@ -48,7 +48,7 @@
           "Name": "disk-debian-12",
           "SourceImage": "debian-12-arm64-v${build_date}",
           "SizeGb": "10",
-          "Type": "hyperdisk-balanced"
+          "Type": "pd-ssd"
         }
       ]
     },

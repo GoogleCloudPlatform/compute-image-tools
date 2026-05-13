@@ -8,8 +8,7 @@
     "builder_source_image": {
       "Value": "projects/compute-image-tools/global/images/family/debian-12-worker",
       "Description": "Base image for builder instance."
-    },
-    "builder_disk_type" : { "Value": "pd-ssd", "Description": "Disk type for builder instance." }
+    }
   },
   "Sources": {
     "build_files/build.py": "./build_fai.py",
@@ -24,7 +23,7 @@
           "Name": "disk-builder",
           "SourceImage": "${builder_source_image}",
           "SizeGb": "50",
-          "Type": "${builder_disk_type}"
+          "Type": "pd-ssd"
         }
       ]
     },
