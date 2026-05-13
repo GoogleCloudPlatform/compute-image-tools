@@ -40,7 +40,7 @@
           "is_eus": "False",
           "is_sap": "False",
           "is_lvm": "False",
-          "rhui_package_name": "google-rhui-client-rhel10",
+          "rhui_package_name": "google-rhui-client-rhel10-beta",
           "version_lock": "10.2"
         }
       }
