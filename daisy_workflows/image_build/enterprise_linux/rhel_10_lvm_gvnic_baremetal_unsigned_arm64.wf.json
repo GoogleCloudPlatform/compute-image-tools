@@ -1,5 +1,5 @@
 {
-  "Name": "build-rhel-10-0-eus-lvm-arm64",
+  "Name": "build-rhel-10-lvm-gvnic-baremetal-unsigned-arm64",
   "Vars": {
     "auto-generated-file": {
       "Value": "",
@@ -28,7 +28,7 @@
       "IncludeWorkflow": {
         "Path": "./rhel_10_consolidated.wf.json",
         "Vars": {
-          "el_release": "rhel-10-0-arm64",
+          "el_release": "rhel-10-arm64",
           "google_cloud_repo": "${google_cloud_repo}",
           "installer_iso": "${installer_iso}",
           "disk_type": "hyperdisk-balanced",
@@ -37,28 +37,28 @@
           "el_install_disk_size": "50",
           "is_arm": "True",
           "is_byos": "False",
-          "is_eus": "True",
+          "is_eus": "False",
           "is_oot_driver": "False",
           "is_sap": "False",
           "is_lvm": "True",
-          "is_unsigned_oot_driver": "False",
-          "rhui_package_name": "google-rhui-client-rhel10-eus",
-          "version_lock": "10.0"
+          "is_unsigned_oot_driver": "True",
+          "rhui_package_name": "google-rhui-client-rhel10",
+          "version_lock": ""
         }
       }
     },
     "create-image": {
       "CreateImages": [
         {
-          "Name": "rhel-10-0-eus-lvm-arm64-v${build_date}",
+          "Name": "rhel-10-lvm-gvnic-baremetal-unsigned-arm64-v${build_date}",
           "SourceDisk": "el-install-disk",
           "Licenses": [
             "projects/rhel-cloud/global/licenses/rhel-10-server",
-            "projects/rhel-cloud/global/licenses/rhel-10-server-eus",
-            "projects/rhel-cloud/global/licenses/rhel-lvm"
+            "projects/rhel-cloud/global/licenses/rhel-lvm",
+            "projects/rhel-cloud/global/licenses/el-oot-gvnic-baremetal-driver"
           ],
-          "Description": "Red Hat, Red Hat Enterprise Linux, 10.0 EUS (LVM), aarch64 with a LVM boot volume built on ${build_date}",
-          "Family": "rhel-10-0-eus-lvm-arm64",
+          "Description": "Red Hat, Red Hat Enterprise Linux, 10 (LVM), aarch64 with OOT GVNIC BareMetal Support Unsigned with a LVM boot volume built on ${build_date}",
+          "Family": "rhel-10-lvm-gvnic-baremetal-unsigned-arm64",
           "GuestOsFeatures": [
             "UEFI_COMPATIBLE",
             "GVNIC",

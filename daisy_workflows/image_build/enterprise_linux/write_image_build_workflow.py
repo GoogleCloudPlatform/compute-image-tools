@@ -24,16 +24,23 @@ RHEL_MINOR_VERSIONS = {
     "10": ["10.0", "10.2"],
 }
 
+RHEL_BETA_VERSIONS = ["10.2"]
 RHEL_EUS_VERSIONS = ["9.4", "9.6", "10.0"]
 RHEL_LVM_VERSIONS = ["8", "9", "9.4", "9.6", "10", "10.0"]
 RHEL_SAP_VERSIONS = ["8.6", "8.8", "8.10", "9.0", "9.2", "9.4", "9.6", "10.0"]
-RHEL_BETA_VERSIONS = ["10.2"]
+RHEL_UNSIGNED_OOT_DRIVER_VERSIONS = ["10"]
 
 ARCHITECTURES = ["x86_64", "arm64"]
 PLANS = ["payg", "byos"]
 
 
-def get_licenses(major_version, plan, is_eus, is_lvm, is_sap, is_beta):
+def get_licenses(major_version,
+                 plan,
+                 is_eus,
+                 is_lvm,
+                 is_sap,
+                 is_beta,
+                 is_oot_driver):
     licenses = []
     if is_sap and plan == "byos":
         licenses.append(
@@ -67,6 +74,11 @@ def get_licenses(major_version, plan, is_eus, is_lvm, is_sap, is_beta):
         licenses.append(
             "projects/rhel-cloud/global/licenses/rhel-"
             f"{major_version}-beta"
+        )
+    if is_oot_driver:
+        licenses.append(
+            "projects/rhel-cloud/global/licenses/el-"
+            "oot-gvnic-baremetal-driver"
         )
     return licenses
 
@@ -173,7 +185,9 @@ def generate_workflow_file(image_name,
                            worker_image,
                            el_install_disk_size,
                            rhui_package_name,
-                           el_release):
+                           el_release,
+                           is_oot_driver,
+                           is_unsigned_oot_driver):
     workflow_name = f"build-{image_name}"
 
     wf = {
@@ -224,8 +238,10 @@ def generate_workflow_file(image_name,
                        "is_arm": f"{is_arm}",
                        "is_byos": f"{is_byos}",
                        "is_eus": f"{is_eus}",
+                       "is_oot_driver": f"{is_oot_driver}",
                        "is_sap": f"{is_sap}",
                        "is_lvm": f"{is_lvm}",
+                       "is_unsigned_oot_driver": f"{is_unsigned_oot_driver}",
                        "rhui_package_name": f"{rhui_package_name}",
                        "version_lock": f"{minor_version}"
                     }
@@ -262,7 +278,9 @@ def write_workflow_file(major_version,
                         is_sap,
                         arch,
                         minor_version,
-                        is_beta):
+                        is_beta,
+                        is_oot_driver,
+                        is_unsigned_oot_driver):
     image_name = "rhel-"
     if minor_version:
         image_name += minor_version.replace('.', '-')
@@ -276,6 +294,10 @@ def write_workflow_file(major_version,
        image_name += "-sap"
     if is_lvm:
        image_name += "-lvm"
+    if is_oot_driver or is_unsigned_oot_driver:
+       image_name += "-gvnic-baremetal"
+    if is_unsigned_oot_driver:
+       image_name += "-unsigned"
     if plan == "byos":
        image_name += "-byos"
     if arch == "arm64":
@@ -304,6 +326,10 @@ def write_workflow_file(major_version,
         description += " x86_64"
     else:
         description += " aarch64"
+    if is_oot_driver or is_unsigned_oot_driver:
+        description += " with OOT GVNIC BareMetal Support"
+    if is_unsigned_oot_driver:
+        description += " Unsigned"
     if is_lvm:
         description += " with a LVM boot volume"
     description += " built on ${build_date}"
@@ -347,7 +373,8 @@ def write_workflow_file(major_version,
                             is_eus,
                             is_lvm,
                             is_sap,
-                            is_beta)
+                            is_beta,
+                            is_oot_driver or is_unsigned_oot_driver)
     guest_os_features = get_guest_os_features(major_version,
                                               arch,
                                               is_sap,
@@ -369,7 +396,9 @@ def write_workflow_file(major_version,
                                 worker_image,
                                 el_install_disk_size,
                                 rhui_package_name,
-                                el_release)
+                                el_release,
+                                is_oot_driver,
+                                is_unsigned_oot_driver)
     script_dir = os.path.dirname(os.path.abspath(__file__))
     image_name = image_name.replace('-', '_')
     file_name = os.path.join(script_dir, f"{image_name}.wf.json")
@@ -382,7 +411,9 @@ def main():
     is_beta = False
     is_eus = False
     is_lvm = False
+    is_oot_driver = False
     is_sap = False
+    is_unsigned_oot_driver = False
 
     for arch in ARCHITECTURES:
         for plan in PLANS:
@@ -396,7 +427,23 @@ def main():
                                         is_sap,
                                         arch,
                                         '',
-                                        is_beta)  # LVM
+                                        is_beta,
+                                        is_oot_driver,
+                                        is_unsigned_oot_driver)  # LVM
+                    # UNSIGNED OOT GVNIC DRIVER & LVM
+                    if (major_version in RHEL_UNSIGNED_OOT_DRIVER_VERSIONS):
+                        is_unsigned_oot_driver = True
+                        write_workflow_file(major_version,
+                                            plan,
+                                            is_eus,
+                                            is_lvm,
+                                            is_sap,
+                                            arch,
+                                            '',
+                                            is_beta,
+                                            is_oot_driver,
+                                            is_unsigned_oot_driver)
+                        is_unsigned_oot_driver = False
                 is_lvm = False
                 write_workflow_file(major_version,
                                     plan,
@@ -405,7 +452,23 @@ def main():
                                     is_sap,
                                     arch,
                                     '',
-                                    is_beta)  # Base image
+                                    is_beta,
+                                    is_oot_driver,
+                                    is_unsigned_oot_driver)  # Base image
+                # UNSIGNED OOT GVNIC DRIVER
+                if (major_version in RHEL_UNSIGNED_OOT_DRIVER_VERSIONS):
+                    is_unsigned_oot_driver = True
+                    write_workflow_file(major_version,
+                                        plan,
+                                        is_eus,
+                                        is_lvm,
+                                        is_sap,
+                                        arch,
+                                        '',
+                                        is_beta,
+                                        is_oot_driver,
+                                        is_unsigned_oot_driver)
+                    is_unsigned_oot_driver = False
                 for minor_version in RHEL_MINOR_VERSIONS[major_version]:
                     if minor_version not in RHEL_EUS_VERSIONS \
                             and minor_version not in RHEL_SAP_VERSIONS \
@@ -420,7 +483,10 @@ def main():
                                             is_sap,
                                             arch,
                                             minor_version,
-                                            is_beta)  # EUS
+                                            is_beta,
+                                            is_oot_driver,
+                                            is_unsigned_oot_driver)  # EUS
+                        # EUS + LVM
                         if minor_version in RHEL_LVM_VERSIONS:
                             is_lvm = True
                             write_workflow_file(major_version,
@@ -430,7 +496,9 @@ def main():
                                                 is_sap,
                                                 arch,
                                                 minor_version,
-                                                is_beta)  # EUS + LVM
+                                                is_beta,
+                                                is_oot_driver,
+                                                is_unsigned_oot_driver)
                     is_eus = False
                     is_lvm = False
                     # SAP only supports x86_64
@@ -444,7 +512,9 @@ def main():
                                             is_sap,
                                             arch,
                                             minor_version,
-                                            is_beta)  # SAP
+                                            is_beta,
+                                            is_oot_driver,
+                                            is_unsigned_oot_driver)  # SAP
                     is_sap = False
                     # Beta is not ready for arm64 yet, so only generate beta
                     # workflow for x86_64. Only payg is currently requested
@@ -459,7 +529,9 @@ def main():
                                             is_sap,
                                             arch,
                                             minor_version,
-                                            is_beta)  # Beta
+                                            is_beta,
+                                            is_oot_driver,
+                                            is_unsigned_oot_driver)  # Beta
                     is_beta = False
 
 

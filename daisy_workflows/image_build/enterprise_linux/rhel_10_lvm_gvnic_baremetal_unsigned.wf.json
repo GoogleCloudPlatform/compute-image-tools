@@ -1,5 +1,5 @@
 {
-  "Name": "build-rhel-10-0-eus-lvm-arm64",
+  "Name": "build-rhel-10-lvm-gvnic-baremetal-unsigned",
   "Vars": {
     "auto-generated-file": {
       "Value": "",
@@ -28,46 +28,52 @@
       "IncludeWorkflow": {
         "Path": "./rhel_10_consolidated.wf.json",
         "Vars": {
-          "el_release": "rhel-10-0-arm64",
+          "el_release": "rhel-10",
           "google_cloud_repo": "${google_cloud_repo}",
           "installer_iso": "${installer_iso}",
-          "disk_type": "hyperdisk-balanced",
-          "machine_type": "c4a-standard-4",
-          "worker_image": "projects/compute-image-tools/global/images/family/debian-12-worker-arm64",
+          "disk_type": "pd-ssd",
+          "machine_type": "e2-standard-4",
+          "worker_image": "projects/compute-image-tools/global/images/family/debian-12-worker",
           "el_install_disk_size": "50",
-          "is_arm": "True",
+          "is_arm": "False",
           "is_byos": "False",
-          "is_eus": "True",
+          "is_eus": "False",
           "is_oot_driver": "False",
           "is_sap": "False",
           "is_lvm": "True",
-          "is_unsigned_oot_driver": "False",
-          "rhui_package_name": "google-rhui-client-rhel10-eus",
-          "version_lock": "10.0"
+          "is_unsigned_oot_driver": "True",
+          "rhui_package_name": "google-rhui-client-rhel10",
+          "version_lock": ""
         }
       }
     },
     "create-image": {
       "CreateImages": [
         {
-          "Name": "rhel-10-0-eus-lvm-arm64-v${build_date}",
+          "Name": "rhel-10-lvm-gvnic-baremetal-unsigned-v${build_date}",
           "SourceDisk": "el-install-disk",
           "Licenses": [
             "projects/rhel-cloud/global/licenses/rhel-10-server",
-            "projects/rhel-cloud/global/licenses/rhel-10-server-eus",
-            "projects/rhel-cloud/global/licenses/rhel-lvm"
+            "projects/rhel-cloud/global/licenses/rhel-lvm",
+            "projects/rhel-cloud/global/licenses/el-oot-gvnic-baremetal-driver"
           ],
-          "Description": "Red Hat, Red Hat Enterprise Linux, 10.0 EUS (LVM), aarch64 with a LVM boot volume built on ${build_date}",
-          "Family": "rhel-10-0-eus-lvm-arm64",
+          "Description": "Red Hat, Red Hat Enterprise Linux, 10 (LVM), x86_64 with OOT GVNIC BareMetal Support Unsigned with a LVM boot volume built on ${build_date}",
+          "Family": "rhel-10-lvm-gvnic-baremetal-unsigned",
           "GuestOsFeatures": [
             "UEFI_COMPATIBLE",
+            "VIRTIO_SCSI_MULTIQUEUE",
+            "SEV_CAPABLE",
+            "SEV_SNP_CAPABLE",
+            "SEV_LIVE_MIGRATABLE",
+            "SEV_LIVE_MIGRATABLE_V2",
             "GVNIC",
-            "IDPF"
+            "IDPF",
+            "TDX_CAPABLE"
           ],
           "Project": "${publish_project}",
           "NoCleanup": true,
           "ExactName": true,
-          "Architecture": "ARM64"
+          "Architecture": "X86_64"
         }
       ]
     }
