@@ -6,7 +6,7 @@ If (test-path -PathType container $destination) {
     Remove-Item -Path $destination -Recurse -Force
 }
 New-Item -ItemType Directory -Path $destination
-& 'gsutil' cp "${gs_path}/*" $destination
+& 'gcloud' storage cp "${gs_path}/*" $destination
 Write-Output 'Driver download complete.'
 
 Write-Output 'Removing all instances of gvnic driver'
