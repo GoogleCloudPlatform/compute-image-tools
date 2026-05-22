@@ -431,7 +431,10 @@ def main():
                                         is_oot_driver,
                                         is_unsigned_oot_driver)  # LVM
                     # UNSIGNED OOT GVNIC DRIVER & LVM
-                    if (major_version in RHEL_UNSIGNED_OOT_DRIVER_VERSIONS):
+                    # OOT GVNIC DRIVER only supports x86_64
+                    if (arch == "x86_64"
+                        and major_version in
+                        RHEL_UNSIGNED_OOT_DRIVER_VERSIONS):
                         is_unsigned_oot_driver = True
                         write_workflow_file(major_version,
                                             plan,
@@ -456,7 +459,10 @@ def main():
                                     is_oot_driver,
                                     is_unsigned_oot_driver)  # Base image
                 # UNSIGNED OOT GVNIC DRIVER
-                if (major_version in RHEL_UNSIGNED_OOT_DRIVER_VERSIONS):
+                # OOT GVNIC DRIVER only supports x86_64
+                if (arch == "x86_64"
+                    and major_version in
+                    RHEL_UNSIGNED_OOT_DRIVER_VERSIONS):
                     is_unsigned_oot_driver = True
                     write_workflow_file(major_version,
                                         plan,
