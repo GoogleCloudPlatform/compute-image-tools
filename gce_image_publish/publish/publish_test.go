@@ -443,7 +443,6 @@ func TestRollbackImage(t *testing.T) {
 		p       *Publish
 		img     *Image
 		pubImgs []*computeAlpha.Image
-		wantDR  *daisy.DeleteResources
 		wantDI  *daisy.DeprecateImages
 	}{
 		{
@@ -458,8 +457,10 @@ func TestRollbackImage(t *testing.T) {
 				{Name: "foo-1", Family: "foo-family", Deprecated: &computeAlpha.DeprecationStatus{State: "DEPRECATED"}},
 				{Name: "bar-1", Family: "bar-family", Deprecated: &computeAlpha.DeprecationStatus{State: "DEPRECATED"}},
 			},
-			&daisy.DeleteResources{Images: []string{"projects/foo-project/global/images/foo-3"}},
-			&daisy.DeprecateImages{{Image: "foo-2", Project: "foo-project", DeprecationStatusAlpha: computeAlpha.DeprecationStatus{State: "ACTIVE"}}},
+			&daisy.DeprecateImages{
+				{Image: "foo-3", Project: "foo-project", DeprecationStatusAlpha: computeAlpha.DeprecationStatus{State: "DEPRECATED"}},
+				{Image: "foo-2", Project: "foo-project", DeprecationStatusAlpha: computeAlpha.DeprecationStatus{State: "ACTIVE"}}
+			},
 		},
 		{
 			"no image to undeprecate",
@@ -471,8 +472,7 @@ func TestRollbackImage(t *testing.T) {
 				{Name: "bar-2", Family: "bar-family", Deprecated: &computeAlpha.DeprecationStatus{State: "DEPRECATED"}},
 				{Name: "bar-1", Family: "bar-family", Deprecated: &computeAlpha.DeprecationStatus{State: "DEPRECATED"}},
 			},
-			&daisy.DeleteResources{Images: []string{"projects/foo-project/global/images/foo-3"}},
-			&daisy.DeprecateImages{},
+			&daisy.DeprecateImages{{Image: "foo-3", Project: "foo-project", DeprecationStatusAlpha: computeAlpha.DeprecationStatus{State: "DEPRECATED"}}},
 		},
 		{
 			"image DNE",
@@ -482,19 +482,14 @@ func TestRollbackImage(t *testing.T) {
 				{Name: "bar-1", Family: "bar-family"},
 			},
 			nil,
-			nil,
 		},
 	}
 	for _, tt := range tests {
-		dr, di := rollbackImage(tt.p, tt.img, tt.pubImgs)
-		if diff := cmp.Diff(tt.wantDR, dr); diff != "" {
-			t.Errorf("%s: returned DeleteResources does not match expectation: (-want +got)\n%s", tt.desc, diff)
-		}
+		di := rollbackImage(tt.p, tt.img, tt.pubImgs)
 		if diff := cmp.Diff(tt.wantDI, di); diff != "" {
 			t.Errorf("%s: returned DeprecateImages does not match expectation: (-want +got)\n%s", tt.desc, diff)
 		}
 	}
-
 }
 
 func TestPopulateSteps(t *testing.T) {

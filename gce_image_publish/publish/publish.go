@@ -392,37 +392,55 @@ func publishImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image, skipDup
 	return cis, dis, drs, nil
 }
 
-func rollbackImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image) (*daisy.DeleteResources, *daisy.DeprecateImages) {
+func rollbackImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image) (*daisy.DeprecateImages) {
 	publishName := fmt.Sprintf("%s-%s", img.Prefix, p.publishVersion)
-	dr := &daisy.DeleteResources{}
 	dis := &daisy.DeprecateImages{}
+	var deprecateFound bool = false
+	var undeprecateName string
+
+	// Find and store name of the image to un-deprecate later.
+	for _, pubImg := range pubImgs {
+		if pubImg.Family == img.Family && pubImg.Deprecated != nil {
+			undeprecateName = pubImg.Name
+			break
+		}
+	}
+
+	// Deprecate the published image.
 	for _, pubImg := range pubImgs {
 		if pubImg.Name != publishName || pubImg.Deprecated != nil {
 			continue
 		}
-		dr.Images = []string{fmt.Sprintf("projects/%s/global/images/%s", p.PublishProject, publishName)}
-	}
 
-	if len(dr.Images) == 0 {
+		*dis = append(*dis, &daisy.DeprecateImage{
+			Image:   pubImg.Name,
+			Project: p.PublishProject,
+			DeprecationStatusAlpha: computeAlpha.DeprecationStatus{
+				State:         "DEPRECATED",
+				StateOverride: img.RolloutPolicy,
+			},
+		})
+		deprecateFound = true
+		break
+	}
+	if !deprecateFound {
 		fmt.Printf("   %q does not exist in %q, not rolling back\n", publishName, p.PublishProject)
-		return nil, nil
+		return nil
 	}
 
-	for _, pubImg := range pubImgs {
-		// Un-deprecate the first deprecated image in the family based on insertion time.
-		if pubImg.Family == img.Family && pubImg.Deprecated != nil {
-			*dis = append(*dis, &daisy.DeprecateImage{
-				Image:   pubImg.Name,
-				Project: p.PublishProject,
-				DeprecationStatusAlpha: computeAlpha.DeprecationStatus{
-					State:         "ACTIVE",
-					StateOverride: img.RolloutPolicy,
-				},
-			})
-			break
-		}
+	// Un-deprecate the most recent previous image.
+	if undeprecateName != "" {
+		*dis = append(*dis, &daisy.DeprecateImage{
+			Image:   undeprecateName,
+			Project: p.PublishProject,
+			DeprecationStatusAlpha: computeAlpha.DeprecationStatus{
+				State:         "ACTIVE",
+				StateOverride: img.RolloutPolicy,
+			},
+		})
 	}
-	return dr, dis
+
+	return dis
 }
 
 func populateSteps(w *daisy.Workflow, prefix string, createImages *daisy.CreateImages, deprecateImages *daisy.DeprecateImages, deleteResources *daisy.DeleteResources) error {
