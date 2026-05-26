@@ -51,7 +51,7 @@ function Download-Drivers {
   $gs_path = Get-MetadataValue -key 'drivers-path'
   if ($gs_path) {
     Write-Output "Downloading drivers from $gs_path."
-    & 'gcloud storage' cp -r "${gs_path}/*" $script:driver_dir
+    & 'gcloud storage cp -r' "${gs_path}/*" $script:driver_dir
     Write-Output 'Driver download complete.'
   }
   else {
@@ -67,7 +67,7 @@ function Download-Components {
   $gs_path = Get-MetadataValue -key 'components-path'
   if ($gs_path) {
     Write-Output "Downloading components from $gs_path."
-    & 'gcloud storage cp -r "${gs_path}/*" $script:components_dir
+    & 'gcloud storage cp -r' "${gs_path}/*" $script:components_dir
     Write-Output 'Components download complete.'
   }
   else {
