@@ -6,7 +6,7 @@
   time period is set.
 */}}
 {
-  "Name": "rhel-10-0-eus-byos",
+  "Name": "rhel-10-2-eus-lvm-gvnic-baremetal",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*2"` -}}
@@ -17,7 +17,7 @@
   "DeleteAfter": {{$delete_after}},
   {{- else if eq .environment "prod" -}}
   "WorkProject": {{$work_project}},
-  "PublishProject": "rhel-byos-cloud",
+  "PublishProject": "rhel-cloud",
   "ComputeEndpoint": {{$endpoint}},
   {{- else if eq .environment "autopush" -}}
   "WorkProject": {{$work_project}},
@@ -34,13 +34,15 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Family": "rhel-10-0-eus-byos",
-      "Prefix": "rhel-10-0-eus-byos",
-      "Description": "Red Hat, Red Hat Enterprise Linux, 10.0 (EUS), BYOS x86_64 with Extended Update Support (EUS) built on {{$time}}",
+      "Family": "rhel-10-2-eus-lvm-gvnic-baremetal",
+      "Prefix": "rhel-10-2-eus-lvm-gvnic-baremetal",
+      "Description": "Red Hat, Red Hat Enterprise Linux, 10.2 (EUS + LVM), x86_64 with Extended Update Support (EUS) and an LVM boot volume and GVNIC BareMetal Support built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
-        "projects/rhel-cloud/global/licenses/rhel-10-byos",
-        "projects/rhel-cloud/global/licenses/rhel-10-server-eus"
+        "projects/rhel-cloud/global/licenses/rhel-10-server",
+        "projects/rhel-cloud/global/licenses/rhel-10-server-eus",
+        "projects/rhel-cloud/global/licenses/rhel-lvm",
+        "projects/rhel-cloud/global/licenses/el-oot-gvnic-baremetal-driver"
       ],
       "Labels": {
         "public-image": "true"

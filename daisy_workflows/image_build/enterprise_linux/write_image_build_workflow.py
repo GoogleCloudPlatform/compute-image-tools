@@ -27,7 +27,7 @@ RHEL_MINOR_VERSIONS = {
 RHEL_BETA_VERSIONS = ["10.2"]
 RHEL_EUS_VERSIONS = ["9.4", "9.6", "10.0"]
 RHEL_LVM_VERSIONS = ["8", "9", "9.4", "9.6", "10", "10.0"]
-RHEL_OOT_DRIVER_VERSIONS = ["10"]
+RHEL_OOT_DRIVER_VERSIONS = ["10", "10.2"]
 RHEL_SAP_VERSIONS = ["8.6", "8.8", "8.10", "9.0", "9.2", "9.4", "9.6", "10.0"]
 RHEL_UNSIGNED_OOT_DRIVER_VERSIONS = ["10"]
 
@@ -411,6 +411,7 @@ def write_workflow_file(major_version,
 def main():
     is_beta = False
     is_eus = False
+    is_oot_driver = False
     is_lvm = False
     is_oot_driver = False
     is_sap = False
@@ -513,7 +514,8 @@ def main():
                 for minor_version in RHEL_MINOR_VERSIONS[major_version]:
                     if minor_version not in RHEL_EUS_VERSIONS \
                             and minor_version not in RHEL_SAP_VERSIONS \
-                            and minor_version not in RHEL_BETA_VERSIONS:
+                            and minor_version not in RHEL_BETA_VERSIONS \
+                            and minor_version not in RHEL_OOT_DRIVER_VERSIONS:
                         continue
                     if minor_version in RHEL_EUS_VERSIONS:
                         is_eus = True
@@ -574,6 +576,38 @@ def main():
                                             is_oot_driver,
                                             is_unsigned_oot_driver)  # Beta
                     is_beta = False
+                    # GVNIC BareMetal is only supported for x86_64
+                    if (arch == "x86_64"
+                        and minor_version in
+                        RHEL_OOT_DRIVER_VERSIONS):
+                        is_eus = True
+                        is_oot_driver = True
+                        # EUS OOT GVNIC
+                        write_workflow_file(major_version,
+                                            plan,
+                                            is_eus,
+                                            is_lvm,
+                                            is_sap,
+                                            arch,
+                                            minor_version,
+                                            is_beta,
+                                            is_oot_driver,
+                                            is_unsigned_oot_driver)
+                        is_lvm = True
+                        # EUS OOT GVNIC + LVM
+                        write_workflow_file(major_version,
+                                            plan,
+                                            is_eus,
+                                            is_lvm,
+                                            is_sap,
+                                            arch,
+                                            minor_version,
+                                            is_beta,
+                                            is_oot_driver,
+                                            is_unsigned_oot_driver)
+                    is_eus = False
+                    is_lvm = False
+                    is_oot_driver = False
 
 
 if __name__ == '__main__':
