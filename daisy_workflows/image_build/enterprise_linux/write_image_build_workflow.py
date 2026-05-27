@@ -27,6 +27,7 @@ RHEL_MINOR_VERSIONS = {
 RHEL_BETA_VERSIONS = ["10.2"]
 RHEL_EUS_VERSIONS = ["9.4", "9.6", "10.0"]
 RHEL_LVM_VERSIONS = ["8", "9", "9.4", "9.6", "10", "10.0"]
+RHEL_OOT_DRIVER_VERSIONS = ["10"]
 RHEL_SAP_VERSIONS = ["8.6", "8.8", "8.10", "9.0", "9.2", "9.4", "9.6", "10.0"]
 RHEL_UNSIGNED_OOT_DRIVER_VERSIONS = ["10"]
 
@@ -447,6 +448,23 @@ def main():
                                             is_oot_driver,
                                             is_unsigned_oot_driver)
                         is_unsigned_oot_driver = False
+                    # OOT GVNIC DRIVER & LVM
+                    # OOT GVNIC DRIVER only supports x86_64
+                    if (arch == "x86_64"
+                        and major_version in
+                        RHEL_OOT_DRIVER_VERSIONS):
+                        is_oot_driver = True
+                        write_workflow_file(major_version,
+                                            plan,
+                                            is_eus,
+                                            is_lvm,
+                                            is_sap,
+                                            arch,
+                                            '',
+                                            is_beta,
+                                            is_oot_driver,
+                                            is_unsigned_oot_driver)
+                        is_oot_driver = False
                 is_lvm = False
                 write_workflow_file(major_version,
                                     plan,
@@ -475,6 +493,23 @@ def main():
                                         is_oot_driver,
                                         is_unsigned_oot_driver)
                     is_unsigned_oot_driver = False
+                # OOT GVNIC DRIVER
+                # OOT GVNIC DRIVER only supports x86_64
+                if (arch == "x86_64"
+                    and major_version in
+                    RHEL_OOT_DRIVER_VERSIONS):
+                    is_oot_driver = True
+                    write_workflow_file(major_version,
+                                        plan,
+                                        is_eus,
+                                        is_lvm,
+                                        is_sap,
+                                        arch,
+                                        '',
+                                        is_beta,
+                                        is_oot_driver,
+                                        is_unsigned_oot_driver)
+                    is_oot_driver = False
                 for minor_version in RHEL_MINOR_VERSIONS[major_version]:
                     if minor_version not in RHEL_EUS_VERSIONS \
                             and minor_version not in RHEL_SAP_VERSIONS \
