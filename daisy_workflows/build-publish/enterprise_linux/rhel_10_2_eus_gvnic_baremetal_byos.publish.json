@@ -6,7 +6,7 @@
   time period is set.
 */}}
 {
-  "Name": "rhel-10-0-eus-byos",
+  "Name": "rhel-10-2-eus-gvnic-baremetal-byos",
   {{$work_project := printf "%q" "gce-image-builder" -}}
   {{$endpoint := `"https://www.googleapis.com/compute/alpha/projects/"` -}}
   {{$delete_after := `"24h*30*2"` -}}
@@ -34,13 +34,14 @@
   {{$time := trimPrefix .publish_version "v"}}
   "Images": [
     {
-      "Family": "rhel-10-0-eus-byos",
-      "Prefix": "rhel-10-0-eus-byos",
-      "Description": "Red Hat, Red Hat Enterprise Linux, 10.0 (EUS), BYOS x86_64 with Extended Update Support (EUS) built on {{$time}}",
+      "Family": "rhel-10-2-eus-gvnic-baremetal-byos",
+      "Prefix": "rhel-10-2-eus-gvnic-baremetal-byos",
+      "Description": "Red Hat, Red Hat Enterprise Linux, 10.2 (EUS), BYOS x86_64 with Extended Update Support (EUS) and GVNIC BareMetal Support built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         "projects/rhel-cloud/global/licenses/rhel-10-byos",
-        "projects/rhel-cloud/global/licenses/rhel-10-server-eus"
+        "projects/rhel-cloud/global/licenses/rhel-10-server-eus",
+        "projects/rhel-cloud/global/licenses/el-oot-gvnic-baremetal-driver"
       ],
       "Labels": {
         "public-image": "true"
