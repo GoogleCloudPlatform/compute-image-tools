@@ -392,7 +392,41 @@ func publishImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image, skipDup
 	return cis, dis, drs, nil
 }
 
-func rollbackImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image) (*daisy.DeprecateImages) {
+func rollbackImageObsolete(p *Publish, img *Image, pubImgs []*computeAlpha.Image) (*daisy.DeleteResources, *daisy.DeprecateImages) {
+	publishName := fmt.Sprintf("%s-%s", img.Prefix, p.publishVersion)
+	dr := &daisy.DeleteResources{}
+	dis := &daisy.DeprecateImages{}
+
+	for _, pubImg := range pubImgs {
+		if pubImg.Family != img.Family || pubImg.Deprecated != nil {
+			continue
+		}
+		dr.Images = []string{fmt.Sprintf("projects/%s/global/images/%s", p.PublishProject, publishName)}
+	}
+
+	if len(dr.Images) == 0 {
+		fmt.Printf("   %q does not exist in %q, not rolling back\n", publishName, p.PublishProject)
+		return nil, nil
+	}
+
+	for _, pubImg := range pubImgs {
+		// Un-deprecate the first deprecated image in the family based on insertion time.
+		if pubImg.Family == img.Family && pubImg.Deprecated != nil {
+			*dis = append(*dis, &daisy.DeprecateImage{
+				Image:   pubImg.Name,
+				Project: p.PublishProject,
+				DeprecationStatusAlpha: computeAlpha.DeprecationStatus{
+					State:         "ACTIVE",
+					StateOverride: img.RolloutPolicy,
+				},
+			})
+			break
+		}
+	}
+	return dr, dis
+}
+
+func rollbackImageDeprecate(p *Publish, img *Image, pubImgs []*computeAlpha.Image) (*daisy.DeprecateImages) {
 	publishName := fmt.Sprintf("%s-%s", img.Prefix, p.publishVersion)
 	dis := &daisy.DeprecateImages{}
 	var deprecateFound bool = false
@@ -439,7 +473,6 @@ func rollbackImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image) (*dais
 			},
 		})
 	}
-
 	return dis
 }
 

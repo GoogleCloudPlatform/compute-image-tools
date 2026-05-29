@@ -437,7 +437,66 @@ func TestPublishImage(t *testing.T) {
 	}
 }
 
-func TestRollbackImage(t *testing.T) {
+func TestRollbackImageObsolete(t *testing.T) {
+	tests := []struct {
+		desc    string
+		p       *Publish
+		img     *Image
+		pubImgs []*computeAlpha.Image
+		wantDR	*daisy.DeleteResources
+		wantDI  *daisy.DeprecateImages
+	}{
+		{
+			"normal case",
+			&Publish{PublishProject: "foo-project", publishVersion: "3"},
+			&Image{Prefix: "foo", Family: "foo-family"},
+			[]*computeAlpha.Image{
+				{Name: "bar-3", Family: "bar-family"},
+				{Name: "foo-3", Family: "foo-family"},
+				{Name: "bar-2", Family: "bar-family", Deprecated: &computeAlpha.DeprecationStatus{State: "DEPRECATED"}},
+				{Name: "foo-2", Family: "foo-family", Deprecated: &computeAlpha.DeprecationStatus{State: "DEPRECATED"}},
+				{Name: "foo-1", Family: "foo-family", Deprecated: &computeAlpha.DeprecationStatus{State: "DEPRECATED"}},
+				{Name: "bar-1", Family: "bar-family", Deprecated: &computeAlpha.DeprecationStatus{State: "DEPRECATED"}},
+			},
+			&daisy.DeleteResources{Images: []string{"projects/foo-project/global/images/foo-3"}},
+			&daisy.DeprecateImages{{Image: "foo-2", Project: "foo-project", DeprecationStatusAlpha: computeAlpha.DeprecationStatus{State: "ACTIVE"}}},
+		},
+		{
+			"no image to undeprecate",
+			&Publish{PublishProject: "foo-project", publishVersion: "3"},
+			&Image{Prefix: "foo", Family: "foo-family"},
+			[]*computeAlpha.Image{
+				{Name: "bar-3", Family: "bar-family"},
+				{Name: "foo-3", Family: "foo-family"},
+				{Name: "bar-2", Family: "bar-family", Deprecated: &computeAlpha.DeprecationStatus{State: "DEPRECATED"}},
+				{Name: "bar-1", Family: "bar-family", Deprecated: &computeAlpha.DeprecationStatus{State: "DEPRECATED"}},
+			},
+			&daisy.DeleteResources{Images: []string{"projects/foo-project/global/images/foo-3"}},
+			&daisy.DeprecateImages{},
+		},
+		{
+			"image DNE",
+			&Publish{PublishProject: "foo-project", publishVersion: "1"},
+			&Image{Prefix: "foo", Family: "foo-family"},
+			[]*computeAlpha.Image{
+				{Name: "bar-1", Family: "bar-family"},
+			},
+			nil,
+			nil,
+		},
+	}
+	for _, tt := range tests {
+		dr, di := rollbackImageObsolete(tt.p, tt.img, tt.pubImgs)
+		if diff := cmp.Diff(tt.wantDR, dr); diff != "" {
+			t.Errorf("%s: returned DeleteResources does not match expectation: (-want +got)\n%s", tt.desc, diff)
+		}
+		if diff := cmp.Diff(tt.wantDI, di); diff != "" {
+			t.Errorf("%s: returned DeprecateImages does not match expectation: (-want +got)\n%s", tt.desc, diff)
+		}
+	}
+}
+
+func TestRollbackImageDeprecate(t *testing.T) {
 	tests := []struct {
 		desc    string
 		p       *Publish
@@ -459,7 +518,7 @@ func TestRollbackImage(t *testing.T) {
 			},
 			&daisy.DeprecateImages{
 				{Image: "foo-3", Project: "foo-project", DeprecationStatusAlpha: computeAlpha.DeprecationStatus{State: "DEPRECATED"}},
-				{Image: "foo-2", Project: "foo-project", DeprecationStatusAlpha: computeAlpha.DeprecationStatus{State: "ACTIVE"}}
+				{Image: "foo-2", Project: "foo-project", DeprecationStatusAlpha: computeAlpha.DeprecationStatus{State: "ACTIVE"}},
 			},
 		},
 		{
@@ -485,7 +544,7 @@ func TestRollbackImage(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		di := rollbackImage(tt.p, tt.img, tt.pubImgs)
+		di := rollbackImageDeprecate(tt.p, tt.img, tt.pubImgs)
 		if diff := cmp.Diff(tt.wantDI, di); diff != "" {
 			t.Errorf("%s: returned DeprecateImages does not match expectation: (-want +got)\n%s", tt.desc, diff)
 		}
