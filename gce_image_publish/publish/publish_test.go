@@ -620,6 +620,7 @@ func TestPopulateWorkflow(t *testing.T) {
 		false,
 		false,
 		false,
+		false,
 	)
 	if err != nil {
 		t.Fatal(err)

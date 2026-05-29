@@ -45,6 +45,7 @@ var (
 	noRoot         = flag.Bool("no_root", false, "with -source_gcs_path, append .tar.gz instead of /root.tar.gz")
 	replace        = flag.Bool("replace", false, "replace any images that already exist, should not be used along with -skip_duplicates")
 	rollback       = flag.Bool("rollback", false, "rollback image publish")
+	deprecate			 = flag.Bool("deprecate", false, "deprecate rollback image, defaults to delete")
 	print          = flag.Bool("print", false, "print out the parsed workflow for debugging")
 	validate       = flag.Bool("validate", false, "validate the workflow and exit")
 	noConfirm      = flag.Bool("skip_confirmation", false, "don't ask for confirmation")
@@ -157,7 +158,7 @@ func main() {
 			errs = append(errs, loadErr)
 			continue
 		}
-		w, err := p.CreateWorkflows(ctx, varMap, regex, *rollback, *skipDup, *replace, *noRoot, *oauth, time.Now(), *rolloutRate)
+		w, err := p.CreateWorkflows(ctx, varMap, regex, *rollback, *deprecate, *skipDup, *replace, *noRoot, *oauth, time.Now(), *rolloutRate)
 		if err != nil {
 			createWorkflowErr := fmt.Errorf("Workflow creation error: %s", err)
 			fmt.Println(createWorkflowErr)
