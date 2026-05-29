@@ -398,7 +398,7 @@ func rollbackImageObsolete(p *Publish, img *Image, pubImgs []*computeAlpha.Image
 	dis := &daisy.DeprecateImages{}
 
 	for _, pubImg := range pubImgs {
-		if pubImg.Family != img.Family || pubImg.Deprecated != nil {
+		if pubImg.Name != publishName || pubImg.Deprecated != nil {
 			continue
 		}
 		dr.Images = []string{fmt.Sprintf("projects/%s/global/images/%s", p.PublishProject, publishName)}
