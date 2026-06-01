@@ -133,9 +133,11 @@ def main():
       f.write(f'IS_BYOS={is_byos}\n')
       f.write(f'IS_EUS={is_eus}\n')
       f.write(f'IS_LVM={is_lvm}\n')
-      f.write(f'IS_OOT_DRIVER={is_oot_driver}\n')
+      if is_oot_driver:
+        f.write(f'IS_OOT_DRIVER={is_oot_driver}\n')
       f.write(f'IS_SAP={is_sap}\n')
-      f.write(f'IS_UNSIGNED_OOT_DRIVER={is_unsigned_oot_driver}\n')
+      if is_unsigned_oot_driver:
+        f.write(f'IS_UNSIGNED_OOT_DRIVER={is_unsigned_oot_driver}\n')
       f.write(f'RHUI_PACKAGE_NAME={str(rhui_package_name).lower()}\n')
       if version_lock:
         f.write(f'VERSION_LOCK="{version_lock}"\n')

@@ -38,12 +38,12 @@
           "is_arm": "False",
           "is_byos": "False",
           "is_eus": "True",
-          "is_oot_driver": "False",
           "is_sap": "False",
           "is_lvm": "False",
-          "is_unsigned_oot_driver": "False",
           "rhui_package_name": "google-rhui-client-rhel10-eus",
-          "version_lock": "10.0"
+          "version_lock": "10.0",
+          "is_oot_driver": "False",
+          "is_unsigned_oot_driver": "False"
         }
       }
     },

@@ -191,6 +191,27 @@ def generate_workflow_file(image_name,
                            is_unsigned_oot_driver):
     workflow_name = f"build-{image_name}"
 
+    build_rhel_vars = {
+        "el_release": f"{el_release}",
+        "google_cloud_repo": "${google_cloud_repo}",
+        "installer_iso": "${installer_iso}",
+        "disk_type": f"{disk_type}",
+        "machine_type": f"{machine_type}",
+        "worker_image": f"{worker_image}",
+        "el_install_disk_size": f"{el_install_disk_size}",
+        "is_arm": f"{is_arm}",
+        "is_byos": f"{is_byos}",
+        "is_eus": f"{is_eus}",
+        "is_sap": f"{is_sap}",
+        "is_lvm": f"{is_lvm}",
+        "rhui_package_name": f"{rhui_package_name}",
+        "version_lock": f"{minor_version}"
+    }
+
+    if major_version == "10":
+        build_rhel_vars["is_oot_driver"] = f"{is_oot_driver}"
+        build_rhel_vars["is_unsigned_oot_driver"] = f"{is_unsigned_oot_driver}"
+
     wf = {
         "Name": workflow_name,
         "Vars": {
@@ -228,24 +249,7 @@ def generate_workflow_file(image_name,
                "Timeout": "60m",
                "IncludeWorkflow": {
                    "Path": f"./rhel_{major_version}_consolidated.wf.json",
-                   "Vars": {
-                       "el_release": f"{el_release}",
-                       "google_cloud_repo": "${google_cloud_repo}",
-                       "installer_iso": "${installer_iso}",
-                       "disk_type": f"{disk_type}",
-                       "machine_type": f"{machine_type}",
-                       "worker_image": f"{worker_image}",
-                       "el_install_disk_size": f"{el_install_disk_size}",
-                       "is_arm": f"{is_arm}",
-                       "is_byos": f"{is_byos}",
-                       "is_eus": f"{is_eus}",
-                       "is_oot_driver": f"{is_oot_driver}",
-                       "is_sap": f"{is_sap}",
-                       "is_lvm": f"{is_lvm}",
-                       "is_unsigned_oot_driver": f"{is_unsigned_oot_driver}",
-                       "rhui_package_name": f"{rhui_package_name}",
-                       "version_lock": f"{minor_version}"
-                    }
+                   "Vars": build_rhel_vars
                 }
             },
            "create-image": {
