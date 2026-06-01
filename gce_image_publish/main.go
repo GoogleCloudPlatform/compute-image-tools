@@ -45,12 +45,12 @@ var (
 	noRoot         = flag.Bool("no_root", false, "with -source_gcs_path, append .tar.gz instead of /root.tar.gz")
 	replace        = flag.Bool("replace", false, "replace any images that already exist, should not be used along with -skip_duplicates")
 	rollback       = flag.Bool("rollback", false, "rollback image publish")
-	deprecate			 = flag.Bool("deprecate", false, "deprecate rollback image, defaults to delete")
 	print          = flag.Bool("print", false, "print out the parsed workflow for debugging")
 	validate       = flag.Bool("validate", false, "validate the workflow and exit")
 	noConfirm      = flag.Bool("skip_confirmation", false, "don't ask for confirmation")
 	ce             = flag.String("compute_endpoint_override", "", "API endpoint to override default, will override ComputeEndpoint in template")
 	filter         = flag.String("filter", "", "regular expression to filter images to publish by prefixes")
+	rollbackOperation = flag.String("rollback_operation", "", "deprecate, obsolete, or delete the target image")
 	rolloutRate    = flag.Int("rollout_rate", 60, "The number of minutes between the image rolling out between zones. 0 minutes will not use a rollout policy.")
 )
 
@@ -143,6 +143,12 @@ func main() {
 			os.Exit(1)
 		}
 	}
+	if *rollback {
+		if *rollbackOperation != "delete" && *rollbackOperation != "deprecate" && *rollbackOperation != "obsolete" {
+			fmt.Println("-rollback_operation must be one of delete, deprecate, obsolete.")
+			os.Exit(1)
+		}
+	}
 
 	ctx := context.Background()
 
@@ -158,7 +164,7 @@ func main() {
 			errs = append(errs, loadErr)
 			continue
 		}
-		w, err := p.CreateWorkflows(ctx, varMap, regex, *rollback, *deprecate, *skipDup, *replace, *noRoot, *oauth, time.Now(), *rolloutRate)
+		w, err := p.CreateWorkflows(ctx, varMap, regex, *rollback, *skipDup, *replace, *noRoot, *oauth, *rollbackOperation, time.Now(), *rolloutRate)
 		if err != nil {
 			createWorkflowErr := fmt.Errorf("Workflow creation error: %s", err)
 			fmt.Println(createWorkflowErr)

@@ -437,7 +437,7 @@ func TestPublishImage(t *testing.T) {
 	}
 }
 
-func TestRollbackImageObsolete(t *testing.T) {
+func TestRollbackImageDelete(t *testing.T) {
 	tests := []struct {
 		desc    string
 		p       *Publish
@@ -486,7 +486,7 @@ func TestRollbackImageObsolete(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		dr, di := rollbackImageObsolete(tt.p, tt.img, tt.pubImgs)
+		dr, di := rollbackImageDelete(tt.p, tt.img, tt.pubImgs)
 		if diff := cmp.Diff(tt.wantDR, dr); diff != "" {
 			t.Errorf("%s: returned DeleteResources does not match expectation: (-want +got)\n%s", tt.desc, diff)
 		}
@@ -544,7 +544,7 @@ func TestRollbackImageDeprecate(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		di := rollbackImageDeprecate(tt.p, tt.img, tt.pubImgs)
+		di := rollbackImageDeprecate(tt.p, tt.img, tt.pubImgs, "deprecate")
 		if diff := cmp.Diff(tt.wantDI, di); diff != "" {
 			t.Errorf("%s: returned DeprecateImages does not match expectation: (-want +got)\n%s", tt.desc, diff)
 		}
@@ -620,7 +620,7 @@ func TestPopulateWorkflow(t *testing.T) {
 		false,
 		false,
 		false,
-		false,
+		"obsolete",
 	)
 	if err != nil {
 		t.Fatal(err)
