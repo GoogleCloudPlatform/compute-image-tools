@@ -72,17 +72,9 @@
         "Value": "false",
         "Description": "If the image supports the Logical Volume Manager (LVM)"
     },
-    "is_oot_driver": {
-        "Value": "false",
-        "Description": "If the image has Out-of-Tree driver support"
-    },
     "is_sap": {
         "Value": "false",
         "Description": "If the image is RHEL for SAP"
-    },
-    "is_unsigned_oot_driver": {
-        "Value": "false",
-        "Description": "If the image has an unsigned Out-of-Tree driver. This is for internal testing only"
     },
     "rhui_package_name": {
         "Value": "google-rhui-client-rhel8",
@@ -110,9 +102,7 @@
           "is_arm": "${is_arm}",
           "is_byos": "${is_byos}",
           "is_lvm": "${is_lvm}",
-          "is_oot_driver": "${is_oot_driver}",
           "is_sap": "${is_sap}",
-          "is_unsigned_oot_driver": "${is_unsigned_oot_driver}",
           "rhui_package_name": "${rhui_package_name}",
           "version_lock": "${version_lock}"
         }
