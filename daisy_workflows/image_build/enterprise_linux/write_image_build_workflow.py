@@ -19,16 +19,19 @@ import os
 
 RHEL_MAJOR_VERSIONS = ["8", "9", "10"]
 RHEL_MINOR_VERSIONS = {
-    "8": ["8.6", "8.8", "8.10"],
-    "9": ["9.0", "9.2", "9.4", "9.6"],
+    "8": ["8.8", "8.10"],
+    "9": ["9.2", "9.4", "9.6", "9.8"],
     "10": ["10.0", "10.2"],
 }
 
 RHEL_BETA_VERSIONS = ["10.2"]
-RHEL_EUS_VERSIONS = ["9.4", "9.6", "10.0"]
-RHEL_LVM_VERSIONS = ["8", "9", "9.4", "9.6", "10", "10.0"]
+RHEL_EUS_VERSIONS = ["9.6", "9.8", "10.0", "10.2"]
+RHEL_LVM_VERSIONS = ["8", "9", "9.4", "9.6", "9.8", "10", "10.0", "10.2"]
 RHEL_OOT_DRIVER_VERSIONS = ["10", "10.2"]
-RHEL_SAP_VERSIONS = ["8.6", "8.8", "8.10", "9.0", "9.2", "9.4", "9.6", "10.0"]
+RHEL_SAP_VERSIONS = ([
+    "8.8", "8.10", "9.2", "9.4", "9.6", "9.8", "10.0",
+    "10.2",
+])
 RHEL_UNSIGNED_OOT_DRIVER_VERSIONS = ["10"]
 
 ARCHITECTURES = ["x86_64", "arm64"]
@@ -100,14 +103,7 @@ def get_guest_os_features(major_version, arch, is_sap, minor_version):
             "TDX_CAPABLE"
         ]
     elif major_version == "9":  # RHEL 9 x86_64 images
-        if is_sap and minor_version and minor_version == "9.0":
-            return [
-                "UEFI_COMPATIBLE",
-                "VIRTIO_SCSI_MULTIQUEUE",
-                "SEV_CAPABLE",
-                "GVNIC"
-            ]
-        elif is_sap and minor_version and minor_version == "9.2":
+        if is_sap and minor_version and minor_version == "9.2":
             return [
                 "UEFI_COMPATIBLE",
                 "VIRTIO_SCSI_MULTIQUEUE",
@@ -131,14 +127,7 @@ def get_guest_os_features(major_version, arch, is_sap, minor_version):
             ]
     else:  # RHEL 8 x86_64 images
        if is_sap:
-           if minor_version and minor_version == "8.6":
-               return [
-                   "VIRTIO_SCSI_MULTIQUEUE",
-                   "UEFI_COMPATIBLE",
-                   "SEV_CAPABLE",
-                   "GVNIC"
-                ]
-           elif minor_version and minor_version == "8.8":
+           if minor_version and minor_version == "8.8":
                return [
                    "VIRTIO_SCSI_MULTIQUEUE",
                    "UEFI_COMPATIBLE",
