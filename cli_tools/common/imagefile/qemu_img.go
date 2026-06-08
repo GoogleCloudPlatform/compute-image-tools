@@ -25,6 +25,8 @@ import (
 	"os/exec"
 	"strings"
 
+	// allowlist:crypto/md5
+
 	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/files"

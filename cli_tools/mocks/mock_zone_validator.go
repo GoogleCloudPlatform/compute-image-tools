@@ -19,8 +19,9 @@
 package mocks
 
 import (
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockZoneValidatorInterface is a mock of ZoneValidatorInterface interface

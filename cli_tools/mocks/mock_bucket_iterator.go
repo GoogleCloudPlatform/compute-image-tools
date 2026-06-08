@@ -23,9 +23,10 @@
 package mocks
 
 import (
+	reflect "reflect"
+
 	storage "cloud.google.com/go/storage"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
 // MockBucketIteratorInterface is a mock of BucketIteratorInterface interface

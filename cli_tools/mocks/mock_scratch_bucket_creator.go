@@ -19,8 +19,9 @@
 package mocks
 
 import (
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockScratchBucketCreatorInterface is a mock of ScratchBucketCreatorInterface interface

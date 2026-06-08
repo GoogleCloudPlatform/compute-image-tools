@@ -19,9 +19,10 @@
 package mocks
 
 import (
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	v1 "google.golang.org/api/compute/v1"
-	reflect "reflect"
 )
 
 // MockComputeServiceInterface is a mock of ComputeServiceInterface interface

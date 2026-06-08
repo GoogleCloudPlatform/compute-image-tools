@@ -19,9 +19,10 @@
 package mocks
 
 import (
-	gomock "github.com/golang/mock/gomock"
 	http "net/http"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockHttpClientInterface is a mock of HttpClientInterface interface

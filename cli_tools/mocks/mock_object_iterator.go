@@ -19,9 +19,10 @@
 package mocks
 
 import (
+	reflect "reflect"
+
 	storage "cloud.google.com/go/storage"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
 // MockObjectIteratorInterface is a mock of ObjectIteratorInterface interface

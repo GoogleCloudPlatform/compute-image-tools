@@ -139,7 +139,7 @@ func main() {
 		if *loadBalancers {
 			currTime := time.Now().Format(time.RFC3339)
 			fmt.Println(fmt.Sprintf(timeFormat, currTime), "Cleaning Load Balancer Resources")
-			cleaned, errs := cleanerupper.CleanLoadBalancerResources(clients, p, policy, *dryRun)
+			cleaned, errs := cleanerupper.CleanLoadBalancerResources(clients, p, policy, nil, *dryRun)
 			for _, c := range cleaned {
 				fmt.Printf(" - %s\n", c)
 			}

@@ -20,9 +20,10 @@ package mocks
 
 import (
 	context "context"
+	reflect "reflect"
+
 	domain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
 // MockBucketIteratorCreatorInterface is a mock of BucketIteratorCreatorInterface interface
