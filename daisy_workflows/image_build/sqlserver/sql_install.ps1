@@ -246,7 +246,7 @@ function Install-SqlServer {
 
   $sql_config_path = "${gs_path}/sql_config.ini"
   $sql_config = 'D:\sql_config.ini'
-  & 'gcloud storage cp' $sql_config_path $sql_config
+  & 'gcloud' storage cp $sql_config_path $sql_config
 
   if ($sql_server_config -like '*2012*' -or $sql_server_config -like '*2014*') {
     Write-Host 'Installing .Net 3.5'
