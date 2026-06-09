@@ -19,9 +19,10 @@
 package mocks
 
 import (
+	reflect "reflect"
+
 	domain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
 // MockObjectIteratorCreatorInterface is a mock of ObjectIteratorCreatorInterface interface

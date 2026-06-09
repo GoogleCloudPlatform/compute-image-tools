@@ -1,0 +1,6 @@
+{
+  "client_id": "dummy_id",
+  "client_secret": "dummy_secret",
+  "refresh_token": "dummy_token",
+  "type": "authorized_user"
+}
