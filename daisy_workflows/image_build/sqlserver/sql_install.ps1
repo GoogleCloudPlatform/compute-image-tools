@@ -271,7 +271,7 @@ function Install-SqlServer {
   elseif ($sql_server_media -like '*.exe') {
     Write-Host 'Downloading SQL Server exe'
     $exe = "${script:sbom_dir}\sql_server.exe"
-    & 'gcloud storage cp' "${gs_path}/sql_installer.media" $exe
+    & 'gcloud' storage cp "${gs_path}/sql_installer.media" $exe
     Start-Process $exe -ArgumentList @("/x:${sql_install}",'/u') -Wait
   }
   else {
