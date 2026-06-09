@@ -256,7 +256,7 @@ function Install-SqlServer {
   if ($sql_server_media -like '*.iso') {
     Write-Host 'Downloading SQL Server ISO'
     $iso = "${script:sbom_dir}\sql_server.iso"
-    & 'gcloud storage cp' "${gs_path}/sql_installer.media" $iso
+    & 'gcloud' storage cp "${gs_path}/sql_installer.media" $iso
     Write-Host 'Mount ISO'
     $mount_result = Mount-DiskImage -ImagePath $iso -PassThru
     $iso_drive = ($mount_result | Get-Volume).DriveLetter
