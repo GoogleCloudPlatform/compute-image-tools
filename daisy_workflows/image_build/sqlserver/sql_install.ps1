@@ -300,7 +300,7 @@ function Install-SSMS {
 
   $gs_path = Get-MetadataValue -key 'daisy-sources-path'
   $ssms_exe = "${script:sbom_dir}\vs_SSMS.exe"
-  & 'gcloud storage cp' "${gs_path}/vs_SSMS.exe" $ssms_exe
+  & 'gcloud' storage cp "${gs_path}/vs_SSMS.exe" $ssms_exe
   
   # Arguments for silent installation
   $ARGUMENTS = @(
