@@ -90,7 +90,7 @@ function Download-Sbomutil {
 
   # The variable $latest already has a backslash at the end, as a result of gcloud storage ls.
   Write-Output "Downloading sbomutil from $latest."
-  & 'gcloud storage cp' "${latest}sbomutil.exe" C:\sbomutil.exe
+  & 'gcloud' storage cp "${latest}sbomutil.exe" C:\sbomutil.exe
   Write-Output 'Components download complete.'
 }
 
