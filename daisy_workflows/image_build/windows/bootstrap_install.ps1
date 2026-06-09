@@ -127,7 +127,7 @@ function Generate-Sbom {
     return
   }
 
-  & 'gcloud storage cp' $local_sbom_file $gs_path
+  & 'gcloud' storage cp $local_sbom_file $gs_path
 
   Write-Output "Sbom file uploaded to $gs_path."
 }
