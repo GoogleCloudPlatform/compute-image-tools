@@ -64,7 +64,7 @@ fi
 # install from succeeding due to it being a system-installed package.
 # The newer verison of pip seems to error instead of skip pre-installed
 # system packages, so this is merely a workaround to let things work.
-if [[ ${DEBIAN_VERSION} == 13 ]]; then
+if [[ ${DEBIAN_VERSION} -eq 13 ]]; then
   echo "BuildStatus: Removing python3-requests from Debian 13"
   apt -y remove python3-requests
 fi
