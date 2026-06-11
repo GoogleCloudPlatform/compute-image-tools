@@ -60,6 +60,15 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
+# On Debian 13, the python3-requests package prevents the later pip
+# install from succeeding due to it being a system-installed package.
+# The newer verison of pip seems to error instead of skip pre-installed
+# system packages, so this is merely a workaround to let things work.
+if [[ ${DEBIAN_VERSION} -eq 13 ]]; then
+  echo "BuildStatus: Removing python3-requests from Debian 13"
+  apt -y remove python3-requests
+fi
+
 echo "BuildStatus: Installing python3 libraries from pip."
 if [[ ${DEBIAN_VERSION} -ge 12 ]]; then
   pip3 install --break-system-packages -U ${PIP3_PACKAGES}
