@@ -26,6 +26,11 @@
   "PublishProject": "bct-staging-images",
   "ComputeEndpoint": "https://www.googleapis.com/compute/staging_alpha/projects/",
   "DeleteAfter": {{$delete_after}},
+  {{- else if eq .environment "package" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "gce-unstable-pkg-test-images",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
   {{- else -}}
   "WorkProject": {{$work_project}},
   "PublishProject": {{$work_project}},
