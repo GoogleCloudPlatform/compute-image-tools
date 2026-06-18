@@ -26,6 +26,7 @@ image_dest: The Cloud Storage destination for the resultant image.
 import logging
 import os
 import platform
+import re
 import shutil
 import subprocess
 import tarfile
@@ -53,9 +54,13 @@ def main():
   # Get Parameters.
   build_date = utils.GetMetadataAttribute(
       'build_date', raise_on_not_found=True)
+  if not re.fullmatch(r'[a-zA-Z0-9\-_]+', build_date):
+    raise ValueError('Invalid build_date: %s' % build_date)
   debian_cloud_images_version = 'c54c90cf0b6d55542638f746b24860aeba6fb27f'
   debian_version = utils.GetMetadataAttribute(
       'debian_version', raise_on_not_found=True)
+  if not re.fullmatch(r'[a-zA-Z]+', debian_version):
+    raise ValueError('Invalid debian_version: %s' % debian_version)
   outs_path = utils.GetMetadataAttribute('daisy-outs-path',
                                          raise_on_not_found=True)
 
@@ -110,16 +115,16 @@ def main():
 
   # Debian switched to systemd-timesyncd for ntp starting with bookworm
   if debian_version == 'buster' or debian_version == 'bullseye':
-      fai_classes += ['TIME_CHRONY']
+    fai_classes += ['TIME_CHRONY']
   else:
-      fai_classes += ['TIME_SYSTEMD']
+    fai_classes += ['TIME_SYSTEMD']
 
   # Arch-specific classes
   if platform.machine() == 'aarch64':
     if debian_version == 'buster' or debian_version == 'bullseye':
-        fai_classes += ['ARM64_NO_SECURE_BOOT']
+      fai_classes += ['ARM64_NO_SECURE_BOOT']
     else:
-        fai_classes += ['ARM64_SECURE_BOOT']
+      fai_classes += ['ARM64_SECURE_BOOT']
     fai_classes += ['ARM64', 'GRUB_EFI_ARM64']
   else:
     fai_classes += ['AMD64', 'GRUB_CLOUD_AMD64']
