@@ -24,6 +24,11 @@
   "PublishProject": "artifact-releaser-autopush",
   "ComputeEndpoint": {{$endpoint}},
   "DeleteAfter": "3h",
+  {{- else if eq .environment "package" -}}
+  "WorkProject": {{$work_project}},
+  "PublishProject": "gce-unstable-pkg-test-images",
+  "ComputeEndpoint": {{$endpoint}},
+  "DeleteAfter": {{$delete_after}},
   {{- else -}}
   "WorkProject": {{$work_project}},
   "PublishProject": {{$work_project}},
