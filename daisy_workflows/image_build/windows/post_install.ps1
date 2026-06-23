@@ -354,7 +354,7 @@ function Configure-Network {
     Write-Host "Creating firewall rules to allow incoming IPv4 & IPv6 ICMP Echo Request using PowerShell."
     New-NetFirewallRule -DisplayName 'ICMP Allow incoming IPv4 echo request' -Enabled True -Direction Inbound -Action Allow -Protocol ICMPv4 -IcmpType "8" -ErrorAction SilentlyContinue
     New-NetFirewallRule -DisplayName 'ICMP Allow incoming IPv6 echo request' -Enabled True -Direction Inbound -Action Allow -Protocol ICMPv6 -IcmpType "128" -ErrorAction SilentlyContinue
-  } 
+  }
   else {
     Write-Host "Creating firewall rules to allow incoming V4 ICMP Echo Request using netsh."
     Run-Command netsh advfirewall firewall add rule name='ICMP Allow incoming IPv4 echo request' protocol='icmpv4:8,any' dir=in action=allow
@@ -365,7 +365,7 @@ function Configure-Network {
     Write-Host "Creating firewall rules to allow inbound/outbound to metadata using PowerShell."
     New-NetFirewallRule -DisplayName 'Allow incoming from GCE metadata server' -Enabled True -Action Allow -Protocol ANY -RemoteAddress 169.254.169.254 -Direction Inbound -ErrorAction SilentlyContinue
     New-NetFirewallRule -DisplayName 'Allow outgoing to GCE metadata server' -Enabled True  -Action Allow -Protocol ANY -RemoteAddress 169.254.169.254 -Direction Outbound -ErrorAction SilentlyContinue
-  } 
+  }
   else {
     Write-Host "Creating firewall rules to allow incoming V4 ICMP Echo Request using netsh."
     Run-Command netsh advfirewall firewall add rule name='Allow incoming from GCE metadata server' protocol=ANY remoteip=169.254.169.254 dir=in action=allow
