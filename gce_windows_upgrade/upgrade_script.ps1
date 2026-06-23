@@ -76,6 +76,7 @@ online disk noerr
   ForEach ($Drive in $Drives) {
     if (Test-Path "$($Drive.DeviceID)\$script:install_folder") {
       $script:install_media_drive = "$($Drive.DeviceID)"
+      break
     }
   }
   if (!$script:install_media_drive) {
