@@ -352,9 +352,9 @@ function Configure-Network {
   # Allow ICMP ping for IPv4 and IPv6 for Win10/2016 and above using Powershell or IPv4 only for older operating systems using netsh.
   if ([System.Environment]::OSVersion.Version.Major -ge 10 -and [System.Environment]::OSVersion.Version.Build -ge 10240) {
     Write-Host "Creating firewall rules to allow incoming IPv4 & IPv6 ICMP Echo Request using PowerShell."
-    New-NetFirewallRule -DisplayName 'ICMP Allow incoming IPv4 echo request' -Enabled True -Direction Inbound -Action Allow -Protocol ICMPv4 -IcmpType "8"
-    New-NetFirewallRule -DisplayName 'ICMP Allow incoming IPv6 echo request' -Enabled True -Direction Inbound -Action Allow -Protocol ICMPv6 -IcmpType "128"
-  } 
+    New-NetFirewallRule -DisplayName 'ICMP Allow incoming IPv4 echo request' -Enabled True -Direction Inbound -Action Allow -Protocol ICMPv4 -IcmpType "8" -ErrorAction SilentlyContinue
+    New-NetFirewallRule -DisplayName 'ICMP Allow incoming IPv6 echo request' -Enabled True -Direction Inbound -Action Allow -Protocol ICMPv6 -IcmpType "128" -ErrorAction SilentlyContinue
+  }
   else {
     Write-Host "Creating firewall rules to allow incoming V4 ICMP Echo Request using netsh."
     Run-Command netsh advfirewall firewall add rule name='ICMP Allow incoming IPv4 echo request' protocol='icmpv4:8,any' dir=in action=allow
@@ -363,9 +363,9 @@ function Configure-Network {
   # Allow inbound/outbound communication from the metadata server. Win10/2016 and above set using PowerShell and older versions set using netsh.
   if ([System.Environment]::OSVersion.Version.Major -ge 10 -and [System.Environment]::OSVersion.Version.Build -ge 10240) {
     Write-Host "Creating firewall rules to allow inbound/outbound to metadata using PowerShell."
-    New-NetFirewallRule -DisplayName 'Allow incoming from GCE metadata server' -Enabled True -Action Allow -Protocol ANY -RemoteAddress 169.254.169.254 -Direction Inbound
-    New-NetFirewallRule -DisplayName 'Allow outgoing to GCE metadata server' -Enabled True  -Action Allow -Protocol ANY -RemoteAddress 169.254.169.254 -Direction Outbound
-  } 
+    New-NetFirewallRule -DisplayName 'Allow incoming from GCE metadata server' -Enabled True -Action Allow -Protocol ANY -RemoteAddress 169.254.169.254 -Direction Inbound -ErrorAction SilentlyContinue
+    New-NetFirewallRule -DisplayName 'Allow outgoing to GCE metadata server' -Enabled True  -Action Allow -Protocol ANY -RemoteAddress 169.254.169.254 -Direction Outbound -ErrorAction SilentlyContinue
+  }
   else {
     Write-Host "Creating firewall rules to allow incoming V4 ICMP Echo Request using netsh."
     Run-Command netsh advfirewall firewall add rule name='Allow incoming from GCE metadata server' protocol=ANY remoteip=169.254.169.254 dir=in action=allow
@@ -374,7 +374,7 @@ function Configure-Network {
 
   # Change KeepAliveTime to 5 minutes.
   $tcp_params = 'HKLM:\System\CurrentControlSet\Services\Tcpip\Parameters'
-  New-ItemProperty -Path $tcp_params -Name 'KeepAliveTime' -Value 300000 -PropertyType DWord
+  New-ItemProperty -Path $tcp_params -Name 'KeepAliveTime' -Value 300000 -PropertyType DWord -ErrorAction SilentlyContinue
 
   Write-Host 'Disabling WPAD.'
 
@@ -388,7 +388,7 @@ function Configure-Network {
 
     # Make change with reg add, because it will work with the mounted hive and
     # because it will recursively add any necessary subkeys.
-    Run-Command reg add $WPAD /v AutoDetect /t REG_DWORD /d 0
+    Run-Command reg add $WPAD /v AutoDetect /t REG_DWORD /d 0 /f
   }
 
   # Unmount default user hive.
