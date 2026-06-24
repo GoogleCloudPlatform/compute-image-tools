@@ -21,7 +21,7 @@
   "WorkProject": {{$work_project}},
   "PublishProject": "windows-sql-cloud",
   "ComputeEndpoint": {{$endpoint}},
-  {{-else if eq .environment "package" -}}
+  {{- else if eq .environment "package" -}}
   "WorkProject": {{$work_project}},
   "PublishProject": "gce-unstable-pkg-test-images",
   "ComputeEndpoint": {{$endpoint}},

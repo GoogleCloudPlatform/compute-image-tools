@@ -25,7 +25,7 @@
   "PublishProject": "cloud-cluster-guest-stresstest",
   "ComputeEndpoint": {{$endpoint}},
   "DeleteAfter": {{$delete_after}},
-  {{-else if eq .environment "package" -}}
+  {{- else if eq .environment "package" -}}
   "WorkProject": {{$work_project}},
   "PublishProject": "gce-unstable-pkg-test-images",
   "ComputeEndpoint": {{$endpoint}},
