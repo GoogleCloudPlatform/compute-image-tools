@@ -148,7 +148,7 @@ func (b *BufferedWriter) uploadWorker() {
 
 func (b *BufferedWriter) newChunk() error {
 	fp := path.Join(b.prefix, fmt.Sprint(b.id, "_part", b.part))
-	f, err := os.Create(fp)
+	f, err := os.OpenFile(fp, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
