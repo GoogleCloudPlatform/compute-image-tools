@@ -208,8 +208,9 @@ func (p *Publish) SetExpire() error {
 	return nil
 }
 
-// CreateWorkflows creates a list of daisy workflows from the publish object
-func (p *Publish) CreateWorkflows(ctx context.Context, varMap map[string]string, regex *regexp.Regexp, rollback, skipDup, replace, noRoot bool, oauth string, rolloutStartTime time.Time, rolloutRate int, clientOptions ...option.ClientOption) ([]*daisy.Workflow, error) {
+// PublishCreateWorkflows modifies CreateWorkflows to differentiate between obsoletion and deprecation.
+// Creates a list of daisy workflows from the publish object.
+func (p *Publish) PublishCreateWorkflows(ctx context.Context, varMap map[string]string, regex *regexp.Regexp, rollback, skipDup, replace, noRoot, rbObsolete bool, oauth string, rolloutStartTime time.Time, rolloutRate int, clientOptions ...option.ClientOption) ([]*daisy.Workflow, error) {
 	fmt.Printf("[%q] Preparing workflows from template\n", p.Name)
 
 	var ws []*daisy.Workflow
@@ -217,7 +218,7 @@ func (p *Publish) CreateWorkflows(ctx context.Context, varMap map[string]string,
 		if regex != nil && !regex.MatchString(img.Prefix) {
 			continue
 		}
-		w, err := p.createWorkflow(ctx, img, varMap, rollback, skipDup, replace, noRoot, oauth, rolloutStartTime, rolloutRate, clientOptions...)
+		w, err := p.createWorkflow(ctx, img, varMap, rollback, skipDup, replace, noRoot, rbObsolete, oauth, rolloutStartTime, rolloutRate, clientOptions...)
 		if err != nil {
 			return nil, err
 		}
@@ -262,6 +263,13 @@ func (p *Publish) CreateWorkflows(ctx context.Context, varMap map[string]string,
 	}
 
 	return ws, nil
+}
+
+// CreateWorkflows creates a list of daisy workflows from the publish object
+func (p *Publish) CreateWorkflows(ctx context.Context, varMap map[string]string, regex *regexp.Regexp, rollback, skipDup, replace, noRoot bool, oauth string, rolloutStartTime time.Time, rolloutRate int, clientOptions ...option.ClientOption) ([]*daisy.Workflow, error) {
+	fmt.Printf("[%q] Preparing workflows from template\n", p.Name)
+	// Delegate to wrapper function with rbObsolete boolean. Defaults to false.
+	return p.PublishCreateWorkflows(ctx, varMap, regex, rollback, skipDup, replace, noRoot, false, oauth, rolloutStartTime, rolloutRate, clientOptions...)
 }
 
 // ------------------ private methods -------------------------
@@ -392,35 +400,57 @@ func publishImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image, skipDup
 	return cis, dis, drs, nil
 }
 
-func rollbackImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image) (*daisy.DeleteResources, *daisy.DeprecateImages) {
+func rollbackImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image, rbo bool) (*daisy.DeleteResources, *daisy.DeprecateImages) {
 	publishName := fmt.Sprintf("%s-%s", img.Prefix, p.publishVersion)
 	dr := &daisy.DeleteResources{}
 	dis := &daisy.DeprecateImages{}
+	var deprecateFound bool
+	var undeprecateName string
+
+	// Find and store name of the image to un-deprecate later.
+	for _, pubImg := range pubImgs {
+		if pubImg.Family == img.Family && pubImg.Deprecated != nil {
+			undeprecateName = pubImg.Name
+			break
+		}
+	}
+
+	// Deprecate the published image.
 	for _, pubImg := range pubImgs {
 		if pubImg.Name != publishName || pubImg.Deprecated != nil {
 			continue
 		}
-		dr.Images = []string{fmt.Sprintf("projects/%s/global/images/%s", p.PublishProject, publishName)}
-	}
+		deprecateState := "DEPRECATED"
+		if rbo {
+			deprecateState = "OBSOLETE"
+		}
 
-	if len(dr.Images) == 0 {
+		*dis = append(*dis, &daisy.DeprecateImage{
+			Image:   pubImg.Name,
+			Project: p.PublishProject,
+			DeprecationStatusAlpha: computeAlpha.DeprecationStatus{
+				State:         deprecateState,
+				StateOverride: img.RolloutPolicy,
+			},
+		})
+		deprecateFound = true
+		break
+	}
+	if !deprecateFound {
 		fmt.Printf("   %q does not exist in %q, not rolling back\n", publishName, p.PublishProject)
 		return nil, nil
 	}
 
-	for _, pubImg := range pubImgs {
-		// Un-deprecate the first deprecated image in the family based on insertion time.
-		if pubImg.Family == img.Family && pubImg.Deprecated != nil {
-			*dis = append(*dis, &daisy.DeprecateImage{
-				Image:   pubImg.Name,
-				Project: p.PublishProject,
-				DeprecationStatusAlpha: computeAlpha.DeprecationStatus{
-					State:         "ACTIVE",
-					StateOverride: img.RolloutPolicy,
-				},
-			})
-			break
-		}
+	// Un-deprecate the most recent previous image.
+	if undeprecateName != "" {
+		*dis = append(*dis, &daisy.DeprecateImage{
+			Image:   undeprecateName,
+			Project: p.PublishProject,
+			DeprecationStatusAlpha: computeAlpha.DeprecationStatus{
+				State:         "ACTIVE",
+				StateOverride: img.RolloutPolicy,
+			},
+		})
 	}
 	return dr, dis
 }
@@ -526,14 +556,14 @@ func (p *Publish) rolloutPolicyPrintOut(rp *computeAlpha.RolloutPolicy) {
 	}
 }
 
-func (p *Publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubImgs []*computeAlpha.Image, img *Image, rb, sd, rep, noRoot bool) error {
+func (p *Publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubImgs []*computeAlpha.Image, img *Image, rb, sd, rep, noRoot, rbo bool) error {
 	var err error
 	var createImages *daisy.CreateImages
 	var deprecateImages *daisy.DeprecateImages
 	var deleteResources *daisy.DeleteResources
 
 	if rb {
-		deleteResources, deprecateImages = rollbackImage(p, img, pubImgs)
+		deleteResources, deprecateImages = rollbackImage(p, img, pubImgs, rbo)
 	} else {
 		createImages, deprecateImages, deleteResources, err = publishImage(p, img, pubImgs, sd, rep, noRoot)
 		if err != nil {
@@ -553,7 +583,7 @@ func (p *Publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubIm
 	return nil
 }
 
-func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[string]string, rb, sd, rep, noRoot bool, oauth string, rolloutStartTime time.Time, rolloutRate int, clientOptions ...option.ClientOption) (*daisy.Workflow, error) {
+func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[string]string, rb, sd, rep, noRoot, rbo bool, oauth string, rolloutStartTime time.Time, rolloutRate int, clientOptions ...option.ClientOption) (*daisy.Workflow, error) {
 	fmt.Printf("  - Creating publish workflow for %q\n", img.Prefix)
 	w := daisy.New()
 	for k, v := range varMap {
@@ -595,7 +625,7 @@ func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[str
 	}
 	img.RolloutPolicy = createRollOut(zones, rolloutStartTime, rolloutRate)
 
-	if err := p.populateWorkflow(ctx, w, pubImgs, img, rb, sd, rep, noRoot); err != nil {
+	if err := p.populateWorkflow(ctx, w, pubImgs, img, rb, sd, rep, noRoot, rbo); err != nil {
 		return nil, fmt.Errorf("populateWorkflow failed: %s", err)
 	}
 	if len(w.Steps) == 0 {

@@ -458,8 +458,11 @@ func TestRollbackImage(t *testing.T) {
 				{Name: "foo-1", Family: "foo-family", Deprecated: &computeAlpha.DeprecationStatus{State: "DEPRECATED"}},
 				{Name: "bar-1", Family: "bar-family", Deprecated: &computeAlpha.DeprecationStatus{State: "DEPRECATED"}},
 			},
-			&daisy.DeleteResources{Images: []string{"projects/foo-project/global/images/foo-3"}},
-			&daisy.DeprecateImages{{Image: "foo-2", Project: "foo-project", DeprecationStatusAlpha: computeAlpha.DeprecationStatus{State: "ACTIVE"}}},
+			&daisy.DeleteResources{},
+			&daisy.DeprecateImages{
+				{Image: "foo-3", Project: "foo-project", DeprecationStatusAlpha: computeAlpha.DeprecationStatus{State: "DEPRECATED"}},
+				{Image: "foo-2", Project: "foo-project", DeprecationStatusAlpha: computeAlpha.DeprecationStatus{State: "ACTIVE"}},
+			},
 		},
 		{
 			"no image to undeprecate",
@@ -471,8 +474,8 @@ func TestRollbackImage(t *testing.T) {
 				{Name: "bar-2", Family: "bar-family", Deprecated: &computeAlpha.DeprecationStatus{State: "DEPRECATED"}},
 				{Name: "bar-1", Family: "bar-family", Deprecated: &computeAlpha.DeprecationStatus{State: "DEPRECATED"}},
 			},
-			&daisy.DeleteResources{Images: []string{"projects/foo-project/global/images/foo-3"}},
-			&daisy.DeprecateImages{},
+			&daisy.DeleteResources{},
+			&daisy.DeprecateImages{{Image: "foo-3", Project: "foo-project", DeprecationStatusAlpha: computeAlpha.DeprecationStatus{State: "DEPRECATED"}}},
 		},
 		{
 			"image DNE",
@@ -486,7 +489,7 @@ func TestRollbackImage(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		dr, di := rollbackImage(tt.p, tt.img, tt.pubImgs)
+		dr, di := rollbackImage(tt.p, tt.img, tt.pubImgs, false)
 		if diff := cmp.Diff(tt.wantDR, dr); diff != "" {
 			t.Errorf("%s: returned DeleteResources does not match expectation: (-want +got)\n%s", tt.desc, diff)
 		}
@@ -494,7 +497,6 @@ func TestRollbackImage(t *testing.T) {
 			t.Errorf("%s: returned DeprecateImages does not match expectation: (-want +got)\n%s", tt.desc, diff)
 		}
 	}
-
 }
 
 func TestPopulateSteps(t *testing.T) {
@@ -562,6 +564,7 @@ func TestPopulateWorkflow(t *testing.T) {
 			{Name: "test-old", Family: "test-family"},
 		},
 		p.Images[0],
+		false,
 		false,
 		false,
 		false,
