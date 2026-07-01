@@ -41,7 +41,7 @@
     {
       "Family": "rhel-10-2-eus-gvnic-baremetal",
       "Prefix": "rhel-10-2-eus-gvnic-baremetal",
-      "Description": "Red Hat, Red Hat Enterprise Linux, 10.2 (EUS), x86_64 with Extended Update Support (EUS) and GVNIC BareMetal Support built on {{$time}}",
+      "Description": "Red Hat, Red Hat Enterprise Linux, 10.2 with GVNIC BareMetal Support (EUS), x86_64 with Extended Update Support (EUS) and GVNIC BareMetal Support built on {{$time}}",
       "Architecture": "X86_64",
       "Licenses": [
         "projects/rhel-cloud/global/licenses/rhel-10-server",
