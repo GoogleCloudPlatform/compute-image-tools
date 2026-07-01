@@ -20,7 +20,6 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -30,7 +29,6 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 )
 
 var (
@@ -154,7 +152,7 @@ func outputTestResultToFile(tests chan *junitxml.TestSuite, logger *log.Logger) 
 			log.Fatal(err)
 		}
 
-		if err := ioutil.WriteFile(testSuiteOutPath, d, 0644); err != nil {
+		if err := os.WriteFile(testSuiteOutPath, d, 0644); err != nil {
 			log.Fatal(err)
 		}
 	}
