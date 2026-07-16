@@ -290,12 +290,20 @@ function Bootstrap-InstallDisk {
 
   if ($script:uefi) {
     Write-Output 'Setting up UEFI bootloader.'
+    Write-Host 'Pausing for 10 seconds before bcdboot...'
+    Start-Sleep -Seconds 10
     & bcdboot D:\Windows /s S: /f UEFI
+    Write-Host 'Pausing for 10 seconds after bcdboot...'
+    Start-Sleep -Seconds 10
     Set-Partition -DriveLetter S -GptType '{c12a7328-f81f-11d2-ba4b-00a0c93ec93b}'
   }
   else {
     Write-Output 'Setting up MBR bootloader.'
+    Write-Host 'Pausing for 10 seconds before bcdboot...'
+    Start-Sleep -Seconds 10
     & bcdboot D:\Windows /s D: /f BIOS
+    Write-Host 'Pausing for 10 seconds after bcdboot...'
+    Start-Sleep -Seconds 10
   }
 
   Write-Output 'Disabling startup animation.'
