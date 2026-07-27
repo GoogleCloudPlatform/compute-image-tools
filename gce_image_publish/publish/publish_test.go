@@ -16,6 +16,7 @@ package publish
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -616,6 +617,246 @@ func TestPopulateWorkflow(t *testing.T) {
 
 }
 
+func TestPublishDetermination(t *testing.T) {
+	launched := true
+	notLaunched := false
+	eol := true
+	loc, err := time.LoadLocation(pacificTimeZone)
+	if err != nil {
+		t.Fatalf("LoadLocation failed for %q: %v", pacificTimeZone, err)
+	}
+	secondTuesday := time.Date(2026, time.July, 14, 12, 0, 0, 0, loc)
+	notSecondTuesday := time.Date(2026, time.July, 15, 12, 0, 0, 0, loc)
+	tests := []struct {
+		desc        string
+		img         *Image
+		environment string
+		now         time.Time
+		want        []string
+	}{
+		{
+			desc:        "non-prod does not gate",
+			img:         &Image{},
+			environment: "test",
+			now:         notSecondTuesday,
+		},
+		{
+			desc:        "prod blocks unknown launched status",
+			img:         &Image{},
+			environment: "prod",
+			now:         secondTuesday,
+			want:        []string{"launched status is unknown"},
+		},
+		{
+			desc:        "prod blocks not launched image",
+			img:         &Image{Launched: &notLaunched},
+			environment: "prod",
+			now:         secondTuesday,
+			want:        []string{"image is not launched"},
+		},
+		{
+			desc:        "prod allows launched non-EOL image",
+			img:         &Image{Launched: &launched},
+			environment: "prod",
+			now:         secondTuesday,
+		},
+		{
+			desc:        "prod blocks EOL image",
+			img:         &Image{Launched: &launched, EOL: &eol},
+			environment: "prod",
+			now:         secondTuesday,
+			want:        []string{"image is EOL"},
+		},
+		{
+			desc:        "empty cadence does not gate cadence date",
+			img:         &Image{Launched: &launched},
+			environment: "prod",
+			now:         notSecondTuesday,
+		},
+		{
+			desc:        "cadence allows second Tuesday",
+			img:         &Image{Launched: &launched, Cadence: "monthly"},
+			environment: "prod",
+			now:         secondTuesday,
+		},
+		{
+			desc:        "cadence blocks non-second Tuesday",
+			img:         &Image{Launched: &launched, Cadence: "monthly"},
+			environment: "prod",
+			now:         notSecondTuesday,
+			want:        []string{"publish cadence requires the second Tuesday of the month; current date is 2026-07-15"},
+		},
+		{
+			desc:        "cadence blocks disabled image",
+			img:         &Image{Launched: &launched, Cadence: "disabled"},
+			environment: "prod",
+			now:         secondTuesday,
+			want:        []string{"image cadence is \"disabled\""},
+		},
+		{
+			desc:        "prod collects multiple block reasons",
+			img:         &Image{Launched: &notLaunched, EOL: &eol, Cadence: "monthly"},
+			environment: "prod",
+			now:         notSecondTuesday,
+			want: []string{
+				"image is not launched",
+				"image is EOL",
+				"publish cadence requires the second Tuesday of the month; current date is 2026-07-15",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got, err := publishDetermination(tt.img, tt.environment, tt.now)
+			if err != nil {
+				t.Fatalf("%s: publishDetermination() failed: %v", tt.desc, err)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("%s: publishDetermination() got = %v, want %v", tt.desc, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsSecondTuesday(t *testing.T) {
+	tests := []struct {
+		desc string
+		date time.Time
+		want bool
+	}{
+		{
+			desc: "second Tuesday of the month",
+			date: time.Date(2026, time.July, 14, 12, 0, 0, 0, time.UTC),
+			want: true,
+		},
+		{
+			desc: "first Tuesday of the month",
+			date: time.Date(2026, time.July, 7, 12, 0, 0, 0, time.UTC),
+			want: false,
+		},
+		{
+			desc: "third Tuesday of the month",
+			date: time.Date(2026, time.July, 21, 12, 0, 0, 0, time.UTC),
+			want: false,
+		},
+		{
+			desc: "second Wednesday of the month",
+			date: time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC),
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got := isSecondTuesday(tt.date); got != tt.want {
+				t.Errorf("isSecondTuesday(%s) got = %v, want %v", tt.date.Format("2006-01-02"), got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCadenceDetermination(t *testing.T) {
+	secondTuesday := time.Date(2026, time.July, 14, 12, 0, 0, 0, time.UTC)
+	notSecondTuesday := time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC)
+	tests := []struct {
+		desc             string
+		img              *Image
+		rolloutStartTime time.Time
+		want             []string
+	}{
+		{
+			desc:             "disabled cadence",
+			img:              &Image{Cadence: "disabled"},
+			rolloutStartTime: secondTuesday,
+			want:             []string{"image cadence is \"disabled\""},
+		},
+		{
+			desc:             "paused cadence",
+			img:              &Image{Cadence: "paused"},
+			rolloutStartTime: secondTuesday,
+			want:             []string{"image cadence is \"paused\""},
+		},
+		{
+			desc:             "monthly cadence on second Tuesday allowed",
+			img:              &Image{Cadence: "monthly"},
+			rolloutStartTime: secondTuesday,
+			want:             nil,
+		},
+		{
+			desc:             "monthly cadence on non-second Tuesday blocked",
+			img:              &Image{Cadence: "monthly"},
+			rolloutStartTime: notSecondTuesday,
+			want:             []string{"publish cadence requires the second Tuesday of the month; current date is 2026-07-15"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got := cadenceDetermination(tt.img, tt.rolloutStartTime)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("%s: cadenceDetermination() got = %v, want %v", tt.desc, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestImageIsEOL(t *testing.T) {
+	launchedTime := time.Date(2026, time.July, 14, 12, 0, 0, 0, time.UTC)
+	pastTime := time.Date(2026, time.July, 1, 12, 0, 0, 0, time.UTC)
+	futureTime := time.Date(2026, time.July, 31, 12, 0, 0, 0, time.UTC)
+	eolTrue := true
+	eolFalse := false
+
+	tests := []struct {
+		desc             string
+		img              *Image
+		rolloutStartTime time.Time
+		want             bool
+	}{
+		{
+			desc:             "EOL flag is true",
+			img:              &Image{EOL: &eolTrue},
+			rolloutStartTime: launchedTime,
+			want:             true,
+		},
+		{
+			desc:             "EOL flag is false, dates not EOL",
+			img:              &Image{EOL: &eolFalse},
+			rolloutStartTime: launchedTime,
+			want:             false,
+		},
+		{
+			desc:             "EOLDate in the past",
+			img:              &Image{EOLDate: &pastTime},
+			rolloutStartTime: launchedTime,
+			want:             true,
+		},
+		{
+			desc:             "EOLDate in the future",
+			img:              &Image{EOLDate: &futureTime},
+			rolloutStartTime: launchedTime,
+			want:             false,
+		},
+		{
+			desc:             "ObsoleteDate in the past",
+			img:              &Image{ObsoleteDate: &pastTime},
+			rolloutStartTime: launchedTime,
+			want:             true,
+		},
+		{
+			desc:             "ObsoleteDate in the future",
+			img:              &Image{ObsoleteDate: &futureTime},
+			rolloutStartTime: launchedTime,
+			want:             false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got := imageIsEOL(tt.img, tt.rolloutStartTime); got != tt.want {
+				t.Errorf("%s: imageIsEOL() got = %v, want %v", tt.desc, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestCreatePrintOut(t *testing.T) {
 	tests := []struct {
 		name string
@@ -1009,28 +1250,50 @@ func directPublishForNameTest(name string) *Publish {
 }
 
 func TestPublishCreateWorkflows(t *testing.T) {
+	ctx := context.Background()
+
+	var mockImages []byte
+
+	// Set up the local HTTP test server to mock the GCE API responses.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		if strings.Contains(r.URL.Path, "/zones") {
-			w.Write([]byte(`{"items": [{"name": "us-central1-a", "region": "https://www.googleapis.com/compute/v1/projects/project/regions/us-central1"}]}`))
-		} else if strings.Contains(r.URL.Path, "/images") {
-			w.Write([]byte(`{"items": [
-				{"name": "test-old", "family": "test-family", "creationTimestamp": "2026-07-10T00:00:00Z"},
-				{"name": "test-older", "family": "test-family", "creationTimestamp": "2026-07-09T00:00:00Z", "deprecated": {"state": "DEPRECATED"}}
-			]}`))
-		} else {
-			w.Write([]byte(`{}`))
+			project := "project"
+			parts := strings.Split(r.URL.Path, "/")
+			for i, part := range parts {
+				if part == "projects" && i+1 < len(parts) {
+					project = parts[i+1]
+					break
+				}
+			}
+			w.Write([]byte(fmt.Sprintf(`{
+				"items": [
+					{"name": "us-central1-a", "region": "https://www.googleapis.com/compute/v1/projects/%[1]s/regions/us-central1"},
+					{"name": "us-central1-b", "region": "https://www.googleapis.com/compute/v1/projects/%[1]s/regions/us-central1"}
+				]
+			}`, project)))
+			return
 		}
+		if strings.Contains(r.URL.Path, "/images") {
+			w.Write(mockImages)
+			return
+		}
+		w.Write([]byte(`{"status": "DONE"}`))
 	}))
 	defer ts.Close()
 
-	ctx := context.Background()
-	opts := []option.ClientOption{
+	clientOpts := []option.ClientOption{
 		option.WithoutAuthentication(),
 		option.WithEndpoint(ts.URL),
+		option.WithHTTPClient(ts.Client()),
 	}
+
+	launchedTrue := true
+	launchedFalse := false
 
 	tests := []struct {
 		name               string
+		publish            *Publish
 		sourceVersion      string
 		publishVersion     string
 		varMap             map[string]string
@@ -1040,10 +1303,17 @@ func TestPublishCreateWorkflows(t *testing.T) {
 		replace            bool
 		noRoot             bool
 		rbObsolete         bool
+		force              bool
 		oauth              string
 		setup              func(*Publish)
 		wantErr            bool
+		errContains        string
 		wantWorkflows      int
+		wantName           string
+		wantProject        string
+		mockImagesJSON     string
+		rolloutStartTime   time.Time
+		rolloutRate        int
 		useCreateWorkflows bool
 	}{
 		{
@@ -1053,6 +1323,10 @@ func TestPublishCreateWorkflows(t *testing.T) {
 			varMap:         map[string]string{"k": "v"},
 			oauth:          "oauth-path",
 			wantWorkflows:  1,
+			mockImagesJSON: `{"items": [
+				{"name": "test-old", "family": "test-family", "creationTimestamp": "2026-07-10T00:00:00Z"},
+				{"name": "test-older", "family": "test-family", "creationTimestamp": "2026-07-09T00:00:00Z", "deprecated": {"state": "DEPRECATED"}}
+			]}`,
 		},
 		{
 			name:           "rollback case",
@@ -1062,6 +1336,10 @@ func TestPublishCreateWorkflows(t *testing.T) {
 			rollback:       true,
 			oauth:          "oauth-path",
 			wantWorkflows:  1,
+			mockImagesJSON: `{"items": [
+				{"name": "test-old", "family": "test-family", "creationTimestamp": "2026-07-10T00:00:00Z"},
+				{"name": "test-older", "family": "test-family", "creationTimestamp": "2026-07-09T00:00:00Z", "deprecated": {"state": "DEPRECATED"}}
+			]}`,
 		},
 		{
 			name:           "regex doesn't match",
@@ -1069,12 +1347,20 @@ func TestPublishCreateWorkflows(t *testing.T) {
 			publishVersion: "old",
 			filterRegex:    regexp.MustCompile("^not-matching$"),
 			wantWorkflows:  0,
+			mockImagesJSON: `{"items": [
+				{"name": "test-old", "family": "test-family", "creationTimestamp": "2026-07-10T00:00:00Z"},
+				{"name": "test-older", "family": "test-family", "creationTimestamp": "2026-07-09T00:00:00Z", "deprecated": {"state": "DEPRECATED"}}
+			]}`,
 		},
 		{
 			name:           "normal publish with duplicate image (fails since skip/replace are false)",
 			sourceVersion:  "old",
 			publishVersion: "old",
 			wantErr:        true,
+			mockImagesJSON: `{"items": [
+				{"name": "test-old", "family": "test-family", "creationTimestamp": "2026-07-10T00:00:00Z"},
+				{"name": "test-older", "family": "test-family", "creationTimestamp": "2026-07-09T00:00:00Z", "deprecated": {"state": "DEPRECATED"}}
+			]}`,
 		},
 		{
 			name:           "normal publish with duplicate image & skipDuplicates=true (succeeds, returns 0 steps but valid workflow)",
@@ -1082,6 +1368,10 @@ func TestPublishCreateWorkflows(t *testing.T) {
 			publishVersion: "old",
 			skipDup:        true,
 			wantWorkflows:  0,
+			mockImagesJSON: `{"items": [
+				{"name": "test-old", "family": "test-family", "creationTimestamp": "2026-07-10T00:00:00Z"},
+				{"name": "test-older", "family": "test-family", "creationTimestamp": "2026-07-09T00:00:00Z", "deprecated": {"state": "DEPRECATED"}}
+			]}`,
 		},
 		{
 			name:           "normal publish with duplicate image & replace=true (succeeds)",
@@ -1089,6 +1379,10 @@ func TestPublishCreateWorkflows(t *testing.T) {
 			publishVersion: "old",
 			replace:        true,
 			wantWorkflows:  1,
+			mockImagesJSON: `{"items": [
+				{"name": "test-old", "family": "test-family", "creationTimestamp": "2026-07-10T00:00:00Z"},
+				{"name": "test-older", "family": "test-family", "creationTimestamp": "2026-07-09T00:00:00Z", "deprecated": {"state": "DEPRECATED"}}
+			]}`,
 		},
 		{
 			name:           "duplicate image & replace=true & skipDuplicates=true conflict (fails)",
@@ -1097,6 +1391,10 @@ func TestPublishCreateWorkflows(t *testing.T) {
 			skipDup:        true,
 			replace:        true,
 			wantErr:        true,
+			mockImagesJSON: `{"items": [
+				{"name": "test-old", "family": "test-family", "creationTimestamp": "2026-07-10T00:00:00Z"},
+				{"name": "test-older", "family": "test-family", "creationTimestamp": "2026-07-09T00:00:00Z", "deprecated": {"state": "DEPRECATED"}}
+			]}`,
 		},
 		{
 			name:           "rollback obscuring (rbObsolete = true)",
@@ -1105,6 +1403,10 @@ func TestPublishCreateWorkflows(t *testing.T) {
 			rollback:       true,
 			rbObsolete:     true,
 			wantWorkflows:  1,
+			mockImagesJSON: `{"items": [
+				{"name": "test-old", "family": "test-family", "creationTimestamp": "2026-07-10T00:00:00Z"},
+				{"name": "test-older", "family": "test-family", "creationTimestamp": "2026-07-09T00:00:00Z", "deprecated": {"state": "DEPRECATED"}}
+			]}`,
 		},
 		{
 			name:               "CreateWorkflows (wrapper function) and print list coverages",
@@ -1119,47 +1421,283 @@ func TestPublishCreateWorkflows(t *testing.T) {
 				p.toDelete = []string{"dummy-delete"}
 			},
 			wantWorkflows: 1,
+			mockImagesJSON: `{"items": [
+				{"name": "test-old", "family": "test-family", "creationTimestamp": "2026-07-10T00:00:00Z"},
+				{"name": "test-older", "family": "test-family", "creationTimestamp": "2026-07-09T00:00:00Z", "deprecated": {"state": "DEPRECATED"}}
+			]}`,
+		},
+		{
+			name: "skip workflow creation when regex does not match image prefix",
+			publish: &Publish{
+				Name:           "test-publish",
+				WorkProject:    "work-project",
+				SourceProject:  "source-project",
+				PublishProject: "pub-project",
+				Images: []*Image{
+					{Prefix: "ubuntu-2204", Family: "ubuntu"},
+				},
+			},
+			filterRegex:    regexp.MustCompile("^debian"),
+			wantWorkflows:  0,
+			mockImagesJSON: `{"items": [{"name": "debian-13-sv", "family": "debian-13"}]}`,
+			rolloutRate:    60,
+		},
+		{
+			name: "publish determination blocks when env=prod, not launched and force=false",
+			publish: &Publish{
+				Name:           "test-publish",
+				WorkProject:    "work-project",
+				SourceProject:  "source-project",
+				PublishProject: "pub-project",
+				sourceVersion:  "sv",
+				publishVersion: "pv",
+				Images: []*Image{
+					{
+						Prefix:   "debian-13",
+						Family:   "debian-13",
+						Launched: &launchedFalse,
+					},
+				},
+			},
+			varMap: map[string]string{
+				"environment":                  "prod",
+				"enable_publish_determination": "true",
+			},
+			force:          false,
+			wantErr:        true,
+			errContains:    "publish determination blocked",
+			mockImagesJSON: `{"items": [{"name": "debian-13-sv", "family": "debian-13"}]}`,
+			rolloutRate:    60,
+		},
+		{
+			name: "publish determination bypassed when env=prod, not launched but force=true",
+			publish: &Publish{
+				Name:           "test-publish",
+				WorkProject:    "work-project",
+				SourceProject:  "source-project",
+				PublishProject: "pub-project",
+				sourceVersion:  "sv",
+				publishVersion: "pv",
+				imagesCache:    make(map[string][]*computeAlpha.Image),
+				Images: []*Image{
+					{
+						Prefix:   "debian-13",
+						Family:   "debian-13",
+						Launched: &launchedFalse,
+					},
+				},
+			},
+			varMap: map[string]string{
+				"environment":                  "prod",
+				"enable_publish_determination": "true",
+			},
+			force:          true,
+			wantWorkflows:  1,
+			wantName:       "debian-13",
+			wantProject:    "work-project",
+			mockImagesJSON: `{"items": [{"name": "debian-13-sv", "family": "debian-13"}]}`,
+			rolloutRate:    60,
+		},
+		{
+			name: "publish determination skipped when rollback is true",
+			publish: &Publish{
+				Name:           "test-publish",
+				WorkProject:    "work-project",
+				SourceProject:  "source-project",
+				PublishProject: "pub-project",
+				sourceVersion:  "sv",
+				publishVersion: "pv",
+				imagesCache:    make(map[string][]*computeAlpha.Image),
+				Images: []*Image{
+					{
+						Prefix:   "debian-13",
+						Family:   "debian-13",
+						Launched: nil,
+					},
+				},
+			},
+			varMap: map[string]string{
+				"environment":                  "prod",
+				"enable_publish_determination": "true",
+			},
+			rollback:      true,
+			force:         false,
+			wantWorkflows: 1,
+			wantName:      "debian-13",
+			wantProject:   "work-project",
+			mockImagesJSON: `{
+				"items": [
+					{"name": "debian-13-pv", "family": "debian-13"},
+					{"name": "debian-13-sv", "family": "debian-13", "deprecated": {"state": "DEPRECATED"}}
+				]
+			}`,
+			rolloutRate: 60,
+		},
+		{
+			name: "normal case success",
+			publish: &Publish{
+				Name:           "test-publish",
+				WorkProject:    "work-project",
+				SourceProject:  "source-project",
+				PublishProject: "pub-project",
+				sourceVersion:  "sv",
+				publishVersion: "pv",
+				imagesCache:    make(map[string][]*computeAlpha.Image),
+				Images: []*Image{
+					{
+						Prefix:   "debian-13",
+						Family:   "debian-13",
+						Launched: &launchedTrue,
+					},
+				},
+			},
+			varMap: map[string]string{
+				"environment":                  "prod",
+				"enable_publish_determination": "true",
+			},
+			force:          false,
+			wantWorkflows:  1,
+			wantName:       "debian-13",
+			wantProject:    "work-project",
+			mockImagesJSON: `{"items": [{"name": "debian-13-sv", "family": "debian-13"}]}`,
+			rolloutRate:    60,
+		},
+		{
+			name: "publish determination blocks when cadence second Tuesday is not met in Pacific time",
+			publish: &Publish{
+				Name:           "test-publish",
+				WorkProject:    "work-project",
+				SourceProject:  "source-project",
+				PublishProject: "pub-project",
+				sourceVersion:  "sv",
+				publishVersion: "pv",
+				imagesCache:    make(map[string][]*computeAlpha.Image),
+				Images: []*Image{
+					{
+						Prefix:   "debian-13",
+						Family:   "debian-13",
+						Launched: &launchedTrue,
+						Cadence:  "monthly",
+					},
+				},
+			},
+			varMap: map[string]string{
+				"environment":                  "prod",
+				"enable_publish_determination": "true",
+			},
+			rolloutStartTime: time.Date(2026, time.July, 14, 2, 0, 0, 0, time.UTC),
+			wantErr:          true,
+			errContains:      "publish determination blocked",
+			mockImagesJSON:   `{"items": [{"name": "debian-13-sv", "family": "debian-13"}]}`,
+			rolloutRate:      60,
+		},
+		{
+			name: "publish determination succeeds when cadence second Tuesday is met in Pacific time",
+			publish: &Publish{
+				Name:           "test-publish",
+				WorkProject:    "work-project",
+				SourceProject:  "source-project",
+				PublishProject: "pub-project",
+				sourceVersion:  "sv",
+				publishVersion: "pv",
+				imagesCache:    make(map[string][]*computeAlpha.Image),
+				Images: []*Image{
+					{
+						Prefix:   "debian-13",
+						Family:   "debian-13",
+						Launched: &launchedTrue,
+						Cadence:  "monthly",
+					},
+				},
+			},
+			varMap: map[string]string{
+				"environment":                  "prod",
+				"enable_publish_determination": "true",
+			},
+			rolloutStartTime: time.Date(2026, time.July, 15, 2, 0, 0, 0, time.UTC),
+			wantWorkflows:    1,
+			wantName:         "debian-13",
+			wantProject:      "work-project",
+			mockImagesJSON:   `{"items": [{"name": "debian-13-sv", "family": "debian-13"}]}`,
+			rolloutRate:      60,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Publish{
-				Name:            "test-publish",
-				WorkProject:     "work-project",
-				PublishProject:  "pub-project",
-				SourceProject:   "src-project",
-				DeleteAfter:     "1h",
-				ComputeEndpoint: ts.URL,
-				Images: []*Image{
-					{
-						Prefix: "test",
-						Family: "test-family",
-						Labels: map[string]string{"foo": "bar"},
-					},
-				},
-				imagesCache: make(map[string][]*computeAlpha.Image),
+			if tt.mockImagesJSON != "" {
+				mockImages = []byte(tt.mockImagesJSON)
+			} else {
+				mockImages = []byte(`{}`)
 			}
-			p.SetVersions(tt.sourceVersion, tt.publishVersion)
+
+			p := tt.publish
+			if p == nil {
+				p = &Publish{
+					Name:            "test-publish",
+					WorkProject:     "work-project",
+					PublishProject:  "pub-project",
+					SourceProject:   "src-project",
+					DeleteAfter:     "1h",
+					ComputeEndpoint: ts.URL,
+					Images: []*Image{
+						{
+							Prefix: "test",
+							Family: "test-family",
+							Labels: map[string]string{"foo": "bar"},
+						},
+					},
+					imagesCache: make(map[string][]*computeAlpha.Image),
+				}
+				p.SetVersions(tt.sourceVersion, tt.publishVersion)
+			} else {
+				p.ComputeEndpoint = ts.URL
+				if p.imagesCache == nil {
+					p.imagesCache = make(map[string][]*computeAlpha.Image)
+				}
+			}
+
 			if tt.setup != nil {
 				tt.setup(p)
+			}
+
+			testTime := time.Now()
+			if !tt.rolloutStartTime.IsZero() {
+				testTime = tt.rolloutStartTime
+			}
+
+			rate := 1
+			if tt.rolloutRate > 0 {
+				rate = tt.rolloutRate
 			}
 
 			var ws []*daisy.Workflow
 			var err error
 			if tt.useCreateWorkflows {
-				ws, err = p.CreateWorkflows(ctx, tt.varMap, tt.filterRegex, tt.rollback, tt.skipDup, tt.replace, tt.noRoot, tt.oauth, time.Now(), 1, opts...)
+				ws, err = p.CreateWorkflows(ctx, tt.varMap, tt.filterRegex, tt.rollback, tt.skipDup, tt.replace, tt.noRoot, tt.oauth, testTime, rate, clientOpts...)
 			} else {
-				ws, err = p.PublishCreateWorkflows(ctx, tt.varMap, tt.filterRegex, tt.rollback, tt.skipDup, tt.replace, tt.noRoot, tt.rbObsolete, tt.oauth, time.Now(), 1, opts...)
+				ws, err = p.PublishCreateWorkflows(ctx, tt.varMap, tt.filterRegex, tt.rollback, tt.skipDup, tt.replace, tt.noRoot, tt.rbObsolete, tt.oauth, testTime, rate, tt.force, clientOpts...)
 			}
 
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("got err: %v, wantErr: %v", err, tt.wantErr)
 			}
-			if err == nil {
-				t.Logf("Returned workflows: %+v", ws)
-				if len(ws) != tt.wantWorkflows {
-					t.Errorf("Expected %d workflow, got %d", tt.wantWorkflows, len(ws))
+			if tt.wantErr {
+				if tt.errContains != "" && !strings.Contains(err.Error(), tt.errContains) {
+					t.Errorf("expected error containing %q, got %q", tt.errContains, err.Error())
+				}
+				return
+			}
+			if len(ws) != tt.wantWorkflows {
+				t.Errorf("Expected %d workflow, got %d", tt.wantWorkflows, len(ws))
+			}
+			if tt.wantWorkflows > 0 && len(ws) > 0 {
+				w := ws[0]
+				if tt.wantName != "" && w.Name != tt.wantName {
+					t.Errorf("workflow Name = %q, want %q", w.Name, tt.wantName)
+				}
+				if tt.wantProject != "" && w.Project != tt.wantProject {
+					t.Errorf("workflow Project = %q, want %q", w.Project, tt.wantProject)
 				}
 			}
 		})

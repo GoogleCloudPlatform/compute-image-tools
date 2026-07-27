@@ -104,6 +104,14 @@ type Image struct {
 	IgnoreLicenseValidationIfForbidden bool `json:",omitempty"`
 	// Optional DeprecationStatus.Obsolete entry for the image (RFC 3339).
 	ObsoleteDate *time.Time `json:",omitempty"`
+	// Optional SOT signal indicating whether this image is launched.
+	Launched *bool `json:",omitempty"`
+	// Optional SOT signal indicating whether this image is end-of-life.
+	EOL *bool `json:",omitempty"`
+	// Optional SOT end-of-life date (RFC 3339).
+	EOLDate *time.Time `json:",omitempty"`
+	// Optional cadence metadata used by publish determination.
+	Cadence string `json:",omitempty"`
 	// Optional ShieldedInstanceInitialState entry for secure-boot feature.
 	ShieldedInstanceInitialState *computeAlpha.InitialStateConfig `json:",omitempty"`
 	// RolloutPolicy entry for the image rollout policy.
@@ -120,6 +128,8 @@ var (
 	}
 	publishTemplate = template.New("publishTemplate").Option("missingkey=zero").Funcs(funcMap)
 )
+
+var pacificTimeZone = "America/Los_Angeles"
 
 // CreatePublish creates a publish object
 func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, path string, varMap map[string]string, imagesCache map[string][]*computeAlpha.Image) (*Publish, error) {
@@ -267,13 +277,25 @@ func (p *Publish) SetExpire() error {
 
 // PublishCreateWorkflows modifies CreateWorkflows to differentiate between obsoletion and deprecation.
 // Creates a list of daisy workflows from the publish object.
-func (p *Publish) PublishCreateWorkflows(ctx context.Context, varMap map[string]string, regex *regexp.Regexp, rollback, skipDup, replace, noRoot, rbObsolete bool, oauth string, rolloutStartTime time.Time, rolloutRate int, clientOptions ...option.ClientOption) ([]*daisy.Workflow, error) {
+func (p *Publish) PublishCreateWorkflows(ctx context.Context, varMap map[string]string, regex *regexp.Regexp, rollback, skipDup, replace, noRoot, rbObsolete bool, oauth string, rolloutStartTime time.Time, rolloutRate int, force bool, clientOptions ...option.ClientOption) ([]*daisy.Workflow, error) {
 	fmt.Printf("[%q] Preparing workflows from template\n", p.Name)
 
 	var ws []*daisy.Workflow
 	for _, img := range p.Images {
 		if regex != nil && !regex.MatchString(img.Prefix) {
 			continue
+		}
+		if !rollback && varMap["enable_publish_determination"] == "true" {
+			reasons, err := publishDetermination(img, varMap["environment"], rolloutStartTime)
+			if err != nil {
+				return nil, err
+			}
+			if len(reasons) > 0 {
+				if !force {
+					return nil, fmt.Errorf("publish determination blocked %q: %s", img.Prefix, strings.Join(reasons, "; "))
+				}
+				fmt.Printf(" Publish determination for %q: prod publish allowed (%s; force enabled)\n", img.Prefix, strings.Join(reasons, "; "))
+			}
 		}
 		w, err := p.createWorkflow(ctx, img, varMap, rollback, skipDup, replace, noRoot, rbObsolete, oauth, rolloutStartTime, rolloutRate, clientOptions...)
 		if err != nil {
@@ -326,12 +348,64 @@ func (p *Publish) PublishCreateWorkflows(ctx context.Context, varMap map[string]
 func (p *Publish) CreateWorkflows(ctx context.Context, varMap map[string]string, regex *regexp.Regexp, rollback, skipDup, replace, noRoot bool, oauth string, rolloutStartTime time.Time, rolloutRate int, clientOptions ...option.ClientOption) ([]*daisy.Workflow, error) {
 	fmt.Printf("[%q] Preparing workflows from template\n", p.Name)
 	// Delegate to wrapper function with rbObsolete boolean. Defaults to false.
-	return p.PublishCreateWorkflows(ctx, varMap, regex, rollback, skipDup, replace, noRoot, false, oauth, rolloutStartTime, rolloutRate, clientOptions...)
+	return p.PublishCreateWorkflows(ctx, varMap, regex, rollback, skipDup, replace, noRoot, false, oauth, rolloutStartTime, rolloutRate, false, clientOptions...)
 }
 
 // ------------------ private methods -------------------------
 
 const gcsImageObj = "root.tar.gz"
+
+func publishDetermination(img *Image, environment string, rolloutStartTime time.Time) ([]string, error) {
+	if !strings.EqualFold(environment, "prod") {
+		return nil, nil
+	}
+	loc, err := time.LoadLocation(pacificTimeZone)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load location %q: %v", pacificTimeZone, err)
+	}
+	pacificRolloutStartTime := rolloutStartTime.In(loc)
+
+	var reasons []string
+	if img.Launched == nil {
+		reasons = append(reasons, "launched status is unknown")
+	} else if !*img.Launched {
+		reasons = append(reasons, "image is not launched")
+	}
+	if imageIsEOL(img, pacificRolloutStartTime) {
+		reasons = append(reasons, "image is EOL")
+	}
+	if strings.TrimSpace(img.Cadence) != "" {
+		reasons = append(reasons, cadenceDetermination(img, pacificRolloutStartTime)...)
+	}
+	return reasons, nil
+}
+
+func cadenceDetermination(img *Image, rolloutStartTime time.Time) []string {
+	switch strings.ToLower(strings.TrimSpace(img.Cadence)) {
+	case "disabled", "paused", "none":
+		return []string{fmt.Sprintf("image cadence is %q", img.Cadence)}
+	}
+
+	if !isSecondTuesday(rolloutStartTime) {
+		return []string{fmt.Sprintf("publish cadence requires the second Tuesday of the month; current date is %s", rolloutStartTime.Format("2006-01-02"))}
+	}
+	return nil
+}
+
+func isSecondTuesday(t time.Time) bool {
+	_, _, day := t.Date()
+	return t.Weekday() == time.Tuesday && day >= 8 && day <= 14
+}
+
+func imageIsEOL(img *Image, rolloutStartTime time.Time) bool {
+	if img.EOL != nil && *img.EOL {
+		return true
+	}
+	if img.EOLDate != nil && !img.EOLDate.After(rolloutStartTime) {
+		return true
+	}
+	return img.ObsoleteDate != nil && !img.ObsoleteDate.After(rolloutStartTime)
+}
 
 func publishImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image, skipDuplicates, rep, noRoot bool) (*daisy.CreateImages, *daisy.DeprecateImages, *daisy.DeleteResources, error) {
 	if skipDuplicates && rep {

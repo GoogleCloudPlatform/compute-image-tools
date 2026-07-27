@@ -63,6 +63,7 @@ var (
 	labels          = flag.String("labels", "", "comma-separated key=value labels for direct publish")
 	deleteAfter     = flag.String("delete_after", "", "DeleteAfter value for direct publish")
 	ignoreForbidden = flag.Bool("ignore_license_validation_if_forbidden", false, "ignore license validation if forbidden for direct publish")
+	force           = flag.Bool("force", false, "force publishing even when publish determination would block it")
 )
 
 const (
@@ -238,7 +239,7 @@ func main() {
 		}
 	}
 	for _, p := range publishes {
-		w, err := p.PublishCreateWorkflows(ctx, varMap, regex, *rollback, *skipDup, *replace, *noRoot, *rollbackObsolete, *oauth, time.Now(), *rolloutRate)
+		w, err := p.PublishCreateWorkflows(ctx, varMap, regex, *rollback, *skipDup, *replace, *noRoot, *rollbackObsolete, *oauth, time.Now(), *rolloutRate, *force)
 		if err != nil {
 			createWorkflowErr := fmt.Errorf("Workflow creation error: %s", err)
 			fmt.Println(createWorkflowErr)
