@@ -16,7 +16,11 @@ package publish
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
+	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,6 +29,7 @@ import (
 	cmpopts "github.com/google/go-cmp/cmp/cmpopts"
 	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/option"
 )
 
 func TestPublishImage(t *testing.T) {
@@ -788,21 +793,374 @@ func TestCreatePublishWithFile(t *testing.T) {
 
 func TestCreatePublishWithTemplate(t *testing.T) {
 	tests := []struct {
-		name     string
-		template string
-		wantErr  bool
+		name           string
+		sourceVersion  string
+		publishVersion string
+		workProject    string
+		publishProject string
+		sourceGCS      string
+		sourceProject  string
+		ce             string
+		template       string
+		varMap         map[string]string
+		imagesCache    map[string][]*computeAlpha.Image
+		wantErr        bool
 	}{
-		{"pass template", `{"WorkProject": "blah"}`, false},
-		{"pass with invalid template", "{", true},
+		{
+			name:     "pass template",
+			template: `{"WorkProject": "blah"}`,
+			wantErr:  false,
+		},
+		{
+			name:     "pass with invalid template",
+			template: "{",
+			wantErr:  true,
+		},
+		{
+			name:           "pass all parameters invalid expire",
+			sourceVersion:  "sv",
+			publishVersion: "pv",
+			workProject:    "wp",
+			publishProject: "pp",
+			sourceGCS:      "gcs",
+			sourceProject:  "sp",
+			ce:             "ce",
+			template:       `{"Name": "test-publish", "DeleteAfter": "invalid-expire"}`,
+			wantErr:        true,
+		},
+		{
+			name:           "pass all parameters success",
+			sourceVersion:  "sv",
+			publishVersion: "pv",
+			workProject:    "wp",
+			publishProject: "pp",
+			sourceGCS:      "gcs",
+			sourceProject:  "sp",
+			ce:             "ce",
+			template:       `{"Name": "test-publish", "DeleteAfter": "24h"}`,
+			varMap:         map[string]string{"foo": "bar"},
+			imagesCache:    map[string][]*computeAlpha.Image{},
+			wantErr:        false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := CreatePublishWithTemplate("", "", "", "", "", "", "", tt.template, map[string]string{}, map[string][]*computeAlpha.Image{})
+			varMap := tt.varMap
+			if varMap == nil {
+				varMap = map[string]string{}
+			}
+			_, err := CreatePublishWithTemplate(
+				tt.sourceVersion,
+				tt.publishVersion,
+				tt.workProject,
+				tt.publishProject,
+				tt.sourceGCS,
+				tt.sourceProject,
+				tt.ce,
+				tt.template,
+				varMap,
+				tt.imagesCache,
+			)
 			if err != nil && !tt.wantErr {
-				t.Errorf("CreatePublishWithTemplate() called with template %s: got error %v", tt.template, err)
+				t.Errorf("CreatePublishWithTemplate() got unexpected error: %v", err)
 			}
 			if tt.wantErr && err == nil {
-				t.Errorf("CreatePublishWithTemplate() called with template %s: did not get expected error", tt.template)
+				t.Errorf("CreatePublishWithTemplate() template %s: expected error, got nil", tt.template)
+			}
+		})
+	}
+}
+
+func TestCreateDirectPublish(t *testing.T) {
+	got, err := CreateDirectPublish("sv", "pv", &Publish{
+		Name:            "image-prefix",
+		WorkProject:     "work-project",
+		SourceProject:   "source-project",
+		PublishProject:  "publish-project",
+		ComputeEndpoint: "https://compute.example.com/",
+		DeleteAfter:     "24h",
+		Images: []*Image{
+			{
+				Prefix:                             "image-prefix",
+				Family:                             "image-family",
+				Description:                        "image description",
+				Architecture:                       "X86_64",
+				Licenses:                           []string{"license-a", "license-b"},
+				GuestOsFeatures:                    []string{"UEFI_COMPATIBLE", "GVNIC"},
+				Labels:                             map[string]string{"public-image": "true", "os": "test"},
+				IgnoreLicenseValidationIfForbidden: true,
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("CreateDirectPublish() got error %v", err)
+	}
+	want := &Publish{
+		Name:            "image-prefix",
+		WorkProject:     "work-project",
+		SourceProject:   "source-project",
+		PublishProject:  "publish-project",
+		ComputeEndpoint: "https://compute.example.com/",
+		DeleteAfter:     "24h",
+		sourceVersion:   "sv",
+		publishVersion:  "pv",
+		imagesCache:     make(map[string][]*computeAlpha.Image),
+		Images: []*Image{
+			{
+				Prefix:                             "image-prefix",
+				Family:                             "image-family",
+				Description:                        "image description",
+				Architecture:                       "X86_64",
+				Licenses:                           []string{"license-a", "license-b"},
+				GuestOsFeatures:                    []string{"UEFI_COMPATIBLE", "GVNIC"},
+				Labels:                             map[string]string{"public-image": "true", "os": "test"},
+				IgnoreLicenseValidationIfForbidden: true,
+			},
+		},
+	}
+	if diff := cmp.Diff(want, got, cmp.AllowUnexported(Publish{}), cmpopts.IgnoreFields(Publish{}, "expiryDate")); diff != "" {
+		t.Errorf("CreateDirectPublish() mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestCreateDirectPublishDefaultsPublishVersion(t *testing.T) {
+	got, err := CreateDirectPublish("sv", "", &Publish{
+		WorkProject:    "work-project",
+		SourceProject:  "source-project",
+		PublishProject: "publish-project",
+		Images: []*Image{
+			{
+				Prefix: "image-prefix",
+				Family: "image-family",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("CreateDirectPublish() got error %v", err)
+	}
+	if got.publishVersion != "sv" {
+		t.Errorf("CreateDirectPublish() publishVersion = %q, want sv", got.publishVersion)
+	}
+}
+
+func TestCreateDirectPublishErrors(t *testing.T) {
+	tests := []struct {
+		name    string
+		publish *Publish
+	}{
+		{"nil publish", nil},
+		{"empty publish project", &Publish{SourceProject: "source-project", Images: []*Image{{Prefix: "prefix", Family: "family"}}}},
+		{"missing source project and source GCS path", &Publish{PublishProject: "pub-project", Images: []*Image{{Prefix: "prefix", Family: "family"}}}},
+		{"both source project and source GCS path set", &Publish{PublishProject: "pub-project", SourceProject: "source-project", SourceGCSPath: "gs://bucket/path", Images: []*Image{{Prefix: "prefix", Family: "family"}}}},
+		{"no images", &Publish{PublishProject: "pub-project", SourceProject: "source-project", Images: []*Image{}}},
+		{"multiple images", &Publish{PublishProject: "pub-project", SourceProject: "source-project", Images: []*Image{{Prefix: "prefix", Family: "family"}, {Prefix: "prefix", Family: "family"}}}},
+		{"empty image prefix", &Publish{PublishProject: "pub-project", SourceProject: "source-project", Images: []*Image{{Family: "family"}}}},
+		{"empty image family", &Publish{PublishProject: "pub-project", SourceProject: "source-project", Images: []*Image{{Prefix: "prefix"}}}},
+		{"empty work project", &Publish{PublishProject: "pub-project", SourceProject: "source-project", Images: []*Image{{Prefix: "prefix", Family: "family"}}}},
+		{"invalid delete after", &Publish{PublishProject: "pub-project", SourceProject: "source-project", WorkProject: "work-project", DeleteAfter: "invalid-duration", Images: []*Image{{Prefix: "prefix", Family: "family"}}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := CreateDirectPublish("sv", "pv", tt.publish)
+			if err == nil {
+				t.Errorf("CreateDirectPublish() with %s: expected error, got nil", tt.name)
+			}
+		})
+	}
+}
+
+func TestCreateDirectPublishSetsEmptyNameFromImagePrefix(t *testing.T) {
+	p := directPublishForNameTest("")
+	wantName := p.Images[0].Prefix
+	got, err := CreateDirectPublish("sv", "pv", p)
+	if err != nil {
+		t.Fatalf("CreateDirectPublish() got unexpected error: %v", err)
+	}
+	if got.Name != wantName {
+		t.Errorf("CreateDirectPublish().Name got = %q, want %q", got.Name, wantName)
+	}
+}
+
+func TestCreateDirectPublishPreservesExistingName(t *testing.T) {
+	const wantName = "existing-name"
+	p := directPublishForNameTest(wantName)
+	got, err := CreateDirectPublish("sv", "pv", p)
+	if err != nil {
+		t.Fatalf("CreateDirectPublish() got unexpected error: %v", err)
+	}
+	if got.Name != wantName {
+		t.Errorf("CreateDirectPublish().Name got = %q, want %q", got.Name, wantName)
+	}
+}
+
+func directPublishForNameTest(name string) *Publish {
+	return &Publish{
+		Name:           name,
+		WorkProject:    "work-project",
+		SourceProject:  "source-project",
+		PublishProject: "publish-project",
+		Images: []*Image{
+			{
+				Prefix: "test-prefix",
+				Family: "test-family",
+			},
+		},
+	}
+}
+
+func TestPublishCreateWorkflows(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/zones") {
+			w.Write([]byte(`{"items": [{"name": "us-central1-a", "region": "https://www.googleapis.com/compute/v1/projects/project/regions/us-central1"}]}`))
+		} else if strings.Contains(r.URL.Path, "/images") {
+			w.Write([]byte(`{"items": [
+				{"name": "test-old", "family": "test-family", "creationTimestamp": "2026-07-10T00:00:00Z"},
+				{"name": "test-older", "family": "test-family", "creationTimestamp": "2026-07-09T00:00:00Z", "deprecated": {"state": "DEPRECATED"}}
+			]}`))
+		} else {
+			w.Write([]byte(`{}`))
+		}
+	}))
+	defer ts.Close()
+
+	ctx := context.Background()
+	opts := []option.ClientOption{
+		option.WithoutAuthentication(),
+		option.WithEndpoint(ts.URL),
+	}
+
+	tests := []struct {
+		name               string
+		sourceVersion      string
+		publishVersion     string
+		varMap             map[string]string
+		filterRegex        *regexp.Regexp
+		rollback           bool
+		skipDup            bool
+		replace            bool
+		noRoot             bool
+		rbObsolete         bool
+		oauth              string
+		setup              func(*Publish)
+		wantErr            bool
+		wantWorkflows      int
+		useCreateWorkflows bool
+	}{
+		{
+			name:           "normal publish",
+			sourceVersion:  "new",
+			publishVersion: "new",
+			varMap:         map[string]string{"k": "v"},
+			oauth:          "oauth-path",
+			wantWorkflows:  1,
+		},
+		{
+			name:           "rollback case",
+			sourceVersion:  "old",
+			publishVersion: "old",
+			varMap:         map[string]string{"k": "v"},
+			rollback:       true,
+			oauth:          "oauth-path",
+			wantWorkflows:  1,
+		},
+		{
+			name:           "regex doesn't match",
+			sourceVersion:  "old",
+			publishVersion: "old",
+			filterRegex:    regexp.MustCompile("^not-matching$"),
+			wantWorkflows:  0,
+		},
+		{
+			name:           "normal publish with duplicate image (fails since skip/replace are false)",
+			sourceVersion:  "old",
+			publishVersion: "old",
+			wantErr:        true,
+		},
+		{
+			name:           "normal publish with duplicate image & skipDuplicates=true (succeeds, returns 0 steps but valid workflow)",
+			sourceVersion:  "old",
+			publishVersion: "old",
+			skipDup:        true,
+			wantWorkflows:  0,
+		},
+		{
+			name:           "normal publish with duplicate image & replace=true (succeeds)",
+			sourceVersion:  "old",
+			publishVersion: "old",
+			replace:        true,
+			wantWorkflows:  1,
+		},
+		{
+			name:           "duplicate image & replace=true & skipDuplicates=true conflict (fails)",
+			sourceVersion:  "old",
+			publishVersion: "old",
+			skipDup:        true,
+			replace:        true,
+			wantErr:        true,
+		},
+		{
+			name:           "rollback obscuring (rbObsolete = true)",
+			sourceVersion:  "old",
+			publishVersion: "old",
+			rollback:       true,
+			rbObsolete:     true,
+			wantWorkflows:  1,
+		},
+		{
+			name:               "CreateWorkflows (wrapper function) and print list coverages",
+			sourceVersion:      "new",
+			publishVersion:     "new",
+			useCreateWorkflows: true,
+			setup: func(p *Publish) {
+				p.toCreate = []string{"dummy-create"}
+				p.toDeprecate = []string{"dummy-deprecate"}
+				p.toObsolete = []string{"dummy-obsolete"}
+				p.toUndeprecate = []string{"dummy-undeprecate"}
+				p.toDelete = []string{"dummy-delete"}
+			},
+			wantWorkflows: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &Publish{
+				Name:            "test-publish",
+				WorkProject:     "work-project",
+				PublishProject:  "pub-project",
+				SourceProject:   "src-project",
+				DeleteAfter:     "1h",
+				ComputeEndpoint: ts.URL,
+				Images: []*Image{
+					{
+						Prefix: "test",
+						Family: "test-family",
+						Labels: map[string]string{"foo": "bar"},
+					},
+				},
+				imagesCache: make(map[string][]*computeAlpha.Image),
+			}
+			p.SetVersions(tt.sourceVersion, tt.publishVersion)
+			if tt.setup != nil {
+				tt.setup(p)
+			}
+
+			var ws []*daisy.Workflow
+			var err error
+			if tt.useCreateWorkflows {
+				ws, err = p.CreateWorkflows(ctx, tt.varMap, tt.filterRegex, tt.rollback, tt.skipDup, tt.replace, tt.noRoot, tt.oauth, time.Now(), 1, opts...)
+			} else {
+				ws, err = p.PublishCreateWorkflows(ctx, tt.varMap, tt.filterRegex, tt.rollback, tt.skipDup, tt.replace, tt.noRoot, tt.rbObsolete, tt.oauth, time.Now(), 1, opts...)
+			}
+
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("got err: %v, wantErr: %v", err, tt.wantErr)
+			}
+			if err == nil {
+				t.Logf("Returned workflows: %+v", ws)
+				if len(ws) != tt.wantWorkflows {
+					t.Errorf("Expected %d workflow, got %d", tt.wantWorkflows, len(ws))
+				}
 			}
 		})
 	}

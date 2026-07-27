@@ -52,6 +52,17 @@ var (
 	filter           = flag.String("filter", "", "regular expression to filter images to publish by prefixes")
 	rolloutRate      = flag.Int("rollout_rate", 60, "The number of minutes between the image rolling out between zones. 0 minutes will not use a rollout policy.")
 	rollbackObsolete = flag.Bool("rollback_obsolete", false, "deprecate or obsolete the target image, defaults to deprecate")
+
+	directPublish   = flag.Bool("direct_publish", false, "create publish workflow directly from CLI flags instead of a publish template")
+	imagePrefix     = flag.String("image_prefix", "", "image prefix for direct publish")
+	imageFamily     = flag.String("image_family", "", "image family for direct publish")
+	description     = flag.String("description", "", "image description for direct publish")
+	architecture    = flag.String("architecture", "", "image architecture for direct publish")
+	licenses        = flag.String("licenses", "", "comma-separated image licenses for direct publish")
+	guestOSFeatures = flag.String("guest_os_features", "", "comma-separated guest OS features for direct publish")
+	labels          = flag.String("labels", "", "comma-separated key=value labels for direct publish")
+	deleteAfter     = flag.String("delete_after", "", "DeleteAfter value for direct publish")
+	ignoreForbidden = flag.Bool("ignore_license_validation_if_forbidden", false, "ignore license validation if forbidden for direct publish")
 )
 
 const (
@@ -103,6 +114,32 @@ func checkError(errors chan error) {
 	}
 }
 
+func splitCommaSeparatedList(s string) []string {
+	var out []string
+	for _, v := range strings.Split(s, ",") {
+		v = strings.TrimSpace(v)
+		if v != "" {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
+func parseLabels(s string) (map[string]string, error) {
+	if s == "" {
+		return nil, nil
+	}
+	labels := map[string]string{}
+	for _, label := range splitCommaSeparatedList(s) {
+		kv := strings.SplitN(label, "=", 2)
+		if len(kv) != 2 || kv[0] == "" {
+			return nil, fmt.Errorf("label %q must be in key=value format", label)
+		}
+		labels[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
+	}
+	return labels, nil
+}
+
 func main() {
 	addFlags(os.Args[1:])
 	flag.Parse()
@@ -127,8 +164,12 @@ func main() {
 		fmt.Println("Cannot set both -date_version and -publish_version")
 		os.Exit(1)
 	}
-	if len(flag.Args()) == 0 {
+	if !*directPublish && len(flag.Args()) == 0 {
 		fmt.Println("Not enough args, first arg needs to be the path to a publish template.")
+		os.Exit(1)
+	}
+	if *directPublish && len(flag.Args()) != 0 {
+		fmt.Println("Cannot set -direct_publish with publish template args")
 		os.Exit(1)
 	}
 	if *dateVersion {
@@ -149,15 +190,54 @@ func main() {
 	var errs []error
 	var ws []*daisy.Workflow
 	imagesCache := map[string][]*computeAlpha.Image{}
-	for _, path := range flag.Args() {
-		p, err := publish.CreatePublish(
-			*sourceVersion, *publishVersion, *workProject, *publishProject, *sourceGCS, *sourceProject, *ce, path, varMap, imagesCache)
+	var publishes []*publish.Publish
+	if *directPublish {
+		parsedLabels, err := parseLabels(*labels)
+		var p *publish.Publish
+		if err == nil {
+			p, err = publish.CreateDirectPublish(*sourceVersion, *publishVersion, &publish.Publish{
+				Name:            *imagePrefix,
+				WorkProject:     *workProject,
+				SourceProject:   *sourceProject,
+				SourceGCSPath:   *sourceGCS,
+				PublishProject:  *publishProject,
+				ComputeEndpoint: *ce,
+				DeleteAfter:     *deleteAfter,
+				Images: []*publish.Image{
+					{
+						Prefix:                             *imagePrefix,
+						Family:                             *imageFamily,
+						Description:                        *description,
+						Architecture:                       *architecture,
+						Licenses:                           splitCommaSeparatedList(*licenses),
+						GuestOsFeatures:                    splitCommaSeparatedList(*guestOSFeatures),
+						Labels:                             parsedLabels,
+						IgnoreLicenseValidationIfForbidden: *ignoreForbidden,
+					},
+				},
+			})
+		}
 		if err != nil {
-			loadErr := fmt.Errorf("Loading publish error %s from %q", err, path)
+			loadErr := fmt.Errorf("Loading direct publish error %s", err)
 			fmt.Println(loadErr)
 			errs = append(errs, loadErr)
-			continue
+		} else {
+			publishes = append(publishes, p)
 		}
+	} else {
+		for _, path := range flag.Args() {
+			p, err := publish.CreatePublish(
+				*sourceVersion, *publishVersion, *workProject, *publishProject, *sourceGCS, *sourceProject, *ce, path, varMap, imagesCache)
+			if err != nil {
+				loadErr := fmt.Errorf("Loading publish error %s from %q", err, path)
+				fmt.Println(loadErr)
+				errs = append(errs, loadErr)
+				continue
+			}
+			publishes = append(publishes, p)
+		}
+	}
+	for _, p := range publishes {
 		w, err := p.PublishCreateWorkflows(ctx, varMap, regex, *rollback, *skipDup, *replace, *noRoot, *rollbackObsolete, *oauth, time.Now(), *rolloutRate)
 		if err != nil {
 			createWorkflowErr := fmt.Errorf("Workflow creation error: %s", err)

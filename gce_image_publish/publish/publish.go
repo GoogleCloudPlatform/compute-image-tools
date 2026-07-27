@@ -136,6 +136,54 @@ func CreatePublishWithTemplate(sourceVersion, publishVersion, workProject, publi
 	return createPublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, template, varMap, imagesCache)
 }
 
+// CreateDirectPublish validates a publish object created directly from CLI parameters.
+func CreateDirectPublish(sourceVersion, publishVersion string, p *Publish) (*Publish, error) {
+	if p == nil {
+		return nil, fmt.Errorf("publish must be set with -direct_publish")
+	}
+	if p.PublishProject == "" {
+		return nil, fmt.Errorf("-publish_project must be set with -direct_publish")
+	}
+	if p.SourceProject == "" && p.SourceGCSPath == "" {
+		return nil, fmt.Errorf("one of -source_project or -source_gcs_path must be set with -direct_publish")
+	}
+	if p.SourceProject != "" && p.SourceGCSPath != "" {
+		return nil, fmt.Errorf("only one of -source_project or -source_gcs_path should be set")
+	}
+	if len(p.Images) != 1 {
+		return nil, fmt.Errorf("exactly one image must be set with -direct_publish")
+	}
+	img := p.Images[0]
+	if img.Prefix == "" {
+		return nil, fmt.Errorf("-image_prefix must be set with -direct_publish")
+	}
+	if img.Family == "" {
+		return nil, fmt.Errorf("-image_family must be set with -direct_publish")
+	}
+	if p.Name == "" {
+		p.Name = img.Prefix
+	}
+	if err := p.SetExpire(); err != nil {
+		return nil, err
+	}
+	if p.imagesCache == nil {
+		p.imagesCache = make(map[string][]*computeAlpha.Image)
+	}
+	p.SetVersions(sourceVersion, publishVersion)
+	if p.WorkProject == "" {
+		if metadata.OnGCE() {
+			var err error
+			p.WorkProject, err = metadata.ProjectIDWithContext(context.Background())
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, fmt.Errorf("-direct_publish\nWorkProject unspecified")
+		}
+	}
+	return p, nil
+}
+
 func createPublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, template string, varMap map[string]string, imagesCache map[string][]*computeAlpha.Image) (*Publish, error) {
 	p := Publish{
 		sourceVersion:  sourceVersion,
@@ -196,6 +244,15 @@ func createPublish(sourceVersion, publishVersion, workProject, publishProject, s
 
 	fmt.Printf("[%q] Created a publish object successfully from %s\n", p.Name, template)
 	return &p, nil
+}
+
+// SetVersions sets source and publish versions used to derive image names.
+func (p *Publish) SetVersions(sourceVersion, publishVersion string) {
+	p.sourceVersion = sourceVersion
+	p.publishVersion = publishVersion
+	if p.publishVersion == "" {
+		p.publishVersion = sourceVersion
+	}
 }
 
 // SetExpire converts p.DeleteAfter into p.expiryDate
