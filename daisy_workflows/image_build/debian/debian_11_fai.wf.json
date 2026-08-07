@@ -1,7 +1,18 @@
 {
   "Name": "build-debian-11-fai",
   "Vars": {
-    "build_date": {"Value": "${DATE}", "Description": "Build datestamp used to version the image."},
+    "build_date": {
+      "Value": "${DATE}",
+      "Description": "Build datestamp used to version the image."
+    },
+    "builder_machine_type": {
+      "Value": "e2-standard-4",
+      "Description": "The machine type to use during build."
+    },
+    "builder_disk_type": {
+      "Value": "pd-ssd",
+      "Description": "The disk type to use during build."
+    },
     "publish_project": {
       "Value": "${PROJECT}",
       "Description": "A project to publish the resulting image to."
@@ -14,6 +25,8 @@
         "Path": "./debian_fai.wf.json",
         "Vars": {
           "build_date": "${build_date}",
+          "builder_machine_type": "${builder_machine_type}",
+          "builder_disk_type": "${builder_disk_type}",
           "debian_version": "bullseye"
         }
       }

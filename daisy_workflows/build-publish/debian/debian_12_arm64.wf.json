@@ -7,6 +7,14 @@
       "Value": "${TIMESTAMP}",
       "Description": "Build datestamp used to version the image."
     },
+    "builder_machine_type": {
+      "Value": "c4a-standard-4",
+      "Description": "The machine type to use during build."
+    },
+    "builder_disk_type": {
+      "Value": "hyperdisk-balanced",
+      "Description": "The disk type to use during build."
+    },
     "google_cloud_repo": {
       "Value": "DEPRECATED",
       "Description": "DEPRECATED. Included to ease transition of our pipelines, but not used."
@@ -38,7 +46,8 @@
       "IncludeWorkflow": {
         "Path": "${workflow_root}/image_build/debian/debian_12_arm64.wf.json",
         "Vars": {
-          "build_date": "${build_date}"
+          "build_date": "${build_date}",
+          "builder_machine_type": "${builder_machine_type}"
         }
       }
     },
@@ -48,7 +57,7 @@
           "Name": "disk-debian-12",
           "SourceImage": "debian-12-arm64-v${build_date}",
           "SizeGb": "10",
-          "Type": "pd-ssd"
+          "Type": "${builder_disk_type}"
         }
       ]
     },
