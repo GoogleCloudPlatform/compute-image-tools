@@ -13,6 +13,14 @@
       "Value": "${TIMESTAMP}",
       "Description": "Build datestamp used to version the image."
     },
+    "machine_type": {
+      "Value": "c4a-standard-4",
+      "Description": "The machine type to use during build."
+    },
+    "disk_type": {
+      "Value": "hyperdisk-balanced",
+      "Description": "The disk type to use during build."
+    },
     "publish_project": {
       "Value": "${PROJECT}",
       "Description": "A project to publish the resulting image to."
@@ -28,7 +36,8 @@
           "kickstart_config": "./kickstart/centos_stream_9_arm64.cfg",
           "google_cloud_repo": "${google_cloud_repo}",
           "installer_iso": "${installer_iso}",
-          "machine_type": "t2a-standard-4",
+          "machine_type": "${machine_type}",
+          "disk_type": "${disk_type}",
           "worker_image": "projects/compute-image-tools/global/images/family/debian-12-worker-arm64"
         }
       }

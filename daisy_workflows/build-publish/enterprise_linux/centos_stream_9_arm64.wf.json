@@ -28,6 +28,14 @@
       "Required": true,
       "Description": "The CentOS Stream 9 installer ISO to build from."
     },
+    "machine_type": {
+      "Value": "c4a-standard-4",
+      "Description": "The machine type to use during build."
+    },
+    "disk_type": {
+      "Value": "hyperdisk-balanced",
+      "Description": "The disk type to use during build."
+    },
     "sbom_util_gcs_root": {
       "Value": "",
       "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
@@ -45,7 +53,9 @@
         "Vars": {
           "build_date": "${build_date}",
           "google_cloud_repo": "${google_cloud_repo}",
-          "installer_iso": "${installer_iso}"
+          "installer_iso": "${installer_iso}",
+          "machine_type": "${machine_type}",
+          "disk_type": "${disk_type}"
         }
       }
     },
