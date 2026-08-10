@@ -16,6 +16,10 @@
       "Value": "pd-ssd",
       "Description": "The disk type to use during build."
     },
+    "builder_disk_name": {
+      "Value": "disk_export",
+      "Description": "The name of the export disk."
+    },
     "google_cloud_repo": {
       "Value": "DEPRECATED",
       "Description": "DEPRECATED. Included to ease transition of our pipelines, but not used."
@@ -65,7 +69,7 @@
     "export-image": {
       "Timeout": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/export/disk_export.wf.json",
+        "Path": "${workflow_root}/export/${builder_disk_name}.wf.json",
         "Vars": {
           "destination": "${gcs_url}",
           "sbom_destination": "${sbom_destination}",

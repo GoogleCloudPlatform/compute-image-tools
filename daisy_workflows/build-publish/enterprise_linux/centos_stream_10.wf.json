@@ -36,6 +36,10 @@
       "Value": "pd-ssd",
       "Description": "The disk type to use during build."
     },
+    "disk_name": {
+      "Value": "disk_export",
+      "Description": "The name of the export disk."
+    },
     "sbom_util_gcs_root": {
       "Value": "",
       "Description": "The root gcs bucket for sbomutil, if using sbomutil to generate the SBOM."
@@ -62,7 +66,7 @@
     "export-image": {
       "Timeout": "60m",
       "IncludeWorkflow": {
-        "Path": "${workflow_root}/export/disk_export.wf.json",
+        "Path": "${workflow_root}/export/${disk_name}.wf.json",
         "Vars": {
           "destination": "${gcs_url}",
           "sbom_destination": "${sbom_destination}",
