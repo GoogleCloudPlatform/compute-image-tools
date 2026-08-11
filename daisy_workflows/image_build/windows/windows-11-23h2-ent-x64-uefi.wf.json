@@ -64,6 +64,10 @@
     "machine_family": {
       "Value": "n2d-standard-4",
       "Description": "The machine family used to boot the new image."
+    },
+    "bootstrap_source_image": {
+      "Value": "projects/windows-cloud/global/images/family/windows-2025-core",
+      "Description": "The source image to use for the bootstrap image."
     }
   },
   "Steps": {
@@ -85,7 +89,8 @@
           "workflow_root": "${workflow_root}",
           "sbom_destination": "${sbom_destination}",
           "sbom_util_gcs_root": "${sbom_util_gcs_root}",
-          "machine_family": "${machine_family}"
+          "machine_family": "${machine_family}",
+          "bootstrap_source_image": "${bootstrap_source_image}"
         }
       }
     },
