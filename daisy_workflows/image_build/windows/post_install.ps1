@@ -561,29 +561,33 @@ function Install-DriverPackages {
 }
 
 function Update-Edge {
-  $taskExistEdgeUpdateCore = Get-ScheduledTask | Where-Object {$_.TaskName -like 'MicrosoftEdgeUpdateTaskMachineCore*' }
-  if($taskExistEdgeUpdateCore) {
-    Start-ScheduledTask -TaskName $taskExistEdgeUpdateCore.TaskName
-    Write-Host 'Microsoft Edge Core updater started.'
-  } else {
-    Write-Host 'Microsoft Edge updater task MicrosoftEdgeUpdateTaskMachineCore not present.'
-  }
-
-  $taskExistEdgeUpdateUA = Get-ScheduledTask | Where-Object {$_.TaskName -like 'MicrosoftEdgeUpdateTaskMachineUA*' }
-  if($taskExistEdgeUpdateUA) {
-    Start-ScheduledTask -TaskName $taskExistEdgeUpdateUA.TaskName
-    Write-Host 'Microsoft Edge UA updater started.'
-  } else {
-    Write-Host 'Microsoft Edge updater task MicrosoftEdgeUpdateTaskMachineUA not present.'
-  }
-
+  $edge_path = 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'
   # Check if the Edge update is finished before continuing
-  if (Test-Path "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe") {
-    while ((Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe").LastWriteTime -lt (Get-Date).AddMonths(-1)) {
-      Write-Host "Microsoft Edge updater not completed; version found: $((Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe").VersionInfo.ProductVersion)"
-      Start-Sleep -s 30
+  if (Test-Path $edge_path) {
+    while ((Get-Item $edge_path).LastWriteTime -lt (Get-Date).AddMonths(-1)) {
+      Write-Host "Microsoft Edge version: $((Get-Item $edge_path).VersionInfo.ProductVersion) with a last write time of $((Get-Item $edge_path).LastWriteTime)"
+
+      $taskExistEdgeUpdateCore = Get-ScheduledTask | Where-Object {$_.TaskName -like 'MicrosoftEdgeUpdateTaskMachineCore*' }
+      if ($taskExistEdgeUpdateCore) {
+        Start-ScheduledTask -TaskName $taskExistEdgeUpdateCore.TaskName
+        Write-Host 'Microsoft Edge Core updater started.'
+      }
+      else {
+        Write-Host 'Microsoft Edge updater task MicrosoftEdgeUpdateTaskMachineCore not present.'
+      }
+
+      $taskExistEdgeUpdateUA = Get-ScheduledTask | Where-Object {$_.TaskName -like 'MicrosoftEdgeUpdateTaskMachineUA*' }
+      if ($taskExistEdgeUpdateUA) {
+        Start-ScheduledTask -TaskName $taskExistEdgeUpdateUA.TaskName
+        Write-Host 'Microsoft Edge UA updater started.'
+      }
+      else {
+        Write-Host 'Microsoft Edge updater task MicrosoftEdgeUpdateTaskMachineUA not present.'
+      }
+      Write-Host 'Sleeping for 120 seconds.'
+      Start-Sleep -s 120
     }
-    Write-Host "Microsoft Edge updater completed; version found: $((Get-Item "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe").VersionInfo.ProductVersion)"
+    Write-Host "Microsoft Edge updater completed; version found: $((Get-Item $edge_path).VersionInfo.ProductVersion)"
   }
 }
 
@@ -734,11 +738,10 @@ try {
   Generate-NativeImage
 
   # Only needed and applicable for 2008.
-  if([Environment]::OSVersion.Version.Major -eq 6 -and [Environment]::OSVersion.Version.Minor -le 1) {
+  if ([Environment]::OSVersion.Version.Major -eq 6 -and [Environment]::OSVersion.Version.Minor -le 1) {
     Write-Host 'Windows Server 2008/2008R2 detected. Setting IPv4 DNS Server source to DHCP.'
     & netsh interface ipv4 set dnsservers 'Local Area Connection' source=dhcp | Out-Null
   }
-  
 
   # Required for WMF 5.1 on Windows Server 2008R2
   # https://sccm-zone.com/fix-sysprep-error-on-windows-2008-r2-after-windows-management-framework-5-0-installation-b9e86b4c41e4
@@ -748,10 +751,10 @@ try {
 
   # Remove netsh helpers on Windows 11
   if ((Get-WmiObject Win32_OperatingSystem).Caption -Match "Windows 11") {
-    if  ((Get-Item -Path 'HKLM:\SOFTWARE\Microsoft\NetSh').GetValue('gvnichelper',$null) -ne $null) {
+    if ((Get-Item -Path 'HKLM:\SOFTWARE\Microsoft\NetSh').GetValue('gvnichelper',$null) -ne $null) {
       Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NetSh' -Name 'gvnichelper' -Force
     }
-    if  ((Get-Item -Path 'HKLM:\SOFTWARE\Microsoft\NetSh').GetValue('NetKVM',$null) -ne $null) {
+    if ((Get-Item -Path 'HKLM:\SOFTWARE\Microsoft\NetSh').GetValue('NetKVM',$null) -ne $null) {
       Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NetSh' -Name 'NetKVM' -Force
     }
   }
