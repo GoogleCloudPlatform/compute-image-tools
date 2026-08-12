@@ -24,7 +24,7 @@ RHEL_MINOR_VERSIONS = {
     "10": ["10.0", "10.2"],
 }
 
-RHEL_BETA_VERSIONS = ["10.2"]
+RHEL_BETA_VERSIONS = []
 RHEL_EUS_VERSIONS = ["9.6", "9.8", "10.0", "10.2"]
 RHEL_LVM_VERSIONS = ["8", "9", "9.4", "9.6", "9.8", "10", "10.0", "10.2"]
 RHEL_OOT_DRIVER_VERSIONS = ["10", "10.2"]
@@ -32,7 +32,6 @@ RHEL_SAP_VERSIONS = ([
     "8.8", "8.10", "9.2", "9.4", "9.6", "9.8", "10.0",
     "10.2",
 ])
-RHEL_UNSIGNED_OOT_DRIVER_VERSIONS = ["10"]
 
 ARCHITECTURES = ["x86_64", "arm64"]
 PLANS = ["payg", "byos"]
@@ -176,8 +175,7 @@ def generate_workflow_file(image_name,
                            el_install_disk_size,
                            rhui_package_name,
                            el_release,
-                           is_oot_driver,
-                           is_unsigned_oot_driver):
+                           is_oot_driver):
     workflow_name = f"build-{image_name}"
 
     build_rhel_vars = {
@@ -199,7 +197,6 @@ def generate_workflow_file(image_name,
 
     if major_version == "10":
         build_rhel_vars["is_oot_driver"] = f"{is_oot_driver}"
-        build_rhel_vars["is_unsigned_oot_driver"] = f"{is_unsigned_oot_driver}"
 
     wf = {
         "Name": workflow_name,
@@ -273,8 +270,7 @@ def write_workflow_file(major_version,
                         arch,
                         minor_version,
                         is_beta,
-                        is_oot_driver,
-                        is_unsigned_oot_driver):
+                        is_oot_driver):
     image_name = "rhel-"
     if minor_version:
         image_name += minor_version.replace('.', '-')
@@ -288,10 +284,8 @@ def write_workflow_file(major_version,
        image_name += "-sap"
     if is_lvm:
        image_name += "-lvm"
-    if is_oot_driver or is_unsigned_oot_driver:
+    if is_oot_driver:
        image_name += "-gvnic-baremetal"
-    if is_unsigned_oot_driver:
-       image_name += "-unsigned"
     if plan == "byos":
        image_name += "-byos"
     if arch == "arm64":
@@ -320,10 +314,8 @@ def write_workflow_file(major_version,
         description += " x86_64"
     else:
         description += " aarch64"
-    if is_oot_driver or is_unsigned_oot_driver:
+    if is_oot_driver:
         description += " with OOT GVNIC BareMetal Support"
-    if is_unsigned_oot_driver:
-        description += " Unsigned"
     if is_lvm:
         description += " with a LVM boot volume"
     description += " built on ${build_date}"
@@ -368,7 +360,7 @@ def write_workflow_file(major_version,
                             is_lvm,
                             is_sap,
                             is_beta,
-                            is_oot_driver or is_unsigned_oot_driver)
+                            is_oot_driver)
     guest_os_features = get_guest_os_features(major_version,
                                               arch,
                                               is_sap,
@@ -391,8 +383,7 @@ def write_workflow_file(major_version,
                                 el_install_disk_size,
                                 rhui_package_name,
                                 el_release,
-                                is_oot_driver,
-                                is_unsigned_oot_driver)
+                                is_oot_driver)
     script_dir = os.path.dirname(os.path.abspath(__file__))
     image_name = image_name.replace('-', '_')
     file_name = os.path.join(script_dir, f"{image_name}.wf.json")
@@ -408,7 +399,6 @@ def main():
     is_lvm = False
     is_oot_driver = False
     is_sap = False
-    is_unsigned_oot_driver = False
 
     for arch in ARCHITECTURES:
         for plan in PLANS:
@@ -423,25 +413,7 @@ def main():
                                         arch,
                                         '',
                                         is_beta,
-                                        is_oot_driver,
-                                        is_unsigned_oot_driver)  # LVM
-                    # UNSIGNED OOT GVNIC DRIVER & LVM
-                    # OOT GVNIC DRIVER only supports x86_64
-                    if (arch == "x86_64"
-                        and major_version in
-                        RHEL_UNSIGNED_OOT_DRIVER_VERSIONS):
-                        is_unsigned_oot_driver = True
-                        write_workflow_file(major_version,
-                                            plan,
-                                            is_eus,
-                                            is_lvm,
-                                            is_sap,
-                                            arch,
-                                            '',
-                                            is_beta,
-                                            is_oot_driver,
-                                            is_unsigned_oot_driver)
-                        is_unsigned_oot_driver = False
+                                        is_oot_driver)  # LVM
                     # OOT GVNIC DRIVER & LVM
                     # OOT GVNIC DRIVER only supports x86_64
                     if (arch == "x86_64"
@@ -456,8 +428,7 @@ def main():
                                             arch,
                                             '',
                                             is_beta,
-                                            is_oot_driver,
-                                            is_unsigned_oot_driver)
+                                            is_oot_driver)
                         is_oot_driver = False
                 is_lvm = False
                 write_workflow_file(major_version,
@@ -468,25 +439,7 @@ def main():
                                     arch,
                                     '',
                                     is_beta,
-                                    is_oot_driver,
-                                    is_unsigned_oot_driver)  # Base image
-                # UNSIGNED OOT GVNIC DRIVER
-                # OOT GVNIC DRIVER only supports x86_64
-                if (arch == "x86_64"
-                    and major_version in
-                    RHEL_UNSIGNED_OOT_DRIVER_VERSIONS):
-                    is_unsigned_oot_driver = True
-                    write_workflow_file(major_version,
-                                        plan,
-                                        is_eus,
-                                        is_lvm,
-                                        is_sap,
-                                        arch,
-                                        '',
-                                        is_beta,
-                                        is_oot_driver,
-                                        is_unsigned_oot_driver)
-                    is_unsigned_oot_driver = False
+                                    is_oot_driver)  # Base image
                 # OOT GVNIC DRIVER
                 # OOT GVNIC DRIVER only supports x86_64
                 if (arch == "x86_64"
@@ -501,8 +454,7 @@ def main():
                                         arch,
                                         '',
                                         is_beta,
-                                        is_oot_driver,
-                                        is_unsigned_oot_driver)
+                                        is_oot_driver)
                     is_oot_driver = False
                 for minor_version in RHEL_MINOR_VERSIONS[major_version]:
                     if minor_version not in RHEL_EUS_VERSIONS \
@@ -520,8 +472,7 @@ def main():
                                             arch,
                                             minor_version,
                                             is_beta,
-                                            is_oot_driver,
-                                            is_unsigned_oot_driver)  # EUS
+                                            is_oot_driver)  # EUS
                         # EUS + LVM
                         if minor_version in RHEL_LVM_VERSIONS:
                             is_lvm = True
@@ -533,8 +484,7 @@ def main():
                                                 arch,
                                                 minor_version,
                                                 is_beta,
-                                                is_oot_driver,
-                                                is_unsigned_oot_driver)
+                                                is_oot_driver)
                     is_eus = False
                     is_lvm = False
                     # SAP only supports x86_64
@@ -549,8 +499,7 @@ def main():
                                             arch,
                                             minor_version,
                                             is_beta,
-                                            is_oot_driver,
-                                            is_unsigned_oot_driver)  # SAP
+                                            is_oot_driver)  # SAP
                     is_sap = False
                     # Beta is not ready for arm64 yet, so only generate beta
                     # workflow for x86_64. Only payg is currently requested
@@ -566,8 +515,7 @@ def main():
                                             arch,
                                             minor_version,
                                             is_beta,
-                                            is_oot_driver,
-                                            is_unsigned_oot_driver)  # Beta
+                                            is_oot_driver)  # Beta
                     is_beta = False
                     # GVNIC BareMetal is only supported for x86_64
                     if (arch == "x86_64"
@@ -584,8 +532,7 @@ def main():
                                             arch,
                                             minor_version,
                                             is_beta,
-                                            is_oot_driver,
-                                            is_unsigned_oot_driver)
+                                            is_oot_driver)
                         is_lvm = True
                         # EUS OOT GVNIC + LVM
                         write_workflow_file(major_version,
@@ -596,8 +543,7 @@ def main():
                                             arch,
                                             minor_version,
                                             is_beta,
-                                            is_oot_driver,
-                                            is_unsigned_oot_driver)
+                                            is_oot_driver)
                     is_eus = False
                     is_lvm = False
                     is_oot_driver = False
