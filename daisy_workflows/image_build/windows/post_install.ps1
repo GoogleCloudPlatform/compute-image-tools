@@ -562,9 +562,14 @@ function Install-DriverPackages {
 
 function Update-Edge {
   $edge_path = 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'
+  $attempts = 0
   # Check if the Edge update is finished before continuing
   if (Test-Path $edge_path) {
     while ((Get-Item $edge_path).LastWriteTime -lt (Get-Date).AddMonths(-1)) {
+      if ($attempts -ge 5) {
+        Write-Host 'Microsoft Edge updater failed to update after 5 attempts.'
+        Restart-Computer -Force
+      }
       Write-Host "Microsoft Edge version: $((Get-Item $edge_path).VersionInfo.ProductVersion) with a last write time of $((Get-Item $edge_path).LastWriteTime)"
 
       $taskExistEdgeUpdateCore = Get-ScheduledTask | Where-Object {$_.TaskName -like 'MicrosoftEdgeUpdateTaskMachineCore*' }
@@ -586,6 +591,7 @@ function Update-Edge {
       }
       Write-Host 'Sleeping for 120 seconds.'
       Start-Sleep -s 120
+      $attempts++
     }
     Write-Host "Microsoft Edge updater completed; version found: $((Get-Item $edge_path).VersionInfo.ProductVersion)"
   }
