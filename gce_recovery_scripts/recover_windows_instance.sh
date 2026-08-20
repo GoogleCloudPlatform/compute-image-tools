@@ -50,7 +50,7 @@ fi
 
 
 # 2. Verify instance exists
-verifyInstanceOutput=$(gcloud compute instances list --zones="${zone}" --project="${project}" --filter=name=$instance)
+verifyInstanceOutput=$(gcloud compute instances list --zones="${zone}" --project="${project}" --filter=name="$instance")
 if [[ $verifyInstanceOutput == *$instance* ]]; then
     echo Found instance $instance in zone $zone of project $project
 else
