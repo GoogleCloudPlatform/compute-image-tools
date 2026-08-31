@@ -42,8 +42,7 @@
           "is_lvm": "False",
           "rhui_package_name": "google-rhui-client-rhel10-eus",
           "version_lock": "10.2",
-          "is_oot_driver": "False",
-          "is_unsigned_oot_driver": "False"
+          "is_oot_driver": "False"
         }
       }
     },

@@ -63,10 +63,6 @@
         "Value": "false",
         "Description": "If the image has Out-of-Tree driver support"
     },
-    "is_unsigned_oot_driver": {
-        "Value": "false",
-        "Description": "If the image has an unsigned Out-of-Tree driver. This is for internal testing only"
-    },
     "rhui_package_name": {
         "Value": "",
         "Description": "Name of the RHUI client package"
@@ -131,7 +127,6 @@
             "is_eus": "${is_eus}",
             "is_lvm": "${is_lvm}",
             "is_oot_driver": "${is_oot_driver}",
-            "is_unsigned_oot_driver": "${is_unsigned_oot_driver}",
             "rhui_package_name": "${rhui_package_name}",
             "use_dynamic_template": "${use_dynamic_template}",
             "version_lock": "${version_lock}"

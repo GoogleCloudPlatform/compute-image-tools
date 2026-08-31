@@ -22,7 +22,6 @@ is_eus: If the image has Extended Update Support (EUS)
 is_lvm: If the image has Logical Volume Manager (LVM) support
 is_oot_driver: If the image has Out-of-Tree driver support
 is_sap: If the image is RHEL for SAP
-is_unsigned_oot_driver: If the image has an unsigned Out-of-Tree driver
 package_name: The name of the RHUI package
 el_release: The EL release to build.
 use_dynamic_template: Use the dynamically created templates to create images
@@ -61,8 +60,6 @@ def main():
       'is_oot_driver', raise_on_not_found=False).lower()
     is_sap = utils.GetMetadataAttribute(
       'rhel_sap', raise_on_not_found=False).lower()
-    is_unsigned_oot_driver = utils.GetMetadataAttribute(
-      'is_unsigned_oot_driver', raise_on_not_found=False).lower()
     rhui_package_name = utils.GetMetadataAttribute(
       'rhui_package_name', raise_on_not_found=True).lower()
     version_lock = utils.GetMetadataAttribute(
@@ -136,8 +133,6 @@ def main():
       if is_oot_driver:
         f.write(f'IS_OOT_DRIVER={is_oot_driver}\n')
       f.write(f'IS_SAP={is_sap}\n')
-      if is_unsigned_oot_driver:
-        f.write(f'IS_UNSIGNED_OOT_DRIVER={is_unsigned_oot_driver}\n')
       f.write(f'RHUI_PACKAGE_NAME={str(rhui_package_name).lower()}\n')
       if version_lock:
         f.write(f'VERSION_LOCK="{version_lock}"\n')
