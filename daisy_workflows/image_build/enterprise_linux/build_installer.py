@@ -44,6 +44,13 @@ def main():
   # Get Parameters
   release = utils.GetMetadataAttribute('el_release', raise_on_not_found=True)
   savelogs = utils.GetMetadataAttribute('el_savelogs') == 'true'
+  google_cloud_repo = utils.GetMetadatAttribute(
+      'google_cloud_repo', default_value='stable').lower()
+  if google_cloud_repo not in ('stable', 'unstable', 'staging'):
+    raise Exception(
+      'invalid image build config: google_cloud_repo must be one of '
+      'stable, unstable, staging'
+    )
   use_dynamic_template = utils.GetMetadataAttribute(
     'use_dynamic_template', raise_on_not_found=False).lower()
 
@@ -123,9 +130,10 @@ def main():
   utils.Execute(['mount', '-t', 'vfat', installer_disk1, 'boot'])
   utils.Execute(['mount', '-t', 'ext4', installer_disk2, 'installer'])
 
-  if use_dynamic_template == 'true':
-    logging.info('Writing Kickstart variables file to installer disk.')
-    with open(kickstart_vars_file, 'w') as f:
+  logging.info('Writing Kickstart variables file to installer disk.')
+  with open(kickstart_vars_file, 'w') as f:
+    f.write(f'GOOGLE_CLOUD_REPO={google_cloud_repo}\n')
+    if use_dynamic_template == 'true':
       f.write(f'IS_ARM={is_arm}\n')
       f.write(f'IS_BYOS={is_byos}\n')
       f.write(f'IS_EUS={is_eus}\n')
@@ -136,14 +144,13 @@ def main():
       f.write(f'RHUI_PACKAGE_NAME={str(rhui_package_name).lower()}\n')
       if version_lock:
         f.write(f'VERSION_LOCK="{version_lock}"\n')
-    logging.info(f'Successfully wrote {kickstart_vars_file}')
+  logging.info(f'Successfully wrote {kickstart_vars_file}')
 
   utils.Execute(['cp', '-r', 'iso/EFI', 'boot/'])
   utils.Execute(['cp', '-r', 'iso/images', 'boot/'])
   utils.Execute(['cp', iso_file, 'installer/'])
   utils.Execute(['cp', ks_cfg, 'installer/'])
-  if use_dynamic_template == 'true':
-    utils.Execute(['cp', kickstart_vars_file, 'installer/'])
+  utils.Execute(['cp', kickstart_vars_file, 'installer/'])
 
   # The kickstart config contains a preinstall script copying, reloading, and
   # triggering this rule in the install environment. This allows us to use
