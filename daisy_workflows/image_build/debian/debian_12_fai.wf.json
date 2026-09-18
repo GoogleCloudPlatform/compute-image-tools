@@ -5,6 +5,10 @@
       "Value": "${DATE}",
       "Description": "Build datestamp used to version the image."
     },
+    "google_cloud_repo": {
+      "Value": "stable",
+      "Description": "The Google Cloud Repo branch to use."
+    },
     "builder_machine_type": {
       "Value": "e2-standard-4",
       "Description": "The machine type to use during build."
@@ -25,6 +29,7 @@
         "Path": "./debian_fai.wf.json",
         "Vars": {
           "build_date": "${build_date}",
+          "google_cloud_repo": "${google_cloud_repo}",
           "builder_machine_type": "${builder_machine_type}",
           "builder_disk_type": "${builder_disk_type}",
           "debian_version": "bookworm"

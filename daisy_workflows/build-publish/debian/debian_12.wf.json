@@ -21,8 +21,8 @@
       "Description": "The name of the export disk."
     },
     "google_cloud_repo": {
-      "Value": "DEPRECATED",
-      "Description": "DEPRECATED. Included to ease transition of our pipelines, but not used."
+      "Value": "stable",
+      "Description": "The Google Cloud Repo branch to use."
     },
     "workflow_root": {
       "Value": "/workflows",
@@ -52,6 +52,7 @@
         "Path": "${workflow_root}/image_build/debian/debian_12_fai.wf.json",
         "Vars": {
           "build_date": "${build_date}",
+          "google_cloud_repo": "${google_cloud_repo}",
           "builder_machine_type": "${builder_machine_type}"
         }
       }

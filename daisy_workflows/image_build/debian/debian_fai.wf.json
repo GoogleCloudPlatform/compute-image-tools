@@ -4,6 +4,7 @@
   "Vars": {
     "build_date": {"Value": "${DATE}", "Description": "Image version. Defaults to today's date."},
     "debian_version": {"Required": true, "Description": "Debian version to build."},
+    "google_cloud_repo": {"Value": "stable", "Description": "The Google Cloud Repo branch to use."},
     "builder_machine_type": {"Value": "e2-standard-4", "Description": "Machine type for builder instance."},
     "builder_disk_type": {"Value": "pd-ssd", "Description": "Disk type for builder instance."},
     "builder_source_image": {
@@ -37,6 +38,7 @@
           "Metadata": {
             "build_date": "${build_date}",
             "debian_version": "${debian_version}",
+            "google_cloud_repo": "${google_cloud_repo}",
             "files_gcs_dir": "${SOURCESPATH}/build_files",
             "debian_install_google_api_python_client": "yes",
             "script": "build.py",
