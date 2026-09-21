@@ -25,11 +25,13 @@ is_sap: If the image is RHEL for SAP
 package_name: The name of the RHUI package
 el_release: The EL release to build.
 use_dynamic_template: Use the dynamically created templates to create images
-               as part of the RHEL Build Workflow Consolidation work.
-               To remove once the consolidation/refactoring is complete
+              as part of the RHEL Build Workflow Consolidation work.
+              To remove once the consolidation/refactoring is complete
 el_savelogs: true to ask Anaconda to save logs (for debugging).
 version_lock: The minor release version that the Image is locked
               to if EUS or SAP (ex. "9.4")
+google_cloud_repo: The Google Cloud repository track to pull guest packages
+              from. One of canary, global, stable, staging, or unstable.
 """
 
 import difflib
@@ -46,10 +48,16 @@ def main():
   savelogs = utils.GetMetadataAttribute('el_savelogs') == 'true'
   google_cloud_repo = utils.GetMetadataAttribute(
       'google_cloud_repo', default_value='stable').lower()
-  if google_cloud_repo not in ('stable', 'unstable', 'staging'):
+  if google_cloud_repo not in (
+      'canary',
+      'global',
+      'stable',
+      'staging',
+      'unstable',
+  ):
     raise Exception(
-      'invalid image build config: google_cloud_repo must be one of '
-      'stable, unstable, staging'
+        'invalid image build config: google_cloud_repo must be one of '
+        'canary, global, stable, staging, unstable'
     )
   use_dynamic_template = utils.GetMetadataAttribute(
     'use_dynamic_template', raise_on_not_found=False).lower()
