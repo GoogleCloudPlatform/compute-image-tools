@@ -20,6 +20,8 @@ Parameters (retrieved from instance metadata):
 debian_cloud_images_version: The debian-cloud-images scripts git commit ID
 to use.
 debian_version: The FAI tool debian version to be requested.
+google_cloud_repo: The Google Cloud repo branch (canary, global, stable,
+staging, or unstable) to configure the guest environment apt source against.
 image_dest: The Cloud Storage destination for the resultant image.
 """
 
@@ -61,11 +63,16 @@ def main():
       'debian_version', raise_on_not_found=True)
   if not re.fullmatch(r'[a-zA-Z]+', debian_version):
     raise ValueError('Invalid debian_version: %s' % debian_version)
+  google_cloud_repo = utils.GetMetadataAttribute(
+      'google_cloud_repo', default_value='stable').lower()
+  if google_cloud_repo not in ('canary','global','stable','staging','unstable'):
+    raise ValueError('Invalid google_cloud_repo: %s' % google_cloud_repo)
   outs_path = utils.GetMetadataAttribute('daisy-outs-path',
                                          raise_on_not_found=True)
 
   logging.info('debian-cloud-images version: %s' % debian_cloud_images_version)
   logging.info('debian version: %s' % debian_version)
+  logging.info('google cloud repo: %s' % google_cloud_repo)
 
   # force an apt-get update before next install
   utils.AptGetInstall.first_run = True
@@ -98,6 +105,23 @@ def main():
 
   # Copy our classes to the FAI config space
   mycopytree('/files/fai_config', config_space)
+
+  # Point the Google Cloud repo to the requested branch.
+  # NOTE: {%SUITE%} is upstream debian-cloud-images templating, so must be
+  # left intact here for upstream to substitute later in the build.
+  default = 'google-compute-engine-{%SUITE%}-stable'
+  replacement = 'google-compute-engine-{%SUITE%}-' + google_cloud_repo
+  for fai_class in ('GCE_SPECIFIC', 'TRIXIE'):
+    list_path = (config_space
+                 + 'files/etc/apt/sources.list.d/google-cloud.list/'
+                 + fai_class)
+    with open(list_path) as f:
+      google_cloud_list = f.read()
+    if default not in google_cloud_list:
+      raise ValueError(
+          'Cannot set repo branch in %s: %r not found' % (list_path, default))
+    with open(list_path, 'w') as f:
+      f.write(google_cloud_list.replace(default, replacement))
 
   # Set scripts executable (daisy doesn't preserve this)
   os.chmod(config_space + 'scripts/BOOKWORM/10-clean', 0o755)
