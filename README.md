@@ -3,7 +3,7 @@
 Tools for building, testing, releasing, and upgrading
 [Google Compute Engine images](https://cloud.google.com/compute/docs/images).
 
-## [GCE Export](cli_tools/gce_export)
+## [GCE Export](gce_export)
 
 Streams an attached Google Compute Engine disk to an image file in a Google
 Cloud Storage bucket.

@@ -162,10 +162,10 @@ def main():
 
   # The kickstart config contains a preinstall script copying, reloading, and
   # triggering this rule in the install environment. This allows us to use
-  # predictable names for block devices. It would be perferable to take a
-  # simpler approach such as selecting the disk with an unkown partition table
+  # predictable names for block devices. It would be preferable to take a
+  # simpler approach such as selecting the disk with an unknown partition table
   # but kickstart does not believe the default google nvme device names are
-  # are deterministic and refuses to use them without user input.
+  # deterministic and refuses to use them without user input.
 
   utils.Execute(['cp', '-L', '/usr/lib/udev/rules.d/65-gce-disk-naming.rules',
   'installer/'])

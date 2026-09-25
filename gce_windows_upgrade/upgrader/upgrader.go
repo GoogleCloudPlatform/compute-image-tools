@@ -231,7 +231,7 @@ func (u *upgrader) handleResult(err error) {
 		fmt.Printf("\nNo boot disk attached during the failure. No need to rollback. "+
 			"If the instance doesn't work as expected, please verify that the original "+
 			"boot disk (%v) is attached and whether the instance has started. If necessary, "+
-			"please manually rollback by using the instructions in the guide..\n\n", u.osDiskURI)
+			"please manually rollback by using the instructions in the guide.\n\n", u.osDiskURI)
 	}
 
 	fmt.Printf("\nUpgrade failed. Please manually rollback following the " +

@@ -222,7 +222,7 @@ func main() {
 				fmt.Println(e)
 			}
 			currTime = time.Now().Format(time.RFC3339)
-			fmt.Println(fmt.Sprintf(timeFormat, currTime), "Cleaning staing os policy assignments")
+			fmt.Println(fmt.Sprintf(timeFormat, currTime), "Cleaning staging os policy assignments")
 			cleaned, errs = cleanerupper.CleanOSPolicyAssignments(ctx, stagingClients, p, policy, *dryRun)
 			for _, c := range cleaned {
 				fmt.Printf(" - %s\n", c)
