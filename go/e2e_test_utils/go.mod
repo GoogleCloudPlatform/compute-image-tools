@@ -3,7 +3,7 @@ module github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils
 go 1.25.0
 
 require (
-	github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0-20200805192452-5b81051e3e71
+	github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0
 	github.com/google/uuid v1.6.0
 )
 
@@ -19,7 +19,7 @@ require (
 	cloud.google.com/go/monitoring v1.24.3 // indirect
 	cloud.google.com/go/storage v1.61.3 // indirect
 	github.com/GoogleCloudPlatform/compute-daisy v0.0.0-20260316183733-5de4cd69c987 // indirect
-	github.com/GoogleCloudPlatform/compute-image-tools/proto/go v0.0.0-20260324183941-6f827da375d5 // indirect
+	github.com/GoogleCloudPlatform/compute-image-tools/proto/go v0.0.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.33.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.55.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.55.0 // indirect

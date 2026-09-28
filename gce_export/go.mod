@@ -3,7 +3,7 @@ module github.com/GoogleCloudPlatform/compute-image-tools/gce_export
 go 1.26.1
 
 require (
-	github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0-20260701213853-5d99e6dceb69
+	github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/klauspost/pgzip v1.2.6
 	golang.org/x/sys v0.47.0
@@ -22,7 +22,7 @@ require (
 	cloud.google.com/go/monitoring v1.29.0 // indirect
 	cloud.google.com/go/storage v1.63.0 // indirect
 	github.com/GoogleCloudPlatform/compute-daisy v0.0.0-20260430051430-8b2c1c280cc2 // indirect
-	github.com/GoogleCloudPlatform/compute-image-tools/proto/go v0.0.0-20260701213853-5d99e6dceb69 // indirect
+	github.com/GoogleCloudPlatform/compute-image-tools/proto/go v0.0.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.33.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.57.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.57.0 // indirect

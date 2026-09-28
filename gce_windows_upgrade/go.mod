@@ -4,7 +4,7 @@ go 1.26.1
 
 require (
 	github.com/GoogleCloudPlatform/compute-daisy v0.0.0-20260812160834-b10a7fd1f17f
-	github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0-20260902225241-b645f6a16b99
+	github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0
 	github.com/golang/mock v1.6.0
 	github.com/stretchr/testify v1.12.1
 	google.golang.org/api v0.297.0
@@ -21,7 +21,7 @@ require (
 	cloud.google.com/go/longrunning v1.2.0 // indirect
 	cloud.google.com/go/monitoring v1.30.0 // indirect
 	cloud.google.com/go/storage v1.66.0 // indirect
-	github.com/GoogleCloudPlatform/compute-image-tools/proto/go v0.0.0-20260902225241-b645f6a16b99 // indirect
+	github.com/GoogleCloudPlatform/compute-image-tools/proto/go v0.0.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.37.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.61.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.61.0 // indirect
