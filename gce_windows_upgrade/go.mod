@@ -21,7 +21,6 @@ require (
 	cloud.google.com/go/longrunning v1.2.0 // indirect
 	cloud.google.com/go/monitoring v1.30.0 // indirect
 	cloud.google.com/go/storage v1.66.0 // indirect
-	github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20220307223029-04ad9f09e70d // indirect
 	github.com/GoogleCloudPlatform/compute-image-tools/proto/go v0.0.0-20260902225241-b645f6a16b99 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.37.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.61.0 // indirect
@@ -69,3 +68,9 @@ require (
 	google.golang.org/grpc v1.83.2 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )
+
+replace github.com/GoogleCloudPlatform/compute-image-tools/cli_tools => ../cli_tools
+
+replace github.com/GoogleCloudPlatform/compute-image-tools/common => ../common
+
+replace github.com/GoogleCloudPlatform/compute-image-tools/proto/go => ../proto/go
