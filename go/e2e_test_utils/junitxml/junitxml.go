@@ -105,7 +105,7 @@ func (c *TestCase) Logf(msg string, args ...interface{}) {
 // WriteFailure marks a TestCase as failed with the provided message.
 func (c *TestCase) WriteFailure(msg string, args ...interface{}) {
 	msg = fmt.Sprintf(msg, args...)
-	c.Logf(msg)
+	c.Logf("%s", msg)
 	c.Failure = &junitFailure{
 		FailMessage: msg,
 		FailType:    "Failure",

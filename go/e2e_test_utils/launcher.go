@@ -20,7 +20,6 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -154,7 +153,7 @@ func outputTestResultToFile(tests chan *junitxml.TestSuite, logger *log.Logger) 
 			log.Fatal(err)
 		}
 
-		if err := ioutil.WriteFile(testSuiteOutPath, d, 0644); err != nil {
+		if err := os.WriteFile(testSuiteOutPath, d, 0644); err != nil {
 			log.Fatal(err)
 		}
 	}
