@@ -13,6 +13,8 @@ updates:
       - "/proto/go"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     groups:
       go-version-updates:
         applies-to: version-updates
