@@ -20,7 +20,7 @@ require (
 	cloud.google.com/go/logging v1.19.1 // indirect
 	cloud.google.com/go/longrunning v1.2.0 // indirect
 	cloud.google.com/go/monitoring v1.30.0 // indirect
-	cloud.google.com/go/storage v1.66.0 // indirect
+	cloud.google.com/go/storage v1.68.0 // indirect
 	github.com/GoogleCloudPlatform/compute-image-tools/proto/go v0.0.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.37.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.61.0 // indirect
