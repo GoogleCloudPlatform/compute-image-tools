@@ -1,0 +1,27 @@
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directories:
+      - "/cleanerupper_container"
+      - "/cli_tools"
+      - "/cli_tools_tests"
+      - "/common"
+      - "/gce_export"
+      - "/gce_image_publish"
+      - "/gce_windows_upgrade"
+      - "/go/e2e_test_utils"
+      - "/proto/go"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    groups:
+      go-version-updates:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        group-by: dependency-name
+      go-security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
