@@ -3,7 +3,7 @@ module github.com/GoogleCloudPlatform/compute-image-tools/cli_tools
 go 1.25.0
 
 require (
-	cloud.google.com/go/compute/metadata v0.9.0
+	cloud.google.com/go/compute/metadata v0.9.1
 	cloud.google.com/go/storage v1.61.3
 	github.com/GoogleCloudPlatform/compute-daisy v0.0.0-20260316183733-5de4cd69c987
 	github.com/GoogleCloudPlatform/compute-image-tools/common v0.0.0

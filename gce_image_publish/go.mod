@@ -3,7 +3,7 @@ module github.com/GoogleCloudPlatform/compute-image-tools/gce_image_publish
 go 1.26.1
 
 require (
-	cloud.google.com/go/compute/metadata v0.9.0
+	cloud.google.com/go/compute/metadata v0.9.1
 	github.com/GoogleCloudPlatform/compute-daisy v0.0.0-20260430051430-8b2c1c280cc2
 	github.com/google/go-cmp v0.7.0
 	google.golang.org/api v0.287.0
