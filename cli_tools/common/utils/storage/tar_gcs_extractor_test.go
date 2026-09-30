@@ -18,7 +18,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"testing"
 
@@ -38,7 +38,7 @@ func TestExtractTarToGcs(t *testing.T) {
 	testTarFileReader := bufio.NewReader(testTarFile)
 
 	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
-	mockStorageObject.EXPECT().NewReader().Return(ioutil.NopCloser(testTarFileReader), nil)
+	mockStorageObject.EXPECT().NewReader().Return(io.NopCloser(testTarFileReader), nil)
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().
@@ -115,7 +115,7 @@ func TestExtractTarToGcsErrorWhenWriteToGCSFailed(t *testing.T) {
 	testTarFileReader := bufio.NewReader(testTarFile)
 
 	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
-	mockStorageObject.EXPECT().NewReader().Return(ioutil.NopCloser(testTarFileReader), nil)
+	mockStorageObject.EXPECT().NewReader().Return(io.NopCloser(testTarFileReader), nil)
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().
@@ -163,7 +163,7 @@ func TestExtractTarToGcsErrorIfDirPresentInTar(t *testing.T) {
 	testTarFileReader := bufio.NewReader(testTarFile)
 
 	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
-	mockStorageObject.EXPECT().NewReader().Return(ioutil.NopCloser(testTarFileReader), nil)
+	mockStorageObject.EXPECT().NewReader().Return(io.NopCloser(testTarFileReader), nil)
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().

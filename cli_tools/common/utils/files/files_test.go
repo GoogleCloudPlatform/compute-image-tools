@@ -15,7 +15,6 @@
 package files
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -128,7 +127,7 @@ func makeNotExistantFile(t *testing.T) string {
 
 // makeTempFile returns the path to a new file in a temporary directory.
 func makeTempFile(t *testing.T) string {
-	tmpFileObj, err := ioutil.TempFile("", "*.txt")
+	tmpFileObj, err := os.CreateTemp("", "*.txt")
 	assert.NoError(t, err)
 	tmpFile := tmpFileObj.Name()
 	return tmpFile
@@ -136,7 +135,7 @@ func makeTempFile(t *testing.T) string {
 
 // makeTempDir returns the path to a new temporary directory.
 func makeTempDir(t *testing.T) string {
-	tmpDir, err := ioutil.TempDir("", "")
+	tmpDir, err := os.MkdirTemp("", "")
 	assert.NoError(t, err)
 	return tmpDir
 }
