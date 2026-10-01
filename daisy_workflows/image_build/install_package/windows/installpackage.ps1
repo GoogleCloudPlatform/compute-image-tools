@@ -63,7 +63,14 @@ function Install-Package {
 
     $paths = $gcs_path -split ','
     foreach ($path in $paths) {
-      & 'gcloud' storage cp $path "C:\Program Files\Google\Compute Engine\package.goo"
+      # Windows Server 2012 and 2012 R2 (NT 6.2 and 6.3) have an older version of
+      # Cloud SDK installed that does not support 'gcloud storage'.
+      if ([Environment]::OSVersion.Version.Major -eq 6) {
+        & 'gsutil' -m cp $path 'C:\Program Files\Google\Compute Engine\package.goo'
+      }
+      else {
+        & 'gcloud' storage cp $path 'C:\Program Files\Google\Compute Engine\package.goo'
+      }
       & 'googet' -noconfirm=true install "C:\Program Files\Google\Compute Engine\package.goo"
       Remove-Item -Path "C:\Program Files\Google\Compute Engine\package.goo" -ErrorAction SilentlyContinue
     }
