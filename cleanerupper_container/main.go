@@ -48,6 +48,7 @@ var (
 	snapshots           = flag.Bool("snapshots", false, "clean snapshots")
 	guestPolicies       = flag.Bool("guest_policies", false, "clean guest policies")
 	osPolicyAssignments = flag.Bool("ospolicy_assignments", false, "clean ospolicy assignments")
+	deprecatedImages    = flag.Bool("deprecated_images", false, "clean deprecated images, regardless of -duration")
 
 	now = time.Now()
 )
@@ -77,6 +78,7 @@ func main() {
 
 	cutoff := now.Add(time.Duration(-1) * *duration)
 	policy := cleanerupper.AgePolicy(cutoff)
+	deprecatePolicy := cleanerupper.DeprecatePolicy()
 	ps := strings.Split(*projects, ",")
 	if len(ps) == 0 {
 		log.Fatal("Need to provide at least 1 project")
@@ -162,6 +164,17 @@ func main() {
 			currTime := time.Now().Format(time.RFC3339)
 			fmt.Println(fmt.Sprintf(timeFormat, currTime), "Cleaning images")
 			cleaned, errs := cleanerupper.CleanImages(clients, p, policy, *dryRun)
+			for _, c := range cleaned {
+				fmt.Printf(" - %s\n", c)
+			}
+			for _, e := range errs {
+				fmt.Println(e)
+			}
+		}
+		if *deprecatedImages {
+			currTime := time.Now().Format(time.RFC3339)
+			fmt.Println(fmt.Sprintf(timeFormat, currTime), "Cleaning deprecated images")
+			cleaned, errs := cleanerupper.CleanImages(clients, p, deprecatePolicy, *dryRun)
 			for _, c := range cleaned {
 				fmt.Printf(" - %s\n", c)
 			}
