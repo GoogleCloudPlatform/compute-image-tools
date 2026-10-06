@@ -8,8 +8,8 @@ cloud.google.com/go/compute/metadata v0.9.1 h1:CTE1OWBQ0vnF5uHwdFAQJvMQ0Fi/KRcqq
 cloud.google.com/go/compute/metadata v0.9.1/go.mod h1:NtnlvB6X3t4R6xSWyVX/ZWk493PCxGQlhI/iqxh4M8I=
 cloud.google.com/go/longrunning v1.2.0 h1:WjYH3YHBGCxGJP9M4dWGHBfXr/cFIjMkNgWcJj7/iMM=
 cloud.google.com/go/longrunning v1.2.0/go.mod h1:5KMQALFGOCtFoi2xSOA1u3H7WKlhmckgiyFw7+LGQp0=
-cloud.google.com/go/osconfig v1.22.0 h1:r5lzneR9GNixJ96lZ6oIfJK9Cd5sKpnzZJe1LcGZf4w=
-cloud.google.com/go/osconfig v1.22.0/go.mod h1:bUL0FaSR2ahPcFRRYnd6a0LyUzsQYIdUpBq8Tmxg8fE=
+cloud.google.com/go/osconfig v1.23.0 h1:GWS7TdOKfmOnmXNMSLvT1JAiZeZu00HVXvyw0kmMRpk=
+cloud.google.com/go/osconfig v1.23.0/go.mod h1:jglDm60J3XNbcvMCczrS+VtCpztzhhXmjmgfNNsSyRU=
 github.com/GoogleCloudPlatform/cloud-image-tests v0.0.0-20260417013737-3ee3abf09335 h1:pd2ss2cce+xet6A5ZheLDaFur4vj/Hgcs7an28F83hI=
 github.com/GoogleCloudPlatform/cloud-image-tests v0.0.0-20260417013737-3ee3abf09335/go.mod h1:HbHHULMT3csDeFWxRIpmDCN+ohU7+h0SRG1lavDs+PQ=
 github.com/GoogleCloudPlatform/compute-daisy/compute v0.0.0-20240412204628-1d445aef3870 h1:fvhvq0eng3BpjHQucBoDla5LBrMBzjvwS3GSHjNrSxk=

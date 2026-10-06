@@ -3,7 +3,7 @@ module github.com/GoogleCloudPlatform/compute-image-tools/cleanerupper_container
 go 1.26.1
 
 require (
-	cloud.google.com/go/osconfig v1.22.0
+	cloud.google.com/go/osconfig v1.23.0
 	github.com/GoogleCloudPlatform/cloud-image-tests v0.0.0-20260417013737-3ee3abf09335
 	github.com/GoogleCloudPlatform/compute-daisy/compute v0.0.0-20240412204628-1d445aef3870
 	google.golang.org/api v0.299.0
