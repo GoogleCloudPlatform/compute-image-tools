@@ -206,6 +206,10 @@ function Bootstrap-InstallDisk {
 
   # Disable Defender real time monitoring to greatly increase image
   # expansion and patch deployment speed.
+  # Sometimes the command is run when the service is not ready.
+  while ((Get-Service WinDefend).Status -ne 'Running') {
+    Start-Sleep -Seconds 2
+  }
   Set-MpPreference -DisableRealtimeMonitoring $true
 
   Write-Output "Applying $edition wim image to install disk."
