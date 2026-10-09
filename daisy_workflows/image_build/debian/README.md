@@ -14,7 +14,7 @@ is a GCE Image in the build project.
 
 Debian build workflows all follow the steps:
 
-1. Create an instance using the `debian-11-worker` image as a boot disk and the
+1. Create an instance using the `debian-12-worker` image as a boot disk and the
    appropriate installer script as startup script
 
 1. On boot, the startup script performs the relevant build steps which output a
@@ -40,8 +40,8 @@ classes and the ones in the `fai_config` directory layered in.
 Example Daisy invocations:
 ```shell
 
-# Debian 11
+# Debian 12
 daisy -project my-project \
       -zone us-west1-a \
-      debian_11_fai.wf.json
+      debian_12_fai.wf.json
 ```

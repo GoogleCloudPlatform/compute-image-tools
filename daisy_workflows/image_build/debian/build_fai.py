@@ -135,34 +135,16 @@ def main():
   # Base classes used for everything
   fai_classes = ['BASE', 'DEBIAN', 'CLOUD', 'GCE', 'EXTRAS',
                  'GCE_SPECIFIC', 'GCE_CLEAN', 'LINUX_VARIANT_CLOUD',
-                 'BUILD_IMAGE', 'SYSTEM_BOOT', 'IPV6_DHCP']
-
-  # Debian switched to systemd-timesyncd for ntp starting with bookworm
-  if debian_version == 'buster' or debian_version == 'bullseye':
-    fai_classes += ['TIME_CHRONY']
-  else:
-    fai_classes += ['TIME_SYSTEMD']
+                 'BUILD_IMAGE', 'SYSTEM_BOOT', 'IPV6_DHCP', 'TIME_SYSTEMD']
 
   # Arch-specific classes
   if platform.machine() == 'aarch64':
-    if debian_version == 'buster' or debian_version == 'bullseye':
-      fai_classes += ['ARM64_NO_SECURE_BOOT']
-    else:
-      fai_classes += ['ARM64_SECURE_BOOT']
-    fai_classes += ['ARM64', 'GRUB_EFI_ARM64']
+    fai_classes += ['ARM64_SECURE_BOOT', 'ARM64', 'GRUB_EFI_ARM64']
   else:
     fai_classes += ['AMD64', 'GRUB_CLOUD_AMD64']
 
   # Version-specific classes used to select release and kernel
-  if debian_version == 'buster':  # Debian 10
-    fai_classes += ['BUSTER', 'LINUX_VERSION_BASE+LINUX_VARIANT_CLOUD']
-  elif debian_version == 'bullseye':  # Debian 11
-    fai_classes += ['BULLSEYE', 'LINUX_VERSION_BASE+LINUX_VARIANT_CLOUD']
-    # Use the backports kernel for Bullseye arm64 due to gVNIC.
-    if platform.machine() == 'aarch64':  # Debian 11 arm64
-      fai_classes += ['LINUX_VERSION_BACKPORTS',
-                      'LINUX_VERSION_BACKPORTS+LINUX_VARIANT_CLOUD']
-  elif debian_version == 'bookworm':  # Debian 12
+  if debian_version == 'bookworm':  # Debian 12
     fai_classes += ['BOOKWORM', 'LINUX_VERSION_BASE+LINUX_VARIANT_CLOUD']
   elif debian_version == 'trixie':    # Debian 13
     fai_classes += ['TRIXIE', 'LINUX_VERSION_BASE+LINUX_VARIANT_CLOUD']
