@@ -24,9 +24,6 @@ is_oot_driver: If the image has Out-of-Tree driver support
 is_sap: If the image is RHEL for SAP
 package_name: The name of the RHUI package
 el_release: The EL release to build.
-use_dynamic_template: Use the dynamically created templates to create images
-              as part of the RHEL Build Workflow Consolidation work.
-              To remove once the consolidation/refactoring is complete
 el_savelogs: true to ask Anaconda to save logs (for debugging).
 version_lock: The minor release version that the Image is locked
               to if EUS or SAP (ex. "9.4")
@@ -59,38 +56,35 @@ def main():
         'invalid image build config: google_cloud_repo must be one of '
         'canary, global, stable, staging, unstable'
     )
-  use_dynamic_template = utils.GetMetadataAttribute(
-    'use_dynamic_template', raise_on_not_found=False).lower()
 
-  if use_dynamic_template == 'true':
-    is_arm = utils.GetMetadataAttribute(
-      'is_arm', raise_on_not_found=False).lower()
-    is_byos = utils.GetMetadataAttribute(
-      'rhel_byos', raise_on_not_found=False).lower()
-    is_eus = utils.GetMetadataAttribute(
-      'is_eus', raise_on_not_found=False).lower()
-    is_lvm = utils.GetMetadataAttribute(
-      'is_lvm', raise_on_not_found=False).lower()
-    is_oot_driver = utils.GetMetadataAttribute(
-      'is_oot_driver', raise_on_not_found=False).lower()
-    is_sap = utils.GetMetadataAttribute(
-      'rhel_sap', raise_on_not_found=False).lower()
-    rhui_package_name = utils.GetMetadataAttribute(
-      'rhui_package_name', raise_on_not_found=True).lower()
-    version_lock = utils.GetMetadataAttribute(
-      'version_lock', raise_on_not_found=False).replace("-", ".")
+  is_arm = utils.GetMetadataAttribute(
+    'is_arm', raise_on_not_found=False).lower()
+  is_byos = utils.GetMetadataAttribute(
+    'rhel_byos', raise_on_not_found=False).lower()
+  is_eus = utils.GetMetadataAttribute(
+    'is_eus', raise_on_not_found=False).lower()
+  is_lvm = utils.GetMetadataAttribute(
+    'is_lvm', raise_on_not_found=False).lower()
+  is_oot_driver = utils.GetMetadataAttribute(
+    'is_oot_driver', raise_on_not_found=False).lower()
+  is_sap = utils.GetMetadataAttribute(
+    'rhel_sap', raise_on_not_found=False).lower()
+  rhui_package_name = utils.GetMetadataAttribute(
+    'rhui_package_name', raise_on_not_found=True).lower()
+  version_lock = utils.GetMetadataAttribute(
+    'version_lock', raise_on_not_found=False).replace("-", ".")
 
-    if (is_eus == 'true' or is_sap == 'true') and not version_lock:
-      raise Exception(
-        "invalid image build config: RHEL EUS & RHEL for "
-        "SAP images must be version locked")
-    if is_sap == 'true' and is_arm == 'true':
-      raise Exception(
-        "invalid image build config: RHEL for SAP is not supported for ARM")
-    if version_lock and int(version_lock.split(".")[1]) % 2 != 0:
-      raise Exception(
-        "invalid image build config: RHEL EUS & RHEL for SAP are only "
-        "created for even number minor releases")
+  if (is_eus == 'true' or is_sap == 'true') and not version_lock:
+    raise Exception(
+      "invalid image build config: RHEL EUS & RHEL for "
+      "SAP images must be version locked")
+  if is_sap == 'true' and is_arm == 'true':
+    raise Exception(
+      "invalid image build config: RHEL for SAP is not supported for ARM")
+  if version_lock and int(version_lock.split(".")[1]) % 2 != 0:
+    raise Exception(
+      "invalid image build config: RHEL EUS & RHEL for SAP are only "
+      "created for even number minor releases")
 
   logging.info('EL Release: %s' % release)
   logging.info('Build working directory: %s' % os.getcwd())
@@ -141,17 +135,16 @@ def main():
   logging.info('Writing Kickstart variables file to installer disk.')
   with open(kickstart_vars_file, 'w') as f:
     f.write(f'GOOGLE_CLOUD_REPO={google_cloud_repo}\n')
-    if use_dynamic_template == 'true':
-      f.write(f'IS_ARM={is_arm}\n')
-      f.write(f'IS_BYOS={is_byos}\n')
-      f.write(f'IS_EUS={is_eus}\n')
-      f.write(f'IS_LVM={is_lvm}\n')
-      if is_oot_driver:
-        f.write(f'IS_OOT_DRIVER={is_oot_driver}\n')
-      f.write(f'IS_SAP={is_sap}\n')
-      f.write(f'RHUI_PACKAGE_NAME={str(rhui_package_name).lower()}\n')
-      if version_lock:
-        f.write(f'VERSION_LOCK="{version_lock}"\n')
+    f.write(f'IS_ARM={is_arm}\n')
+    f.write(f'IS_BYOS={is_byos}\n')
+    f.write(f'IS_EUS={is_eus}\n')
+    f.write(f'IS_LVM={is_lvm}\n')
+    if is_oot_driver:
+      f.write(f'IS_OOT_DRIVER={is_oot_driver}\n')
+    f.write(f'IS_SAP={is_sap}\n')
+    f.write(f'RHUI_PACKAGE_NAME={str(rhui_package_name).lower()}\n')
+    if version_lock:
+      f.write(f'VERSION_LOCK="{version_lock}"\n')
   logging.info(f'Successfully wrote {kickstart_vars_file}')
 
   utils.Execute(['cp', '-r', 'iso/EFI', 'boot/'])

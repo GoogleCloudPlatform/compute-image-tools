@@ -87,7 +87,6 @@
           "is_lvm": "${is_lvm}",
           "is_oot_driver": "${is_oot_driver}",
           "rhui_package_name": "${rhui_package_name}",
-          "use_dynamic_template": "true",
           "version_lock": "${version_lock}"
         }
       }

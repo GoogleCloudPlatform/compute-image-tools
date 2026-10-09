@@ -82,7 +82,6 @@
           "is_eus": "${is_eus}",
           "is_lvm": "${is_lvm}",
           "rhui_package_name": "${rhui_package_name}",
-          "use_dynamic_template": "true",
           "version_lock": "${version_lock}"
         }
       }

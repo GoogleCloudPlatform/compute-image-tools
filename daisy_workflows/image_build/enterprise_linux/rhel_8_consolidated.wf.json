@@ -81,7 +81,6 @@
           "is_arm": "${is_arm}",
           "is_lvm": "${is_lvm}",
           "rhui_package_name": "${rhui_package_name}",
-          "use_dynamic_template": "true",
           "version_lock": "${version_lock}"
         }
       }
