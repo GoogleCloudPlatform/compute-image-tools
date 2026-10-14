@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -319,7 +319,7 @@ func (l *Logger) sendLogToServerWithRetry(logExtension *ComputeImageToolsLogExte
 		}
 
 		defer resp.Body.Close()
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		var lr logResponse
 		if err = json.Unmarshal(body, &lr); err != nil {
 			fmt.Println("Failed to parse log response: ", err, "\nResponse: ", string(body))
