@@ -188,6 +188,9 @@ func getAnonymizedFailureReason(err error) string {
 }
 
 func (l *Logger) getOutputInfo(loggable Loggable, err error) *OutputInfo {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
 	o := OutputInfo{}
 
 	if loggable != nil {
@@ -360,6 +363,9 @@ func (l *Logger) sendLogToServerWithRetry(logExtension *ComputeImageToolsLogExte
 }
 
 func (l *Logger) constructLogRequest(logExtension *ComputeImageToolsLogExtension) ([]byte, error) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
 	if logExtension == nil {
 		return nil, fmt.Errorf("won't log a nil event")
 	}
