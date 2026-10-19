@@ -685,6 +685,59 @@ function Install-PowerShell {
   }
 }
 
+function Register-XamlPackagesOnFirstLogon {
+  <#
+    .SYNOPSIS
+      Registers core XAML system packages on first user logon for Windows Server 2025 / Windows 11 24H2+.
+    .DESCRIPTION
+      Works around Microsoft KB5072911 and the Windows Server 2025 SYSTEM-context Sysprep known issue
+      (b/512591047) where MicrosoftWindows.Client.CBS, Microsoft.UI.Xaml.CBS, and
+      MicrosoftWindows.Client.Core fail to register in time on first RDP logon, causing explorer.exe
+      to crash with 0xc0000409 and resulting in a black screen.
+  #>
+  $cbs_manifest = 'C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\AppxManifest.xml'
+  if ([System.Environment]::OSVersion.Version.Build -lt 26100 -or -not (Test-Path $cbs_manifest)) {
+    return
+  }
+
+  Write-Host 'Configuring first-logon XAML AppX package registration workaround.'
+  $xaml_script_path = "$env:windir\System32\gce_register_xaml_packages.ps1"
+  $xaml_script_content = @'
+Remove-ItemProperty -Path 'HKCU:\Environment' -Name 'UserInitMprLogonScript' -ErrorAction SilentlyContinue
+$packages = @(
+  'C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\AppxManifest.xml',
+  'C:\Windows\SystemApps\Microsoft.UI.Xaml.CBS_8wekyb3d8bbwe\AppxManifest.xml',
+  'C:\Windows\SystemApps\MicrosoftWindows.Client.Core_cw5n1h2txyewy\AppxManifest.xml'
+)
+foreach ($manifest in $packages) {
+  if (Test-Path $manifest) {
+    Add-AppxPackage -Register -Path $manifest -DisableDevelopmentMode -ErrorAction SilentlyContinue
+  }
+}
+$sessionId = (Get-Process -Id $PID).SessionId
+if (-not (Get-Process -Name explorer -ErrorAction SilentlyContinue | Where-Object { $_.SessionId -eq $sessionId })) {
+  Start-Process explorer.exe
+}
+'@
+  Set-Content -Path $xaml_script_path -Value $xaml_script_content -Encoding ASCII -Force
+  $stub_cmd = "powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File $xaml_script_path"
+
+  # Configure Active Setup so explorer.exe runs registration synchronously before shell UI initialization.
+  $active_setup_path = 'HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\GCEWindowsXamlRegistration'
+  New-Item -Path $active_setup_path -Force | Out-Null
+  New-ItemProperty -Path $active_setup_path -Name '(Default)' -Value 'GCE Windows XAML Package Registration' -PropertyType String -Force | Out-Null
+  New-ItemProperty -Path $active_setup_path -Name 'StubPath' -Value $stub_cmd -PropertyType String -Force | Out-Null
+  New-ItemProperty -Path $active_setup_path -Name 'Version' -Value '1,0,0,0' -PropertyType String -Force | Out-Null
+  New-ItemProperty -Path $active_setup_path -Name 'IsInstalled' -Value 1 -PropertyType DWord -Force | Out-Null
+
+  # Configure Default User Environment\UserInitMprLogonScript (launched by userinit.exe even if explorer.exe
+  # crashes early) and RunOnce so new user profiles always register the XAML packages on first logon.
+  Run-Command reg load 'HKLM\DefaultUser' 'C:\Users\Default\NTUSER.DAT'
+  Run-Command reg add 'HKLM\DefaultUser\Environment' /v UserInitMprLogonScript /t REG_SZ /d $stub_cmd /f
+  Run-Command reg add 'HKLM\DefaultUser\Software\Microsoft\Windows\CurrentVersion\RunOnce' /v GCEWindowsXamlRegistration /t REG_SZ /d $stub_cmd /f
+  Run-Command reg unload 'HKLM\DefaultUser'
+}
+
 try {
   Write-Host 'Beginning post install powershell script.'
 
@@ -764,6 +817,8 @@ try {
       Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\NetSh' -Name 'NetKVM' -Force
     }
   }
+
+  Register-XamlPackagesOnFirstLogon
 
   Optimize-Image
 
