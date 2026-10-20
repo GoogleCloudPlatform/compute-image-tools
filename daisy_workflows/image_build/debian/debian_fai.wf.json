@@ -4,7 +4,7 @@
   "Vars": {
     "build_date": {"Value": "${DATE}", "Description": "Image version. Defaults to today's date."},
     "debian_version": {"Required": true, "Description": "Debian version to build."},
-    "google_cloud_repo": {"Value": "stable", "Description": "The Google Cloud Repo branch to use."},
+    "google_cloud_repo": {"Value": "global", "Description": "The Google Cloud Repo branch to use."},
     "builder_machine_type": {"Value": "e2-standard-4", "Description": "Machine type for builder instance."},
     "builder_disk_type": {"Value": "pd-ssd", "Description": "Disk type for builder instance."},
     "builder_source_image": {

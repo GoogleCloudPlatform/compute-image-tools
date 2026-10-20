@@ -20,7 +20,7 @@
       "Description": "The name of the export disk."
     },
     "google_cloud_repo": {
-      "Value": "stable",
+      "Value": "global",
       "Description": "The Google Cloud Repo branch to use."
     },
     "workflow_root": {

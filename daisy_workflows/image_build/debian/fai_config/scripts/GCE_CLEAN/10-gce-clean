@@ -3,13 +3,19 @@
 # Remove unnecessary packages.
 chroot $target apt-get -y autoremove
 
-# Remove GCE unstable and staging repos.
-rm -rf $target/etc/apt/sources.list.d/google-cloud-staging.list
-rm -rf $target/etc/apt/sources.list.d/google-cloud-unstable.list
+# Point the Google Cloud repo to stable.
+sed -i -E 's/google-compute-engine-([a-z]+)-(canary|global|staging|unstable)/google-compute-engine-\1-stable/g' $target/etc/apt/sources.list.d/google-cloud.list || exit 1
+# Check that no non-stable repos are configured.
+if grep -rqE 'google-compute-engine-[^[:space:]]*-(canary|global|staging|unstable)([[:space:]]|$)' $target/etc/apt/sources.list.d/; then
+  echo "apt sources still reference a non-stable google-compute-engine repo" >&2
+  exit 1
+fi
+# Check that the stable repo is configured.
+grep -qE 'google-compute-engine-[^[:space:]]+-stable([[:space:]]|$)' $target/etc/apt/sources.list.d/google-cloud.list || exit 1
 
-# Leave a baseline apt cache on the disk.
-chroot $target apt-get clean
-chroot $target apt-get update
+# Verify every configured repo is reachable and correctly signed. Package
+# lists and caches are removed later by scripts/LAST/10-cleanup.
+chroot $target apt-get -o Acquire::Retries=3 update --error-on=any || exit 1
 
 # Cleanup logs and caches
 rm -f $target/etc/mailname \

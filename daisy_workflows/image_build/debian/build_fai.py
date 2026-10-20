@@ -64,7 +64,7 @@ def main():
   if not re.fullmatch(r'[a-zA-Z]+', debian_version):
     raise ValueError('Invalid debian_version: %s' % debian_version)
   google_cloud_repo = utils.GetMetadataAttribute(
-      'google_cloud_repo', default_value='stable').lower()
+      'google_cloud_repo', default_value='global').lower()
   if google_cloud_repo not in ('canary','global','stable','staging','unstable'):
     raise ValueError('Invalid google_cloud_repo: %s' % google_cloud_repo)
   outs_path = utils.GetMetadataAttribute('daisy-outs-path',
