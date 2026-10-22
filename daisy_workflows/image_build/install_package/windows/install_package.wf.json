@@ -1,5 +1,6 @@
 {
   "Name": "windows-image-install-package",
+  "DefaultTimeout": "30m",
   "Vars": {
     "install_disk": "disk-install",
     "source_image": {
