@@ -561,39 +561,67 @@ function Install-DriverPackages {
 }
 
 function Update-Edge {
+  $edge_marker = "$script:components_path\edge_updated.tag"
+  if (Test-Path $edge_marker) {
+    Write-Host 'Microsoft Edge update already attempted, skipping.'
+    return
+  }
+
   $edge_path = 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'
+  $edge_update_exe = 'C:\Program Files (x86)\Microsoft\EdgeUpdate\MicrosoftEdgeUpdate.exe'
   $attempts = 0
   # Check if the Edge update is finished before continuing
   if (Test-Path $edge_path) {
-    while ((Get-Item $edge_path).LastWriteTime -lt (Get-Date).AddMonths(-1)) {
-      if ($attempts -ge 5) {
-        Write-Host 'Microsoft Edge updater failed to update after 5 attempts.'
-        Restart-Computer -Force
-      }
-      Write-Host "Microsoft Edge version: $((Get-Item $edge_path).VersionInfo.ProductVersion) with a last write time of $((Get-Item $edge_path).LastWriteTime)"
+    $initial_item = Get-Item $edge_path
+    $initial_version = $initial_item.VersionInfo.ProductVersion
+    $initial_write_time = $initial_item.LastWriteTime
 
-      $taskExistEdgeUpdateCore = Get-ScheduledTask | Where-Object {$_.TaskName -like 'MicrosoftEdgeUpdateTaskMachineCore*' }
-      if ($taskExistEdgeUpdateCore) {
-        Start-ScheduledTask -TaskName $taskExistEdgeUpdateCore.TaskName
-        Write-Host 'Microsoft Edge Core updater started.'
-      }
-      else {
-        Write-Host 'Microsoft Edge updater task MicrosoftEdgeUpdateTaskMachineCore not present.'
+    if ($initial_write_time -lt (Get-Date).AddMonths(-1)) {
+      Write-Host "Microsoft Edge version: $initial_version with a last write time of $initial_write_time"
+      foreach ($svc in @('edgeupdate', 'edgeupdatem')) {
+        Set-Service -Name $svc -StartupType Manual -ErrorAction SilentlyContinue
       }
 
-      $taskExistEdgeUpdateUA = Get-ScheduledTask | Where-Object {$_.TaskName -like 'MicrosoftEdgeUpdateTaskMachineUA*' }
-      if ($taskExistEdgeUpdateUA) {
-        Start-ScheduledTask -TaskName $taskExistEdgeUpdateUA.TaskName
-        Write-Host 'Microsoft Edge UA updater started.'
+      foreach ($pattern in @('MicrosoftEdgeUpdateTaskMachineCore*', 'MicrosoftEdgeUpdateTaskMachineUA*')) {
+        $task = Get-ScheduledTask | Where-Object { $_.TaskName -like $pattern }
+        if ($task) {
+          Start-ScheduledTask -TaskName $task.TaskName
+          Write-Host "Started $($task.TaskName)."
+        }
+        else {
+          Write-Host "Microsoft Edge updater task $pattern not present."
+        }
       }
-      else {
-        Write-Host 'Microsoft Edge updater task MicrosoftEdgeUpdateTaskMachineUA not present.'
+
+      if (Test-Path $edge_update_exe) {
+        Start-Process -FilePath $edge_update_exe -ArgumentList '/silent', '/install', 'appguid={56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}&appname=Microsoft%20Edge&needsadmin=True' -WindowStyle Hidden -ErrorAction SilentlyContinue
       }
-      Write-Host 'Sleeping for 120 seconds.'
-      Start-Sleep -s 120
+    }
+
+    while ((Get-Item $edge_path).LastWriteTime -lt (Get-Date).AddMonths(-1) -and
+           (Get-Item $edge_path).VersionInfo.ProductVersion -eq $initial_version -and
+           (Get-Item $edge_path).LastWriteTime -eq $initial_write_time) {
+      if ($attempts -ge 12) {
+        Write-Host 'Microsoft Edge updater did not update within 3 minutes; continuing build.'
+        break
+      }
+      if ($attempts -ge 4) {
+        $active_updaters = Get-Process -Name 'MicrosoftEdgeUpdate', 'setup' -ErrorAction SilentlyContinue |
+          Where-Object { $_.Path -like '*\Microsoft\Edge*' }
+        if (-not $active_updaters) {
+          Write-Host 'Microsoft Edge updater processes have exited without updating; continuing build.'
+          break
+        }
+      }
+      Write-Host 'Sleeping for 15 seconds.'
+      Start-Sleep -s 15
       $attempts++
     }
-    Write-Host "Microsoft Edge updater completed; version found: $((Get-Item $edge_path).VersionInfo.ProductVersion)"
+    Write-Host "Microsoft Edge updater finished; version found: $((Get-Item $edge_path).VersionInfo.ProductVersion)"
+  }
+
+  if (Test-Path $script:components_path) {
+    New-Item -Path $edge_marker -ItemType File -Force | Out-Null
   }
 }
 
