@@ -37,7 +37,7 @@
       "Description": "The GCS url that the sbom file exported to."
     },
     "google_cloud_repo": {
-      "Value": "stable",
+      "Value": "global",
       "Description": "The Google Cloud Repo branch to use."
     },
     "workflow_root": {

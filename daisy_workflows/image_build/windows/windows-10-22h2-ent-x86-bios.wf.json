@@ -26,7 +26,7 @@
         "Description": "Desired image family of the output image."
       },
       "google_cloud_repo": {
-        "Value": "stable",
+        "Value": "global",
         "Description": "Google Cloud repo to retrieve packages from during the build."
       },
       "name": {
