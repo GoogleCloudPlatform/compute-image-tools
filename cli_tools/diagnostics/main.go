@@ -20,7 +20,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -138,7 +137,7 @@ func moveZipFile(path string) (string, error) {
 
 func main() {
 	var err error
-	tmpFolder, err = ioutil.TempDir("", "diagnostics")
+	tmpFolder, err = os.MkdirTemp("", "diagnostics")
 	if err != nil {
 		log.Fatal("Error creating a temporary folder. Exiting")
 	}
