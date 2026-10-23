@@ -691,9 +691,9 @@ function Register-XamlPackagesOnFirstLogon {
       Registers core XAML system packages on first user logon for Windows Server 2025 / Windows 11 24H2+.
     .DESCRIPTION
       Works around Microsoft KB5072911 and the Windows Server 2025 SYSTEM-context Sysprep known issue
-      (b/512591047) where MicrosoftWindows.Client.CBS, Microsoft.UI.Xaml.CBS, and
-      MicrosoftWindows.Client.Core fail to register in time on first RDP logon, causing explorer.exe
-      to crash with 0xc0000409 and resulting in a black screen.
+      (b/512591047) where Microsoft.UI.Xaml.CBS, MicrosoftWindows.Client.Core, and
+      MicrosoftWindows.Client.CBS fail to register in time on first RDP logon, causing sihost.exe /
+      explorer.exe to fail XAML initialization and resulting in a black screen.
   #>
   $cbs_manifest = 'C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\AppxManifest.xml'
   if ([System.Environment]::OSVersion.Version.Build -lt 26100 -or -not (Test-Path $cbs_manifest)) {
@@ -703,32 +703,84 @@ function Register-XamlPackagesOnFirstLogon {
   Write-Host 'Configuring first-logon XAML AppX package registration workaround.'
   $xaml_script_path = "$env:windir\System32\gce_register_xaml_packages.ps1"
   $xaml_script_content = @'
-Remove-ItemProperty -Path 'HKCU:\Environment' -Name 'UserInitMprLogonScript' -ErrorAction SilentlyContinue
-$packages = @(
-  'C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\AppxManifest.xml',
-  'C:\Windows\SystemApps\Microsoft.UI.Xaml.CBS_8wekyb3d8bbwe\AppxManifest.xml',
-  'C:\Windows\SystemApps\MicrosoftWindows.Client.Core_cw5n1h2txyewy\AppxManifest.xml'
-)
-foreach ($manifest in $packages) {
-  if (Test-Path $manifest) {
-    Add-AppxPackage -Register -Path $manifest -DisableDevelopmentMode -ErrorAction SilentlyContinue
+$mutex = New-Object System.Threading.Mutex($false, 'Local\GCEWindowsXamlRegistrationMutex')
+$hasHandle = $false
+try {
+  try {
+    $hasHandle = $mutex.WaitOne(60000)
+  } catch [System.Threading.AbandonedMutexException] {
+    $hasHandle = $true
   }
-}
-$sessionId = (Get-Process -Id $PID).SessionId
-if (-not (Get-Process -Name explorer -ErrorAction SilentlyContinue | Where-Object { $_.SessionId -eq $sessionId })) {
-  Start-Process explorer.exe
+
+  Remove-ItemProperty -Path 'HKCU:\Environment' -Name 'UserInitMprLogonScript' -ErrorAction SilentlyContinue
+  $markerPath = 'HKCU:\Software\Google\ComputeEngine\XamlRegistration'
+  if ((Get-ItemPropertyValue -Path $markerPath -Name 'Completed' -ErrorAction SilentlyContinue) -eq 1) {
+    exit 0
+  }
+
+  # Register in strict dependency order: UI.Xaml.CBS and Client.Core before Client.CBS and shell hosts.
+  $packages = @(
+    'C:\Windows\SystemApps\Microsoft.UI.Xaml.CBS_8wekyb3d8bbwe\AppxManifest.xml',
+    'C:\Windows\SystemApps\MicrosoftWindows.Client.Core_cw5n1h2txyewy\AppxManifest.xml',
+    'C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\AppxManifest.xml',
+    'C:\Windows\SystemApps\ShellExperienceHost_cw5n1h2txyewy\AppxManifest.xml',
+    'C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\AppxManifest.xml'
+  )
+  for ($attempt = 1; $attempt -le 3; $attempt++) {
+    foreach ($manifest in $packages) {
+      if (Test-Path $manifest) {
+        Add-AppxPackage -Register -Path $manifest -DisableDevelopmentMode -ErrorAction SilentlyContinue
+      }
+    }
+    if (Get-AppxPackage -Name 'MicrosoftWindows.Client.CBS' -ErrorAction SilentlyContinue) {
+      break
+    }
+    Start-Sleep -Seconds 1
+  }
+
+  New-Item -Path $markerPath -Force | Out-Null
+  New-ItemProperty -Path $markerPath -Name 'Completed' -Value 1 -PropertyType DWord -Force | Out-Null
+
+  # Restart sihost.exe and explorer.exe in the current user session so the desktop shell
+  # re-initializes cleanly with the newly registered XAML packages.
+  $sessionId = (Get-Process -Id $PID).SessionId
+  Get-Process -Name sihost, explorer -ErrorAction SilentlyContinue |
+    Where-Object { $_.SessionId -eq $sessionId } |
+    Stop-Process -Force -ErrorAction SilentlyContinue
+  Start-Sleep -Seconds 1
+  if (-not (Get-Process -Name explorer -ErrorAction SilentlyContinue | Where-Object { $_.SessionId -eq $sessionId })) {
+    Start-Process explorer.exe
+  }
+} finally {
+  if ($hasHandle) {
+    $mutex.ReleaseMutex()
+  }
+  $mutex.Dispose()
 }
 '@
   Set-Content -Path $xaml_script_path -Value $xaml_script_content -Encoding ASCII -Force
   $stub_cmd = "powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File $xaml_script_path"
 
-  # Configure Active Setup so explorer.exe runs registration synchronously before shell UI initialization.
+  # Configure Active Setup and HKLM Run so registration executes on first user logon even if
+  # explorer.exe crashes before processing RunOnce.
   $active_setup_path = 'HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\GCEWindowsXamlRegistration'
   New-Item -Path $active_setup_path -Force | Out-Null
   New-ItemProperty -Path $active_setup_path -Name '(Default)' -Value 'GCE Windows XAML Package Registration' -PropertyType String -Force | Out-Null
   New-ItemProperty -Path $active_setup_path -Name 'StubPath' -Value $stub_cmd -PropertyType String -Force | Out-Null
   New-ItemProperty -Path $active_setup_path -Name 'Version' -Value '1,0,0,0' -PropertyType String -Force | Out-Null
   New-ItemProperty -Path $active_setup_path -Name 'IsInstalled' -Value 1 -PropertyType DWord -Force | Out-Null
+
+  New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -Name 'GCEWindowsXamlRegistration' -Value $stub_cmd -PropertyType String -Force | Out-Null
+
+  # Register a Scheduled Task triggered AtLogOn so the Task Scheduler service runs the registration
+  # in the user's session even if explorer.exe crashes before reaching Active Setup or Run keys.
+  $task_action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File $xaml_script_path"
+  $task_trigger = New-ScheduledTaskTrigger -AtLogOn
+  $task_settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 5)
+  $admin_principal = New-ScheduledTaskPrincipal -GroupId 'S-1-5-32-544' -RunLevel Highest
+  Register-ScheduledTask -TaskName 'GCEWindowsXamlRegistrationAdmin' -Action $task_action -Trigger $task_trigger -Principal $admin_principal -Settings $task_settings -Force | Out-Null
+  $user_principal = New-ScheduledTaskPrincipal -GroupId 'S-1-5-32-545' -RunLevel Limited
+  Register-ScheduledTask -TaskName 'GCEWindowsXamlRegistrationUser' -Action $task_action -Trigger $task_trigger -Principal $user_principal -Settings $task_settings -Force | Out-Null
 
   # Configure Default User Environment\UserInitMprLogonScript (launched by userinit.exe even if explorer.exe
   # crashes early) and RunOnce so new user profiles always register the XAML packages on first logon.
