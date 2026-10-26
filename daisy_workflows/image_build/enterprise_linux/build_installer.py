@@ -44,7 +44,7 @@ def main():
   release = utils.GetMetadataAttribute('el_release', raise_on_not_found=True)
   savelogs = utils.GetMetadataAttribute('el_savelogs') == 'true'
   google_cloud_repo = utils.GetMetadataAttribute(
-      'google_cloud_repo', default_value='stable').lower()
+      'google_cloud_repo', default_value='global').lower()
   if google_cloud_repo not in (
       'canary',
       'global',

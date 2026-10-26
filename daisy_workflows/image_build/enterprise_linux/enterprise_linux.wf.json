@@ -23,7 +23,7 @@
       "Description": "Save anaconda logs to the image (useful for debugging)."
     },
     "google_cloud_repo": {
-      "Value": "stable",
+      "Value": "global",
       "Description": "The Google Cloud Repo branch to use."
     },
     "installer_iso": {
