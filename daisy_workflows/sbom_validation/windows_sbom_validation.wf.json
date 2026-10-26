@@ -20,7 +20,7 @@
       "Description": "GCS or local path to Cloud SDK installer"
     },
     "google_cloud_repo": {
-      "Value": "stable",
+      "Value": "global",
       "Description": "Google Cloud repo to retrieve packages from during the build."
     },
     "drivers_bucket": {

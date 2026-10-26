@@ -40,7 +40,7 @@
       "Description": "Name of the disk to install windows to"
     },
     "google_cloud_repo": {
-      "Value": "stable",
+      "Value": "global",
       "Description": "Cloud repo to use during the build"
     },
     "updates": {

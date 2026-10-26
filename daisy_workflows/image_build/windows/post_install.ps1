@@ -640,6 +640,27 @@ function Set-Repos {
   Write-Host 'Setting GooGet repos to stable.'
   Remove-Item 'C:\ProgramData\GooGet\repos' -Recurse -Force
   Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' addrepo 'google-compute-engine-stable' 'https://packages.cloud.google.com/yuck/repos/google-compute-engine-stable'
+  if ($LASTEXITCODE -ne 0) {
+    throw "googet addrepo failed with exit code $LASTEXITCODE"
+  }
+  # Check that no non-stable repos are configured.
+  if (Select-String -Path 'C:\ProgramData\GooGet\repos\*.repo' -Pattern 'google-compute-engine-(canary|global|staging|unstable)(\s|$)' -Quiet) {
+    throw 'GooGet repos still reference a non-stable google-compute-engine repo'
+  }
+  # Check that the stable repo is configured.
+  $stable_repo = 'C:\ProgramData\GooGet\repos\google-compute-engine-stable.repo'
+  if (-not (Test-Path $stable_repo) -or -not (Select-String -Path $stable_repo -Pattern 'https://packages\.cloud\.google\.com/yuck/repos/google-compute-engine-stable(\s|$)' -Quiet)) {
+    throw 'google-compute-engine-stable GooGet repo is not configured'
+  }
+  # Verify the configured repo is reachable. Repo caches are removed below.
+  $out = Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' available googet
+  if ($LASTEXITCODE -ne 0 -or ($out | Out-String) -match 'ERROR:') {
+    throw "Failed to verify google-compute-engine-stable GooGet repo reachability (exit code $LASTEXITCODE): $out"
+  }
+  Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' clean
+  if ($LASTEXITCODE -ne 0) {
+    throw "googet clean failed with exit code $LASTEXITCODE"
+  }
 }
 
 function Optimize-Image {
@@ -870,8 +891,8 @@ try {
   # Install x64 Application Packages
   if (!$script:x86) {
     Install-GCEAppPackages
-    Set-Repos
   }
+  Set-Repos
 
   Enable-WinRM
   Generate-NativeImage
