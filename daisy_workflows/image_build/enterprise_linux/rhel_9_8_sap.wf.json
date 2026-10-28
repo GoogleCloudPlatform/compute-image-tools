@@ -6,7 +6,7 @@
       "Description": "This file is Generated. Do not edit manually. Modify and run the generator script(write_image_build_workflow.py) instead. This variable is unused as a workaround to Daisy Workflow's lack of support for file-level comments."
     },
     "google_cloud_repo": {
-      "Value": "global",
+      "Value": "stable",
       "Description": "The Google Cloud Repo branch to use."
     },
     "installer_iso": {

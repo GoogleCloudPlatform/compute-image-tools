@@ -218,7 +218,7 @@ def generate_workflow_file(
                 ),
             },
             "google_cloud_repo": {
-                "Value": "global",
+                "Value": "stable",
                 "Description": "The Google Cloud Repo branch to use.",
             },
             "installer_iso": {
