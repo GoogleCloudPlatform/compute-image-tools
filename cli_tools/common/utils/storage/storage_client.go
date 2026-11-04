@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"regexp"
@@ -218,7 +217,7 @@ func (sc *Client) GetGcsFileContent(gcsObject *storage.ObjectHandle) ([]byte, er
 	if err != nil {
 		return nil, daisy.Errf("Error getting Cloud Storage file content: %v", err)
 	}
-	return ioutil.ReadAll(reader)
+	return io.ReadAll(reader)
 }
 
 // WriteToGCS writes content from a reader to destination bucket and path
