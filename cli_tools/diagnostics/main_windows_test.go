@@ -16,7 +16,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -38,7 +37,7 @@ func TestGetDockerImagesList(t *testing.T) {
 	errCh := make(chan error)
 	// Test setup: create temp folder for test, clean it up afterwards
 	var err error
-	tmpFolder, err = ioutil.TempDir("", "getDockerImagesListTest")
+	tmpFolder, err = os.MkdirTemp("", "getDockerImagesListTest")
 	if err != nil {
 		t.Errorf("Error creating a temporary test folder:\n%v", err.Error())
 	}
@@ -72,11 +71,11 @@ func TestGatherRDPSettings(t *testing.T) {
 
 	// Copy the rdp_status.ps1 over to temp test build folder for execution
 	rdpScriptFilePath := filepath.Join(tmpFolder, rdpScriptFileName)
-	input, err := ioutil.ReadFile(rdpScriptFileName)
+	input, err := os.ReadFile(rdpScriptFileName)
 	if err != nil {
 		t.Errorf("Error loading the rdp_status.ps1 file:\n%v", err.Error())
 	}
-	ioutil.WriteFile(rdpScriptFilePath, input, 0644)
+	os.WriteFile(rdpScriptFilePath, input, 0644)
 
 	t.Run("Gathers Expected RDP Status File", func(t *testing.T) {
 		go gatherRDPSettings(logFolderCh, errCh)
@@ -108,7 +107,7 @@ func fileNonExist(e error) bool {
 func TestGetPlainEventLogs(t *testing.T) {
 	// Test setup: create temp test folder for test, clean it up afterwards
 	var err error
-	tmpFolder, err = ioutil.TempDir("", "getPlainEventLogsTest")
+	tmpFolder, err = os.MkdirTemp("", "getPlainEventLogsTest")
 	if err != nil {
 		t.Errorf("Error creating a temporary test folder:\n%v", err.Error())
 	}
@@ -176,7 +175,7 @@ func TestGetPlainEventLogs(t *testing.T) {
 func TestCollectFilePaths(t *testing.T) {
 	// Test setup: create dummy test folder and file for test, clean it up afterwards
 	dir := os.TempDir()
-	testRoot, err := ioutil.TempDir("", "collectFilePathsTest")
+	testRoot, err := os.MkdirTemp("", "collectFilePathsTest")
 	if err != nil {
 		t.Errorf("Error creating a temporary test folder:\n%v", err.Error())
 	}

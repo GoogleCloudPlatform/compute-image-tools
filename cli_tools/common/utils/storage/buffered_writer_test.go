@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -198,7 +197,7 @@ func TestUploadErrorWhenInvalidFile(t *testing.T) {
 	cleanupBufferedWriter(buf, cancel)
 	err := w.Close()
 	assert.Nil(t, err)
-	out, _ := ioutil.ReadAll(r)
+	out, _ := io.ReadAll(r)
 	assert.Contains(t, string(out), "no such file or directory")
 }
 
@@ -225,7 +224,7 @@ func TestUploadErrorWhenCopyError(t *testing.T) {
 	cleanupBufferedWriter(buf, cancel)
 	err := w.Close()
 	assert.Nil(t, err)
-	out, _ := ioutil.ReadAll(r)
+	out, _ := io.ReadAll(r)
 	assert.Contains(t, string(out), "read //: is a directory")
 }
 
@@ -297,7 +296,7 @@ func TestCopyObjectWhenOneChunk(t *testing.T) {
 	defer mockCtrl.Finish()
 	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
 	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
-	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard, nil}).AnyTimes()
+	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{io.Discard, nil}).AnyTimes()
 
 	mockStorageObject.EXPECT().ObjectName().Return("").AnyTimes()
 	mockStorageObject.EXPECT().CopyFrom(gomock.Any()).Return(nil, nil).AnyTimes()
@@ -322,7 +321,7 @@ func TestCopyObjectWithMultipleIterations(t *testing.T) {
 	defer mockCtrl.Finish()
 	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
 	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
-	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard, nil}).AnyTimes()
+	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{io.Discard, nil}).AnyTimes()
 
 	mockStorageObject.EXPECT().ObjectName().Return("").Times(2)
 	mockStorageObject.EXPECT().Compose(gomock.Any()).Return(nil, nil).Times(2)
@@ -358,7 +357,7 @@ func TestErrorWhenCopyFails(t *testing.T) {
 	defer mockCtrl.Finish()
 	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
 	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
-	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard, nil}).AnyTimes()
+	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{io.Discard, nil}).AnyTimes()
 	mockStorageObject.EXPECT().ObjectName().Return("").AnyTimes()
 	mockStorageObject.EXPECT().CopyFrom(gomock.Any()).Return(nil, fmt.Errorf("Fail to copy")).AnyTimes()
 
@@ -383,7 +382,7 @@ func TestErrorWhenComposeFails(t *testing.T) {
 	defer mockCtrl.Finish()
 	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
 	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
-	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard, nil}).AnyTimes()
+	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{io.Discard, nil}).AnyTimes()
 
 	mockStorageObject.EXPECT().ObjectName().Return("").AnyTimes()
 	mockStorageObject.EXPECT().CopyFrom(gomock.Any()).Return(nil, nil).AnyTimes()
@@ -440,7 +439,7 @@ func runTestAssertOutputContainsKeyword(f func(), t *testing.T, keyword string) 
 
 	// Restore the original output
 	w.Close()
-	output, _ := ioutil.ReadAll(r)
+	output, _ := io.ReadAll(r)
 	os.Stdout = rescueStdout
 
 	assert.True(t, strings.Contains(string(output), keyword))
@@ -452,7 +451,7 @@ func mockNewBufferedWriterWithError(t *testing.T, errorMsg string) {
 	defer mockCtrl.Finish()
 	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
 	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
-	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard, &googleapi.Error{Code: 403, Message: errorMsg}}).AnyTimes()
+	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{io.Discard, &googleapi.Error{Code: 403, Message: errorMsg}}).AnyTimes()
 	mockStorageObject.EXPECT().ObjectName().Return("").AnyTimes()
 	mockStorageObject.EXPECT().CopyFrom(gomock.Any()).Return(nil, nil).AnyTimes()
 	mockStorageObject.EXPECT().Compose(gomock.Any()).Return(nil, nil).AnyTimes()
@@ -497,7 +496,7 @@ func TestClientErrorWhenUploadFailed(t *testing.T) {
 	cleanupBufferedWriter(buf, cancel)
 	err := w.Close()
 	assert.Nil(t, err)
-	out, _ := ioutil.ReadAll(r)
+	out, _ := io.ReadAll(r)
 	assert.Contains(t, string(out), "Cannot create client")
 }
 
