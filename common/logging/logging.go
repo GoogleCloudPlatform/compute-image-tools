@@ -47,7 +47,7 @@ func (l goLogToDaisyLog) WriteSerialPortLogsToCloudLogging(w *daisy.Workflow, in
 }
 
 func (l goLogToDaisyLog) WriteLogEntry(e *daisy.LogEntry) {
-	l.logger.Printf(e.Message)
+	l.logger.Print(e.Message)
 }
 
 func (l goLogToDaisyLog) ReadSerialPortLogs() []string {
