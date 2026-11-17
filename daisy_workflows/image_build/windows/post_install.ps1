@@ -262,10 +262,24 @@ function Install-DeferredUpdates {
     }
     $path = "$script:components_path\updates\$name"
     Write-Host "Install-DeferredUpdates: Installing $name online."
-    $result = Add-WindowsPackage -Online -PackagePath $path -NoRestart -ErrorAction Stop
+    if ([System.IO.Path]::GetExtension($path) -eq '.msu') {
+      # Older DISM versions (e.g. Windows Server 2019) cannot service .msu
+      # packages with /Online, so use the Windows Update Standalone Installer.
+      $wusa = Start-Process -FilePath "$env:windir\System32\wusa.exe" -ArgumentList "`"$path`"", '/quiet', '/norestart' -Wait -PassThru
+      switch ($wusa.ExitCode) {
+        0 { $needs_restart = $false }
+        3010 { $needs_restart = $true }  # ERROR_SUCCESS_REBOOT_REQUIRED
+        2359302 { $needs_restart = $false }  # 0x240006 WU_S_ALREADY_INSTALLED
+        default { throw "wusa.exe failed to install $name with exit code $($wusa.ExitCode)." }
+      }
+    }
+    else {
+      $result = Add-WindowsPackage -Online -PackagePath $path -NoRestart -ErrorAction Stop
+      $needs_restart = [bool]$result.RestartNeeded
+    }
     New-Item -Path $marker -ItemType File -Force | Out-Null
-    Write-Host "Install-DeferredUpdates: Installed $name, restart needed: $($result.RestartNeeded)."
-    if ($result.RestartNeeded) {
+    Write-Host "Install-DeferredUpdates: Installed $name, restart needed: $needs_restart."
+    if ($needs_restart) {
       $restart_needed = $true
     }
   }
