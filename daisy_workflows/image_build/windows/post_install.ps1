@@ -237,6 +237,41 @@ function Install-WindowsUpdates {
   return $true
 }
 
+function Install-DeferredUpdates {
+  <#
+    .SYNOPSIS
+      Installs updates that bootstrap_install.ps1 could not slipstream offline.
+    .DESCRIPTION
+      Some updates need a newer servicing stack than the offline install media
+      has (0x800f0823), e.g. the Windows Server 2019 out-of-band update KB5136490
+      (b/585233711). bootstrap_install.ps1 lists them in deferred_updates.txt and
+      they are installed here, online, after Install-WindowsUpdates has updated
+      the servicing stack. Returns true if a restart is required.
+  #>
+  $deferred_list = "$script:components_path\deferred_updates.txt"
+  if (-not (Test-Path $deferred_list)) {
+    return $false
+  }
+
+  $restart_needed = $false
+  foreach ($name in (Get-Content $deferred_list | Where-Object { $_.Trim() })) {
+    $marker = "$script:components_path\deferred_${name}.installed"
+    if (Test-Path $marker) {
+      Write-Host "Install-DeferredUpdates: $name already installed, skipping."
+      continue
+    }
+    $path = "$script:components_path\updates\$name"
+    Write-Host "Install-DeferredUpdates: Installing $name online."
+    $result = Add-WindowsPackage -Online -PackagePath $path -NoRestart -ErrorAction Stop
+    New-Item -Path $marker -ItemType File -Force | Out-Null
+    Write-Host "Install-DeferredUpdates: Installed $name, restart needed: $($result.RestartNeeded)."
+    if ($result.RestartNeeded) {
+      $restart_needed = $true
+    }
+  }
+  return $restart_needed
+}
+
 function Install-NetFrameworkCore {
   <#
     .SYNOPSIS
@@ -877,6 +912,11 @@ try {
   }
   if (Reboot-Required) {
     Write-Host 'Reboot-Required returned true, rebooting.'
+    shutdown /r /t 00
+    exit
+  }
+  if (Install-DeferredUpdates) {
+    Write-Host 'Install-DeferredUpdates installed updates, rebooting.'
     shutdown /r /t 00
     exit
   }

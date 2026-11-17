@@ -227,6 +227,7 @@ function Bootstrap-InstallDisk {
     Write-Output 'Slipstreaming updates into image in alphabetical order.'
     Get-ChildItem $script:updates_dir | ForEach-Object {
       Write-Output "Slipstreaming '$($_.Name)' into image."
+      $update_name = $_.Name
       $path = $_.FullName
       for ($i=1; $i -le $slipstream_max_attemps; $i++) {
         try {
@@ -235,6 +236,15 @@ function Bootstrap-InstallDisk {
           break
         }
         catch {
+          # 0x800f0823 (CBS_E_NEW_SERVICING_STACK_REQUIRED): the offline image's
+          # servicing stack is too old for this package. Defer it so that
+          # post_install.ps1 installs it online once Windows Update has updated
+          # the servicing stack (b/585233711).
+          if ($_.Exception.HResult -eq -2146498525 -or $_.Exception.Message -match '0x800f0823') {
+            Write-Output "Update $path requires a newer servicing stack (0x800f0823), deferring it to post install."
+            Add-Content -Path $script:deferred_updates_file -Value $update_name
+            break
+          }
           Write-Output "Failed to slipstream update $path on attempt $i of $slipstream_max_attemps attempts."
 
           if ($i -eq 3) {
@@ -331,6 +341,9 @@ try {
   $script:sbom_dir = 'C:\sbomcomponents'
   $script:components_dir = "$script:sbom_dir\components"
   $script:updates_dir = "$script:components_dir\updates"
+  # Updates that need a newer servicing stack than the offline image has are
+  # listed here and installed online by post_install.ps1.
+  $script:deferred_updates_file = "$script:components_dir\deferred_updates.txt"
   $script:driver_dir = "$script:components_dir\drivers"
   New-Item $script:sbom_dir -Type directory
   New-Item $script:updates_dir -Type directory
