@@ -16,7 +16,7 @@ package assert
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 	"testing"
 
@@ -103,9 +103,9 @@ func TestContains(t *testing.T) {
 }
 
 func TestDirectoryExists(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "")
+	tmpDir, err := os.MkdirTemp("", "")
 	assert.NoError(t, err)
-	tmpFileObj, err := ioutil.TempFile("", "*.txt")
+	tmpFileObj, err := os.CreateTemp("", "*.txt")
 	assert.NoError(t, err)
 	tmpFile := tmpFileObj.Name()
 	tests := []struct {
