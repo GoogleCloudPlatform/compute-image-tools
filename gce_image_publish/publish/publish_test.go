@@ -16,6 +16,7 @@ package publish
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -1197,7 +1198,6 @@ func TestCreateDirectPublishErrors(t *testing.T) {
 		{"multiple images", &Publish{PublishProject: "pub-project", SourceProject: "source-project", Images: []*Image{{Prefix: "prefix", Family: "family"}, {Prefix: "prefix", Family: "family"}}}},
 		{"empty image prefix", &Publish{PublishProject: "pub-project", SourceProject: "source-project", Images: []*Image{{Family: "family"}}}},
 		{"empty image family", &Publish{PublishProject: "pub-project", SourceProject: "source-project", Images: []*Image{{Prefix: "prefix"}}}},
-		{"empty work project", &Publish{PublishProject: "pub-project", SourceProject: "source-project", Images: []*Image{{Prefix: "prefix", Family: "family"}}}},
 		{"invalid delete after", &Publish{PublishProject: "pub-project", SourceProject: "source-project", WorkProject: "work-project", DeleteAfter: "invalid-duration", Images: []*Image{{Prefix: "prefix", Family: "family"}}}},
 	}
 	for _, tt := range tests {
@@ -1207,6 +1207,69 @@ func TestCreateDirectPublishErrors(t *testing.T) {
 				t.Errorf("CreateDirectPublish() with %s: expected error, got nil", tt.name)
 			}
 		})
+	}
+}
+
+// fakeGCEMetadata is a gceMetadata with fixed answers.
+type fakeGCEMetadata struct {
+	onGCE     bool
+	projectID string
+	err       error
+}
+
+func (f fakeGCEMetadata) OnGCE() bool {
+	return f.onGCE
+}
+
+func (f fakeGCEMetadata) ProjectID(context.Context) (string, error) {
+	return f.projectID, f.err
+}
+
+func directPublishWithWorkProject(workProject string) *Publish {
+	return &Publish{
+		WorkProject:    workProject,
+		SourceProject:  "source-project",
+		PublishProject: "publish-project",
+		Images:         []*Image{{Prefix: "prefix", Family: "family"}},
+	}
+}
+
+func TestCreateDirectPublishTakesEmptyWorkProjectFromMetadata(t *testing.T) {
+	md := fakeGCEMetadata{onGCE: true, projectID: "metadata-project"}
+	got, err := createDirectPublish("sv", "pv", directPublishWithWorkProject(""), md)
+	if err != nil {
+		t.Fatalf("createDirectPublish() got unexpected error: %v", err)
+	}
+	if got.WorkProject != "metadata-project" {
+		t.Errorf("createDirectPublish().WorkProject = %q, want %q", got.WorkProject, "metadata-project")
+	}
+}
+
+func TestCreateDirectPublishPreservesExistingWorkProject(t *testing.T) {
+	md := fakeGCEMetadata{onGCE: true, projectID: "metadata-project"}
+	got, err := createDirectPublish("sv", "pv", directPublishWithWorkProject("work-project"), md)
+	if err != nil {
+		t.Fatalf("createDirectPublish() got unexpected error: %v", err)
+	}
+	if got.WorkProject != "work-project" {
+		t.Errorf("createDirectPublish().WorkProject = %q, want %q", got.WorkProject, "work-project")
+	}
+}
+
+func TestCreateDirectPublishEmptyWorkProjectOffGCEFails(t *testing.T) {
+	md := fakeGCEMetadata{onGCE: false}
+	_, err := createDirectPublish("sv", "pv", directPublishWithWorkProject(""), md)
+	if err == nil {
+		t.Error("createDirectPublish() with empty work project off GCE: got nil error, want an error")
+	}
+}
+
+func TestCreateDirectPublishReturnsMetadataError(t *testing.T) {
+	wantErr := errors.New("metadata server unavailable")
+	md := fakeGCEMetadata{onGCE: true, err: wantErr}
+	_, err := createDirectPublish("sv", "pv", directPublishWithWorkProject(""), md)
+	if !errors.Is(err, wantErr) {
+		t.Errorf("createDirectPublish() error = %v, want %v", err, wantErr)
 	}
 }
 

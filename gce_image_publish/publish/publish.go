@@ -146,8 +146,29 @@ func CreatePublishWithTemplate(sourceVersion, publishVersion, workProject, publi
 	return createPublish(sourceVersion, publishVersion, workProject, publishProject, sourceGCS, sourceProject, ce, template, varMap, imagesCache)
 }
 
+// gceMetadata tells whether the process runs on a GCE VM and in which project.
+type gceMetadata interface {
+	OnGCE() bool
+	ProjectID(ctx context.Context) (string, error)
+}
+
+// hostMetadata is the gceMetadata of the host that runs this process.
+type hostMetadata struct{}
+
+func (hostMetadata) OnGCE() bool {
+	return metadata.OnGCE()
+}
+
+func (hostMetadata) ProjectID(ctx context.Context) (string, error) {
+	return metadata.ProjectIDWithContext(ctx)
+}
+
 // CreateDirectPublish validates a publish object created directly from CLI parameters.
 func CreateDirectPublish(sourceVersion, publishVersion string, p *Publish) (*Publish, error) {
+	return createDirectPublish(sourceVersion, publishVersion, p, hostMetadata{})
+}
+
+func createDirectPublish(sourceVersion, publishVersion string, p *Publish, md gceMetadata) (*Publish, error) {
 	if p == nil {
 		return nil, fmt.Errorf("publish must be set with -direct_publish")
 	}
@@ -181,9 +202,9 @@ func CreateDirectPublish(sourceVersion, publishVersion string, p *Publish) (*Pub
 	}
 	p.SetVersions(sourceVersion, publishVersion)
 	if p.WorkProject == "" {
-		if metadata.OnGCE() {
+		if md.OnGCE() {
 			var err error
-			p.WorkProject, err = metadata.ProjectIDWithContext(context.Background())
+			p.WorkProject, err = md.ProjectID(context.Background())
 			if err != nil {
 				return nil, err
 			}
