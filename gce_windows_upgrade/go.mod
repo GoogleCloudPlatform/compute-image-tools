@@ -7,7 +7,7 @@ require (
 	github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0
 	github.com/golang/mock v1.6.0
 	github.com/stretchr/testify v1.12.1
-	google.golang.org/api v0.312.0
+	google.golang.org/api v0.315.0
 )
 
 require (
