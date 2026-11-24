@@ -15,7 +15,9 @@
 package storage
 
 import (
+	"archive/tar"
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -174,4 +176,107 @@ func TestExtractTarToGcsErrorIfDirPresentInTar(t *testing.T) {
 	err := tge.ExtractTarToGcs("gs://sourcebucket/sourcepath/sometar.tar", "gs://destbucket/destpath/")
 
 	assert.NotNil(t, err)
+}
+
+// buildTar returns an in-memory tar archive containing one regular file per name.
+func buildTar(t *testing.T, names ...string) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+	for _, name := range names {
+		content := []byte("content of " + name)
+		if err := tw.WriteHeader(&tar.Header{Name: name, Typeflag: tar.TypeReg, Mode: 0600, Size: int64(len(content))}); err != nil {
+			t.Fatalf("WriteHeader(%q) failed: %v", name, err)
+		}
+		if _, err := tw.Write(content); err != nil {
+			t.Fatalf("Write(%q) failed: %v", name, err)
+		}
+	}
+	if err := tw.Close(); err != nil {
+		t.Fatalf("tar Close() failed: %v", err)
+	}
+	return buf.Bytes()
+}
+
+func newExtractorForTar(mockCtrl *gomock.Controller, tarBytes []byte) (*TarGcsExtractor, *mocks.MockStorageClientInterface) {
+	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
+	mockStorageObject.EXPECT().NewReader().Return(ioutil.NopCloser(bytes.NewReader(tarBytes)), nil)
+
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().
+		GetObject("sourcebucket", "sourcepath/sometar.ova").
+		Return(mockStorageObject)
+
+	return &TarGcsExtractor{ctx: context.Background(), storageClient: mockStorageClient, logger: logging.NewToolLogger("[import-ovf]")}, mockStorageClient
+}
+
+func TestExtractTarToGcsAcceptsFlatAndDotSlashNames(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	tge, mockStorageClient := newExtractorForTar(mockCtrl, buildTar(t, "vm.ovf", "./disk1.vmdk", "disk..2.vmdk"))
+	gomock.InOrder(
+		mockStorageClient.EXPECT().WriteToGCS("destbucket", "destpath/vm.ovf", gomock.Any()).Return(nil),
+		mockStorageClient.EXPECT().WriteToGCS("destbucket", "destpath/disk1.vmdk", gomock.Any()).Return(nil),
+		mockStorageClient.EXPECT().WriteToGCS("destbucket", "destpath/disk..2.vmdk", gomock.Any()).Return(nil),
+	)
+
+	err := tge.ExtractTarToGcs("gs://sourcebucket/sourcepath/sometar.ova", "gs://destbucket/destpath/")
+
+	assert.Nil(t, err)
+}
+
+func TestExtractTarToGcsRejectsUnsafeMemberNames(t *testing.T) {
+	for _, name := range []string{
+		"../evil.sh",
+		"../../other-build/daisy-files/startup.sh",
+		"./../evil.sh",
+		"..",
+		".",
+		"/abs/evil.sh",
+		"sub/disk.vmdk",
+		`..\evil.sh`,
+		`sub\disk.vmdk`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			// No WriteToGCS expectation: any write fails the test.
+			tge, _ := newExtractorForTar(mockCtrl, buildTar(t, name))
+
+			err := tge.ExtractTarToGcs("gs://sourcebucket/sourcepath/sometar.ova", "gs://destbucket/destpath/")
+
+			assert.NotNil(t, err)
+		})
+	}
+}
+
+func TestExtractTarToGcsStopsBeforeWritingUnsafeMember(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	tge, mockStorageClient := newExtractorForTar(mockCtrl, buildTar(t, "vm.ovf", "../evil.sh", "disk1.vmdk"))
+	mockStorageClient.EXPECT().WriteToGCS("destbucket", "destpath/vm.ovf", gomock.Any()).Return(nil)
+
+	err := tge.ExtractTarToGcs("gs://sourcebucket/sourcepath/sometar.ova", "gs://destbucket/destpath/")
+
+	assert.NotNil(t, err)
+}
+
+func TestSafeDestinationFilePath(t *testing.T) {
+	for _, tc := range []struct {
+		destinationPath string
+		memberName      string
+		want            string
+	}{
+		{"destpath/", "vm.ovf", "destpath/vm.ovf"},
+		{"destpath", "./vm.ovf", "destpath/vm.ovf"},
+		{"a/b/ovf/", "disk 1.vmdk", "a/b/ovf/disk 1.vmdk"},
+		{"", "vm.ovf", "vm.ovf"},
+	} {
+		got, err := safeDestinationFilePath(tc.destinationPath, tc.memberName)
+		assert.Nil(t, err, fmt.Sprintf("safeDestinationFilePath(%q, %q)", tc.destinationPath, tc.memberName))
+		assert.Equal(t, tc.want, got)
+	}
 }

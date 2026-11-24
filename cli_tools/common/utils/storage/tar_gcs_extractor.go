@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"strings"
 
 	daisy "github.com/GoogleCloudPlatform/compute-daisy"
 
@@ -81,7 +82,10 @@ func (tge *TarGcsExtractor) ExtractTarToGcs(tarGcsPath string, destinationGcsPat
 			return daisy.Errf("tar subdirectories not supported")
 
 		case tar.TypeReg:
-			destinationFilePath := path.Join(destinationPath, header.Name)
+			destinationFilePath, err := safeDestinationFilePath(destinationPath, header.Name)
+			if err != nil {
+				return err
+			}
 			tge.logger.User(fmt.Sprintf("Extracting: %v to gs://%v", header.Name, path.Join(destinationBucketName, destinationFilePath)))
 
 			if err := tge.storageClient.WriteToGCS(destinationBucketName, destinationFilePath, tarReader); err != nil {
@@ -89,4 +93,23 @@ func (tge *TarGcsExtractor) ExtractTarToGcs(tarGcsPath string, destinationGcsPat
 			}
 		}
 	}
+}
+
+// safeDestinationFilePath returns the object path for tar member memberName
+// under destinationPath. OVA packages are flat, and the OVF importer only
+// resolves files at the top level of the extraction directory, so a member
+// name is rejected if it is empty, absolute, contains a path separator, or
+// refers to "." or "..". This prevents an archive from writing objects
+// outside destinationPath (CWE-22).
+func safeDestinationFilePath(destinationPath, memberName string) (string, error) {
+	name := strings.TrimPrefix(memberName, "./")
+	if name == "" || name == "." || name == ".." || strings.ContainsAny(name, `/\`) {
+		return "", daisy.Errf("invalid file name in OVA archive: %q", memberName)
+	}
+	destinationFilePath := path.Join(destinationPath, name)
+	// Defense in depth: verify the object lands directly under destinationPath.
+	if path.Dir(destinationFilePath) != path.Clean(destinationPath) {
+		return "", daisy.Errf("invalid file name in OVA archive: %q", memberName)
+	}
+	return destinationFilePath, nil
 }
