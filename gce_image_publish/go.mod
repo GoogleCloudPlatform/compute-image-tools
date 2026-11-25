@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/compute/metadata v0.10.0
 	github.com/GoogleCloudPlatform/compute-daisy v0.0.0-20261102231925-3fcd040ebac3
 	github.com/google/go-cmp v0.7.0
-	google.golang.org/api v0.312.0
+	google.golang.org/api v0.315.0
 )
 
 require (

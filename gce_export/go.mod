@@ -7,7 +7,7 @@ require (
 	github.com/dustin/go-humanize v1.1.0
 	github.com/klauspost/pgzip v1.3.0
 	golang.org/x/sys v0.50.0
-	google.golang.org/api v0.312.0
+	google.golang.org/api v0.315.0
 )
 
 require (

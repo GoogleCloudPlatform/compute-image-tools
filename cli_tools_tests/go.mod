@@ -6,7 +6,7 @@ require (
 	github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0
 	github.com/GoogleCloudPlatform/compute-image-tools/common v0.0.0
 	github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils v0.0.0
-	google.golang.org/api v0.312.0
+	google.golang.org/api v0.315.0
 )
 
 require (
