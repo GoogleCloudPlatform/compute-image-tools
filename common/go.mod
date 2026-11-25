@@ -3,7 +3,7 @@ module github.com/GoogleCloudPlatform/compute-image-tools/common
 go 1.26.0
 
 require (
-	cloud.google.com/go/storage v1.70.0
+	cloud.google.com/go/storage v1.71.0
 	github.com/GoogleCloudPlatform/compute-daisy v0.0.0-20261102231925-3fcd040ebac3
 	google.golang.org/api v0.312.0
 )

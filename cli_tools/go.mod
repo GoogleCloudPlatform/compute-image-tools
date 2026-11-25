@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	cloud.google.com/go/compute/metadata v0.10.0
-	cloud.google.com/go/storage v1.70.0
+	cloud.google.com/go/storage v1.71.0
 	github.com/GoogleCloudPlatform/compute-daisy v0.0.0-20261102231925-3fcd040ebac3
 	github.com/GoogleCloudPlatform/compute-image-tools/common v0.0.0
 	github.com/GoogleCloudPlatform/compute-image-tools/proto/go v0.0.0
